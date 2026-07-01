@@ -63,40 +63,57 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                 : 'Location permission permanently denied. App settings se allow karein.',
             isError: true,
           );
+          if (permission == LocationPermission.deniedForever) {
+            await Geolocator.openAppSettings();
+          }
           return;
         }
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+      } catch (_) {
+        position = await Geolocator.getLastKnownPosition();
+      }
       if (!mounted) return;
+
+      if (position == null) {
+        _showSnackBar('Location fetch nahi ho paya. GPS signal thodi der baad try karein.', isError: true);
+        return;
+      }
 
       _shopLatitude = position.latitude;
       _shopLongitude = position.longitude;
 
-      final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-      if (!mounted) return;
+      String fullAddress = 'Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}';
+      try {
+        final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+        if (!mounted) return;
 
-      if (placemarks.isNotEmpty) {
-        final place = placemarks[0];
-        final fullAddress = [
-          place.street,
-          place.subLocality,
-          place.locality,
-          place.administrativeArea,
-          place.postalCode,
-        ].whereType<String>().where((part) => part.isNotEmpty).join(', ');
-
-        setState(() {
-          _addressController.text = fullAddress;
-        });
-        _showSnackBar('Exact location fetch ho gayi!', isError: false);
-      } else {
-        _showSnackBar('Address resolve nahi ho paya. Phir se try karein.', isError: true);
+        if (placemarks.isNotEmpty) {
+          final place = placemarks[0];
+          fullAddress = [
+            place.street,
+            place.subLocality,
+            place.locality,
+            place.administrativeArea,
+            place.postalCode,
+          ].whereType<String>().where((part) => part.isNotEmpty).join(', ');
+        }
+      } catch (_) {
+        fullAddress = 'Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}';
       }
+
+      setState(() {
+        _addressController.text = fullAddress;
+      });
+      _showSnackBar('Location fetch ho gayi!', isError: false);
     } catch (e) {
       if (!mounted) return;
       _showSnackBar('Location nahi mil payi. Kripya apna GPS/Location on karein.', isError: true);

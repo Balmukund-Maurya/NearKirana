@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "331223738086",
+    "project_id": "kiranastorebuilder-e78dd",
+    "storage_bucket": "kiranastorebuilder-e78dd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:331223738086:android:02e73159c8c89b90727d27",
+        "android_client_info": {
+          "package_name": "com.alwayspro.kirana"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDK0ZIO84-fCu7ekfmGEn2Gh3oQOCNT6h0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'animation_helpers.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;
@@ -82,7 +84,7 @@ class AdminOrderCard extends StatelessWidget {
                       ).copyWith(letterSpacing: 1, fontSize: 12),
                     ),
                   ],
-                ),
+                ).animate(key: ValueKey(status)).popIn(),
                 Text(
                   timeStr,
                   style: AppTextStyles.captionMedium(color: AppColors.textMid),
@@ -503,7 +505,7 @@ class AdminOrderCard extends StatelessWidget {
           FirebaseFirestore.instance.collection('orders').doc(orderId).update({
             'status': nextStatus,
           });
-          SoundService().success();
+          SoundService().statusUpdated();
         }
       },
       icon: Icon(buttonIcon, size: 20),
@@ -731,7 +733,7 @@ class AdminOrderCard extends StatelessWidget {
                             }
 
                             await batch.commit();
-                            SoundService().success();
+                            SoundService().orderDelivered();
                           },
                           child: Text(
                             'Skip PIN',
@@ -793,9 +795,8 @@ class AdminOrderCard extends StatelessWidget {
                               }
                             }
 
-                            // Commit everything atomically
                             await batch.commit();
-                            SoundService().success();
+                            SoundService().orderDelivered();
                           } else {
                             HapticFeedback.heavyImpact();
                             setState(() => showError = true);
@@ -904,7 +905,7 @@ class AdminOrderCard extends StatelessWidget {
                     'delivery_boy_name': name,
                     'delivery_boy_phone': phone,
                   });
-              SoundService().success();
+              SoundService().orderDispatched();
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             style: ElevatedButton.styleFrom(

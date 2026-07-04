@@ -7,6 +7,7 @@ import 'notification_service.dart';
 import 'admin_order_card.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
+import 'animation_helpers.dart';
 
 class AdminOrdersTab extends StatefulWidget {
   const AdminOrdersTab({super.key});
@@ -144,9 +145,7 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
           itemCount: orders.length,
           itemBuilder: (context, index) {
             return AdminOrderCard(orderDoc: orders[index])
-                .animate()
-                .fadeIn(delay: Duration(milliseconds: 50 * index))
-                .slideY(begin: 0.1, end: 0);
+                .fadeSlideUp(delay: 50 * index);
           },
         );
       },
@@ -292,8 +291,7 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
           final orderDoc = _orders[index];
           
           return AdminOrderCard(orderDoc: orderDoc)
-              .animate()
-              .fadeIn(delay: Duration(milliseconds: 30 * (index % 10)));
+              .fadeSlideUp(delay: 30 * (index % 10));
         },
       ),
     );

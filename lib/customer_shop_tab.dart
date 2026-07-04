@@ -15,6 +15,7 @@ import 'sound_service.dart';
 import 'map_selection_screen.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
+import 'animation_helpers.dart';
 
 class CustomerShopTab extends StatefulWidget {
   const CustomerShopTab({super.key});
@@ -1473,11 +1474,11 @@ class _ProductGridState extends State<ProductGrid> {
             id: product.id,
             name: productData['name'] ?? '',
             price: (productData['price'] as num?)?.toDouble() ?? 0.0,
-            isLoose: productData['isLoose'] ?? false,
+            isLoose: productData['is_loose'] ?? false,
             imageUrl: productData['image_url'],
             productData: productData,
             isServiceable: widget.userProvider.isServiceable,
-          );
+          ).fadeSlideUp(delay: (index % 10) * 50);
         },
       ),
     );

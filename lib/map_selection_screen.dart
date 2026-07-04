@@ -4,6 +4,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'user_provider.dart';
 import 'modern_loader.dart';
 
@@ -25,6 +28,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   late final MapController _mapController;
   late LatLng _currentCenter;
   bool _isSatellite = false;
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
+  List<dynamic> _suggestions = [];
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -35,6 +42,43 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     if (widget.initialLat == 0.0 && widget.initialLng == 0.0) {
       _locateUser();
     }
+  }
+
+  void _searchAddress(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    if (query.trim().isEmpty) {
+      setState(() {
+        _suggestions = [];
+        _isSearching = false;
+      });
+      return;
+    }
+    
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      setState(() => _isSearching = true);
+      try {
+        // Adding lat & lon gives location bias for better local places results
+        final uri = Uri.parse('https://photon.komoot.io/api/?q=${Uri.encodeComponent(query)}&lat=${_currentCenter.latitude}&lon=${_currentCenter.longitude}&limit=8');
+        final response = await http.get(uri);
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (mounted) {
+            setState(() {
+              _suggestions = data['features'] ?? [];
+              _isSearching = false;
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() => _isSearching = false);
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSearching = false);
+        }
+      }
+    });
   }
 
   Future<void> _locateUser() async {
@@ -360,6 +404,8 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
     _mapController.dispose();
     super.dispose();
   }
@@ -390,12 +436,18 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   _currentCenter = position.center;
                 });
               },
+              onTap: (tapPosition, point) {
+                _mapController.move(point, _mapController.camera.zoom);
+                setState(() {
+                  _currentCenter = point;
+                });
+              },
             ),
             children: [
               TileLayer(
                 urlTemplate: _isSatellite
-                    ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+                    : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
                 userAgentPackageName: 'com.adityakirana.aditya_kirana',
               ),
             ],
@@ -409,39 +461,106 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               child: Icon(Icons.location_on, size: 50, color: Colors.red),
             ),
           ),
-          // Floating overlay text
+          // Search overlay
           Positioned(
-            top: 20,
-            left: 20,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    spreadRadius: 1,
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.blue),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Drag the map to pinpoint your exact delivery location.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search area, landmark or city...',
+                      hintStyle: GoogleFonts.poppins(fontSize: 14),
+                      prefixIcon: const Icon(Icons.search, color: Colors.blue),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close, size: 20),
+                              onPressed: () {
+                                _searchController.clear();
+                                _searchAddress('');
+                                FocusScope.of(context).unfocus();
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                    onChanged: (val) {
+                      setState(() {});
+                      _searchAddress(val);
+                    },
+                  ),
+                ),
+                if (_isSearching)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  ),
+                if (_suggestions.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    constraints: const BoxConstraints(maxHeight: 250),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: _suggestions.length,
+                      separatorBuilder: (ctx, i) => const Divider(height: 1),
+                      itemBuilder: (ctx, i) {
+                        final feature = _suggestions[i];
+                        final props = feature['properties'];
+                        final coords = feature['geometry']['coordinates'];
+                        
+                        String title = props['name'] ?? '';
+                        String subtitle = [
+                          props['street'], 
+                          props['locality'], 
+                          props['city'], 
+                          props['state']
+                        ].where((e) => e != null).join(', ');
+
+                        if (title.isEmpty && subtitle.isNotEmpty) {
+                          title = subtitle;
+                          subtitle = '';
+                        }
+
+                        return ListTile(
+                          leading: const Icon(Icons.location_on, color: Colors.grey),
+                          title: Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 14)),
+                          subtitle: subtitle.isNotEmpty 
+                            ? Text(subtitle, style: GoogleFonts.poppins(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis) 
+                            : null,
+                          onTap: () {
+                            FocusScope.of(context).unfocus();
+                            final lat = coords[1];
+                            final lng = coords[0];
+                            final newCenter = LatLng(lat, lng);
+                            setState(() {
+                              _currentCenter = newCenter;
+                              _suggestions = [];
+                              _searchController.text = title;
+                            });
+                            _mapController.move(newCenter, 16.0);
+                          },
+                        );
+                      },
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
           ),
           Positioned(

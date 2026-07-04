@@ -11,6 +11,11 @@ import 'app_theme.dart';
 import 'utils/snackbar_helper.dart';
 import 'api_service.dart';
 import 'modern_loader.dart';
+import 'sound_service.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'animation_helpers.dart';
+import 'package:provider/provider.dart';
+import 'shop_provider.dart';
 
 class AdminProductForms {
   static void showEditProductDialog(BuildContext context, String barcode) {
@@ -201,7 +206,7 @@ class AdminProductForms {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+                children: <Widget>[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -591,6 +596,7 @@ class AdminProductForms {
                                 return;
                               }
 
+                              final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
                               await FirestoreService().updateProduct(
                                 barcode,
                                 nameController.text,
@@ -599,9 +605,11 @@ class AdminProductForms {
                                 stock,
                                 finalImageUrl,
                                 extraData,
+                                shopId,
                               );
                               if (context.mounted) {
                                 Navigator.pop(context);
+                                SoundService().productSaved();
                                 SnackbarHelper.showSnackBar(
                                   context,
                                   'Item updated successfully!',
@@ -624,7 +632,7 @@ class AdminProductForms {
                           ),
                   ),
                   const SizedBox(height: 24),
-                ],
+                ].animate(interval: 30.ms).fade(duration: 300.ms).slideY(begin: 0.1, end: 0),
               ),
             );
           },
@@ -697,7 +705,7 @@ class AdminProductForms {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+                  children: <Widget>[
                     Text(
                       'Naya Item Jodein',
                       style: GoogleFonts.poppins(
@@ -974,6 +982,7 @@ class AdminProductForms {
                                   setState(() => isUploading = false);
                                   return;
                                 }
+                                final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
                                 await FirestoreService().addNewProduct(
                                   barcode,
                                   nameController.text,
@@ -982,9 +991,11 @@ class AdminProductForms {
                                   stock,
                                   finalImageUrl,
                                   fetchedExtraDetails,
+                                  shopId,
                                 );
                                 if (context.mounted) {
                                   Navigator.pop(context);
+                                  SoundService().productSaved();
                                   SnackbarHelper.showSnackBar(
                                     context,
                                     'Item added successfully!',
@@ -1025,7 +1036,7 @@ class AdminProductForms {
                             ),
                     ),
                     const SizedBox(height: 20),
-                  ],
+                  ].animate(interval: 30.ms).fade(duration: 300.ms).slideY(begin: 0.1, end: 0),
                 ),
             );
           },

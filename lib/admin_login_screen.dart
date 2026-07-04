@@ -10,6 +10,8 @@ import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'app_theme.dart';
 import 'shop_selector_screen.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'sound_service.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -119,6 +121,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         final currentAttempts = (prefs.getInt('admin_attempts_$shopId') ?? 0) + 1;
         await prefs.setInt('admin_attempts_$shopId', currentAttempts);
         HapticFeedback.vibrate();
+        SoundService().wrongPin();
+        if (mounted) setState(() => _hasError = true);
 
         if (currentAttempts >= 3) {
           final blockUntil = DateTime.now().add(const Duration(hours: 1));
@@ -233,7 +237,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           }
                         },
                       ),
-                    ),
+                    ).animate(target: _hasError ? 1 : 0).shakeX(duration: 400.ms),
                     const SizedBox(height: 16),
                     if (_isBlocked)
                       Container(

@@ -117,7 +117,10 @@ class _CartScreenState extends State<CartScreen> {
                     style: AppTextStyles.heading2(color: AppColors.textMid),
                   ),
                 ],
-              ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+              ).animate(onPlay: (c) => c.repeat(reverse: true))
+               .fadeIn(duration: 400.ms)
+               .slideY(begin: 0.1, end: 0)
+               .scaleXY(begin: 1.0, end: 1.05, duration: 1500.ms, curve: Curves.easeInOut),
             );
           }
 
@@ -230,7 +233,11 @@ class _CartScreenState extends State<CartScreen> {
                 _buildQtyButton(
                   icon: Icons.remove_rounded,
                   onPressed: () {
-                    HapticFeedback.lightImpact();
+                    if (quantity <= (isLoose ? 0.5 : 1.0)) {
+                      SoundService().removeFromCart();
+                    } else {
+                      HapticFeedback.lightImpact();
+                    }
                     cartProvider.updateQuantity(id, isLoose ? -0.5 : -1.0);
                   },
                 ),
@@ -296,8 +303,8 @@ class _CartScreenState extends State<CartScreen> {
     BuildContext context,
     CartProvider cartProvider,
   ) {
-    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final langProvider = Provider.of<LanguageProvider>(context);
+    final userProvider = Provider.of<UserProvider>(context);
     final double subtotal = cartProvider.cartTotal;
     // FIX-5: Use dynamic settings from Firebase instead of hardcoded values
     final bool canDeliver = subtotal >= _minOrder;
@@ -1198,6 +1205,7 @@ class _CartScreenState extends State<CartScreen> {
                                 await prefs.setString('customerName', nameController.text.trim());
                                 await prefs.setString('customerPhone', phoneController.text.trim());
 
+                                SoundService().orderSuccess();
                                 showDialog(
                                   context: context,
                                   builder: (dialogContext) => AlertDialog(

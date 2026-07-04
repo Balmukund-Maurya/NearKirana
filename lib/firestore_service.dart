@@ -29,6 +29,7 @@ class FirestoreService {
     double stockQuantity = 0.0,
     String? imageUrl,
     Map<String, dynamic>? extraDetails,
+    String? shopId,
   ]) async {
     try {
       final docRef = _db.collection('products').doc(barcode);
@@ -45,6 +46,7 @@ class FirestoreService {
         'is_loose': isLoose,
         'stock_quantity': stockQuantity,
         if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
+        if (shopId != null && shopId.isNotEmpty) 'shop_id': shopId,
         'created_at': FieldValue.serverTimestamp(),
       };
 
@@ -67,6 +69,7 @@ class FirestoreService {
     double stockQuantity = 0.0,
     String? imageUrl,
     Map<String, dynamic>? extraDetails,
+    String? shopId,
   ]) async {
     try {
       final productData = <String, dynamic>{
@@ -76,6 +79,7 @@ class FirestoreService {
         'is_loose': isLoose,
         'stock_quantity': stockQuantity,
         if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
+        if (shopId != null && shopId.isNotEmpty) 'shop_id': shopId,
         'updated_at': FieldValue.serverTimestamp(),
       };
 

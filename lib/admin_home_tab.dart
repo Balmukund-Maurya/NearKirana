@@ -120,7 +120,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
     final Timestamp startTimestamp = Timestamp.fromDate(startOfToday);
-    final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+    final shopId = Provider.of<ShopProvider>(context).currentShopId;
 
     final todayOrdersQuery = shopId == null || shopId.isEmpty
         ? FirebaseFirestore.instance.collection('orders').limit(0)

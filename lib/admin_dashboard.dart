@@ -38,7 +38,7 @@ class _AdminDashboardState extends State<AdminDashboard>
 
   @override
   Widget build(BuildContext context) {
-    final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+    final shopId = Provider.of<ShopProvider>(context).currentShopId;
     final ordersQuery = shopId == null || shopId.isEmpty
         ? FirebaseFirestore.instance.collection('orders').limit(0)
         : FirebaseFirestore.instance

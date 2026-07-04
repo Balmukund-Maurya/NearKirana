@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
+import 'animation_helpers.dart';
 
 class AdminCustomersScreen extends StatefulWidget {
   const AdminCustomersScreen({super.key});
@@ -529,11 +530,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                 ],
                               ),
                             )
-                            .animate()
-                            .fadeIn(
-                              delay: Duration(milliseconds: 30 * (index % 10)),
-                            )
-                            .slideY(begin: 0.05, end: 0);
+                            .fadeSlideUp(delay: 30 * (index % 10));
                       },
                     ),
                   ),

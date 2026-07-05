@@ -22,27 +22,10 @@ import 'modern_loader.dart';
 import 'shop_selector_screen.dart';
 import 'map_selection_screen.dart';
 
-Future<void> _ensureDefaultShopExists() async {
-  try {
-    final shopDocRef = FirebaseFirestore.instance.collection('shops').doc('SHOP_001');
-    final snapshot = await shopDocRef.get();
-
-    if (!snapshot.exists) {
-      await shopDocRef.set({
-        'shop_name': 'My Shop',
-        'address': 'Add your address',
-        'is_active': true,
-      });
-    }
-  } catch (e) {
-    debugPrint('Could not ensure default shop exists: $e');
-  }
-}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await _ensureDefaultShopExists();
 
   final shopProvider = ShopProvider();
   await shopProvider.loadCurrentShop();

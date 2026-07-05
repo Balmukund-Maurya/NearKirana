@@ -134,14 +134,18 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
           padding: const EdgeInsets.all(24.0),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+              minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 48,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const SizedBox(height: 16),
-                Icon(
-                  Icons.storefront_rounded,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
+                    Icon(
+                      Icons.storefront_rounded,
                   size: 80,
                   color: AppColors.primaryDark,
                 )
@@ -208,6 +212,10 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
 
                           if (_searchQuery.isEmpty) {
                             shops = shops.toList();
+                            shops = shops.where((doc) {
+                              final name = (doc['shop_name'] ?? '').toString();
+                              return name.toLowerCase() != 'my shop';
+                            }).toList();
                             shops.sort((a, b) {
                               final aData = a.data() as Map<String, dynamic>;
                               final bData = b.data() as Map<String, dynamic>;
@@ -267,48 +275,55 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                           );
                         },
                       ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: AppColors.bgTint, width: 1),
-                    ),
-                  ),
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        langProvider.translate('are_you_shop_owner'),
-                        style: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ShopRegistrationScreen(),
-                            ),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: AppColors.bgTint, width: 1),
                         ),
-                        child: Text(
-                          langProvider.translate('register_your_shop'),
-                          style: AppTextStyles.bodySemiBold(
-                            color: AppColors.primaryDark,
-                          ).copyWith(
-                            decoration: TextDecoration.underline,
+                      ),
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            langProvider.translate('are_you_shop_owner'),
+                            style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                           ),
-                        ),
+                          TextButton(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ShopRegistrationScreen(),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                            ),
+                            child: Text(
+                              langProvider.translate('register_your_shop'),
+                              style: AppTextStyles.bodySemiBold(
+                                color: AppColors.primaryDark,
+                              ).copyWith(
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ).animate().fadeIn(delay: 600.ms),
-                const SizedBox(height: 8),
+                    ).animate().fadeIn(delay: 600.ms),
+                    const SizedBox(height: 8),
+                  ],
+                ),
               ],
             ),
           ),

@@ -59,7 +59,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       try {
         // Adding lat & lon gives location bias for better local places results
         final uri = Uri.parse('https://photon.komoot.io/api/?q=${Uri.encodeComponent(query)}&lat=${_currentCenter.latitude}&lon=${_currentCenter.longitude}&limit=8');
-        final response = await http.get(uri);
+        final response = await http.get(
+          uri, 
+          headers: {'User-Agent': 'AdityaKirana/1.0 (Contact: local@kirana.com)'},
+        );
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           if (mounted) {

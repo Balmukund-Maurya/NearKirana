@@ -686,6 +686,14 @@ class LanguageProvider extends ChangeNotifier {
         'hi': 'दुकान का स्थान',
         'en': 'Store Location',
       },
+      'product_deleted': {
+        'hi': 'उत्पाद सफलतापूर्वक हटा दिया गया।',
+        'en': 'Product deleted successfully.',
+      },
+      'err_deleting_product': {
+        'hi': 'उत्पाद हटाने में विफल।',
+        'en': 'Failed to delete product.',
+      },
       'item_exists_update': {
         'hi': 'आइटम पहले से मौजूद है! आप इसका विवरण अपडेट कर सकते हैं।',
         'en': 'Item already exists! You can update its details.',

@@ -16,6 +16,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'animation_helpers.dart';
 import 'package:provider/provider.dart';
 import 'shop_provider.dart';
+import 'language_provider.dart';
 
 class AdminProductForms {
   static void showEditProductDialog(BuildContext context, String barcode) {
@@ -111,11 +112,11 @@ class AdminProductForms {
                         };
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
                             Provider.of<LanguageProvider>(context, listen: false).translate('item_exists_update'),
                           ),
-                          duration: Duration(seconds: 3),
+                          duration: const Duration(seconds: 3),
                         ),
                       );
                     } else {
@@ -155,18 +156,18 @@ class AdminProductForms {
                                   'ingredients': data['ingredients'],
                                 };
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('product_fetched')),
-                                    duration: Duration(seconds: 2),
+                                    duration: const Duration(seconds: 2),
                                   ),
                                 );
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
                                       Provider.of<LanguageProvider>(context, listen: false).translate('barcode_not_found'),
                                     ),
-                                    duration: Duration(seconds: 3),
+                                    duration: const Duration(seconds: 3),
                                   ),
                                 );
                               }
@@ -178,11 +179,11 @@ class AdminProductForms {
                             if (context.mounted) {
                               setState(() => isFetching = false);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
                                       Provider.of<LanguageProvider>(context, listen: false).translate('err_network_fetch'),
                                   ),
-                                  duration: Duration(seconds: 3),
+                                  duration: const Duration(seconds: 3),
                                 ),
                               );
                             }
@@ -251,9 +252,9 @@ class AdminProductForms {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
-                                            const SnackBar(
+                                            SnackBar(
                                               content: Text(
-                                                'Product deleted successfully.',
+                                                Provider.of<LanguageProvider>(context, listen: false).translate('product_deleted'),
                                               ),
                                             ),
                                           );
@@ -263,9 +264,9 @@ class AdminProductForms {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
-                                            const SnackBar(
+                                            SnackBar(
                                               content: Text(
-                                                'Failed to delete product.',
+                                                Provider.of<LanguageProvider>(context, listen: false).translate('err_deleting_product'),
                                               ),
                                             ),
                                           );

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:provider/provider.dart';
+import 'language_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -96,15 +99,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
-        title: Text(
-          '${widget.customerName} Statement',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: const Color(0xFF4CAF50),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('${widget.customerName} Statement'),
       ),
       floatingActionButton: widget.isAdmin
           ? FloatingActionButton.extended(
@@ -155,9 +150,9 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                   final Timestamp? timestamp = tx['timestamp'] as Timestamp?;
                   final String txId = _transactions[index].id;
 
-                  final isCredit = type == 'credit';
-                  final color = isCredit ? Colors.green : Colors.red;
-                  final icon = isCredit ? Icons.arrow_downward : Icons.arrow_upward;
+                  final isUdhaar = type == 'debit' || type == 'udhaar';
+                  final color = isUdhaar ? Colors.red : Colors.green;
+                  final icon = isUdhaar ? Icons.arrow_upward : Icons.arrow_downward;
 
                   String dateStr = '';
                   if (timestamp != null) {
@@ -179,7 +174,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                       title: Text(
                         description.isNotEmpty
                             ? description
-                            : (isCredit ? 'Payment Received' : 'Udhaar Added'),
+                            : (isUdhaar ? 'Udhaar Diya (Given)' : 'Paise Jama Kiye (Paid)'),
                         style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
@@ -190,7 +185,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '${isCredit ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
+                            '${isUdhaar ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -234,7 +229,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
 
                                             batch.delete(txRef);
 
-                                            double balanceChange = isCredit ? amount : -amount;
+                                            double balanceChange = isUdhaar ? -amount : amount;
 
                                             batch.update(customerRef, {
                                               'total_udhaar': FieldValue.increment(balanceChange),
@@ -244,7 +239,8 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
 
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Transaction deleted and balance updated.'),
+                                                SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('transaction_deleted')),
+                                                  backgroundColor: Colors.green,
                                                 ),
                                               );
                                               // FIX-34: Refresh after delete
@@ -253,7 +249,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                           } catch (e) {
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error: $e')),
+                                                SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString()))),
                                               );
                                             }
                                           }
@@ -391,7 +387,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                               final amount = double.tryParse(amountController.text) ?? 0.0;
                               if (amount <= 0) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Please enter a valid amount'), backgroundColor: Colors.red),
+                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('invalid_amount')), backgroundColor: Colors.red),
                                 );
                                 return;
                               }
@@ -409,7 +405,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                 
                                 batch.set(txRef, {
                                   'amount': amount,
-                                  'is_credit': isCredit,
+                                  'type': isCredit ? 'udhaar' : 'jama',
                                   'description': descController.text.trim(),
                                   'timestamp': FieldValue.serverTimestamp(),
                                 });
@@ -429,14 +425,14 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                 if (context.mounted) {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(isCredit ? 'Udhaar Added' : 'Payment Received'), backgroundColor: Colors.green),
+                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate(isCredit ? 'udhaar_added' : 'payment_received_short')), backgroundColor: Colors.green),
                                   );
                                   _refresh();
                                 }
                               } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error: '), backgroundColor: Colors.red),
+                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString())), backgroundColor: Colors.red),
                                   );
                                   setModalState(() => isProcessing = false);
                                 }

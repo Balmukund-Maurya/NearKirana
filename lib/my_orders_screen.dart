@@ -38,18 +38,10 @@ class MyOrdersScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: isTab
-          ? null
-          : AppBar(
-              title: Text(
-                langProvider.translate('my_orders'),
-                style: AppTextStyles.heading2(color: AppColors.textDark),
-              ),
-              backgroundColor: AppColors.white,
-              elevation: 0,
-              centerTitle: true,
-              iconTheme: const IconThemeData(color: AppColors.textDark),
-            ),
+      appBar: AppBar(
+        automaticallyImplyLeading: !isTab,
+        title: Text(langProvider.translate('my_orders')),
+      ),
       body: phone.isEmpty
           ? Center(
               child: Column(

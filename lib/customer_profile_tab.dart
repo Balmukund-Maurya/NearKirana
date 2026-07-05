@@ -27,13 +27,7 @@ class CustomerProfileTab extends StatelessWidget {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(
-          langProvider.translate('my_profile'),
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
+        title: Text(langProvider.translate('my_profile')),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -423,7 +417,6 @@ class CustomerProfileTab extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildLanguageOption(context, langProvider, 'hinglish', 'Hinglish'),
           _buildLanguageOption(context, langProvider, 'hi', 'हिंदी'),
           _buildLanguageOption(context, langProvider, 'en', 'English'),
         ],

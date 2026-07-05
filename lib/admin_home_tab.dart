@@ -47,11 +47,13 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
       if (product != null) {
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            title: Row(
+          builder: (context) {
+            final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: Row(
               children: [
                 const Icon(
                   Icons.check_circle_rounded,
@@ -59,7 +61,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Product Found',
+                  langProvider.translate('product_found'),
                   style: AppTextStyles.heading2(color: AppColors.textDark),
                 ),
               ],
@@ -74,11 +76,11 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Price: ₹${product['price']}',
+                  '${langProvider.translate('price')}: ₹${product['price']}',
                   style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
                 ),
                 Text(
-                  'Stock: ${product['stock_quantity']}',
+                  '${langProvider.translate('stock')}: ${product['stock_quantity']}',
                   style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
                 ),
               ],
@@ -91,7 +93,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                   AdminProductForms.showEditProductDialog(context, res);
                 },
                 child: Text(
-                  'Edit',
+                  langProvider.translate('edit'),
                   style: AppTextStyles.bodySemiBold(color: Colors.blue),
                 ),
               ),
@@ -105,10 +107,11 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text('OK'),
+                child: Text(langProvider.translate('ok_btn')),
               ),
             ],
-          ),
+          );
+         },
         );
       } else {
         AdminProductForms.showEditProductDialog(context, res);
@@ -283,13 +286,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(
-          langProvider.translate('admin_dashboard'),
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
+        title: Text(langProvider.translate('admin_dashboard')),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),

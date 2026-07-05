@@ -113,7 +113,7 @@ class AdminProductForms {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Item already exists! You can update its details.',
+                            Provider.of<LanguageProvider>(context, listen: false).translate('item_exists_update'),
                           ),
                           duration: Duration(seconds: 3),
                         ),
@@ -156,7 +156,7 @@ class AdminProductForms {
                                 };
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Product details fetched!'),
+                                    content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('product_fetched')),
                                     duration: Duration(seconds: 2),
                                   ),
                                 );
@@ -164,7 +164,7 @@ class AdminProductForms {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
-                                      'Barcode not found in database. Please enter manually.',
+                                      Provider.of<LanguageProvider>(context, listen: false).translate('barcode_not_found'),
                                     ),
                                     duration: Duration(seconds: 3),
                                   ),
@@ -180,7 +180,7 @@ class AdminProductForms {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Network error. Could not fetch product.',
+                                      Provider.of<LanguageProvider>(context, listen: false).translate('err_network_fetch'),
                                   ),
                                   duration: Duration(seconds: 3),
                                 ),
@@ -589,7 +589,7 @@ class AdminProductForms {
                               if (price <= 0 || stock < 0) {
                                 SnackbarHelper.showSnackBar(
                                   context,
-                                  'Error: Price must be > 0 and Stock must be >= 0',
+                                  Provider.of<LanguageProvider>(context, listen: false).translate('err_price_stock'),
                                   isError: true,
                                 );
                                 setState(() => isUploading = false);
@@ -612,7 +612,7 @@ class AdminProductForms {
                                 SoundService().productSaved();
                                 SnackbarHelper.showSnackBar(
                                   context,
-                                  'Item updated successfully!',
+                                  Provider.of<LanguageProvider>(context, listen: false).translate('product_updated'),
                                 );
                               }
                             } catch (e) {
@@ -940,7 +940,7 @@ class AdminProductForms {
                                   priceController.text.isEmpty) {
                                 SnackbarHelper.showSnackBar(
                                   context,
-                                  'Please fill Name and Price',
+                                  Provider.of<LanguageProvider>(context, listen: false).translate('err_name_price'),
                                   isError: true,
                                 );
                                 return;
@@ -976,7 +976,7 @@ class AdminProductForms {
                                 if (price <= 0 || stock < 0) {
                                   SnackbarHelper.showSnackBar(
                                     context,
-                                    'Error: Price must be > 0 and Stock must be >= 0',
+                                    Provider.of<LanguageProvider>(context, listen: false).translate('err_price_stock'),
                                     isError: true,
                                   );
                                   setState(() => isUploading = false);
@@ -998,7 +998,7 @@ class AdminProductForms {
                                   SoundService().productSaved();
                                   SnackbarHelper.showSnackBar(
                                     context,
-                                    'Item added successfully!',
+                                    Provider.of<LanguageProvider>(context, listen: false).translate('product_added'),
                                   );
                                 }
                               } catch (e) {
@@ -1007,7 +1007,7 @@ class AdminProductForms {
                                 if (context.mounted) {
                                   SnackbarHelper.showSnackBar(
                                     context,
-                                    e.toString().replaceAll('Exception: ', ''),
+                                    Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString().replaceAll('Exception: ', '')),
                                     isError: true,
                                   );
                                 }

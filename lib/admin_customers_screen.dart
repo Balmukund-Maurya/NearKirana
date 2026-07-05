@@ -7,6 +7,8 @@ import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'animation_helpers.dart';
+import 'package:provider/provider.dart';
+import 'language_provider.dart';
 
 class AdminCustomersScreen extends StatefulWidget {
   const AdminCustomersScreen({super.key});
@@ -99,23 +101,11 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final langProvider = Provider.of<LanguageProvider>(context);
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: AppColors.textDark,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Manage Customers',
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
+        title: Text(langProvider.translate('manage_customers')),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -795,7 +785,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     String customerName,
     double currentUdhaar,
   ) {
-    final amountController = TextEditingController();
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final TextEditingController amountController = TextEditingController();
 
     showDialog(
       context: context,
@@ -876,8 +867,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 if (amount == null || amount <= 0) {
                   HapticFeedback.heavyImpact();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Please enter a valid amount.'),
-                      backgroundColor: AppColors.error,
+                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('invalid_amount')),
+                      backgroundColor: Colors.orange,
                     ),
                   );
                   return;
@@ -886,8 +877,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 if (amount > currentUdhaar) {
                   HapticFeedback.heavyImpact();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(behavior: SnackBarBehavior.floating, content: Text('Cannot collect more than the outstanding balance (₹$currentUdhaar).'),
-                      backgroundColor: AppColors.error,
+                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('cannot_collect_more').replaceAll('{amount}', currentUdhaar.toStringAsFixed(2))),
+                      backgroundColor: Colors.red,
                     ),
                   );
                   return;
@@ -928,7 +919,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                     Navigator.pop(context); // close loader
                     SoundService().play('save.mp3');
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(behavior: SnackBarBehavior.floating, content: Text('₹$amount received from $customerName.'),
+                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('payment_received').replaceAll('{amount}', amount.toStringAsFixed(2)).replaceAll('{customer}', customerName)),
                         backgroundColor: AppColors.primaryDark,
                       ),
                     );
@@ -952,7 +943,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Record Payment'),
+              child: Text(langProvider.translate('record_payment')),
             ),
           ],
         );
@@ -966,7 +957,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     String currentName,
     String currentPhone,
   ) {
-    final nameController = TextEditingController(text: currentName);
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final TextEditingController nameController =
+        TextEditingController(text: currentName);
     final phoneController = TextEditingController(text: currentPhone);
 
     showDialog(
@@ -1030,7 +1023,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                   if (context.mounted) {
                     SoundService().success();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Profile updated successfully.'),
+                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('profile_updated')),
                         backgroundColor: AppColors.primaryDark,
                       ),
                     );
@@ -1048,7 +1041,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Save'),
+            child: Text(langProvider.translate('save_btn')),
           ),
         ],
       ),

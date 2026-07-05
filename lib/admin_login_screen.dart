@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'language_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -78,7 +79,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
     await _checkBlockStatus();
     if (_isBlocked) {
-      _showSnackBar('Aapka login block hai! Kripya $_remainingMinutes minute(s) baad koshish karein.', isError: true);
+      final msg = Provider.of<LanguageProvider>(context, listen: false).translate('login_blocked').replaceAll('{minutes}', _remainingMinutes.toString());
+      _showSnackBar(msg, isError: true);
       return;
     }
 
@@ -91,7 +93,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       if (shopId == null || shopId.isEmpty) {
         if (!mounted) return;
         setState(() => _isLoading = false);
-        _showSnackBar('Pehle gateway screen se apni dukan select karein.', isError: true);
+        final msg = Provider.of<LanguageProvider>(context, listen: false).translate('select_shop_first');
+        _showSnackBar(msg, isError: true);
         return;
       }
 
@@ -99,7 +102,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       if (!shopDoc.exists) {
         if (!mounted) return;
         setState(() => _isLoading = false);
-        _showSnackBar('Dukan ka data nahi mila.', isError: true);
+        final msg = Provider.of<LanguageProvider>(context, listen: false).translate('shop_data_not_found');
+        _showSnackBar(msg, isError: true);
         return;
       }
 
@@ -134,19 +138,22 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               _remainingMinutes = 60;
             });
           }
-          _showSnackBar('3 baar galat PIN! Admin login 1 ghante ke liye block kar diya gaya hai.', isError: true);
+          final msg = Provider.of<LanguageProvider>(context, listen: false).translate('login_blocked_1_hour');
+          _showSnackBar(msg, isError: true);
         } else {
           if (mounted) {
             setState(() => _isLoading = false);
           }
           final attemptsLeft = 3 - currentAttempts;
-          _showSnackBar('Galat Admin PIN! Aapke paas sirf $attemptsLeft attempt(s) bache hain.', isError: true);
+          final msg = Provider.of<LanguageProvider>(context, listen: false).translate('wrong_pin_attempts').replaceAll('{attempts}', attemptsLeft.toString());
+          _showSnackBar(msg, isError: true);
         }
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      _showSnackBar('Network Error: $e', isError: true);
+      final msg = Provider.of<LanguageProvider>(context, listen: false).translate('network_error').replaceAll('{error}', e.toString());
+      _showSnackBar(msg, isError: true);
     }
   }
 
@@ -166,23 +173,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(
-          'Owner Login',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: AppColors.primaryDark,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(Provider.of<LanguageProvider>(context, listen: false).translate('owner_login')),
       ),
       body: _isLoading
           ? const Center(child: ModernLoader(color: AppColors.primaryDark))
           : Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -285,17 +284,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text('Dukan Badlein?'),
-                            content: const Text('Kya aap is dukan se bahar aakar doosri dukan chunna chahte hain?'),
+                            title: Text(Provider.of<LanguageProvider>(context, listen: false).translate('dukan_badlein_title')),
+                            content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('dukan_badlein_desc')),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel'),
+                                child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel')),
                               ),
                               ElevatedButton(
                                 onPressed: () => Navigator.pop(context, true),
                                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryDark),
-                                child: const Text('Haan, Badlein'),
+                                child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('yes_change')),
                               ),
                             ],
                           ),
@@ -313,7 +312,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         }
                       },
                       icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                      label: const Text('Change Shop'),
+                      label: Text(Provider.of<LanguageProvider>(context, listen: false).translate('change_shop_btn')),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primaryDark,
                       ),
@@ -321,6 +320,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   ],
                 ),
               ),
+            ),
             ),
     );
   }

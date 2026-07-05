@@ -7,6 +7,9 @@ import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
+import 'language_provider.dart';
+import 'package:latlong2/latlong.dart' as latlong2;
+import 'map_selection_screen.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -86,7 +89,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error loading settings: $e'),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_loading_settings').replaceAll('{error}', e.toString())),
             backgroundColor: AppColors.error,
           ),
         );
@@ -110,7 +113,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       if (deliveryFee < 0 || minOrder < 0 || freeDeliveryThreshold < 0 || maxUdhaar < 0 || pickupRadius < 0 || deliveryRadius < 0) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Values cannot be negative!'), backgroundColor: AppColors.error),
+            SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_negative_values')), backgroundColor: AppColors.error),
           );
           setState(() => _isLoading = false);
         }
@@ -143,7 +146,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Settings saved successfully!'),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('settings_saved')),
             backgroundColor: AppColors.primaryDark,
           ),
         );
@@ -152,7 +155,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error saving settings: $e'),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_saving_settings').replaceAll('{error}', e.toString())),
             backgroundColor: AppColors.error,
           ),
         );
@@ -167,20 +170,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: AppColors.textDark,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Store Settings',
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
+        title: Text(Provider.of<LanguageProvider>(context).translate('store_settings')),
       ),
       body: _isLoading
           ? const Center(
@@ -218,7 +208,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Store is Open',
+                                  Provider.of<LanguageProvider>(context).translate('store_is_open'),
                                   style: AppTextStyles.heading2(
                                     color: AppColors.textDark,
                                   ),
@@ -259,7 +249,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
                   // Financial Rules
                   Text(
-                    'Financial Rules',
+                    Provider.of<LanguageProvider>(context).translate('financial_rules'),
                     style: AppTextStyles.heading2(color: AppColors.textDark),
                   ).animate().fadeIn(delay: 100.ms),
                   const SizedBox(height: 16),
@@ -317,18 +307,81 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                           Icons.map_rounded,
                         ),
                         const SizedBox(height: 16),
-                        _buildConfigField(
-                          'Store Latitude',
-                          _storeLatController,
-                          'e.g. 28.7041',
-                          Icons.location_on_rounded,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildConfigField(
-                          'Store Longitude',
-                          _storeLngController,
-                          'e.g. 77.1025',
-                          Icons.location_on_rounded,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  _buildConfigField(
+                                    'Store Latitude',
+                                    _storeLatController,
+                                    'e.g. 28.7041',
+                                    Icons.location_on_rounded,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildConfigField(
+                                    'Store Longitude',
+                                    _storeLngController,
+                                    'e.g. 77.1025',
+                                    Icons.location_on_rounded,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              height: 120, // matches height of two fields + spacing
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final currentLat = double.tryParse(_storeLatController.text) ?? 0.0;
+                                  final currentLng = double.tryParse(_storeLngController.text) ?? 0.0;
+                                  final dynamic pickedLocation = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MapSelectionScreen(
+                                        initialLat: currentLat,
+                                        initialLng: currentLng,
+                                        isPickingOnly: true,
+                                      ),
+                                    ),
+                                  );
+                                  if (pickedLocation != null) {
+                                    try {
+                                      setState(() {
+                                        _storeLatController.text = pickedLocation.latitude.toString();
+                                        _storeLngController.text = pickedLocation.longitude.toString();
+                                      });
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('location_picked')), backgroundColor: AppColors.primaryDark),
+                                      );
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_reading_location').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
+                                      );
+                                    }
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_no_location')), backgroundColor: AppColors.error),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryDark,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.map_rounded, size: 28),
+                                    SizedBox(height: 8),
+                                    Text('Pick on\nMap', textAlign: TextAlign.center),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         _buildConfigField(

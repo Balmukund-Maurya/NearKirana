@@ -20,6 +20,7 @@ import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_selector_screen.dart';
+import 'map_selection_screen.dart';
 
 Future<void> _ensureDefaultShopExists() async {
   try {
@@ -200,11 +201,22 @@ class _LoginScreenState extends State<LoginScreen> {
       await userProvider.checkServiceability();
 
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
+      final navigator = Navigator.of(context);
+      navigator.pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const HomeScreen()),
         (route) => false,
       );
+
+      if (userProvider.deliveryAddress.isEmpty) {
+        navigator.push(
+          MaterialPageRoute(
+            builder: (context) => const MapSelectionScreen(
+              initialLat: 0.0,
+              initialLng: 0.0,
+            ),
+          ),
+        );
+      }
       return;
     }
 
@@ -674,11 +686,22 @@ class _LoginScreenState extends State<LoginScreen> {
       await userProvider.checkServiceability();
 
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
+        final navigator = Navigator.of(context);
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const HomeScreen()),
           (route) => false,
         );
+        
+        if (userProvider.deliveryAddress.isEmpty) {
+          navigator.push(
+            MaterialPageRoute(
+              builder: (context) => const MapSelectionScreen(
+                initialLat: 0.0,
+                initialLng: 0.0,
+              ),
+            ),
+          );
+        }
       }
     }
   }

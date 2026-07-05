@@ -8,6 +8,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'shop_provider.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
+import 'package:provider/provider.dart';
+import 'language_provider.dart';
 import 'shop_registration_screen.dart';
 
 class ShopSelectorScreen extends StatefulWidget {
@@ -123,6 +125,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final langProvider = Provider.of<LanguageProvider>(context);
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.surface,
@@ -147,7 +150,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                     .scale(curve: Curves.easeOutBack),
                 const SizedBox(height: 12),
                 Text(
-                  'Welcome to AlwaysPro',
+                  langProvider.translate('welcome_title'),
                   style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28),
                   textAlign: TextAlign.center,
                 )
@@ -156,7 +159,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                     .slideY(begin: 0.2, end: 0),
                 const SizedBox(height: 8),
                 Text(
-                  'Apne aas-paas ki dukan dhoondein ya unka QR Code scan karein.',
+                  langProvider.translate('search_shop_subtitle'),
                   style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 300.ms),
@@ -165,7 +168,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                   controller: _searchController,
                   onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
                   decoration: InputDecoration(
-                    hintText: 'Dukan ka naam search karein...',
+                    hintText: langProvider.translate('search_shop_hint'),
                     prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryDark),
                     filled: true,
                     fillColor: AppColors.white,
@@ -179,7 +182,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                 OutlinedButton.icon(
                   onPressed: _scanShopQR,
                   icon: const Icon(Icons.qr_code_scanner_rounded),
-                  label: const Text('Scan Shop QR Code'),
+                  label: Text(Provider.of<LanguageProvider>(context, listen: false).translate('scan_shop_qr')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primaryDark,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -188,17 +191,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                   ),
                 ).animate().fadeIn(delay: 500.ms),
                 const SizedBox(height: 20),
-                _searchQuery.isEmpty
-                    ? SizedBox(
-                        height: 180,
-                        child: Center(
-                          child: Text(
-                            'Type to search shops',
-                            style: AppTextStyles.bodyMedium(color: AppColors.textLight),
-                          ),
-                        ),
-                      )
-                    : StreamBuilder<QuerySnapshot>(
+                StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('shops')
                             .where('is_active', isEqualTo: true)
@@ -211,15 +204,32 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                             );
                           }
 
-                          final shops = snapshot.data!.docs.where((doc) {
-                            final name = (doc['shop_name'] ?? '').toString().toLowerCase();
-                            return name.contains(_searchQuery);
-                          }).toList();
+                          List<QueryDocumentSnapshot> shops = snapshot.data!.docs;
+
+                          if (_searchQuery.isEmpty) {
+                            shops = shops.toList();
+                            shops.sort((a, b) {
+                              final aData = a.data() as Map<String, dynamic>;
+                              final bData = b.data() as Map<String, dynamic>;
+                              final aTime = aData['created_at'] as Timestamp?;
+                              final bTime = bData['created_at'] as Timestamp?;
+                              if (aTime == null && bTime == null) return 0;
+                              if (aTime == null) return 1;
+                              if (bTime == null) return -1;
+                              return bTime.compareTo(aTime);
+                            });
+                            shops = shops.take(5).toList();
+                          } else {
+                            shops = shops.where((doc) {
+                              final name = (doc['shop_name'] ?? '').toString().toLowerCase();
+                              return name.contains(_searchQuery);
+                            }).toList();
+                          }
 
                           if (shops.isEmpty) {
-                            return const SizedBox(
+                            return SizedBox(
                               height: 180,
-                              child: Center(child: Text('No shops found in your area.')),
+                              child: Center(child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('error_no_shop_found'))),
                             );
                           }
 
@@ -265,11 +275,12 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                       top: BorderSide(color: AppColors.bgTint, width: 1),
                     ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
-                        'Dukandar hain?',
+                        langProvider.translate('are_you_shop_owner'),
                         style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                       ),
                       TextButton(
@@ -286,7 +297,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
                         child: Text(
-                          'Apni Dukan Register Karein',
+                          langProvider.translate('register_your_shop'),
                           style: AppTextStyles.bodySemiBold(
                             color: AppColors.primaryDark,
                           ).copyWith(

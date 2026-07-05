@@ -38,10 +38,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final langProvider = Provider.of<LanguageProvider>(context);
     final cartProvider = Provider.of<CartProvider>(context);
-    final shopProvider = Provider.of<ShopProvider>(context);
     final cartCount = cartProvider.itemCount;
-    final shopName = shopProvider.shopName ?? langProvider.translate('app_name');
-    final shopAddress = shopProvider.shopAddress?.trim();
 
     final navItems = [
       _NavItem(
@@ -69,27 +66,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              shopName,
-              style: AppTextStyles.heading2(color: AppColors.textDark),
-            ),
-            if (shopAddress != null && shopAddress.isNotEmpty)
-              Text(
-                shopAddress,
-                style: AppTextStyles.captionMedium(color: AppColors.textMid),
-                overflow: TextOverflow.ellipsis,
-              ),
-          ],
-        ),
-        backgroundColor: AppColors.white,
-        foregroundColor: AppColors.textDark,
-        elevation: 0,
-        centerTitle: true,
-      ),
+      // Removed global AppBar to allow each tab to have its own header/AppBar
       body: IndexedStack(index: _selectedIndex, children: _tabs),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

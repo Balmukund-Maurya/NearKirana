@@ -9,6 +9,7 @@ import 'admin_product_forms.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
+import 'language_provider.dart';
 
 class ShopStockScreen extends StatefulWidget {
   const ShopStockScreen({super.key});
@@ -125,13 +126,7 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(
-          'Inventory',
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
+        title: Text(Provider.of<LanguageProvider>(context).translate('shop_stock')),
       ),
       body: Column(
         children: [
@@ -407,13 +402,14 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           HapticFeedback.mediumImpact();
           AdminProductForms.showManualAddProductForm(context);
         },
         backgroundColor: AppColors.primaryDark,
-        child: const Icon(Icons.add_rounded, color: AppColors.white),
+        icon: const Icon(Icons.add_rounded, color: AppColors.white),
+        label: const Text('Add Product', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
       ).animate().scale(delay: 200.ms, curve: Curves.easeOutBack),
     );
   }

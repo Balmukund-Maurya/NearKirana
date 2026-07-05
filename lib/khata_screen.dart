@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'khata_statement_screen.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
+import 'package:provider/provider.dart';
+import 'language_provider.dart';
 
 class KhataScreen extends StatefulWidget {
   const KhataScreen({super.key});
@@ -136,7 +139,7 @@ class _KhataScreenState extends State<KhataScreen> {
                               if (phone.length != 10 || amount <= 0) {
                                 HapticFeedback.heavyImpact();
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Enter valid 10-digit phone and amount > 0'), backgroundColor: AppColors.error),
+                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('invalid_khata_entry')), backgroundColor: AppColors.error),
                                 );
                                 return;
                               }
@@ -158,7 +161,7 @@ class _KhataScreenState extends State<KhataScreen> {
                                     setState(() => isProcessing = false);
                                     HapticFeedback.heavyImpact();
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Name is required for new customers!'), backgroundColor: AppColors.error),
+                                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('name_required_khata')), backgroundColor: AppColors.error),
                                     );
                                     return;
                                   }
@@ -188,13 +191,13 @@ class _KhataScreenState extends State<KhataScreen> {
                                   Navigator.pop(dialogContext);
                                   SoundService().success();
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Khata Entry Added Successfully!'), backgroundColor: AppColors.primaryDark),
+                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('khata_entry_success')), backgroundColor: AppColors.primaryDark),
                                   );
                                 }
                               } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error: $e'), backgroundColor: AppColors.error),
+                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
                                   );
                                 }
                               } finally {
@@ -215,7 +218,7 @@ class _KhataScreenState extends State<KhataScreen> {
                               width: 24,
                               child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                             )
-                          : Text('Add Entry', style: AppTextStyles.heading2(color: AppColors.white)),
+                          : Text(Provider.of<LanguageProvider>(context, listen: false).translate('add_entry'), style: AppTextStyles.heading2(color: AppColors.white)),
                     ),
                     const SizedBox(height: 24),
                   ],
@@ -236,13 +239,13 @@ class _KhataScreenState extends State<KhataScreen> {
       await doc.reference.update({'is_banned': !isBanned});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(isBanned ? 'Customer unblocked' : 'Customer blocked')),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate(isBanned ? 'customer_unblocked' : 'customer_blocked'))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
         );
       }
     }
@@ -256,16 +259,14 @@ class _KhataScreenState extends State<KhataScreen> {
         backgroundColor: AppColors.surface,
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: Text('Customers & Khata', style: AppTextStyles.heading2(color: AppColors.textDark)),
-          backgroundColor: AppColors.white,
-          elevation: 0,
-          bottom: const TabBar(
-            labelColor: AppColors.primaryDark,
-            unselectedLabelColor: AppColors.textLight,
-            indicatorColor: AppColors.primaryDark,
+          title: Text(Provider.of<LanguageProvider>(context).translate('customer_ledger')),
+          bottom: TabBar(
+            labelColor: AppColors.white,
+            unselectedLabelColor: AppColors.white.withValues(alpha: 0.7),
+            indicatorColor: AppColors.white,
             indicatorWeight: 3,
-            labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            tabs: [
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            tabs: const [
               Tab(text: 'Online'),
               Tab(text: 'Offline (Khata)'),
             ],
@@ -275,7 +276,7 @@ class _KhataScreenState extends State<KhataScreen> {
           onPressed: () => _showAddOfflineKhataEntryDialog(context),
           backgroundColor: AppColors.primaryDark,
           icon: const Icon(Icons.add_rounded, color: AppColors.white),
-          label: Text('Add Offline Khata', style: AppTextStyles.bodySemiBold(color: AppColors.white)),
+          label: Text(Provider.of<LanguageProvider>(context, listen: false).translate('add_offline_khata'), style: AppTextStyles.bodySemiBold(color: AppColors.white)),
         ),
         body: Column(
           children: [
@@ -398,17 +399,59 @@ class _KhataScreenState extends State<KhataScreen> {
   }
 
   Widget _buildOfflineTab(List<DocumentSnapshot> customers) {
-    if (customers.isEmpty) {
-      return Center(
-        child: Text('No offline customers found', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
-      );
+    double totalUdhaar = 0.0;
+    for (var doc in customers) {
+      totalUdhaar += ((doc.data() as Map<String, dynamic>)['total_udhaar'] ?? 0).toDouble();
     }
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100, top: 16),
-      itemCount: customers.length,
-      itemBuilder: (context, index) {
-        final doc = customers[index];
-        final data = doc.data() as Map<String, dynamic>;
+
+    return Column(
+      children: [
+        if (customers.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE53935), Color(0xFFEF5350)], // Red gradient for Udhaar
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: const Color(0xFFE53935).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Market me kul Udhaar', style: GoogleFonts.poppins(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 4),
+                      Text('₹${totalUdhaar.toStringAsFixed(0)}', style: GoogleFonts.poppins(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+        
+        Expanded(
+          child: customers.isEmpty
+              ? Center(child: Text('No offline customers found', style: AppTextStyles.bodyMedium(color: AppColors.textMid)))
+              : ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 100, top: 16),
+                  itemCount: customers.length,
+                  itemBuilder: (context, index) {
+                    final doc = customers[index];
+                    final data = doc.data() as Map<String, dynamic>;
         final udhaar = (data['total_udhaar'] ?? 0).toDouble();
         
         return Container(
@@ -473,6 +516,9 @@ class _KhataScreenState extends State<KhataScreen> {
           ),
         ).animate().fadeIn(delay: Duration(milliseconds: 50 * (index % 10))).slideX(begin: 0.1, end: 0);
       },
+    ),
+        ),
+      ],
     );
   }
 }

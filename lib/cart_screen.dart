@@ -84,18 +84,10 @@ class _CartScreenState extends State<CartScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: widget.isTab
-          ? null
-          : AppBar(
-              title: Text(
-                langProvider.translate('cart_title'),
-                style: AppTextStyles.heading2(color: AppColors.textDark),
-              ),
-              backgroundColor: AppColors.white,
-              elevation: 0,
-              centerTitle: true,
-              iconTheme: const IconThemeData(color: AppColors.textDark),
-            ),
+      appBar: AppBar(
+        automaticallyImplyLeading: !widget.isTab,
+        title: Text(langProvider.translate('cart_title')),
+      ),
       body: Consumer<CartProvider>(
         builder: (context, cartProvider, child) {
           final cartItems = cartProvider.itemsList;

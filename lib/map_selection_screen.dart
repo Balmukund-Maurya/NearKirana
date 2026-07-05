@@ -8,16 +8,21 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'user_provider.dart';
+import 'language_provider.dart';
 import 'modern_loader.dart';
+import 'shop_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MapSelectionScreen extends StatefulWidget {
   final double initialLat;
   final double initialLng;
+  final bool isPickingOnly;
 
   const MapSelectionScreen({
     super.key,
     required this.initialLat,
     required this.initialLng,
+    this.isPickingOnly = false,
   });
 
   @override
@@ -32,15 +37,73 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   Timer? _debounce;
   List<dynamic> _suggestions = [];
   bool _isSearching = false;
+  double? _storeLat;
+  double? _storeLng;
+  double? _deliveryRadiusKm;
+  String? _storeName;
+
+  bool get _isOutOfDeliveryZone {
+    if (_storeLat == null || _storeLng == null || _deliveryRadiusKm == null) return false;
+    // Don't show out of delivery message for admin who is just picking a location for store setup
+    if (widget.isPickingOnly) return false; 
+    if (_deliveryRadiusKm! <= 0) return false; // 0 means unlimited delivery radius
+    
+    final distance = Geolocator.distanceBetween(
+      _currentCenter.latitude,
+      _currentCenter.longitude,
+      _storeLat!,
+      _storeLng!,
+    );
+    return distance > (_deliveryRadiusKm! * 1000);
+  }
 
   @override
   void initState() {
     super.initState();
     _mapController = MapController();
-    _currentCenter = LatLng(widget.initialLat, widget.initialLng);
+    if (widget.initialLat != 0.0 || widget.initialLng != 0.0) {
+      _currentCenter = LatLng(widget.initialLat, widget.initialLng);
+    } else {
+      // Default fallback while loading
+      _currentCenter = const LatLng(28.6139, 77.2090); // New Delhi as fallback
+    }
+    
+    _fetchStoreArea();
+  }
 
-    if (widget.initialLat == 0.0 && widget.initialLng == 0.0) {
-      _locateUser();
+  Future<void> _fetchStoreArea() async {
+    try {
+      final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+      final shopId = shopProvider.currentShopId;
+      final doc = shopId != null && shopId.isNotEmpty 
+          ? await FirebaseFirestore.instance.collection('shops').doc(shopId).get()
+          : await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
+          
+      if (doc.exists && mounted) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _storeLat = (data['store_latitude'] as num?)?.toDouble();
+          _storeLng = (data['store_longitude'] as num?)?.toDouble();
+          _deliveryRadiusKm = (data['delivery_radius_km'] as num?)?.toDouble();
+          _storeName = (data['shop_name'] ?? shopProvider.shopName ?? 'Store').toString();
+        });
+
+        // Center on store if no initial location was passed
+        if (widget.initialLat == 0.0 && widget.initialLng == 0.0 && _storeLat != null && _storeLng != null) {
+          setState(() {
+            _currentCenter = LatLng(_storeLat!, _storeLng!);
+          });
+          _mapController.move(_currentCenter, 16.0);
+        } else if (widget.initialLat == 0.0 && widget.initialLng == 0.0) {
+          _locateUser();
+        }
+      } else if (widget.initialLat == 0.0 && widget.initialLng == 0.0) {
+        _locateUser();
+      }
+    } catch (_) {
+      if (widget.initialLat == 0.0 && widget.initialLng == 0.0) {
+        _locateUser();
+      }
     }
   }
 
@@ -163,7 +226,13 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   }
 
   void _showAddressDetailsSheet() async {
+    if (widget.isPickingOnly) {
+      Navigator.pop(context, _currentCenter);
+      return;
+    }
+
     final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
 
     showDialog(
       context: context,
@@ -186,14 +255,14 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
-          title: const Text('Out of Delivery Area'),
+          title: Text(langProvider.translate('out_of_delivery_area')),
           content: Text(
-            userProvider.serviceabilityError ?? 'We do not deliver here yet.',
+            userProvider.serviceabilityError ?? langProvider.translate('error_cant_deliver'),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK'),
+              child: Text(langProvider.translate('ok_btn')),
             ),
           ],
         ),
@@ -222,8 +291,9 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return Padding(
-              padding: EdgeInsets.only(
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
                 left: 20,
                 right: 20,
@@ -234,7 +304,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Enter Complete Address',
+                    langProvider.translate('enter_complete_address'),
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -243,10 +313,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: localityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Locality / Area',
-                      prefixIcon: Icon(Icons.location_on_outlined),
-                      border: OutlineInputBorder(
+                    decoration: InputDecoration(
+                      labelText: langProvider.translate('locality_area'),
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                      border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
                     ),
@@ -254,10 +324,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: houseController,
-                    decoration: const InputDecoration(
-                      labelText: 'House / Flat / Block No.',
-                      prefixIcon: Icon(Icons.home_outlined),
-                      border: OutlineInputBorder(
+                    decoration: InputDecoration(
+                      labelText: langProvider.translate('house_flat_no'),
+                      prefixIcon: const Icon(Icons.home_outlined),
+                      border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
                     ),
@@ -265,17 +335,17 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: landmarkController,
-                    decoration: const InputDecoration(
-                      labelText: 'Landmark (Optional)',
-                      prefixIcon: Icon(Icons.park_outlined),
-                      border: OutlineInputBorder(
+                    decoration: InputDecoration(
+                      labelText: langProvider.translate('landmark_optional'),
+                      prefixIcon: const Icon(Icons.park_outlined),
+                      border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Save address as',
+                    langProvider.translate('save_address_as'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -320,7 +390,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                       onPressed: () async {
                         if (houseController.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Please enter House/Flat No.'),
+                            SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('enter_house_no')),
                               backgroundColor: Colors.orange,
                             ),
                           );
@@ -343,7 +413,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                         }
                       },
                       child: Text(
-                        'Save Address',
+                        langProvider.translate('save_address_btn'),
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -355,6 +425,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   const SizedBox(height: 24),
                 ],
               ),
+            ),
             );
           },
         );
@@ -415,17 +486,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final langProvider = Provider.of<LanguageProvider>(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Adjust Location',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: const Color(0xFF4CAF50),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(widget.isPickingOnly ? 'Shop Location' : 'Delivery Location'),
       ),
       body: Stack(
         children: [
@@ -453,15 +517,80 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                     : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
                 userAgentPackageName: 'com.adityakirana.aditya_kirana',
               ),
+              if (_storeLat != null && _storeLng != null && _deliveryRadiusKm != null && _deliveryRadiusKm! > 0)
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: LatLng(_storeLat!, _storeLng!),
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderColor: Colors.blue.withValues(alpha: 0.5),
+                      borderStrokeWidth: 2,
+                      radius: _deliveryRadiusKm! * 1000,
+                      useRadiusInMeter: true,
+                    ),
+                  ],
+                ),
+              if (_storeLat != null && _storeLng != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: LatLng(_storeLat!, _storeLng!),
+                      width: 150,
+                      height: 100,
+                      alignment: Alignment.center,
+                      child: FractionalTranslation(
+                        translation: const Offset(0.0, -0.5),
+                        child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade700,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+                            ),
+                            child: Text(
+                              _storeName ?? 'Store Location',
+                              style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down, color: Colors.blue, size: 16),
+                          const Icon(Icons.location_on, size: 50, color: Colors.blue),
+                        ],
+                      ),
+                    ),
+                  ),
+                  ],
+                ),
             ],
           ),
           // Fixed center pin overlay
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: 40.0,
-              ), // Shift up to align pin tip with center
-              child: Icon(Icons.location_on, size: 50, color: Colors.red),
+          Center(
+            child: FractionalTranslation(
+              translation: const Offset(0.0, -0.5),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+                    ),
+                    child: Text(
+                      langProvider.translate('move_map_adjust'),
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const Icon(Icons.arrow_drop_down, color: Colors.black87, size: 16),
+                  const Icon(Icons.location_on, size: 50, color: Colors.red),
+                ],
+              ),
             ),
           ),
           // Search overlay
@@ -480,7 +609,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search area, landmark or city...',
+                      hintText: langProvider.translate('search_area_hint'),
                       hintStyle: GoogleFonts.poppins(fontSize: 14),
                       prefixIcon: const Icon(Icons.search, color: Colors.blue),
                       suffixIcon: _searchController.text.isNotEmpty
@@ -567,36 +696,72 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
             ),
           ),
           Positioned(
-            bottom: 100,
+            top: MediaQuery.of(context).padding.top + 80, // Placed below search bar
             right: 16,
-            child: FloatingActionButton(
-              heroTag: 'map_layer_toggle',
-              mini: true,
-              backgroundColor: Colors.white,
-              onPressed: () {
-                setState(() {
-                  _isSatellite = !_isSatellite;
-                });
-              },
-              child: Icon(
-                _isSatellite ? Icons.map_rounded : Icons.satellite_alt_rounded,
-                color: Colors.blue,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton(
+                  heroTag: 'map_locate_user',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  onPressed: _locateUser,
+                  child: const Icon(
+                    Icons.my_location_rounded,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton(
+                  heroTag: 'map_layer_toggle',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  onPressed: () {
+                    setState(() {
+                      _isSatellite = !_isSatellite;
+                    });
+                  },
+                  child: Icon(
+                    _isSatellite ? Icons.map_rounded : Icons.satellite_alt_rounded,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
+      floatingActionButton: SafeArea(
+        child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: SizedBox(
           width: double.infinity,
           child: FloatingActionButton.extended(
-            onPressed: _showAddressDetailsSheet,
-            backgroundColor: const Color(0xFF4CAF50),
-            icon: const Icon(Icons.check_circle, color: Colors.white),
+            onPressed: () {
+              if (_isOutOfDeliveryZone) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(langProvider.translate('selected_loc_outside')),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              } else {
+                _showAddressDetailsSheet();
+              }
+            },
+            backgroundColor: _isOutOfDeliveryZone ? Colors.red : const Color(0xFF4CAF50),
+            icon: Icon(
+              _isOutOfDeliveryZone ? Icons.error_outline : Icons.check_circle,
+              color: Colors.white,
+            ),
             label: Text(
-              'Confirm Delivery Location',
+              _isOutOfDeliveryZone
+                  ? langProvider.translate('out_of_delivery_area')
+                  : widget.isPickingOnly
+                      ? langProvider.translate('confirm_location')
+                      : langProvider.translate('confirm_delivery_loc'),
               style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -605,6 +770,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

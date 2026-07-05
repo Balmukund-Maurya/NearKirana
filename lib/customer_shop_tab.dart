@@ -262,7 +262,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                   await Geolocator.isLocationServiceEnabled();
                               if (!serviceEnabled && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Please enable GPS'),
+                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('please_enable_gps')),
                                   ),
                                 );
                                 return;
@@ -561,7 +561,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
           children: [
             // Image Section
             Expanded(
-              flex: 5,
+              flex: 11, // Increased to give image more space and reduce empty text gap
               child: Stack(
                 children: [
                   Container(
@@ -653,7 +653,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
 
             // Details Section
             Expanded(
-              flex: 5,
+              flex: 9, // Reduced to compress the space between text and buttons
               child: Padding(
                 padding: const EdgeInsets.all(10),
                 child: Column(
@@ -688,17 +688,22 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Expanded(
-                          child: Text(
-                            '₹$price',
-                            style: AppTextStyles.heading2(
-                              color: AppColors.primaryDark,
-                            ).copyWith(fontSize: 15),
+                          child: FittedBox(
+                            alignment: Alignment.centerLeft,
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '₹$price',
+                              style: AppTextStyles.heading2(
+                                color: AppColors.primaryDark,
+                              ).copyWith(fontSize: 15),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 4),
 
                         // Cart Controls
-                        Consumer<CartProvider>(
+                        Expanded(
+                          child: Consumer<CartProvider>(
                           builder: (context, cartProvider, child) {
                             final cartItem = cartProvider.items[id];
                             final bool isInCart = cartItem != null;
@@ -706,9 +711,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             if (isOutOfStock) {
                               return Container(
                                 height: 32,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
+                                width: double.infinity,
                                 decoration: BoxDecoration(
                                   color: AppColors.bgTint,
                                   borderRadius: BorderRadius.circular(8),
@@ -726,6 +729,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             if (!isInCart) {
                               return SizedBox(
                                 height: 32,
+                                width: double.infinity,
                                 child: ElevatedButton(
                                   onPressed: () {
                                     if (!isServiceable) {
@@ -733,9 +737,9 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        const SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                            "Oops! We don't deliver to your selected location.",
-                                          ),
+                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(
+                                            langProvider.translate('error_cant_deliver'),
+                                        ),
                                           backgroundColor: AppColors.error,
                                         ),
                                       );
@@ -792,11 +796,14 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                       ),
                                     ),
                                   ),
-                                  child: Text(
-                                    langProvider.translate('add'),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      langProvider.translate('add'),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -811,6 +818,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             // Plus/Minus Controls
                             return Container(
                               height: 32,
+                              width: double.infinity,
                               decoration: BoxDecoration(
                                 color: AppColors.primaryDark,
                                 borderRadius: BorderRadius.circular(8),
@@ -825,91 +833,86 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                 ],
                               ),
                               child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.remove_rounded,
-                                      color: AppColors.white,
-                                      size: 16,
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(
-                                      minWidth: 28,
-                                      minHeight: 32,
-                                    ),
-                                    onPressed: () {
-                                      HapticFeedback.lightImpact();
-                                      cartProvider.updateQuantity(
-                                        id,
-                                        isLoose ? -0.5 : -1.0,
-                                      );
-                                    },
-                                  ),
-                                  Container(
-                                    color: AppColors.white.withValues(
-                                      alpha: 0.15,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      isLoose
-                                          ? cartItem.quantity.toStringAsFixed(1)
-                                          : cartItem.quantity
-                                                .toInt()
-                                                .toString(),
-                                      style: AppTextStyles.bodySemiBold(
-                                        color: AppColors.white,
-                                      ).copyWith(fontSize: 13),
+                                  Expanded(
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          cartProvider.updateQuantity(
+                                            id,
+                                            isLoose ? -0.5 : -1.0,
+                                          );
+                                        },
+                                        child: const Center(
+                                          child: Icon(Icons.remove_rounded, color: AppColors.white, size: 16),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.add_rounded,
-                                      color: AppColors.white,
-                                      size: 16,
+                                  Expanded(
+                                    flex: 2,
+                                    child: Container(
+                                      color: AppColors.white.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          isLoose
+                                              ? cartItem.quantity.toStringAsFixed(1)
+                                              : cartItem.quantity
+                                                    .toInt()
+                                                    .toString(),
+                                          style: AppTextStyles.bodySemiBold(
+                                            color: AppColors.white,
+                                          ).copyWith(fontSize: 13),
+                                        ),
+                                      ),
                                     ),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(
-                                      minWidth: 28,
-                                      minHeight: 32,
-                                    ),
-                                    onPressed: () {
-                                      if (!isServiceable) {
-                                        HapticFeedback.heavyImpact();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(behavior: SnackBarBehavior.floating, content: Text("Oops! We don't deliver to your selected location."),
-                                            backgroundColor: AppColors.error,
-                                          )
-                                        );
-                                        return;
-                                      }
-                                      HapticFeedback.lightImpact();
-                                      bool updated = cartProvider
-                                          .updateQuantity(
+                                  ),
+                                  Expanded(
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+                                        onTap: () {
+                                          if (!isServiceable) {
+                                            HapticFeedback.heavyImpact();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('error_cant_deliver')),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          HapticFeedback.lightImpact();
+                                          bool updated = cartProvider.updateQuantity(
                                             id,
                                             isLoose ? 0.5 : 1.0,
                                           );
-                                      if (!updated) {
-                                        SoundService().blocked();
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                              langProvider.translate(
-                                                'max_stock',
+                                          if (!updated) {
+                                            SoundService().blocked();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(behavior: SnackBarBehavior.floating, content: Text(
+                                                  langProvider.translate('max_stock'),
+                                                ),
+                                                backgroundColor: AppColors.error,
+                                                duration: const Duration(seconds: 1),
                                               ),
-                                            ),
-                                            backgroundColor: AppColors.error,
-                                            duration: const Duration(
-                                              seconds: 1,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
+                                            );
+                                          }
+                                        },
+                                        child: const Center(
+                                          child: Icon(Icons.add_rounded, color: AppColors.white, size: 16),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -920,6 +923,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                               curve: Curves.easeOut,
                             );
                           },
+                        ),
                         ),
                       ],
                     ),

@@ -109,15 +109,7 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
-        title: Text(
-          'Order History',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF4CAF50),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Order History'),
       ),
       body: Column(
         children: [

@@ -62,13 +62,7 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(
-          'More Options',
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
+        title: Text(langProvider.translate('more_options')),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -417,9 +411,7 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                 style: AppTextStyles.heading2(color: AppColors.textDark),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
-              _buildLanguageOption(sheetContext, langProvider, 'hinglish', 'Hinglish', setSheetState),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               _buildLanguageOption(sheetContext, langProvider, 'hi', 'हिंदी', setSheetState),
               const SizedBox(height: 12),
               _buildLanguageOption(sheetContext, langProvider, 'en', 'English', setSheetState),

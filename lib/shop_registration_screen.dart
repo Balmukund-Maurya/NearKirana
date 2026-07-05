@@ -7,6 +7,10 @@ import 'package:geolocator/geolocator.dart';
 
 import 'app_theme.dart';
 import 'modern_loader.dart';
+import 'package:latlong2/latlong.dart';
+import 'map_selection_screen.dart';
+import 'package:provider/provider.dart';
+import 'language_provider.dart';
 
 class ShopRegistrationScreen extends StatefulWidget {
   const ShopRegistrationScreen({super.key});
@@ -88,12 +92,30 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
         return;
       }
 
-      _shopLatitude = position.latitude;
-      _shopLongitude = position.longitude;
+      // Open MapSelectionScreen for fine tuning
+      final LatLng? pickedLocation = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapSelectionScreen(
+            initialLat: position!.latitude,
+            initialLng: position.longitude,
+            isPickingOnly: true,
+          ),
+        ),
+      );
 
-      String fullAddress = 'Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}';
+      if (!mounted) return;
+      if (pickedLocation == null) {
+        _showSnackBar('Location selection cancelled.', isError: true);
+        return;
+      }
+
+      _shopLatitude = pickedLocation.latitude;
+      _shopLongitude = pickedLocation.longitude;
+
+      String fullAddress = 'Location selected on map';
       try {
-        final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+        final placemarks = await placemarkFromCoordinates(_shopLatitude!, _shopLongitude!);
         if (!mounted) return;
 
         if (placemarks.isNotEmpty) {
@@ -107,7 +129,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
           ].whereType<String>().where((part) => part.isNotEmpty).join(', ');
         }
       } catch (_) {
-        fullAddress = 'Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}';
+        fullAddress = 'Location selected on map';
       }
 
       setState(() {
@@ -197,26 +219,22 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final langProvider = Provider.of<LanguageProvider>(context);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        title: Text(
-          'Dukan Register Karein',
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
+        title: Text(langProvider.translate('register_shop_title')),
       ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(
+            ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ModernLoader(color: AppColors.primaryDark),
-                    SizedBox(height: 16),
-                    Text('Aapki Dukan set up ho rahi hai...', style: TextStyle(color: AppColors.textMid)),
+                    const ModernLoader(color: AppColors.primaryDark),
+                    const SizedBox(height: 16),
+                    Text(langProvider.translate('shop_setting_up'), style: const TextStyle(color: AppColors.textMid)),
                   ],
                 ),
               )
@@ -318,7 +336,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0,
                         ),
-                        child: Text('Register Shop', style: AppTextStyles.heading2(color: AppColors.white)),
+                        child: Text(langProvider.translate('register_shop_title'), style: AppTextStyles.heading2(color: AppColors.white)),
                       ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
                     ],
                   ),

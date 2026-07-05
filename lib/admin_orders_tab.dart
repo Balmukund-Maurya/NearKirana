@@ -8,6 +8,8 @@ import 'admin_order_card.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'animation_helpers.dart';
+import 'package:provider/provider.dart';
+import 'language_provider.dart';
 
 class AdminOrdersTab extends StatefulWidget {
   const AdminOrdersTab({super.key});
@@ -35,27 +37,22 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
 
   @override
   Widget build(BuildContext context) {
+    final langProvider = Provider.of<LanguageProvider>(context);
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(
-          'Manage Orders',
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
+        title: Text(langProvider.translate('orders_tab')),
         bottom: TabBar(
           controller: _tabController,
-          labelStyle: AppTextStyles.bodySemiBold(color: AppColors.primaryDark),
+          labelStyle: AppTextStyles.bodySemiBold(color: AppColors.white),
           unselectedLabelStyle: AppTextStyles.bodyMedium(
-            color: AppColors.textMid,
+            color: AppColors.white.withValues(alpha: 0.7),
           ),
-          indicatorColor: AppColors.primaryDark,
+          indicatorColor: AppColors.white,
           indicatorWeight: 3,
-          labelColor: AppColors.primaryDark,
-          unselectedLabelColor: AppColors.textMid,
+          labelColor: AppColors.white,
+          unselectedLabelColor: AppColors.white.withValues(alpha: 0.7),
           tabs: const [
             Tab(text: 'Active Orders'),
             Tab(text: 'History'),

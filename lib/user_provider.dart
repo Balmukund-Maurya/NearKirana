@@ -149,10 +149,15 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
 
-      final doc = await FirebaseFirestore.instance
-          .collection('settings')
-          .doc('app_config')
-          .get();
+      final prefs = await SharedPreferences.getInstance();
+      final currentShopId = prefs.getString('current_shop_id');
+      
+      DocumentSnapshot doc;
+      if (currentShopId != null && currentShopId.isNotEmpty) {
+        doc = await FirebaseFirestore.instance.collection('shops').doc(currentShopId).get();
+      } else {
+        doc = await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
+      }
       if (!doc.exists) {
         _isServiceable = true;
         _serviceabilityError = null;
@@ -171,7 +176,6 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
         notifyListeners();
         return;
       }
-      final prefs = await SharedPreferences.getInstance();
       _currentLat = prefs.getDouble('customerLat');
       _currentLng = prefs.getDouble('customerLng');
 
@@ -272,10 +276,18 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     _currentLat = lat;
     _currentLng = lng;
 
-    final doc = await FirebaseFirestore.instance
-        .collection('settings')
-        .doc('app_config')
-        .get();
+    final prefs = await SharedPreferences.getInstance();
+    final currentShopId = prefs.getString('current_shop_id');
+    
+    DocumentSnapshot doc;
+    if (currentShopId != null && currentShopId.isNotEmpty) {
+      doc = await FirebaseFirestore.instance.collection('shops').doc(currentShopId).get();
+    } else {
+      doc = await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
+    }
+    if (!doc.exists) {
+      return {'autoLocality': 'Location selected', 'fullAddress': ''};
+    }
     final data = doc.data() as Map<String, dynamic>;
     final double maxDeliveryRadiusKm =
         (data['delivery_radius_km'] as num?)?.toDouble() ?? 5.0;

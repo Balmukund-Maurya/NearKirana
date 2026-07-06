@@ -10,6 +10,7 @@ import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'language_provider.dart';
+import 'utils/product_image_widget.dart';
 
 class ShopStockScreen extends StatefulWidget {
   const ShopStockScreen({super.key});
@@ -268,6 +269,7 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
                         final double price =
                             (data['price'] as num?)?.toDouble() ?? 0.0;
                         final String unit = isLoose ? 'kg/L' : 'pc';
+                        final String imageUrl = data['image_url'] ?? '';
 
                         final bool isLowStock = stock <= (isLoose ? 2.0 : 5.0);
 
@@ -308,24 +310,23 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
                               child: Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(12),
+                                    width: 48,
+                                    height: 48,
                                     decoration: BoxDecoration(
-                                      color: isLowStock
-                                          ? AppColors.error.withValues(
-                                              alpha: 0.1,
-                                            )
-                                          : AppColors.primaryLight.withValues(
-                                              alpha: 0.2,
-                                            ),
+                                      color: AppColors.bgTint,
                                       shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isLowStock ? AppColors.error : AppColors.primaryLight,
+                                        width: 1.5,
+                                      ),
                                     ),
-                                    child: Icon(
-                                      isLoose
-                                          ? Icons.scale_rounded
-                                          : Icons.inventory_rounded,
-                                      color: isLowStock
-                                          ? AppColors.error
-                                          : AppColors.primaryDark,
+                                    child: ClipOval(
+                                      child: imageUrl.isNotEmpty
+                                          ? ProductImageWidget(imageUrl: imageUrl, width: 48, height: 48)
+                                          : Icon(
+                                              isLoose ? Icons.scale_rounded : Icons.inventory_rounded,
+                                              color: isLowStock ? AppColors.error : AppColors.primaryDark,
+                                            ),
                                     ),
                                   ),
                                   const SizedBox(width: 16),

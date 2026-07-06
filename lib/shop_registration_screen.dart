@@ -148,6 +148,10 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
   Future<void> _registerShop() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_addressController.text.isEmpty) {
+      _showSnackBar('Location pick karna zaroori hai (Tap the Pick Location button)', isError: true);
+      return;
+    }
 
     setState(() => _isLoading = true);
     HapticFeedback.mediumImpact();
@@ -278,31 +282,30 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                         validator: (val) => val!.length != 10 ? 'Sahi 10-digit number dalein' : null,
                       ).animate().fadeIn(delay: 300.ms),
                       const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _addressController,
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          labelText: 'Dukan Ka Pura Pata (Address)',
-                          prefixIcon: const Icon(Icons.location_on_rounded, color: AppColors.primaryDark),
-                          suffixIcon: _isFetchingLocation
-                              ? const Padding(
-                                  padding: EdgeInsets.all(12.0),
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  ),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton.icon(
+                          onPressed: _getCurrentLocation,
+                          icon: _isFetchingLocation
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                 )
-                              : IconButton(
-                                  icon: const Icon(Icons.my_location_rounded, color: Colors.blue),
-                                  tooltip: 'Use Current Location',
-                                  onPressed: _getCurrentLocation,
-                                ),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                          filled: true,
-                          fillColor: AppColors.white,
+                              : const Icon(Icons.location_on_rounded, color: Colors.white),
+                          label: Text(
+                            _addressController.text.isEmpty
+                                ? 'Pick Shop Location'
+                                : 'Location Selected. ( Tap to change )',
+                            style: AppTextStyles.bodySemiBold(color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _addressController.text.isEmpty ? Colors.blue : Colors.green,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                          ),
                         ),
-                        validator: (val) => val!.isEmpty ? 'Pata zaroori hai' : null,
                       ).animate().fadeIn(delay: 400.ms),
                       const SizedBox(height: 16),
                       TextFormField(

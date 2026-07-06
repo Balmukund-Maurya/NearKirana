@@ -14,6 +14,10 @@ import 'my_orders_screen.dart'; // FIX-11: Import MyOrdersScreen
 import 'khata_statement_screen.dart';
 import 'shop_provider.dart';
 import 'shop_selector_screen.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
+import 'utils/product_image_widget.dart';
+import 'modern_loader.dart';
 
 class CustomerProfileTab extends StatelessWidget {
   const CustomerProfileTab({super.key});
@@ -50,23 +54,7 @@ class CustomerProfileTab extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primaryLight.withValues(alpha: 0.2),
-                      border: Border.all(
-                        color: AppColors.primaryLight,
-                        width: 3,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.person_rounded,
-                      size: 50,
-                      color: AppColors.primaryDark,
-                    ),
-                  ).animate().scale(
+                  _ProfileAvatar(userProvider: userProvider).animate().scale(
                     duration: 400.ms,
                     curve: Curves.easeOutBack,
                   ),
@@ -710,6 +698,79 @@ class CustomerProfileTab extends StatelessWidget {
           ),
           const Divider(height: 1, thickness: 1, color: AppColors.bgTint),
           content,
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileAvatar extends StatefulWidget {
+  final UserProvider userProvider;
+  const _ProfileAvatar({required this.userProvider});
+  @override
+  State<_ProfileAvatar> createState() => _ProfileAvatarState();
+}
+
+class _ProfileAvatarState extends State<_ProfileAvatar> {
+  bool _isUploading = false;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    if (pickedFile != null) {
+      setState(() => _isUploading = true);
+      try {
+        final bytes = await pickedFile.readAsBytes();
+        final base64String = base64Encode(bytes);
+        final finalImageUrl = 'data:image/jpeg;base64,$base64String';
+        await widget.userProvider.updateProfileImage(finalImageUrl);
+      } catch (e) {
+        debugPrint('Error uploading profile pic: $e');
+      } finally {
+        if (mounted) setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primaryLight.withValues(alpha: 0.2),
+              border: Border.all(
+                color: AppColors.primaryLight,
+                width: 3,
+              ),
+            ),
+            child: ClipOval(
+              child: _isUploading
+                  ? const Center(child: ModernLoader(color: AppColors.primaryDark))
+                  : (widget.userProvider.profileImageUrl != null && widget.userProvider.profileImageUrl!.isNotEmpty)
+                      ? ProductImageWidget(imageUrl: widget.userProvider.profileImageUrl, width: 100, height: 100)
+                      : const Icon(
+                          Icons.person_rounded,
+                          size: 50,
+                          color: AppColors.primaryDark,
+                        ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primaryDark,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
+          ),
         ],
       ),
     );

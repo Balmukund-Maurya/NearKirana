@@ -34,6 +34,7 @@ class MyOrdersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final langProvider = Provider.of<LanguageProvider>(context);
+    final shopProvider = Provider.of<ShopProvider>(context);
     final String phone = userProvider.phoneNumber;
 
     return Scaffold(
@@ -42,7 +43,7 @@ class MyOrdersScreen extends StatelessWidget {
         automaticallyImplyLeading: !isTab,
         title: Text(langProvider.translate('my_orders')),
       ),
-      body: phone.isEmpty
+      body: phone.isEmpty || shopProvider.currentShopId == null
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -64,6 +65,7 @@ class MyOrdersScreen extends StatelessWidget {
               stream: FirebaseFirestore.instance
                   .collection('orders')
                   .where('phone_number', isEqualTo: phone)
+                  .where('shop_id', isEqualTo: shopProvider.currentShopId)
                   .limit(100)
                   .snapshots(),
               builder: (context, snapshot) {

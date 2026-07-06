@@ -8,8 +8,10 @@ import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'language_provider.dart';
-import 'package:latlong2/latlong.dart' as latlong2;
 import 'map_selection_screen.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
+import 'utils/product_image_widget.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -181,6 +183,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Center(
+                    child: _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
+                  ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+                  const SizedBox(height: 24),
                   // Store Status
                   Container(
                         padding: const EdgeInsets.all(20),
@@ -584,6 +590,79 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         ),
         filled: true,
         fillColor: AppColors.surface,
+      ),
+    );
+  }
+}
+
+class _ShopAvatar extends StatefulWidget {
+  final ShopProvider shopProvider;
+  const _ShopAvatar({required this.shopProvider});
+  @override
+  State<_ShopAvatar> createState() => _ShopAvatarState();
+}
+
+class _ShopAvatarState extends State<_ShopAvatar> {
+  bool _isUploading = false;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    if (pickedFile != null) {
+      setState(() => _isUploading = true);
+      try {
+        final bytes = await pickedFile.readAsBytes();
+        final base64String = base64Encode(bytes);
+        final finalImageUrl = 'data:image/jpeg;base64,$base64String';
+        await widget.shopProvider.updateShopProfilePic(finalImageUrl);
+      } catch (e) {
+        debugPrint('Error uploading shop profile pic: $e');
+      } finally {
+        if (mounted) setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primaryLight.withValues(alpha: 0.2),
+              border: Border.all(
+                color: AppColors.primaryLight,
+                width: 3,
+              ),
+            ),
+            child: ClipOval(
+              child: _isUploading
+                  ? const Center(child: ModernLoader(color: AppColors.primaryDark))
+                  : (widget.shopProvider.shopProfilePic != null && widget.shopProvider.shopProfilePic!.isNotEmpty)
+                      ? ProductImageWidget(imageUrl: widget.shopProvider.shopProfilePic, width: 100, height: 100)
+                      : const Icon(
+                          Icons.store_rounded,
+                          size: 50,
+                          color: AppColors.primaryDark,
+                        ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primaryDark,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
+          ),
+        ],
       ),
     );
   }

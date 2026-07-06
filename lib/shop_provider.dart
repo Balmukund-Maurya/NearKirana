@@ -11,6 +11,7 @@ class ShopProvider with ChangeNotifier {
   String? _shopBannerUrl;
   String? _shopWhatsAppTemplate;
   String? _shopUpiId;
+  String? _shopProfilePic;
 
   String? get currentShopId => _currentShopId;
   String? get shopName => _shopName;
@@ -20,6 +21,7 @@ class ShopProvider with ChangeNotifier {
   String? get shopBannerUrl => _shopBannerUrl;
   String? get shopWhatsAppTemplate => _shopWhatsAppTemplate;
   String? get shopUpiId => _shopUpiId;
+  String? get shopProfilePic => _shopProfilePic;
 
   Future<void> loadCurrentShop() async {
     final prefs = await SharedPreferences.getInstance();
@@ -31,6 +33,7 @@ class ShopProvider with ChangeNotifier {
     _shopBannerUrl = prefs.getString('current_shop_banner_url');
     _shopWhatsAppTemplate = prefs.getString('current_shop_whatsapp_template');
     _shopUpiId = prefs.getString('current_shop_upi_id');
+    _shopProfilePic = prefs.getString('current_shop_profile_pic');
 
     if (_currentShopId != null && _currentShopId!.isNotEmpty) {
       await _refreshFromFirestore(_currentShopId!);
@@ -55,6 +58,7 @@ class ShopProvider with ChangeNotifier {
       _shopBannerUrl = data['banner_image_url']?.toString() ?? data['shop_image_url']?.toString() ?? _shopBannerUrl;
       _shopWhatsAppTemplate = data['whatsapp_message_template']?.toString() ?? _shopWhatsAppTemplate;
       _shopUpiId = data['upi_id']?.toString() ?? data['vpa']?.toString() ?? _shopUpiId;
+      _shopProfilePic = data['profile_image_url']?.toString() ?? _shopProfilePic;
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('current_shop_id', shopId);
@@ -88,6 +92,11 @@ class ShopProvider with ChangeNotifier {
         await prefs.setString('current_shop_upi_id', _shopUpiId!);
       } else {
         await prefs.remove('current_shop_upi_id');
+      }
+      if ((_shopProfilePic ?? '').isNotEmpty) {
+        await prefs.setString('current_shop_profile_pic', _shopProfilePic!);
+      } else {
+        await prefs.remove('current_shop_profile_pic');
       }
     } catch (_) {}
 
@@ -169,7 +178,19 @@ class ShopProvider with ChangeNotifier {
     await prefs.remove('current_shop_banner_url');
     await prefs.remove('current_shop_whatsapp_template');
     await prefs.remove('current_shop_upi_id');
+    await prefs.remove('current_shop_profile_pic');
 
+    notifyListeners();
+  }
+
+  Future<void> updateShopProfilePic(String base64Image) async {
+    if (_currentShopId == null) return;
+    _shopProfilePic = base64Image;
+    await FirebaseFirestore.instance.collection('shops').doc(_currentShopId).update({
+      'profile_image_url': base64Image,
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('current_shop_profile_pic', base64Image);
     notifyListeners();
   }
 }

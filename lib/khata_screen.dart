@@ -369,8 +369,10 @@ class _KhataScreenState extends State<KhataScreen> {
               BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
             ],
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Material(
+            color: Colors.transparent,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             leading: CircleAvatar(
               backgroundColor: AppColors.primaryLight.withValues(alpha: 0.2),
               radius: 24,
@@ -393,6 +395,7 @@ class _KhataScreenState extends State<KhataScreen> {
               ],
             ),
           ),
+        ),
         ).animate().fadeIn(delay: Duration(milliseconds: 50 * (index % 10))).slideX(begin: 0.1, end: 0);
       },
     );

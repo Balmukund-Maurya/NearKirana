@@ -234,7 +234,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        langProvider.translate('app_name'),
+                        shopProvider.shopName ?? langProvider.translate('app_name'),
                         style: AppTextStyles.heading1(
                           color: AppColors.white,
                         ).copyWith(fontSize: 22),

@@ -350,30 +350,33 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: color, size: 24),
         ),
-        child: Icon(icon, color: color, size: 24),
+        title: Text(
+          title,
+          style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: AppTextStyles.captionMedium(color: AppColors.textMid),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios_rounded,
+          size: 16,
+          color: AppColors.textLight,
+        ),
+        onTap: onTap,
       ),
-      title: Text(
-        title,
-        style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: AppTextStyles.captionMedium(color: AppColors.textMid),
-      ),
-      trailing: const Icon(
-        Icons.arrow_forward_ios_rounded,
-        size: 16,
-        color: AppColors.textLight,
-      ),
-      onTap: onTap,
     );
   }
 

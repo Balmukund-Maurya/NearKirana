@@ -18,6 +18,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   double? _storeLat;
   double? _storeLng;
   String _addressLabel = 'Home';
+  String? _profileImageUrl;
 
   UserProvider() {
     WidgetsBinding.instance.addObserver(this);
@@ -50,6 +51,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   double? get storeLat => _storeLat;
   double? get storeLng => _storeLng;
   String get addressLabel => _addressLabel;
+  String? get profileImageUrl => _profileImageUrl;
 
   bool get isLoggedIn => _phoneNumber.isNotEmpty;
 
@@ -116,6 +118,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     await prefs.remove('customerLat');
     await prefs.remove('customerLng');
     await prefs.remove('addressLabel');
+    await prefs.remove('customerProfilePic');
     // FIX-4: Clear cart on logout so next user doesn't see previous user's cart
     await prefs.remove('cart_items');
     await prefs.remove('last_order_time');
@@ -269,6 +272,13 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  Future<void> updateProfileImage(String base64Image) async {
+    _profileImageUrl = base64Image;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('customerProfilePic', base64Image);
+    notifyListeners();
+  }
+
   Future<Map<String, String>> updateCustomLocation(
     double lat,
     double lng,
@@ -407,6 +417,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     _currentLat = prefs.getDouble('customerLat');
     _currentLng = prefs.getDouble('customerLng');
     _addressLabel = prefs.getString('addressLabel') ?? 'Home';
+    _profileImageUrl = prefs.getString('customerProfilePic');
     notifyListeners();
   }
 }

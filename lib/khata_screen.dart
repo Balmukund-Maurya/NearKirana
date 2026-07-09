@@ -10,6 +10,7 @@ import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'package:provider/provider.dart';
 import 'language_provider.dart';
+import 'shop_provider.dart';
 
 class KhataScreen extends StatefulWidget {
   const KhataScreen({super.key});
@@ -151,10 +152,15 @@ class _KhataScreenState extends State<KhataScreen> {
                                 final batch = FirebaseFirestore.instance.batch();
                                 DocumentReference customerRef;
 
+                                final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+                                if (shopId == null) return;
+
                                 if (customerQuery.docs.isNotEmpty) {
                                   customerRef = customerQuery.docs.first.reference;
                                   batch.update(customerRef, {
+                                    'shop_balances.$shopId': FieldValue.increment(amount),
                                     'total_udhaar': FieldValue.increment(amount),
+                                    'shop_ids': FieldValue.arrayUnion([shopId]),
                                   });
                                 } else {
                                   if (name.isEmpty) {
@@ -170,6 +176,8 @@ class _KhataScreenState extends State<KhataScreen> {
                                     'name': name,
                                     'mobile': phone,
                                     'total_udhaar': amount,
+                                    'shop_balances': {shopId: amount},
+                                    'shop_ids': [shopId],
                                     'auto_reminder': false,
                                     'created_at': FieldValue.serverTimestamp(),
                                   });
@@ -180,6 +188,7 @@ class _KhataScreenState extends State<KhataScreen> {
                                   {
                                     'amount': amount,
                                     'type': 'debit',
+                                    'shop_id': shopId,
                                     'description': desc.isNotEmpty ? desc : 'Offline Udhaar',
                                     'timestamp': FieldValue.serverTimestamp(),
                                   },
@@ -299,7 +308,11 @@ class _KhataScreenState extends State<KhataScreen> {
             ),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('customers').orderBy('name').snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('customers')
+                    .where('shop_ids', arrayContains: Provider.of<ShopProvider>(context, listen: false).currentShopId)
+                    .orderBy('name')
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}', style: AppTextStyles.bodyMedium(color: AppColors.error)));
@@ -402,9 +415,10 @@ class _KhataScreenState extends State<KhataScreen> {
   }
 
   Widget _buildOfflineTab(List<DocumentSnapshot> customers) {
+    final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
     double totalUdhaar = 0.0;
     for (var doc in customers) {
-      totalUdhaar += ((doc.data() as Map<String, dynamic>)['total_udhaar'] ?? 0).toDouble();
+      totalUdhaar += ((doc.data() as Map<String, dynamic>)['shop_balances']?[shopId] ?? 0).toDouble();
     }
 
     return Column(
@@ -455,7 +469,7 @@ class _KhataScreenState extends State<KhataScreen> {
                   itemBuilder: (context, index) {
                     final doc = customers[index];
                     final data = doc.data() as Map<String, dynamic>;
-        final udhaar = (data['total_udhaar'] ?? 0).toDouble();
+        final udhaar = (data['shop_balances']?[Provider.of<ShopProvider>(context, listen: false).currentShopId] ?? 0).toDouble();
         
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

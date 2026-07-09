@@ -720,11 +720,14 @@ class AdminOrderCard extends StatelessWidget {
                                 if (customerQuery.docs.isNotEmpty) {
                                   final customerRef = customerQuery.docs.first.reference;
                                   batch.update(customerRef, {
+                                    'shop_balances.${data['shop_id']}': FieldValue.increment(total),
                                     'total_udhaar': FieldValue.increment(total),
+                                    'shop_ids': FieldValue.arrayUnion([data['shop_id']]),
                                   });
                                   batch.set(customerRef.collection('khata_transactions').doc(), {
                                     'amount': total,
                                     'type': 'debit',
+                                    'shop_id': data['shop_id'],
                                     'description': 'Order Delivered (#${orderId.substring(0, 5)})',
                                     'timestamp': FieldValue.serverTimestamp(),
                                   });
@@ -783,11 +786,14 @@ class AdminOrderCard extends StatelessWidget {
                                 if (customerQuery.docs.isNotEmpty) {
                                   final customerRef = customerQuery.docs.first.reference;
                                   batch.update(customerRef, {
+                                    'shop_balances.${data['shop_id']}': FieldValue.increment(total),
                                     'total_udhaar': FieldValue.increment(total),
+                                    'shop_ids': FieldValue.arrayUnion([data['shop_id']]),
                                   });
                                   batch.set(customerRef.collection('khata_transactions').doc(), {
                                     'amount': total,
                                     'type': 'debit',
+                                    'shop_id': data['shop_id'],
                                     'description': 'Order Delivered (#${orderId.substring(0, 5)})',
                                     'timestamp': FieldValue.serverTimestamp(),
                                   });
@@ -1074,12 +1080,13 @@ class AdminOrderCard extends StatelessWidget {
         // --- 2. PERFORM ALL WRITES ---
         if (status == 'Delivered' && customerRef != null) {
           transaction.update(customerRef, {
-            'total_udhaar': FieldValue.increment(-finalTotal),
+            'shop_balances.${data['shop_id']}': FieldValue.increment(-finalTotal),
           });
           transaction.set(customerRef.collection('khata_transactions').doc(), {
             'amount': finalTotal,
             'type': 'credit',
-            'description': 'Order Cancelled Refund (#${orderId.substring(0, 5)})',
+            'shop_id': data['shop_id'],
+            'description': 'Order Cancelled #${orderId.substring(0, 5)}',
             'timestamp': FieldValue.serverTimestamp(),
           });
         }

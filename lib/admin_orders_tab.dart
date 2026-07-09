@@ -10,6 +10,7 @@ import 'modern_loader.dart';
 import 'animation_helpers.dart';
 import 'package:provider/provider.dart';
 import 'language_provider.dart';
+import 'shop_provider.dart';
 
 class AdminOrdersTab extends StatefulWidget {
   const AdminOrdersTab({super.key});
@@ -61,15 +62,21 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildLiveOrdersStream(), const _OrderHistoryTab()],
+        children: [
+          _buildLiveOrdersStream(context),
+          const _OrderHistoryTab()
+        ],
       ),
     );
   }
 
-  Widget _buildLiveOrdersStream() {
+  Widget _buildLiveOrdersStream(BuildContext context) {
+    final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+    
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('orders')
+          .where('shop_id', isEqualTo: shopId)
           .where(
             'status',
             whereIn: ['Pending', 'Packed', 'Ready', 'Out for Delivery'],
@@ -184,9 +191,11 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
     setState(() => _isLoading = true);
 
     try {
+      final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       // Fetch latest orders globally to avoid Composite Index errors
       Query q = FirebaseFirestore.instance
           .collection('orders')
+          .where('shop_id', isEqualTo: shopId)
           .orderBy('created_at', descending: true)
           .limit(_limit);
 

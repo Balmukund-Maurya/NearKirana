@@ -949,7 +949,7 @@ class _CartScreenState extends State<CartScreen> {
                                   .instance
                                   .collection('customers')
                                   .where('mobile', isEqualTo: phoneController.text.trim())
-                                  .where('shop_id', isEqualTo: shopId)
+                                  .where('shop_ids', arrayContains: shopId)
                                   .limit(1)
                                   .get();
 

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import 'language_provider.dart';
+import 'shop_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'modern_loader.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class KhataStatementScreen extends StatefulWidget {
   final String customerId;
@@ -49,10 +51,12 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       Query q = FirebaseFirestore.instance
           .collection('customers')
           .doc(widget.customerId)
           .collection('khata_transactions')
+          .where('shop_id', isEqualTo: shopId)
           .orderBy('timestamp', descending: true)
           .limit(_limit);
 

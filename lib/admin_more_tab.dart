@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'language_provider.dart';
 import 'admin_settings_screen.dart';
 import 'admin_customers_screen.dart';
+import 'shop_qr_screen.dart';
 import 'main.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
@@ -131,6 +132,26 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.qr_code_2_rounded, color: AppColors.primaryDark),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ShopQrScreen(),
+                          ),
+                        );
+                      },
+                      tooltip: 'My Shop QR',
                     ),
                   ),
                 ],

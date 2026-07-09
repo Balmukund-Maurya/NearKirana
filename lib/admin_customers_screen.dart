@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'app_theme.dart';
+import 'shop_provider.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'animation_helpers.dart';
@@ -46,7 +47,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     setState(() => _isLoading = true);
 
     try {
-      Query q = FirebaseFirestore.instance.collection('customers');
+      final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+      Query q = FirebaseFirestore.instance.collection('customers').where('shop_ids', arrayContains: shopId);
 
       if (_searchQuery.isNotEmpty) {
         q = q
@@ -232,8 +234,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                         final String phone =
                             data['mobile'] ?? data['phone'] ?? 'Unknown';
                         final bool isBanned = data['is_banned'] ?? false;
+                        final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
                         final double udhaar =
-                            (data['total_udhaar'] as num?)?.toDouble() ?? 0.0;
+                            (data['shop_balances']?[shopId] as num?)?.toDouble() ?? 0.0;
                         final int nameChangeCount =
                             (data['name_change_count'] as num?)?.toInt() ?? 0;
                         final bool hasUdhaar = udhaar > 0;
@@ -537,6 +540,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     final descController = TextEditingController(
       text: 'Walk-in Store Purchase',
     );
+    final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
 
     showModalBottomSheet(
       context: context,
@@ -677,9 +681,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                   customerRef =
                                       customerQuery.docs.first.reference;
                                   batch.update(customerRef, {
-                                    'total_udhaar': FieldValue.increment(
-                                      amount,
-                                    ),
+                                    'shop_balances.$shopId': FieldValue.increment(amount),
+                                    'total_udhaar': FieldValue.increment(amount),
+                                    'shop_ids': FieldValue.arrayUnion([shopId]),
                                   });
                                 } else {
                                   if (name.isEmpty) {
@@ -700,7 +704,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                   batch.set(customerRef, {
                                     'name': name,
                                     'mobile': phone,
+                                    'shop_balances.$shopId': amount,
                                     'total_udhaar': amount,
+                                    'shop_ids': FieldValue.arrayUnion([shopId]),
                                     'auto_reminder': false,
                                     'created_at': FieldValue.serverTimestamp(),
                                   });
@@ -713,6 +719,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                   {
                                     'amount': amount,
                                     'type': 'debit',
+                                    'shop_id': shopId,
                                     'description': desc.isNotEmpty
                                         ? desc
                                         : 'Offline Udhaar',
@@ -901,7 +908,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                       .collection('customers')
                       .doc(docId);
 
+                  final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
                   batch.update(customerRef, {
+                    'shop_balances.$shopId': FieldValue.increment(-amount),
                     'total_udhaar': FieldValue.increment(-amount),
                   });
 

@@ -522,8 +522,8 @@ class LanguageProvider extends ChangeNotifier {
       },
       // ---- NEW MAP & SHOP SELECTOR TRANSLATIONS ----
       'welcome_title': {
-        'hi': 'AlwaysPro में आपका स्वागत है',
-        'en': 'Welcome to AlwaysPro',
+        'hi': 'NearKirana में आपका स्वागत है',
+        'en': 'Welcome to NearKirana',
       },
       'search_shop_subtitle': {
         'hi': 'अपने आस-पास की दुकान खोजें या उनका QR कोड स्कैन करें।',

@@ -254,7 +254,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                           .scale(curve: Curves.easeOutBack, duration: 500.ms),
                       const SizedBox(height: 16),
                       Text(
-                        'AlwaysPro Platform Par Judhein',
+                        'NearKirana Platform Par Judhein',
                         style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 22),
                         textAlign: TextAlign.center,
                       ),

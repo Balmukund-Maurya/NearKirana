@@ -98,18 +98,18 @@ void main() async {
         ChangeNotifierProvider(create: (context) => LanguageProvider()),
         ChangeNotifierProvider(create: (context) => UserProvider()),
       ],
-      child: const AlwaysProApp(),
+      child: const NearKiranaApp(),
     ),
   );
 }
 
-class AlwaysProApp extends StatelessWidget {
-  const AlwaysProApp({super.key});
+class NearKiranaApp extends StatelessWidget {
+  const NearKiranaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Shop App',
+      title: 'NearKirana',
       theme: AppTheme.theme,
       debugShowCheckedModeBanner: false,
       home: Consumer<ShopProvider>(

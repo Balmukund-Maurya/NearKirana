@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <application
-        android:label="aditya_kirana"
+        android:label="NearKirana"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

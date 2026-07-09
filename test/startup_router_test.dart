@@ -30,7 +30,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => LanguageProvider()),
           ChangeNotifierProvider(create: (_) => UserProvider()),
         ],
-        child: const AlwaysProApp(),
+        child: const NearKiranaApp(),
       ),
     );
     await tester.pumpAndSettle();
@@ -50,7 +50,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => LanguageProvider()),
           ChangeNotifierProvider(create: (_) => UserProvider()),
         ],
-        child: const AlwaysProApp(),
+        child: const NearKiranaApp(),
       ),
     );
     await tester.pumpAndSettle();

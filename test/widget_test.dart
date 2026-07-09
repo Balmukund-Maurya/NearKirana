@@ -11,7 +11,7 @@ import 'package:aditya_kirana/main.dart';
 
 void main() {
   testWidgets('app boots with the router widget', (tester) async {
-    await tester.pumpWidget(const AlwaysProApp());
-    expect(find.byType(AlwaysProApp), findsOneWidget);
+    await tester.pumpWidget(const NearKiranaApp());
+    expect(find.byType(NearKiranaApp), findsOneWidget);
   });
 }

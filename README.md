@@ -1,6 +1,6 @@
-# AlwaysPro Kirana StoreBuilder
+# NearKirana
 
-AlwaysPro Kirana StoreBuilder is a Flutter-based multi-shop grocery delivery application designed for kirana shops to manage customers, orders, inventory, and delivery operations from a single mobile app experience.
+NearKirana is a Flutter-based multi-shop grocery delivery application designed for kirana shops to manage customers, orders, inventory, and delivery operations from a single mobile app experience.
 
 ## Features
 
@@ -41,11 +41,11 @@ AlwaysPro Kirana StoreBuilder is a Flutter-based multi-shop grocery delivery app
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/Balmukund-Maurya/AlwaysPro_Kirana_StoreBuilder.git
+   git clone https://github.com/Balmukund-Maurya/NearKirana_Kirana_StoreBuilder.git
    ```
 2. Navigate into the project directory
    ```bash
-   cd AlwaysPro_Kirana_StoreBuilder
+   cd NearKirana_Kirana_StoreBuilder
    ```
 3. Install dependencies
    ```bash

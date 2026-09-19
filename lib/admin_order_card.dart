@@ -255,10 +255,12 @@ class AdminOrderCard extends StatelessWidget {
                 ),
 
                 // Items
-                Theme(
-                  data: Theme.of(
-                    context,
-                  ).copyWith(dividerColor: Colors.transparent),
+                Material(
+                  color: Colors.transparent,
+                  child: Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     collapsedIconColor: AppColors.primaryDark,
@@ -321,6 +323,7 @@ class AdminOrderCard extends StatelessWidget {
                       );
                     }).toList(),
                   ),
+                ),
                 ),
 
                 const Padding(

@@ -282,6 +282,7 @@ class _KhataScreenState extends State<KhataScreen> {
           ),
         ),
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'fab_khata_screen',
           onPressed: () => _showAddOfflineKhataEntryDialog(context),
           backgroundColor: AppColors.primaryDark,
           icon: const Icon(Icons.add_rounded, color: AppColors.white),

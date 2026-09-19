@@ -404,6 +404,7 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_shop_stock_screen',
         onPressed: () {
           HapticFeedback.mediumImpact();
           AdminProductForms.showManualAddProductForm(context);

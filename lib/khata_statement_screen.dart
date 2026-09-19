@@ -107,6 +107,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
       ),
       floatingActionButton: widget.isAdmin
           ? FloatingActionButton.extended(
+              heroTag: 'fab_khata_statement_screen',
               onPressed: () => _showAddTransactionDialog(context),
               backgroundColor: const Color(0xFF4CAF50),
               icon: const Icon(Icons.add_rounded, color: Colors.white),

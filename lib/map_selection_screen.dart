@@ -738,6 +738,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         child: SizedBox(
           width: double.infinity,
           child: FloatingActionButton.extended(
+            heroTag: 'fab_map_selection_confirm',
             onPressed: () {
               if (_isOutOfDeliveryZone) {
                 ScaffoldMessenger.of(context).showSnackBar(

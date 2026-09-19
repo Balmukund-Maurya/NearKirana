@@ -110,6 +110,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         title: Text(langProvider.translate('manage_customers')),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_admin_customers_screen',
         onPressed: () {
           HapticFeedback.mediumImpact();
           _showAddOfflineKhataEntryDialog(context);

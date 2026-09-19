@@ -161,6 +161,7 @@ class MyOrdersScreen extends StatelessWidget {
               },
             ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_my_orders_screen',
         onPressed: () => _callShopOwner(context),
         backgroundColor: AppColors.accentPink,
         icon: const Icon(Icons.call_rounded, color: AppColors.white),
@@ -565,12 +566,14 @@ class MyOrdersScreen extends StatelessWidget {
             ],
 
             const SizedBox(height: 16),
-            Theme(
-              data: Theme.of(
-                context,
-              ).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                tilePadding: EdgeInsets.zero,
+            Material(
+              color: Colors.transparent,
+              child: Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
                 collapsedIconColor: AppColors.primaryDark,
                 iconColor: AppColors.primaryDark,
                 title: Text(
@@ -603,6 +606,7 @@ class MyOrdersScreen extends StatelessWidget {
                   );
                 }).toList(),
               ),
+            ),
             ),
           ],
         ),

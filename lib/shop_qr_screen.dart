@@ -23,24 +23,31 @@ class _ShopQrScreenState extends State<ShopQrScreen> {
   Future<void> _shareQR() async {
     setState(() => _isSharing = true);
     try {
-      final image = await _screenshotController.capture(delay: const Duration(milliseconds: 10));
+      final image = await _screenshotController.capture(
+        delay: const Duration(milliseconds: 10),
+      );
       if (image == null) return;
-      
+
       final directory = await getApplicationDocumentsDirectory();
       final imagePath = await File('${directory.path}/shop_qr.png').create();
       await imagePath.writeAsBytes(image);
 
-      final shopName = Provider.of<ShopProvider>(context, listen: false).shopName ?? 'Shop';
+      if (!mounted) return;
+      final shopName =
+          Provider.of<ShopProvider>(context, listen: false).shopName ?? 'Shop';
 
-      await Share.shareXFiles(
-        [XFile(imagePath.path)],
-        text: 'Hello! You can now order from $shopName online. Scan this QR Code to visit our online shop!',
+      await SharePlus.instance.share(
+        ShareParams(
+          text:
+              'Hello, You can now order from $shopName online. Scan this QR Code to visit our online shop.',
+          files: [XFile(imagePath.path)],
+        ),
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error sharing QR: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error sharing QR: $e')));
       }
     } finally {
       if (mounted) {
@@ -57,7 +64,10 @@ class _ShopQrScreenState extends State<ShopQrScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Shop QR Code', style: AppTextStyles.heading2(color: AppColors.textDark)),
+        title: Text(
+          'My Shop QR Code',
+          style: AppTextStyles.heading2(color: AppColors.textDark),
+        ),
         backgroundColor: AppColors.cardBg,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.textDark),
@@ -105,7 +115,9 @@ class _ShopQrScreenState extends State<ShopQrScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Scan to Order Online',
-                        style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                        style: AppTextStyles.bodyMedium(
+                          color: AppColors.textMid,
+                        ),
                       ),
                       const SizedBox(height: 24),
                       QrImageView(
@@ -139,8 +151,15 @@ class _ShopQrScreenState extends State<ShopQrScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  icon: _isSharing 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  icon: _isSharing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : const Icon(Icons.share_rounded, color: Colors.white),
                   label: Text(
                     _isSharing ? 'Sharing...' : 'Share QR Code',

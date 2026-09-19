@@ -75,7 +75,7 @@ class CartProvider with ChangeNotifier {
   List<CartItem> get itemsList => _items.values.toList();
 
   int get itemCount =>
-      _items.values.fold(0, (sum, item) => sum + item.quantity.ceil());
+      _items.values.fold(0, (total, item) => total + item.quantity.ceil());
 
   Future<void> syncPricesWithServer() async {
     if (_items.isEmpty) return;

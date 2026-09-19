@@ -1,1 +1,29 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"kiranastorebuilder-e78dd","appId":"1:331223738086:android:02e73159c8c89b90727d27","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"aditya-kirana-6fb5b","appId":"1:471004099824:ios:48a19ba3bc86d237497e35","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"kiranastorebuilder-e78dd","configurations":{"android":"1:331223738086:android:02e73159c8c89b90727d27"}}}}}}
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "kiranastorebuilder-e78dd",
+                    "appId": "1:331223738086:android:02e73159c8c89b90727d27",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "ios": {
+                "default": {
+                    "projectId": "aditya-kirana-6fb5b",
+                    "appId": "1:471004099824:ios:48a19ba3bc86d237497e35",
+                    "uploadDebugSymbols": false,
+                    "fileOutput": "ios/Runner/GoogleService-Info.plist"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "kiranastorebuilder-e78dd",
+                    "configurations": {
+                        "android": "1:331223738086:android:02e73159c8c89b90727d27"
+                    }
+                }
+            }
+        }
+    }
+}

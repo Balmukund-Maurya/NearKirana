@@ -619,7 +619,7 @@ class CustomerProfileTab extends StatelessWidget {
                   SizedBox(
                     width: MediaQuery.of(context).size.width * 0.5,
                     child: Text(
-                      '${userProvider.deliveryAddress}',
+                      userProvider.deliveryAddress,
                       style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

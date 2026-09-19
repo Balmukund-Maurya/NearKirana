@@ -966,24 +966,30 @@ class AdminOrderCard extends StatelessWidget {
                 style: AppTextStyles.bodyMedium(color: AppColors.textMid),
               ),
               const SizedBox(height: 12),
-              ...[
-                'Out of Stock',
-                'Shop is Closed',
-                'Outside Delivery Area',
-                'Other',
-              ].map((reason) {
-                return RadioListTile<String>(
-                  title: Text(
-                    reason,
-                    style: AppTextStyles.bodyMedium(color: AppColors.textDark),
-                  ),
-                  value: reason,
-                  groupValue: selectedReason,
-                  activeColor: AppColors.error,
-                  contentPadding: EdgeInsets.zero,
-                  onChanged: (val) => setState(() => selectedReason = val!),
-                );
-              }),
+              RadioGroup<String>(
+                groupValue: selectedReason,
+                onChanged: (val) => setState(() => selectedReason = val!),
+                child: Column(
+                  children: [
+                    ...[
+                      'Out of Stock',
+                      'Shop is Closed',
+                      'Outside Delivery Area',
+                      'Other',
+                    ].map((reason) {
+                      return RadioListTile<String>(
+                        title: Text(
+                          reason,
+                          style: AppTextStyles.bodyMedium(color: AppColors.textDark),
+                        ),
+                        value: reason,
+                        activeColor: AppColors.error,
+                        contentPadding: EdgeInsets.zero,
+                      );
+                    }),
+                  ],
+                ),
+              ),
             ],
           ),
           actions: [

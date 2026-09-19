@@ -7,13 +7,11 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'utils/product_image_widget.dart';
-import 'app_theme.dart';
 import 'utils/snackbar_helper.dart';
 import 'api_service.dart';
 import 'modern_loader.dart';
 import 'sound_service.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'animation_helpers.dart';
 import 'package:provider/provider.dart';
 import 'shop_provider.dart';
 import 'language_provider.dart';
@@ -553,8 +551,9 @@ class AdminProductForms {
                         ? null
                         : () async {
                             if (nameController.text.isEmpty ||
-                                priceController.text.isEmpty)
+                                priceController.text.isEmpty) {
                               return;
+                            }
 
                             setState(() => isUploading = true);
 
@@ -582,6 +581,7 @@ class AdminProductForms {
                               extraData['isVegetarian'] = isVegetarian;
                               extraData['isFoodItem'] = isFoodItem;
 
+                              if (!context.mounted) return;
                               final price =
                                   double.tryParse(priceController.text) ?? 0.0;
                               final stock =
@@ -969,6 +969,7 @@ class AdminProductForms {
                                   fetchedExtraDetails!['categories'] = selectedCategories;
                                 }
 
+                                if (!context.mounted) return;
                                 final price =
                                     double.tryParse(priceController.text) ?? 0.0;
                                 final stock =

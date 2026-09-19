@@ -42,6 +42,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   Future<void> _checkBlockStatus() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
     if (shopId == null || shopId.isEmpty) return;
 
@@ -78,6 +79,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     if (enteredPin.isEmpty) return;
 
     await _checkBlockStatus();
+    if (!mounted) return;
     if (_isBlocked) {
       final msg = Provider.of<LanguageProvider>(context, listen: false).translate('login_blocked').replaceAll('{minutes}', _remainingMinutes.toString());
       _showSnackBar(msg, isError: true);
@@ -131,19 +133,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         if (currentAttempts >= 3) {
           final blockUntil = DateTime.now().add(const Duration(hours: 1));
           await prefs.setInt('admin_blocked_until_$shopId', blockUntil.millisecondsSinceEpoch);
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-              _isBlocked = true;
-              _remainingMinutes = 60;
-            });
-          }
+          if (!mounted) return;
+          setState(() {
+            _isLoading = false;
+            _isBlocked = true;
+            _remainingMinutes = 60;
+          });
           final msg = Provider.of<LanguageProvider>(context, listen: false).translate('login_blocked_1_hour');
           _showSnackBar(msg, isError: true);
         } else {
-          if (mounted) {
-            setState(() => _isLoading = false);
-          }
+          if (!mounted) return;
+          setState(() => _isLoading = false);
           final attemptsLeft = 3 - currentAttempts;
           final msg = Provider.of<LanguageProvider>(context, listen: false).translate('wrong_pin_attempts').replaceAll('{attempts}', attemptsLeft.toString());
           _showSnackBar(msg, isError: true);

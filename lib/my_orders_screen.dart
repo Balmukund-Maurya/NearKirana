@@ -330,8 +330,9 @@ class MyOrdersScreen extends StatelessWidget {
                                           orderRef,
                                         );
 
-                                        if (!snapshot.exists)
+                                        if (!snapshot.exists) {
                                           throw Exception('Order not found');
+                                        }
 
                                         final status =
                                             snapshot.data()?['status'] ??
@@ -617,8 +618,9 @@ class MyOrdersScreen extends StatelessWidget {
   Widget _buildTimeline(String currentStatus) {
     int currentIndex = 0;
     if (currentStatus == 'Packed') currentIndex = 1;
-    if (currentStatus == 'Out for Delivery' || currentStatus == 'Ready')
+    if (currentStatus == 'Out for Delivery' || currentStatus == 'Ready') {
       currentIndex = 2;
+    }
     if (currentStatus == 'Delivered') currentIndex = 3;
 
     return Padding(

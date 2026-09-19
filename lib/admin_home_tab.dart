@@ -33,9 +33,8 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: ModernLoader(color: AppColors.primaryDark),
-        ),
+        builder: (context) =>
+            const Center(child: ModernLoader(color: AppColors.primaryDark)),
       );
 
       final firestoreService = FirestoreService();
@@ -48,70 +47,73 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
         showDialog(
           context: context,
           builder: (context) {
-            final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+            final langProvider = Provider.of<LanguageProvider>(
+              context,
+              listen: false,
+            );
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
               ),
               title: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.primaryDark,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  langProvider.translate('product_found'),
-                  style: AppTextStyles.heading2(color: AppColors.textDark),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product['name'],
-                  style: AppTextStyles.heading1(color: AppColors.textDark),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${langProvider.translate('price')}: ₹${product['price']}',
-                  style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
-                ),
-                Text(
-                  '${langProvider.translate('stock')}: ${product['stock_quantity']}',
-                  style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pop(context);
-                  AdminProductForms.showEditProductDialog(context, res);
-                },
-                child: Text(
-                  langProvider.translate('edit'),
-                  style: AppTextStyles.bodySemiBold(color: Colors.blue),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryDark,
-                  foregroundColor: AppColors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.primaryDark,
                   ),
-                  elevation: 0,
-                ),
-                child: Text(langProvider.translate('ok_btn')),
+                  const SizedBox(width: 8),
+                  Text(
+                    langProvider.translate('product_found'),
+                    style: AppTextStyles.heading2(color: AppColors.textDark),
+                  ),
+                ],
               ),
-            ],
-          );
-         },
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product['name'],
+                    style: AppTextStyles.heading1(color: AppColors.textDark),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${langProvider.translate('price')}: ₹${product['price']}',
+                    style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
+                  ),
+                  Text(
+                    '${langProvider.translate('stock')}: ${product['stock_quantity']}',
+                    style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.pop(context);
+                    AdminProductForms.showEditProductDialog(context, res);
+                  },
+                  child: Text(
+                    langProvider.translate('edit'),
+                    style: AppTextStyles.bodySemiBold(color: Colors.blue),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: AppColors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(langProvider.translate('ok_btn')),
+                ),
+              ],
+            );
+          },
         );
       } else {
         AdminProductForms.showEditProductDialog(context, res);
@@ -173,105 +175,105 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
             }
 
             return Row(
-          children: [
-            Expanded(
-              flex: 3,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primaryDark, Color(0xFF1E4B19)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primaryDark, Color(0xFF1E4B19)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryDark.withValues(alpha: 0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.currency_rupee_rounded,
+                              color: AppColors.primaryLight,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Earning Today',
+                              style: AppTextStyles.bodyMedium(
+                                color: AppColors.primaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '₹${todayTotal.toStringAsFixed(0)}',
+                          style: AppTextStyles.heading1(
+                            color: AppColors.white,
+                          ).copyWith(fontSize: 32),
+                        ),
+                      ],
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryDark.withValues(alpha: 0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.currency_rupee_rounded,
-                          color: AppColors.primaryLight,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Aaj Ki Kamayi',
-                          style: AppTextStyles.bodyMedium(
-                            color: AppColors.primaryLight,
-                          ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.bgTint, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '₹${todayTotal.toStringAsFixed(0)}',
-                      style: AppTextStyles.heading1(
-                        color: AppColors.white,
-                      ).copyWith(fontSize: 32),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.bgTint, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.local_shipping_rounded,
-                          color: Colors.blue,
-                          size: 20,
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.local_shipping_rounded,
+                              color: Colors.blue,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Active',
+                              style: AppTextStyles.bodyMedium(
+                                color: AppColors.textMid,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 8),
                         Text(
-                          'Active',
-                          style: AppTextStyles.bodyMedium(
-                            color: AppColors.textMid,
-                          ),
+                          '$activeOrders',
+                          style: AppTextStyles.heading1(
+                            color: AppColors.textDark,
+                          ).copyWith(fontSize: 32),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '$activeOrders',
-                      style: AppTextStyles.heading1(
-                        color: AppColors.textDark,
-                      ).copyWith(fontSize: 32),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ],
-        );
+              ],
+            );
           },
         );
       },

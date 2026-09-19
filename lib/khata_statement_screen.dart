@@ -7,7 +7,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'modern_loader.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 class KhataStatementScreen extends StatefulWidget {
   final String customerId;
@@ -325,7 +324,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
-                                color: isCredit ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                                color: isCredit ? Colors.red.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                                 border: Border.all(color: isCredit ? Colors.red : Colors.transparent),
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -347,7 +346,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
-                                color: !isCredit ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                                color: !isCredit ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                                 border: Border.all(color: !isCredit ? Colors.green : Colors.transparent),
                                 borderRadius: BorderRadius.circular(12),
                               ),

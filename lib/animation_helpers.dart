@@ -10,8 +10,7 @@ class StaggeredList extends StatelessWidget {
   final List<Widget> children;
   final int delayMs;
 
-  const StaggeredList({Key? key, required this.children, this.delayMs = 80})
-    : super(key: key);
+  const StaggeredList({super.key, required this.children, this.delayMs = 80});
 
   @override
   Widget build(BuildContext context) {
@@ -92,8 +91,7 @@ class PulseWidget extends StatelessWidget {
   final Widget child;
   final Color color;
 
-  const PulseWidget({Key? key, required this.child, required this.color})
-    : super(key: key);
+  const PulseWidget({super.key, required this.child, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -115,11 +113,11 @@ class ShimmerPlaceholder extends StatelessWidget {
   final double radius;
 
   const ShimmerPlaceholder({
-    Key? key,
+    super.key,
     this.width = double.infinity,
     this.height = 100,
     this.radius = 12,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +138,7 @@ class ShimmerPlaceholder extends StatelessWidget {
 class AnimatedBadge extends StatelessWidget {
   final int count;
 
-  const AnimatedBadge({Key? key, required this.count}) : super(key: key);
+  const AnimatedBadge({super.key, required this.count});
 
   @override
   Widget build(BuildContext context) {
@@ -181,13 +179,13 @@ class AnimatedCounter extends StatelessWidget {
   final int decimals;
 
   const AnimatedCounter({
-    Key? key,
+    super.key,
     required this.value,
     this.prefix = '',
     this.suffix = '',
     this.style,
     this.decimals = 0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -216,11 +214,11 @@ class SuccessOverlay extends StatelessWidget {
   final VoidCallback onDone;
 
   const SuccessOverlay({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.onDone,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

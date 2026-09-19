@@ -99,7 +99,7 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
         // If we found less than 10 low stock items, keep fetching
         if (lowStockCount < 10) {
           _isLoading = false; // Reset to allow next fetch
-          return _fetchProducts();
+          return await _fetchProducts();
         }
       }
     } catch (e) {
@@ -154,7 +154,7 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
                         // FIX-15: Refresh list when filter is toggled
                         _refresh();
                       },
-                      activeColor: AppColors.error,
+                      activeThumbColor: AppColors.error,
                       inactiveTrackColor: AppColors.bgTint,
                     ),
                   ],
@@ -380,7 +380,7 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
                                           ).copyWith(fontSize: 10),
                                         ),
                                         Text(
-                                          '${stock.toStringAsFixed(isLoose ? 1 : 0)}',
+                                          stock.toStringAsFixed(isLoose ? 1 : 0),
                                           style: AppTextStyles.bodySemiBold(
                                             color: isLowStock
                                                 ? AppColors.error

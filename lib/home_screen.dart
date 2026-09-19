@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
 import 'customer_shop_tab.dart';
 import 'cart_screen.dart';
 import 'my_orders_screen.dart';
@@ -10,10 +9,9 @@ import 'customer_profile_tab.dart';
 import 'language_provider.dart';
 import 'cart_provider.dart';
 import 'app_theme.dart';
-import 'shop_provider.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();

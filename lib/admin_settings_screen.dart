@@ -234,7 +234,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                             ),
                             Switch(
                               value: _isStoreOpen,
-                              activeColor: AppColors.primaryDark,
+                              activeThumbColor: AppColors.primaryDark,
                               inactiveTrackColor: AppColors.error.withValues(
                                 alpha: 0.3,
                               ),
@@ -352,6 +352,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                       ),
                                     ),
                                   );
+                                  if (!context.mounted) return;
                                   if (pickedLocation != null) {
                                     try {
                                       setState(() {

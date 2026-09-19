@@ -75,7 +75,7 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
 
         if (filteredCount < 5) {
           _isLoading = false; // Reset lock
-          return _fetchOrders(); // Recursively fetch next page
+          return await _fetchOrders(); // Recursively fetch next page
         }
       }
     } catch (e) {

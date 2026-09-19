@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'khata_statement_screen.dart';
 import 'app_theme.dart';
@@ -150,6 +149,7 @@ class _KhataScreenState extends State<KhataScreen> {
                               try {
                                 final customerQuery = await FirebaseFirestore.instance.collection('customers').where('mobile', isEqualTo: phone).limit(1).get();
                                 final batch = FirebaseFirestore.instance.batch();
+                                if (!context.mounted) return;
                                 DocumentReference customerRef;
 
                                 final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;

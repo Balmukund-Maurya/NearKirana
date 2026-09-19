@@ -410,7 +410,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                           children: [
                                             Switch(
                                               value: isBanned,
-                                              activeColor: AppColors.error,
+                                              activeThumbColor: AppColors.error,
                                               inactiveTrackColor:
                                                   AppColors.bgTint,
                                               onChanged: (val) async {
@@ -674,6 +674,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                     .limit(1)
                                     .get();
 
+                                if (!context.mounted) return;
                                 final batch = FirebaseFirestore.instance
                                     .batch();
                                 DocumentReference customerRef;

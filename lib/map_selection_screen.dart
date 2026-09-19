@@ -446,7 +446,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF4CAF50).withOpacity(0.1)
+              ? const Color(0xFF4CAF50).withValues(alpha: 0.1)
               : Colors.white,
           border: Border.all(
             color: isSelected ? const Color(0xFF4CAF50) : Colors.grey[300]!,

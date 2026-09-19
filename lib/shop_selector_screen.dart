@@ -69,7 +69,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
     try {
       final shopDoc = await FirebaseFirestore.instance.collection('shops').doc(shopId).get();
 
-      if (!context.mounted) return;
+      if (!mounted) return;
       Navigator.pop(context);
 
       if (shopDoc.exists) {
@@ -105,14 +105,14 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
         );
 
         HapticFeedback.heavyImpact();
-        if (context.mounted) {
+        if (mounted) {
           Navigator.pushReplacementNamed(context, '/login');
         }
       } else {
         _showError('Dukan nahi mili. Kripya sahi QR Code scan karein.');
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         Navigator.pop(context);
         _showError('Network error: $e');
       }

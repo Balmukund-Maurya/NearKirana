@@ -33,7 +33,6 @@ class _CartScreenState extends State<CartScreen> {
   double _freeDeliveryThreshold = 500.0;
   double _deliveryFeeAmount = 20.0;
   // FIX-12: Max udhaar limit cache
-  double _maxUdhaarLimit = 2000.0;
 
   @override
   void initState() {
@@ -59,7 +58,6 @@ class _CartScreenState extends State<CartScreen> {
           _minOrder = (data['minimum_order'] as num?)?.toDouble() ?? 300.0;
           _freeDeliveryThreshold = (data['free_delivery_threshold'] as num?)?.toDouble() ?? 500.0;
           _deliveryFeeAmount = (data['delivery_fee'] as num?)?.toDouble() ?? 20.0;
-          _maxUdhaarLimit = (data['max_udhaar_limit'] as num?)?.toDouble() ?? 2000.0;
         });
       } else {
         final doc = await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
@@ -69,7 +67,6 @@ class _CartScreenState extends State<CartScreen> {
             _minOrder = (data['minimum_order'] as num?)?.toDouble() ?? 300.0;
             _freeDeliveryThreshold = (data['free_delivery_threshold'] as num?)?.toDouble() ?? 500.0;
             _deliveryFeeAmount = (data['delivery_fee'] as num?)?.toDouble() ?? 20.0;
-            _maxUdhaarLimit = (data['max_udhaar_limit'] as num?)?.toDouble() ?? 2000.0;
           });
         }
       }
@@ -564,7 +561,7 @@ class _CartScreenState extends State<CartScreen> {
       text: userProvider.phoneNumber,
     );
 
-    void _showBottomSheetError(BuildContext ctx, String msg) {
+    void showBottomSheetError(BuildContext ctx, String msg) {
       showDialog(
         context: ctx,
         builder: (dialogCtx) => Dialog(
@@ -593,7 +590,7 @@ class _CartScreenState extends State<CartScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -726,7 +723,7 @@ class _CartScreenState extends State<CartScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF4CAF50).withOpacity(0.1),
+                              color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -780,7 +777,7 @@ class _CartScreenState extends State<CartScreen> {
                                 bool serviceEnabled =
                                     await Geolocator.isLocationServiceEnabled();
                                 if (!serviceEnabled && context.mounted) {
-                                  _showBottomSheetError(
+                                  showBottomSheetError(
                                     context,
                                     'Kripya apna GPS on karein aur try karein.',
                                   );
@@ -794,7 +791,7 @@ class _CartScreenState extends State<CartScreen> {
                                       await Geolocator.requestPermission();
                                   if (permission == LocationPermission.denied &&
                                       context.mounted) {
-                                    _showBottomSheetError(
+                                    showBottomSheetError(
                                       context,
                                       'Location permission required to set address.',
                                     );
@@ -805,7 +802,7 @@ class _CartScreenState extends State<CartScreen> {
                                 if (permission ==
                                         LocationPermission.deniedForever &&
                                     context.mounted) {
-                                  _showBottomSheetError(
+                                  showBottomSheetError(
                                     context,
                                     'Location permission is permanently denied.',
                                   );
@@ -839,8 +836,9 @@ class _CartScreenState extends State<CartScreen> {
                                   initialLng = userProvider.storeLng ?? 0.0;
                                 }
 
-                                if (context.mounted)
+                                if (context.mounted) {
                                   Navigator.pop(context); // close loader
+                                }
                               }
 
                               if (!context.mounted) return;
@@ -891,18 +889,20 @@ class _CartScreenState extends State<CartScreen> {
                         ? null
                         : () async {
                             if (nameController.text.isEmpty ||
-                                phoneController.text.isEmpty)
+                                phoneController.text.isEmpty) {
                               return;
+                            }
 
                             final prefs = await SharedPreferences.getInstance();
+                            if (!context.mounted) return;
+
                             final int lastOrderTime =
                                 prefs.getInt('last_order_time') ?? 0;
                             final int now =
                                 DateTime.now().millisecondsSinceEpoch;
                             if (now - lastOrderTime < 180000) {
                               // 3 minutes cooldown
-                              if (!context.mounted) return;
-                              _showBottomSheetError(
+                              showBottomSheetError(
                                 context,
                                 langProvider.translate('wait_3_min'),
                               );
@@ -912,7 +912,7 @@ class _CartScreenState extends State<CartScreen> {
                             if (deliveryType == 'Delivery' &&
                                 (userProvider.currentLat == null ||
                                     userProvider.currentLng == null)) {
-                              _showBottomSheetError(
+                              showBottomSheetError(
                                 context,
                                 'Please add a delivery address on the map.',
                               );
@@ -921,7 +921,7 @@ class _CartScreenState extends State<CartScreen> {
                             if (deliveryType == 'Delivery' &&
                                 userProvider.customerHouseNo.isEmpty &&
                                 userProvider.deliveryAddress.isEmpty) {
-                              _showBottomSheetError(
+                              showBottomSheetError(
                                 context,
                                 'Please enter your House/Flat No.',
                               );
@@ -929,7 +929,7 @@ class _CartScreenState extends State<CartScreen> {
                             }
                             if (deliveryType == 'Delivery' &&
                                 !userProvider.isServiceable) {
-                              _showBottomSheetError(
+                              showBottomSheetError(
                                 context,
                                 userProvider.serviceabilityError ??
                                     'Not serviceable.',
@@ -958,7 +958,7 @@ class _CartScreenState extends State<CartScreen> {
                                 if (customerData['is_banned'] == true) {
                                   setState(() => isProcessing = false);
                                   if (context.mounted) {
-                                    _showBottomSheetError(
+                                    showBottomSheetError(
                                       context,
                                       'Aapka account block kar diya gaya hai. Kripya dukan par sampark karein.',
                                     );
@@ -1000,7 +1000,7 @@ class _CartScreenState extends State<CartScreen> {
 
                               if (!isStoreOpen) {
                                 if (context.mounted) {
-                                  _showBottomSheetError(
+                                  showBottomSheetError(
                                     context,
                                     langProvider.translate(
                                       'store_closed_error',
@@ -1028,7 +1028,7 @@ class _CartScreenState extends State<CartScreen> {
                                   for (String id in itemsToRemove) {
                                     cartProvider.removeItem(id);
                                   }
-                                  _showBottomSheetError(
+                                  showBottomSheetError(
                                     context,
                                     langProvider.translate('ghost_cart_error'),
                                   );
@@ -1196,6 +1196,7 @@ class _CartScreenState extends State<CartScreen> {
                                 // FIX-6: Persist updated name to SharedPreferences
                                 await prefs.setString('customerName', nameController.text.trim());
                                 await prefs.setString('customerPhone', phoneController.text.trim());
+                                if (!context.mounted) return;
 
                                 SoundService().orderSuccess();
                                 showDialog(
@@ -1237,8 +1238,9 @@ class _CartScreenState extends State<CartScreen> {
                                     actions: [
                                       TextButton(
                                         onPressed: () {
-                                          if (dialogContext.mounted)
+                                          if (dialogContext.mounted) {
                                             Navigator.pop(dialogContext);
+                                          }
                                         },
                                         child: Text(
                                           langProvider.translate('ok_btn'),
@@ -1271,7 +1273,7 @@ class _CartScreenState extends State<CartScreen> {
                                         double.tryParse(parts[3]) ?? 0;
                                     cartProvider.setQuantity(id, stock);
 
-                                    _showBottomSheetError(
+                                    showBottomSheetError(
                                       context,
                                       "Oh no! 🚨 '$name' only has ${stock.toStringAsFixed(0)} left in stock. We've updated your cart.",
                                     );
@@ -1288,7 +1290,7 @@ class _CartScreenState extends State<CartScreen> {
                                         double.tryParse(parts[3]) ?? 0;
                                     cartProvider.updatePrice(id, newPrice);
 
-                                    _showBottomSheetError(
+                                    showBottomSheetError(
                                       context,
                                       "Oops! 🏷️ The price of '$name' has changed to ₹$newPrice. We've updated your cart with the latest price.",
                                     );
@@ -1298,7 +1300,7 @@ class _CartScreenState extends State<CartScreen> {
                                   final parts = errorMsg.split('|');
                                   if (parts.length >= 2) {
                                     final min = double.tryParse(parts[1]) ?? 0;
-                                    _showBottomSheetError(
+                                    showBottomSheetError(
                                       context,
                                       "Minimum order value is ₹$min for delivery. Please add more items.",
                                     );
@@ -1320,7 +1322,7 @@ class _CartScreenState extends State<CartScreen> {
                                       'No internet connection. Please check your network and try again.';
                                 }
 
-                                _showBottomSheetError(
+                                showBottomSheetError(
                                   context,
                                   errorMsg.contains('Error')
                                       ? errorMsg

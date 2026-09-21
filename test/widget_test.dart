@@ -7,7 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:aditya_kirana/main.dart';
+import 'package:near_kirana/main.dart';
 
 void main() {
   testWidgets('app boots with the router widget', (tester) async {

@@ -2,12 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:aditya_kirana/cart_provider.dart';
-import 'package:aditya_kirana/language_provider.dart';
-import 'package:aditya_kirana/main.dart';
-import 'package:aditya_kirana/shop_provider.dart';
-import 'package:aditya_kirana/shop_selector_screen.dart';
-import 'package:aditya_kirana/user_provider.dart';
+import 'package:near_kirana/cart_provider.dart';
+import 'package:near_kirana/language_provider.dart';
+import 'package:near_kirana/main.dart';
+import 'package:near_kirana/shop_provider.dart';
+import 'package:near_kirana/shop_selector_screen.dart';
+import 'package:near_kirana/user_provider.dart';
+import 'package:near_kirana/admin_login_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

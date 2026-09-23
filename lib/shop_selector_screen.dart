@@ -11,6 +11,7 @@ import 'modern_loader.dart';
 import 'cart_provider.dart';
 import 'language_provider.dart';
 import 'shop_registration_screen.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class ShopSelectorScreen extends StatefulWidget {
   const ShopSelectorScreen({super.key});
@@ -67,7 +68,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
     );
 
     try {
-      final shopDoc = await FirebaseFirestore.instance.collection('shops').doc(shopId).get();
+      final shopDoc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
 
       if (!mounted) return;
       Navigator.pop(context);
@@ -201,7 +202,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                 ).animate().fadeIn(delay: 500.ms),
                 const SizedBox(height: 20),
                 StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
+                        stream: FirebaseUtils.firestore
                             .collection('shops')
                             .where('is_active', isEqualTo: true)
                             .snapshots(),

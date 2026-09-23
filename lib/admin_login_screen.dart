@@ -13,6 +13,7 @@ import 'app_theme.dart';
 import 'shop_selector_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'sound_service.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -100,7 +101,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         return;
       }
 
-      final shopDoc = await FirebaseFirestore.instance.collection('shops').doc(shopId).get();
+      final shopDoc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
       if (!shopDoc.exists) {
         if (!mounted) return;
         setState(() => _isLoading = false);

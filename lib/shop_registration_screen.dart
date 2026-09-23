@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart';
 import 'map_selection_screen.dart';
 import 'package:provider/provider.dart';
 import 'language_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class ShopRegistrationScreen extends StatefulWidget {
   const ShopRegistrationScreen({super.key});
@@ -159,7 +160,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
     try {
       final phone = _phoneController.text.trim();
 
-      final existingShop = await FirebaseFirestore.instance
+      final existingShop = await FirebaseUtils.firestore
           .collection('shops')
           .where('mobile', isEqualTo: phone)
           .get();
@@ -172,7 +173,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
       final String shopId = 'SHOP_${DateTime.now().millisecondsSinceEpoch}';
 
-      await FirebaseFirestore.instance.collection('shops').doc(shopId).set({
+      await FirebaseUtils.firestore.collection('shops').doc(shopId).set({
         'shop_id': shopId,
         'shop_name': _shopNameController.text.trim(),
         'owner_name': _ownerNameController.text.trim(),

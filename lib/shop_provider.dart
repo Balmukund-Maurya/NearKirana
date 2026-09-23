@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class ShopProvider with ChangeNotifier {
   String? _currentShopId;
@@ -44,7 +45,7 @@ class ShopProvider with ChangeNotifier {
 
   Future<void> _refreshFromFirestore(String shopId) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('shops').doc(shopId).get();
+      final doc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
       if (!doc.exists) {
         notifyListeners();
         return;
@@ -186,7 +187,7 @@ class ShopProvider with ChangeNotifier {
   Future<void> updateShopProfilePic(String base64Image) async {
     if (_currentShopId == null) return;
     _shopProfilePic = base64Image;
-    await FirebaseFirestore.instance.collection('shops').doc(_currentShopId).update({
+    await FirebaseUtils.firestore.collection('shops').doc(_currentShopId).update({
       'profile_image_url': base64Image,
     });
     final prefs = await SharedPreferences.getInstance();

@@ -13,6 +13,7 @@ import 'main.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
 import 'shop_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminMoreTab extends StatefulWidget {
   const AdminMoreTab({super.key});
@@ -40,7 +41,7 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
     }
 
     try {
-      final doc = await FirebaseFirestore.instance.collection('shops').doc(shopId).get();
+      final doc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
       if (!mounted) return;
 
       final data = doc.data();

@@ -18,6 +18,7 @@ import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'utils/product_image_widget.dart';
 import 'modern_loader.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class CustomerProfileTab extends StatelessWidget {
   const CustomerProfileTab({super.key});
@@ -126,7 +127,7 @@ class CustomerProfileTab extends StatelessWidget {
 
                       try {
                         final phone = userProvider.phoneNumber;
-                        final query = await FirebaseFirestore.instance
+                        final query = await FirebaseUtils.firestore
                             .collection('customers')
                             .where('mobile', isEqualTo: phone)
                             .limit(1)

@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'modern_loader.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class KhataStatementScreen extends StatefulWidget {
   final String customerId;
@@ -51,7 +52,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
 
     try {
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
-      Query q = FirebaseFirestore.instance
+      Query q = FirebaseUtils.firestore
           .collection('customers')
           .doc(widget.customerId)
           .collection('khata_transactions')
@@ -220,14 +221,14 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                         onPressed: () async {
                                           Navigator.pop(deleteCtx);
                                           try {
-                                            final batch = FirebaseFirestore.instance.batch();
-                                            final txRef = FirebaseFirestore.instance
+                                            final batch = FirebaseUtils.firestore.batch();
+                                            final txRef = FirebaseUtils.firestore
                                                 .collection('customers')
                                                 .doc(widget.customerId)
                                                 .collection('khata_transactions')
                                                 .doc(txId);
 
-                                            final customerRef = FirebaseFirestore.instance
+                                            final customerRef = FirebaseUtils.firestore
                                                 .collection('customers')
                                                 .doc(widget.customerId);
 
@@ -399,9 +400,9 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                               setModalState(() => isProcessing = true);
 
                               try {
-                                final batch = FirebaseFirestore.instance.batch();
+                                final batch = FirebaseUtils.firestore.batch();
                                 
-                                final txRef = FirebaseFirestore.instance
+                                final txRef = FirebaseUtils.firestore
                                     .collection('customers')
                                     .doc(widget.customerId)
                                     .collection('khata_transactions')
@@ -414,7 +415,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                   'timestamp': FieldValue.serverTimestamp(),
                                 });
 
-                                final customerRef = FirebaseFirestore.instance
+                                final customerRef = FirebaseUtils.firestore
                                     .collection('customers')
                                     .doc(widget.customerId);
                                 

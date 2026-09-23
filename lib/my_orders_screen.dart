@@ -10,6 +10,7 @@ import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   final bool isTab;
@@ -62,7 +63,7 @@ class MyOrdersScreen extends StatelessWidget {
               ),
             )
           : StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
+              stream: FirebaseUtils.firestore
                   .collection('orders')
                   .where('phone_number', isEqualTo: phone)
                   .where('shop_id', isEqualTo: shopProvider.currentShopId)
@@ -320,7 +321,7 @@ class MyOrdersScreen extends StatelessWidget {
                               onPressed: () async {
                                 Navigator.pop(dialogCtx);
                                 try {
-                                  await FirebaseFirestore.instance
+                                  await FirebaseUtils.firestore
                                       .runTransaction((transaction) async {
                                         final orderRef = FirebaseFirestore
                                             .instance
@@ -347,7 +348,7 @@ class MyOrdersScreen extends StatelessWidget {
                                           final itemData = item as Map<String, dynamic>;
                                           final String? itemId = itemData['id']?.toString();
                                           if (itemId != null) {
-                                            final productRef = FirebaseFirestore.instance.collection('products').doc(itemId);
+                                            final productRef = FirebaseUtils.firestore.collection('products').doc(itemId);
                                             productDocs[productRef] = await transaction.get(productRef);
                                           }
                                         }
@@ -357,7 +358,7 @@ class MyOrdersScreen extends StatelessWidget {
                                           final itemData = item as Map<String, dynamic>;
                                           final String? itemId = itemData['id']?.toString();
                                           if (itemId != null) {
-                                            final productRef = FirebaseFirestore.instance.collection('products').doc(itemId);
+                                            final productRef = FirebaseUtils.firestore.collection('products').doc(itemId);
                                             final productDoc = productDocs[productRef];
                                             if (productDoc != null && productDoc.exists) {
                                               transaction.update(productRef, {

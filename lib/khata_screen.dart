@@ -10,6 +10,7 @@ import 'modern_loader.dart';
 import 'package:provider/provider.dart';
 import 'language_provider.dart';
 import 'shop_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class KhataScreen extends StatefulWidget {
   const KhataScreen({super.key});
@@ -147,8 +148,8 @@ class _KhataScreenState extends State<KhataScreen> {
                               setState(() => isProcessing = true);
 
                               try {
-                                final customerQuery = await FirebaseFirestore.instance.collection('customers').where('mobile', isEqualTo: phone).limit(1).get();
-                                final batch = FirebaseFirestore.instance.batch();
+                                final customerQuery = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phone).limit(1).get();
+                                final batch = FirebaseUtils.firestore.batch();
                                 if (!context.mounted) return;
                                 DocumentReference customerRef;
 
@@ -171,7 +172,7 @@ class _KhataScreenState extends State<KhataScreen> {
                                     );
                                     return;
                                   }
-                                  customerRef = FirebaseFirestore.instance.collection('customers').doc();
+                                  customerRef = FirebaseUtils.firestore.collection('customers').doc();
                                   batch.set(customerRef, {
                                     'name': name,
                                     'mobile': phone,
@@ -309,7 +310,7 @@ class _KhataScreenState extends State<KhataScreen> {
             ),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
+                stream: FirebaseUtils.firestore
                     .collection('customers')
                     .where('shop_ids', arrayContains: Provider.of<ShopProvider>(context, listen: false).currentShopId)
                     .orderBy('name')

@@ -11,6 +11,7 @@ import 'admin_more_tab.dart';
 import 'app_theme.dart';
 import 'package:provider/provider.dart';
 import 'shop_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -40,8 +41,8 @@ class _AdminDashboardState extends State<AdminDashboard>
   Widget build(BuildContext context) {
     final shopId = Provider.of<ShopProvider>(context).currentShopId;
     final ordersQuery = shopId == null || shopId.isEmpty
-        ? FirebaseFirestore.instance.collection('orders').limit(0)
-        : FirebaseFirestore.instance
+        ? FirebaseUtils.firestore.collection('orders').limit(0)
+        : FirebaseUtils.firestore
               .collection('orders')
               .where('shop_id', isEqualTo: shopId)
               .where(

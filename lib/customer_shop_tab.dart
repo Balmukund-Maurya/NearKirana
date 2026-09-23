@@ -16,6 +16,7 @@ import 'map_selection_screen.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'animation_helpers.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class CustomerShopTab extends StatefulWidget {
   const CustomerShopTab({super.key});
@@ -56,7 +57,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
   Future<void> _fetchCategories() async {
     try {
       // FIX-1: Unified collection path — settings/app_config
-      final doc = await FirebaseFirestore.instance
+      final doc = await FirebaseUtils.firestore
           .collection('settings')
           .doc('app_config')
           .get();
@@ -1358,7 +1359,7 @@ class _ProductGridState extends State<ProductGrid> {
         return;
       }
 
-      Query q = FirebaseFirestore.instance
+      Query q = FirebaseUtils.firestore
           .collection('products')
           .where('shop_id', isEqualTo: shopId);
 

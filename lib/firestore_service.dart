@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'search_utils.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class FirestoreService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db = FirebaseUtils.firestore;
 
   Future<Map<String, dynamic>?> getProduct(String barcode) async {
     try {

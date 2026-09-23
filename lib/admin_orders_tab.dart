@@ -10,6 +10,7 @@ import 'animation_helpers.dart';
 import 'package:provider/provider.dart';
 import 'language_provider.dart';
 import 'shop_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminOrdersTab extends StatefulWidget {
   const AdminOrdersTab({super.key});
@@ -73,7 +74,7 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
     final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
     
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
+      stream: FirebaseUtils.firestore
           .collection('orders')
           .where('shop_id', isEqualTo: shopId)
           .where(
@@ -192,7 +193,7 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
     try {
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       // Fetch latest orders globally to avoid Composite Index errors
-      Query q = FirebaseFirestore.instance
+      Query q = FirebaseUtils.firestore
           .collection('orders')
           .where('shop_id', isEqualTo: shopId)
           .orderBy('created_at', descending: true)

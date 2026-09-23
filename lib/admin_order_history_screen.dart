@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'modern_loader.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminOrderHistoryScreen extends StatefulWidget {
   const AdminOrderHistoryScreen({super.key});
@@ -43,7 +44,7 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
     });
 
     try {
-      Query q = FirebaseFirestore.instance
+      Query q = FirebaseUtils.firestore
           .collection('orders')
           .where('status', whereIn: ['Delivered', 'Cancelled'])
           .orderBy('created_at', descending: true)

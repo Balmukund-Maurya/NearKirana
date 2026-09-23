@@ -18,6 +18,7 @@ import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class CartScreen extends StatefulWidget {
   final bool isTab;
@@ -49,7 +50,7 @@ class _CartScreenState extends State<CartScreen> {
       DocumentSnapshot<Map<String, dynamic>>? shopDoc;
 
       if (shopId != null && shopId.isNotEmpty) {
-        shopDoc = await FirebaseFirestore.instance.collection('shops').doc(shopId).get();
+        shopDoc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
       }
 
       if ((shopDoc?.exists ?? false) && mounted) {
@@ -60,7 +61,7 @@ class _CartScreenState extends State<CartScreen> {
           _deliveryFeeAmount = (data['delivery_fee'] as num?)?.toDouble() ?? 20.0;
         });
       } else {
-        final doc = await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
+        final doc = await FirebaseUtils.firestore.collection('settings').doc('app_config').get();
         if (doc.exists && mounted) {
           final data = doc.data()!;
           setState(() {
@@ -1014,7 +1015,7 @@ class _CartScreenState extends State<CartScreen> {
                               // PRE-CHECK 1: Ghost Cart (Products deleted by admin but still in cart)
                               List<String> itemsToRemove = [];
                               for (var item in cartProvider.itemsList) {
-                                final doc = await FirebaseFirestore.instance
+                                final doc = await FirebaseUtils.firestore
                                     .collection('products')
                                     .doc(item.id)
                                     .get();
@@ -1037,7 +1038,7 @@ class _CartScreenState extends State<CartScreen> {
                                 return; // Abort checkout so they can see new cart
                               }
 
-                              final processedTotal = await FirebaseFirestore.instance.runTransaction((
+                              final processedTotal = await FirebaseUtils.firestore.runTransaction((
                                 transaction,
                               ) async {
                                 double recalculatedSubtotal = 0.0;
@@ -1048,7 +1049,7 @@ class _CartScreenState extends State<CartScreen> {
 
                                 // 1. Read phase (all reads must come before writes)
                                 for (var item in cartProvider.itemsList) {
-                                  final productRef = FirebaseFirestore.instance
+                                  final productRef = FirebaseUtils.firestore
                                       .collection('products')
                                       .doc(item.id);
                                   final snapshot = await transaction.get(
@@ -1147,7 +1148,7 @@ class _CartScreenState extends State<CartScreen> {
                                   }
                                 }
 
-                                final orderRef = FirebaseFirestore.instance
+                                final orderRef = FirebaseUtils.firestore
                                     .collection('orders')
                                     .doc();
                                 final String deliveryPin =

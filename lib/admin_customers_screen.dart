@@ -10,6 +10,7 @@ import 'modern_loader.dart';
 import 'animation_helpers.dart';
 import 'package:provider/provider.dart';
 import 'language_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminCustomersScreen extends StatefulWidget {
   const AdminCustomersScreen({super.key});
@@ -48,7 +49,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
     try {
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
-      Query q = FirebaseFirestore.instance.collection('customers').where('shop_ids', arrayContains: shopId);
+      Query q = FirebaseUtils.firestore.collection('customers').where('shop_ids', arrayContains: shopId);
 
       if (_searchQuery.isNotEmpty) {
         q = q
@@ -415,7 +416,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                                   AppColors.bgTint,
                                               onChanged: (val) async {
                                                 HapticFeedback.lightImpact();
-                                                await FirebaseFirestore.instance
+                                                await FirebaseUtils.firestore
                                                     .collection('customers')
                                                     .doc(doc.id)
                                                     .update({'is_banned': val});
@@ -675,7 +676,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                     .get();
 
                                 if (!context.mounted) return;
-                                final batch = FirebaseFirestore.instance
+                                final batch = FirebaseUtils.firestore
                                     .batch();
                                 DocumentReference customerRef;
 
@@ -700,7 +701,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                     );
                                     return;
                                   }
-                                  customerRef = FirebaseFirestore.instance
+                                  customerRef = FirebaseUtils.firestore
                                       .collection('customers')
                                       .doc();
                                   batch.set(customerRef, {
@@ -905,8 +906,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 );
 
                 try {
-                  final batch = FirebaseFirestore.instance.batch();
-                  final customerRef = FirebaseFirestore.instance
+                  final batch = FirebaseUtils.firestore.batch();
+                  final customerRef = FirebaseUtils.firestore
                       .collection('customers')
                       .doc(docId);
 
@@ -1022,7 +1023,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                   phoneController.text.isNotEmpty) {
                 Navigator.pop(dialogCtx);
                 try {
-                  await FirebaseFirestore.instance
+                  await FirebaseUtils.firestore
                       .collection('customers')
                       .doc(docId)
                       .update({

@@ -12,6 +12,7 @@ import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminHomeTab extends StatefulWidget {
   const AdminHomeTab({super.key});
@@ -128,8 +129,8 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
     final shopId = Provider.of<ShopProvider>(context).currentShopId;
 
     final todayOrdersQuery = shopId == null || shopId.isEmpty
-        ? FirebaseFirestore.instance.collection('orders').limit(0)
-        : FirebaseFirestore.instance
+        ? FirebaseUtils.firestore.collection('orders').limit(0)
+        : FirebaseUtils.firestore
               .collection('orders')
               .where('shop_id', isEqualTo: shopId)
               .where('created_at', isGreaterThanOrEqualTo: startTimestamp);
@@ -157,8 +158,8 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
         }
 
         final activeOrdersQuery = shopId == null || shopId.isEmpty
-            ? FirebaseFirestore.instance.collection('orders').limit(0)
-            : FirebaseFirestore.instance
+            ? FirebaseUtils.firestore.collection('orders').limit(0)
+            : FirebaseUtils.firestore
                   .collection('orders')
                   .where('shop_id', isEqualTo: shopId)
                   .where(

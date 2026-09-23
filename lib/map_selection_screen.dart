@@ -12,6 +12,7 @@ import 'language_provider.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class MapSelectionScreen extends StatefulWidget {
   final double initialLat;
@@ -76,8 +77,8 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       final shopProvider = Provider.of<ShopProvider>(context, listen: false);
       final shopId = shopProvider.currentShopId;
       final doc = shopId != null && shopId.isNotEmpty 
-          ? await FirebaseFirestore.instance.collection('shops').doc(shopId).get()
-          : await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
+          ? await FirebaseUtils.firestore.collection('shops').doc(shopId).get()
+          : await FirebaseUtils.firestore.collection('settings').doc('app_config').get();
           
       if (doc.exists && mounted) {
         final data = doc.data() as Map<String, dynamic>;

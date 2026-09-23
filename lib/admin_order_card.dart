@@ -10,6 +10,7 @@ import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'animation_helpers.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;
@@ -505,7 +506,7 @@ class AdminOrderCard extends StatelessWidget {
         } else if (nextStatus == 'Out for Delivery') {
           _showDispatchDialog(context, orderId, data, nextStatus);
         } else {
-          FirebaseFirestore.instance.collection('orders').doc(orderId).update({
+          FirebaseUtils.firestore.collection('orders').doc(orderId).update({
             'status': nextStatus,
           });
           SoundService().statusUpdated();
@@ -700,8 +701,8 @@ class AdminOrderCard extends StatelessWidget {
                             HapticFeedback.lightImpact();
                             Navigator.pop(dialogContext);
                             // FIX-26: Admin bypass logic should also use atomic batch for Khata updates
-                            final batch = FirebaseFirestore.instance.batch();
-                            final orderRef = FirebaseFirestore.instance
+                            final batch = FirebaseUtils.firestore.batch();
+                            final orderRef = FirebaseUtils.firestore
                                 .collection('orders')
                                 .doc(orderId);
 
@@ -715,7 +716,7 @@ class AdminOrderCard extends StatelessWidget {
                               final phone = data['phone_number'] as String?;
                               final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
                               if (phone != null && total > 0) {
-                                final customerQuery = await FirebaseFirestore.instance
+                                final customerQuery = await FirebaseUtils.firestore
                                     .collection('customers')
                                     .where('mobile', isEqualTo: phone)
                                     .limit(1)
@@ -765,8 +766,8 @@ class AdminOrderCard extends StatelessWidget {
                             Navigator.pop(dialogContext);
 
                             // FIX-8: Atomic batch — Khata + order status update together
-                            final batch = FirebaseFirestore.instance.batch();
-                            final orderRef = FirebaseFirestore.instance
+                            final batch = FirebaseUtils.firestore.batch();
+                            final orderRef = FirebaseUtils.firestore
                                 .collection('orders')
                                 .doc(orderId);
 
@@ -781,7 +782,7 @@ class AdminOrderCard extends StatelessWidget {
                               final phone = data['phone_number'] as String?;
                               final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
                               if (phone != null && total > 0) {
-                                final customerQuery = await FirebaseFirestore.instance
+                                final customerQuery = await FirebaseUtils.firestore
                                     .collection('customers')
                                     .where('mobile', isEqualTo: phone)
                                     .limit(1)
@@ -906,7 +907,7 @@ class AdminOrderCard extends StatelessWidget {
               await prefs.setString('last_delivery_boy_name', name);
               await prefs.setString('last_delivery_boy_phone', phone);
 
-              FirebaseFirestore.instance
+              FirebaseUtils.firestore
                   .collection('orders')
                   .doc(orderId)
                   .update({
@@ -1049,7 +1050,7 @@ class AdminOrderCard extends StatelessWidget {
 
       // Prepare Khata logic outside transaction
       if (paymentMethod == 'Khata' && phone != null) {
-        final customerQuery = await FirebaseFirestore.instance
+        final customerQuery = await FirebaseUtils.firestore
             .collection('customers')
             .where('mobile', isEqualTo: phone)
             .limit(1)
@@ -1059,8 +1060,8 @@ class AdminOrderCard extends StatelessWidget {
         }
       }
 
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final orderDocRef = FirebaseFirestore.instance
+      await FirebaseUtils.firestore.runTransaction((transaction) async {
+        final orderDocRef = FirebaseUtils.firestore
             .collection('orders')
             .doc(orderId);
         final orderSnapshot = await transaction.get(orderDocRef);
@@ -1081,7 +1082,7 @@ class AdminOrderCard extends StatelessWidget {
         for (var item in items) {
           final String? itemId = item['id']?.toString();
           if (itemId != null) {
-            final productRef = FirebaseFirestore.instance.collection('products').doc(itemId);
+            final productRef = FirebaseUtils.firestore.collection('products').doc(itemId);
             productDocs[productRef] = await transaction.get(productRef);
           }
         }
@@ -1109,7 +1110,7 @@ class AdminOrderCard extends StatelessWidget {
           final String? itemId = item['id']?.toString();
           if (itemId != null) {
             final double qty = (item['quantity'] as num).toDouble();
-            final productRef = FirebaseFirestore.instance.collection('products').doc(itemId);
+            final productRef = FirebaseUtils.firestore.collection('products').doc(itemId);
             
             final productDoc = productDocs[productRef];
             if (productDoc != null && productDoc.exists) {

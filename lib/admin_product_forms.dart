@@ -15,6 +15,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'shop_provider.dart';
 import 'language_provider.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminProductForms {
   static void showEditProductDialog(BuildContext context, String barcode) {
@@ -34,7 +35,7 @@ class AdminProductForms {
     List<String> categories = [];
     bool isFetchingCategories = true;
 
-    FirebaseFirestore.instance
+    FirebaseUtils.firestore
         .collection('settings')
         .doc('app_config')
         .get()
@@ -241,7 +242,7 @@ class AdminProductForms {
                                         context,
                                       ); // close bottom sheet
                                       try {
-                                        await FirebaseFirestore.instance
+                                        await FirebaseUtils.firestore
                                             .collection('products')
                                             .doc(barcode)
                                             .delete();
@@ -501,7 +502,7 @@ class AdminProductForms {
                                                 }
                                               });
                                               try {
-                                                await FirebaseFirestore.instance
+                                                await FirebaseUtils.firestore
                                                     .collection('settings')
                                                     .doc('app_config')
                                                     .update({
@@ -663,7 +664,7 @@ class AdminProductForms {
     bool isFetchingCategories = true;
 
     // Fetch categories asynchronously
-    FirebaseFirestore.instance
+    FirebaseUtils.firestore
         .collection('settings')
         .doc('app_config')
         .get()
@@ -862,7 +863,7 @@ class AdminProductForms {
                                                   }
                                                 });
                                                 try {
-                                                  await FirebaseFirestore.instance
+                                                  await FirebaseUtils.firestore
                                                       .collection('settings')
                                                       .doc('app_config')
                                                       .update({

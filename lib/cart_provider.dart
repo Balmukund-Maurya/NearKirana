@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class CartItem {
   final String id;
@@ -88,7 +89,7 @@ class CartProvider with ChangeNotifier {
       final end = (i + 10 < keys.length) ? i + 10 : keys.length;
       final batchKeys = keys.sublist(i, end);
 
-      final querySnapshot = await FirebaseFirestore.instance
+      final querySnapshot = await FirebaseUtils.firestore
           .collection('products')
           .where(FieldPath.documentId, whereIn: batchKeys)
           .get();

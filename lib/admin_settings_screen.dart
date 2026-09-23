@@ -12,6 +12,7 @@ import 'map_selection_screen.dart';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'utils/product_image_widget.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -53,8 +54,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     try {
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       final doc = shopId != null && shopId.isNotEmpty
-          ? await FirebaseFirestore.instance.collection('shops').doc(shopId).get()
-          : await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
+          ? await FirebaseUtils.firestore.collection('shops').doc(shopId).get()
+          : await FirebaseUtils.firestore.collection('settings').doc('app_config').get();
       if (doc.exists) {
         final data = doc.data()!;
         _deliveryFeeController.text = (data['delivery_fee'] ?? 20.0).toString();
@@ -124,8 +125,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       final settingsRef = shopId != null && shopId.isNotEmpty
-          ? FirebaseFirestore.instance.collection('shops').doc(shopId)
-          : FirebaseFirestore.instance.collection('settings').doc('app_config');
+          ? FirebaseUtils.firestore.collection('shops').doc(shopId)
+          : FirebaseUtils.firestore.collection('settings').doc('app_config');
 
       await settingsRef.set({
             'delivery_fee': deliveryFee,

@@ -11,6 +11,7 @@ import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'language_provider.dart';
 import 'utils/product_image_widget.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class ShopStockScreen extends StatefulWidget {
   const ShopStockScreen({super.key});
@@ -60,7 +61,7 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
         return;
       }
 
-      Query q = FirebaseFirestore.instance
+      Query q = FirebaseUtils.firestore
           .collection('products')
           .where('shop_id', isEqualTo: shopId);
 

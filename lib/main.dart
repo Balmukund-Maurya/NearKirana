@@ -21,6 +21,7 @@ import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_selector_screen.dart';
 import 'map_selection_screen.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 
 void main() async {
@@ -34,7 +35,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   if (!(prefs.getBool('hasMigratedSearchKeywordsV2') ?? false)) {
     try {
-      final docs = await FirebaseFirestore.instance
+      final docs = await FirebaseUtils.firestore
           .collection('products')
           .get();
       for (var doc in docs.docs) {
@@ -56,8 +57,8 @@ void main() async {
   if (!(prefs.getBool('hasMigratedCategoriesV1') ?? false)) {
     try {
       debugPrint('Starting category migration in main...');
-      final docs = await FirebaseFirestore.instance.collection('products').get();
-      final batch = FirebaseFirestore.instance.batch();
+      final docs = await FirebaseUtils.firestore.collection('products').get();
+      final batch = FirebaseUtils.firestore.batch();
       int migratedCount = 0;
       for (var doc in docs.docs) {
         final data = doc.data();
@@ -83,7 +84,7 @@ void main() async {
   }
 
   // Explicitly enable offline persistence
-  FirebaseFirestore.instance.settings = const Settings(
+  FirebaseUtils.firestore.settings = const Settings(
     persistenceEnabled: true,
   );
 
@@ -404,7 +405,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final querySnapshot = await FirebaseFirestore.instance
+      final querySnapshot = await FirebaseUtils.firestore
           .collection('customers')
           .where('mobile', isEqualTo: phone)
           .limit(1)
@@ -585,7 +586,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (docRef != null) {
                           await docRef.update({'pin': pinController.text});
                         } else {
-                          await FirebaseFirestore.instance
+                          await FirebaseUtils.firestore
                               .collection('customers')
                               .add({
                                 'name': name,

@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:near_kirana/firebase_utils.dart';
 
 class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   String _customerName = '';
@@ -131,7 +132,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
         final prefs = await SharedPreferences.getInstance();
         final phone = prefs.getString('customerPhone') ?? _phoneNumber;
         if (phone.isNotEmpty) {
-          final customerDocs = await FirebaseFirestore.instance
+          final customerDocs = await FirebaseUtils.firestore
               .collection('customers')
               .where('mobile', isEqualTo: phone)
               .limit(1)
@@ -157,9 +158,9 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
       
       DocumentSnapshot doc;
       if (currentShopId != null && currentShopId.isNotEmpty) {
-        doc = await FirebaseFirestore.instance.collection('shops').doc(currentShopId).get();
+        doc = await FirebaseUtils.firestore.collection('shops').doc(currentShopId).get();
       } else {
-        doc = await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
+        doc = await FirebaseUtils.firestore.collection('settings').doc('app_config').get();
       }
       if (!doc.exists) {
         _isServiceable = true;
@@ -291,9 +292,9 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     
     DocumentSnapshot doc;
     if (currentShopId != null && currentShopId.isNotEmpty) {
-      doc = await FirebaseFirestore.instance.collection('shops').doc(currentShopId).get();
+      doc = await FirebaseUtils.firestore.collection('shops').doc(currentShopId).get();
     } else {
-      doc = await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
+      doc = await FirebaseUtils.firestore.collection('settings').doc('app_config').get();
     }
     if (!doc.exists) {
       return {'autoLocality': 'Location selected', 'fullAddress': ''};

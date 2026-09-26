@@ -272,9 +272,6 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
     String selectedLabel = userProvider.addressLabel;
     if (selectedLabel.isEmpty) selectedLabel = 'Home';
-    final houseController = TextEditingController(
-      text: addressData['house'] ?? userProvider.customerHouseNo,
-    );
     final landmarkController = TextEditingController(
       text: addressData['landmark'] ?? userProvider.customerLandmark,
     );
@@ -321,18 +318,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: houseController,
-                    decoration: InputDecoration(
-                      labelText: langProvider.translate('house_flat_no'),
-                      prefixIcon: const Icon(Icons.home_outlined),
-                      border: const OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+
                   TextField(
                     controller: landmarkController,
                     decoration: InputDecoration(
@@ -388,18 +374,9 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                         ),
                       ),
                       onPressed: () async {
-                        if (houseController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('enter_house_no')),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
-                          return;
-                        }
-
                         await userProvider.setDeliveryAddress(
                           localityController.text.trim(),
-                          houseController.text.trim(),
+                          "", // Removed house number
                           landmarkController.text.trim(),
                           label: selectedLabel,
                         );

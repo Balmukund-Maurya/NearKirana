@@ -22,7 +22,7 @@ import 'modern_loader.dart';
 import 'shop_selector_screen.dart';
 import 'map_selection_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
-
+import 'widgets/custom_pin_pad.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -488,192 +488,57 @@ class _LoginScreenState extends State<LoginScreen> {
     required bool isNewUser,
     DocumentReference? docRef,
   }) {
-    final TextEditingController pinController = TextEditingController();
-    bool isError = false;
-    // FIX-7: Brute force protection
-    int wrongAttempts = 0;
-    bool isLockedOut = false;
-    int lockoutSecondsRemaining = 0;
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (builderContext, setDialogState) {
-            return AlertDialog(
-              title: Text(
-                isNewUser ? 'Create 4-Digit PIN' : 'Enter 4-Digit PIN',
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    isNewUser
-                        ? 'Please create a 4-digit PIN to secure your account. Only you can order using this number.'
-                        : 'Enter your 4-digit PIN to log in.',
-                  ),
-                  const SizedBox(height: 16),
-                  // FIX-7: Show lockout message or PIN field
-                  if (isLockedOut)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.lock_clock,
-                            color: Colors.red,
-                            size: 32,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Too many wrong attempts!\nPlease wait $lockoutSecondsRemaining seconds.',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    TextField(
-                      controller: pinController,
-                      keyboardType: TextInputType.number,
-                      obscureText: true,
-                      maxLength: 4,
-                      textAlign: TextAlign.center,
-                      enabled: !isLockedOut,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        letterSpacing: 8,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      decoration: InputDecoration(
-                        border: const OutlineInputBorder(),
-                        counterText: '',
-                        errorText: isError ? 'Galat PIN hai' : null,
-                      ),
-                    ),
-                  // FIX-7: Show attempt count warning
-                  if (!isNewUser && wrongAttempts > 0 && !isLockedOut)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        '$wrongAttempts/5 galat attempts. ${5 - wrongAttempts} baaki.',
-                        style: TextStyle(
-                          color: wrongAttempts >= 3
-                              ? Colors.red
-                              : Colors.orange,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.grey),
-                  ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      enableDrag: false,
+      isDismissible: false,
+      builder: (bottomSheetContext) {
+        return CustomPinPad(
+          isNewUser: isNewUser,
+          title: isNewUser ? 'Create 4-Digit PIN' : 'Enter 4-Digit PIN',
+          subtitle: isNewUser
+              ? 'Secure your account. Only you can order using this number.'
+              : 'Enter your 4-digit PIN to log in.',
+          existingPinHash: existingPin,
+          onPinEntered: (String pinOrHash) async {
+            Navigator.pop(bottomSheetContext);
+            setState(() => _isLoading = true);
+
+            try {
+              if (isNewUser) {
+                if (docRef != null) {
+                  await docRef.update({'pin': pinOrHash});
+                } else {
+                  await FirebaseUtils.firestore.collection('customers').add({
+                    'name': name,
+                    'mobile': phone,
+                    'pin': pinOrHash,
+                    'total_udhaar': 0,
+                    'auto_reminder': false,
+                    'created_at': FieldValue.serverTimestamp(),
+                  });
+                }
+              } else {
+                // If it's a returning user and they used a plain PIN, we upgrade it to a Hash here
+                if (pinOrHash != existingPin && pinOrHash != "BIOMETRIC_SUCCESS") {
+                  if (docRef != null) {
+                    await docRef.update({'pin': pinOrHash}); // Upgrades plain text PIN to Hash
+                  }
+                }
+              }
+              _completeLogin(name, phone);
+            } catch (e) {
+              if (!mounted) return;
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  behavior: SnackBarBehavior.floating,
+                  content: Text('Error: $e'),
                 ),
-                ElevatedButton(
-                  onPressed: isLockedOut
-                      ? null
-                      : () async {
-                          if (pinController.text.length != 4) return;
-
-                          if (isNewUser) {
-                            // Save new PIN
-                            Navigator.pop(dialogContext);
-                            setState(() => _isLoading = true);
-
-                            try {
-                              if (docRef != null) {
-                                await docRef.update({
-                                  'pin': pinController.text,
-                                });
-                              } else {
-                                await FirebaseUtils.firestore
-                                    .collection('customers')
-                                    .add({
-                                      'name': name,
-                                      'mobile': phone,
-                                      'pin': pinController.text,
-                                      'total_udhaar': 0,
-                                      'auto_reminder': false,
-                                      'created_at':
-                                          FieldValue.serverTimestamp(),
-                                    });
-                              }
-                              _completeLogin(name, phone);
-                            } catch (e) {
-                              if (!mounted) return;
-                              setState(() => _isLoading = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  behavior: SnackBarBehavior.floating,
-                                  content: Text('Error: $e'),
-                                ),
-                              );
-                            }
-                          } else {
-                            // Verify existing PIN
-                            if (pinController.text == existingPin) {
-                              Navigator.pop(dialogContext);
-                              _completeLogin(name, phone);
-                            } else {
-                              setDialogState(() {
-                                isError = true;
-                                wrongAttempts++;
-                                pinController.clear();
-                              });
-
-                              // FIX-7: Lockout after 5 wrong attempts
-                              if (wrongAttempts >= 5) {
-                                setDialogState(() {
-                                  isLockedOut = true;
-                                  lockoutSecondsRemaining = 30;
-                                });
-                                // Countdown timer
-                                Future.doWhile(() async {
-                                  await Future.delayed(
-                                    const Duration(seconds: 1),
-                                  );
-                                  if (!dialogContext.mounted) return false;
-                                  setDialogState(() {
-                                    lockoutSecondsRemaining--;
-                                  });
-                                  if (lockoutSecondsRemaining <= 0) {
-                                    setDialogState(() {
-                                      isLockedOut = false;
-                                      wrongAttempts = 0;
-                                      isError = false;
-                                    });
-                                    return false;
-                                  }
-                                  return true;
-                                });
-                              }
-                            }
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text(isNewUser ? 'Save PIN' : 'Login'),
-                ),
-              ],
-            );
+              );
+            }
           },
         );
       },

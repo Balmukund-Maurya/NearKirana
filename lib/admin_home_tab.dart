@@ -13,6 +13,7 @@ import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'widgets/weekly_sales_chart.dart';
 
 class AdminHomeTab extends StatefulWidget {
   const AdminHomeTab({super.key});
@@ -299,6 +300,10 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
             _buildDailySalesCard(
               context,
             ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+
+            const SizedBox(height: 24),
+
+            const WeeklySalesChart().animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
 
             const SizedBox(height: 32),
 

@@ -12,6 +12,7 @@ import 'cart_provider.dart';
 import 'language_provider.dart';
 import 'shop_registration_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ShopSelectorScreen extends StatefulWidget {
   const ShopSelectorScreen({super.key});
@@ -23,11 +24,38 @@ class ShopSelectorScreen extends StatefulWidget {
 class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  Position? _currentPosition;
 
   @override
   void initState() {
     super.initState();
     _loadExistingShop();
+    _fetchLocation();
+  }
+
+  Future<void> _fetchLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+      
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      if (permission == LocationPermission.deniedForever) return;
+      
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      );
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching location: $e");
+    }
   }
 
   @override
@@ -216,23 +244,37 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
 
                           List<QueryDocumentSnapshot> shops = snapshot.data!.docs;
 
-                          if (_searchQuery.isEmpty) {
-                            shops = shops.toList();
-                            shops = shops.where((doc) {
-                              final name = (doc['shop_name'] ?? '').toString();
-                              return name.toLowerCase() != 'my shop';
-                            }).toList();
-                            shops.sort((a, b) {
-                              final aData = a.data() as Map<String, dynamic>;
-                              final bData = b.data() as Map<String, dynamic>;
-                              final aTime = aData['created_at'] as Timestamp?;
-                              final bTime = bData['created_at'] as Timestamp?;
-                              if (aTime == null && bTime == null) return 0;
-                              if (aTime == null) return 1;
-                              if (bTime == null) return -1;
-                              return bTime.compareTo(aTime);
-                            });
-                            shops = shops.take(5).toList();
+                            if (_searchQuery.isEmpty) {
+                              shops = shops.toList();
+                              shops = shops.where((doc) {
+                                final name = (doc['shop_name'] ?? '').toString();
+                                return name.toLowerCase() != 'my shop';
+                              }).toList();
+                              shops.sort((a, b) {
+                                final aData = a.data() as Map<String, dynamic>;
+                                final bData = b.data() as Map<String, dynamic>;
+
+                                if (_currentPosition != null) {
+                                  final aLat = (aData['store_latitude'] as num?)?.toDouble();
+                                  final aLng = (aData['store_longitude'] as num?)?.toDouble();
+                                  final bLat = (bData['store_latitude'] as num?)?.toDouble();
+                                  final bLng = (bData['store_longitude'] as num?)?.toDouble();
+
+                                  if (aLat != null && aLng != null && bLat != null && bLng != null) {
+                                    final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, aLat, aLng);
+                                    final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, bLat, bLng);
+                                    return distA.compareTo(distB);
+                                  }
+                                }
+
+                                final aTime = aData['created_at'] as Timestamp?;
+                                final bTime = bData['created_at'] as Timestamp?;
+                                if (aTime == null && bTime == null) return 0;
+                                if (aTime == null) return 1;
+                                if (bTime == null) return -1;
+                                return bTime.compareTo(aTime);
+                              });
+                              shops = shops.take(5).toList();
                           } else {
                             shops = shops.where((doc) {
                               final name = (doc['shop_name'] ?? '').toString().toLowerCase();
@@ -253,26 +295,41 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                             itemCount: shops.length,
                             itemBuilder: (context, index) {
                               final shop = shops[index];
-                              final data = shop.data() as Map<String, dynamic>;
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  leading: CircleAvatar(
-                                    backgroundColor: AppColors.primaryLight.withValues(alpha: 0.2),
-                                    child: const Icon(Icons.store, color: AppColors.primaryDark),
-                                  ),
-                                  title: Text(
-                                    data['shop_name'] ?? '',
-                                    style: AppTextStyles.heading2(color: AppColors.textDark),
-                                  ),
-                                  subtitle: Text(
-                                    data['address'] ?? '',
-                                    style: AppTextStyles.captionMedium(color: AppColors.textMid),
-                                  ),
+                                  final data = shop.data() as Map<String, dynamic>;
+                                  
+                                  String distanceText = '';
+                                  if (_currentPosition != null) {
+                                    final sLat = (data['store_latitude'] as num?)?.toDouble();
+                                    final sLng = (data['store_longitude'] as num?)?.toDouble();
+                                    if (sLat != null && sLng != null) {
+                                      final dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, sLat, sLng);
+                                      if (dist < 1000) {
+                                        distanceText = ' • ${(dist).toStringAsFixed(0)}m away';
+                                      } else {
+                                        distanceText = ' • ${(dist / 1000).toStringAsFixed(1)}km away';
+                                      }
+                                    }
+                                  }
+
+                                  return Card(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: ListTile(
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      leading: CircleAvatar(
+                                        backgroundColor: AppColors.primaryLight.withValues(alpha: 0.2),
+                                        child: const Icon(Icons.store, color: AppColors.primaryDark),
+                                      ),
+                                      title: Text(
+                                        data['shop_name'] ?? '',
+                                        style: AppTextStyles.heading2(color: AppColors.textDark),
+                                      ),
+                                      subtitle: Text(
+                                        '${data['address'] ?? ''}$distanceText',
+                                        style: AppTextStyles.captionMedium(color: AppColors.textMid),
+                                      ),
                                   trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
                                   onTap: () => _verifyAndEnterShop(shop.id),
                                 ),

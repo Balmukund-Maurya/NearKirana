@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ShopProvider with ChangeNotifier {
+  StreamSubscription<DocumentSnapshot>? _shopSubscription;
   String? _currentShopId;
   String? _shopName;
   String? _shopAddress;
@@ -36,15 +39,19 @@ class ShopProvider with ChangeNotifier {
     _shopProfilePic = prefs.getString('current_shop_profile_pic');
 
     if (_currentShopId != null && _currentShopId!.isNotEmpty) {
-      await _refreshFromFirestore(_currentShopId!);
+      _listenToShop(_currentShopId!);
     } else {
       notifyListeners();
     }
   }
 
-  Future<void> _refreshFromFirestore(String shopId) async {
-    try {
-      final doc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
+  void _listenToShop(String shopId) {
+    _shopSubscription?.cancel();
+    _shopSubscription = FirebaseUtils.firestore
+        .collection('shops')
+        .doc(shopId)
+        .snapshots()
+        .listen((doc) async {
       if (!doc.exists) {
         notifyListeners();
         return;
@@ -60,47 +67,35 @@ class ShopProvider with ChangeNotifier {
       _shopUpiId = data['upi_id']?.toString() ?? data['vpa']?.toString() ?? _shopUpiId;
       _shopProfilePic = data['profile_image_url']?.toString() ?? _shopProfilePic;
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('current_shop_id', shopId);
-      await prefs.setString('current_shop_name', _shopName ?? '');
-      if ((_shopAddress ?? '').isNotEmpty) {
-        await prefs.setString('current_shop_address', _shopAddress!);
-      } else {
-        await prefs.remove('current_shop_address');
-      }
-      if ((_shopMobile ?? '').isNotEmpty) {
-        await prefs.setString('current_shop_mobile', _shopMobile!);
-      } else {
-        await prefs.remove('current_shop_mobile');
-      }
-      if ((_shopSupportPhone ?? '').isNotEmpty) {
-        await prefs.setString('current_shop_support_phone', _shopSupportPhone!);
-      } else {
-        await prefs.remove('current_shop_support_phone');
-      }
-      if ((_shopBannerUrl ?? '').isNotEmpty) {
-        await prefs.setString('current_shop_banner_url', _shopBannerUrl!);
-      } else {
-        await prefs.remove('current_shop_banner_url');
-      }
-      if ((_shopWhatsAppTemplate ?? '').isNotEmpty) {
-        await prefs.setString('current_shop_whatsapp_template', _shopWhatsAppTemplate!);
-      } else {
-        await prefs.remove('current_shop_whatsapp_template');
-      }
-      if ((_shopUpiId ?? '').isNotEmpty) {
-        await prefs.setString('current_shop_upi_id', _shopUpiId!);
-      } else {
-        await prefs.remove('current_shop_upi_id');
-      }
-      if ((_shopProfilePic ?? '').isNotEmpty) {
-        await prefs.setString('current_shop_profile_pic', _shopProfilePic!);
-      } else {
-        await prefs.remove('current_shop_profile_pic');
-      }
-    } catch (_) {}
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('current_shop_id', shopId);
+        await prefs.setString('current_shop_name', _shopName ?? '');
+        if ((_shopAddress ?? '').isNotEmpty) {
+          await prefs.setString('current_shop_address', _shopAddress!);
+        }
+        if ((_shopMobile ?? '').isNotEmpty) {
+          await prefs.setString('current_shop_mobile', _shopMobile!);
+        }
+        if ((_shopSupportPhone ?? '').isNotEmpty) {
+          await prefs.setString('current_shop_support_phone', _shopSupportPhone!);
+        }
+        if ((_shopBannerUrl ?? '').isNotEmpty) {
+          await prefs.setString('current_shop_banner_url', _shopBannerUrl!);
+        }
+        if ((_shopWhatsAppTemplate ?? '').isNotEmpty) {
+          await prefs.setString('current_shop_whatsapp_template', _shopWhatsAppTemplate!);
+        }
+        if ((_shopUpiId ?? '').isNotEmpty) {
+          await prefs.setString('current_shop_upi_id', _shopUpiId!);
+        }
+        if ((_shopProfilePic ?? '').isNotEmpty) {
+          await prefs.setString('current_shop_profile_pic', _shopProfilePic!);
+        }
+      } catch (_) {}
 
-    notifyListeners();
+      notifyListeners();
+    });
   }
 
   Future<void> setShop(
@@ -156,10 +151,14 @@ class ShopProvider with ChangeNotifier {
       await prefs.remove('current_shop_upi_id');
     }
 
+    _listenToShop(shopId);
+
     notifyListeners();
   }
 
   Future<void> clearShop() async {
+    _shopSubscription?.cancel();
+    _shopSubscription = null;
     _currentShopId = null;
     _shopName = null;
     _shopAddress = null;
@@ -192,5 +191,11 @@ class ShopProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('current_shop_profile_pic', base64Image);
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _shopSubscription?.cancel();
+    super.dispose();
   }
 }

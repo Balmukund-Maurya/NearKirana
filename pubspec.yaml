@@ -63,6 +63,7 @@ dependencies:
   screenshot: ^3.0.0
   local_auth: ^3.0.2
   crypto: ^3.0.7
+  fl_chart: ^1.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

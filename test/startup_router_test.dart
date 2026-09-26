@@ -10,23 +10,8 @@ import 'package:near_kirana/user_provider.dart';
 import 'package:near_kirana/admin_login_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_mock.dart';
-
-import 'package:firebase_core/firebase_core.dart';
-import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:near_kirana/firebase_utils.dart';
-import 'firebase_mock.dart';
-
 void main() {
-  setupFirebaseAuthMocks();
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  
-  setUpAll(() async {
-    setupFirebaseAuthMocks();
-    await Firebase.initializeApp();
-  });
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});

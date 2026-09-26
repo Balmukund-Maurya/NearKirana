@@ -192,44 +192,33 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
 
     try {
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
-      // Fetch latest orders globally to avoid Composite Index errors
-      Query q = FirebaseUtils.firestore
+      
+      // Fetch without orderBy to avoid requiring a composite index. 
+      // We will fetch all history and sort locally.
+      final querySnapshot = await FirebaseUtils.firestore
           .collection('orders')
           .where('shop_id', isEqualTo: shopId)
-          .orderBy('created_at', descending: true)
-          .limit(_limit);
+          .where('status', whereIn: ['Delivered', 'Cancelled'])
+          .get();
 
-      if (_lastDocument != null) {
-        q = q.startAfterDocument(_lastDocument!);
-      }
+      final historyDocs = querySnapshot.docs.toList();
+      
+      // Sort locally descending by created_at
+      historyDocs.sort((a, b) {
+        final aData = a.data() as Map<String, dynamic>;
+        final bData = b.data() as Map<String, dynamic>;
+        final aTime = aData['created_at'] as Timestamp?;
+        final bTime = bData['created_at'] as Timestamp?;
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+        return bTime.compareTo(aTime);
+      });
 
-      final querySnapshot = await q.get();
+      _hasMore = false; // We fetched all history
+      _orders.clear();
+      _orders.addAll(historyDocs);
 
-      if (querySnapshot.docs.length < _limit) {
-        _hasMore = false;
-      }
-
-      if (querySnapshot.docs.isNotEmpty) {
-        _lastDocument = querySnapshot.docs.last;
-        
-        // Filter locally
-        final historyDocs = querySnapshot.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final status = data['status'] as String?;
-          return status == 'Delivered' || status == 'Cancelled';
-        }).toList();
-
-        _orders.addAll(historyDocs);
-
-        // If we filtered out all items in this batch but more exist, fetch next batch automatically
-        if (historyDocs.isEmpty && _hasMore) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-            Future.microtask(() => _fetchOrders());
-            return;
-          }
-        }
-      }
     } catch (e) {
       debugPrint('Error fetching order history: $e');
     }

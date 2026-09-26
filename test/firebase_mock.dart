@@ -1,14 +1,12 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
-import 'package:firebase_core/firebase_core.dart';
 
-typedef Callback = void Function(MethodCall call);
-
-void setupFirebaseAuthMocks([Callback? customHandlers]) {
+void setupFirebaseAuthMocks() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  MethodChannelFirebase.channel.setMockMethodCallHandler((call) async {
-    if (call.method == 'Firebase#initializeCore') {
+  const MethodChannel channel = MethodChannel('plugins.flutter.io/firebase_core');
+  
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    if (methodCall.method == 'Firebase#initializeCore') {
       return [
         {
           'name': '[DEFAULT]',
@@ -22,15 +20,12 @@ void setupFirebaseAuthMocks([Callback? customHandlers]) {
         }
       ];
     }
-    if (call.method == 'Firebase#initializeApp') {
+    if (methodCall.method == 'Firebase#initializeApp') {
       return {
-        'name': call.arguments['appName'],
-        'options': call.arguments['options'],
+        'name': methodCall.arguments['appName'],
+        'options': methodCall.arguments['options'],
         'pluginConstants': {},
       };
-    }
-    if (customHandlers != null) {
-      customHandlers(call);
     }
     return null;
   });

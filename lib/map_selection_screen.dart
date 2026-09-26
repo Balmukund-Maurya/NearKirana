@@ -11,7 +11,6 @@ import 'user_provider.dart';
 import 'language_provider.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
 class MapSelectionScreen extends StatefulWidget {

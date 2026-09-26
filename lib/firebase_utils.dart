@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:near_kirana/firebase_utils.dart';
 
 class FirebaseUtils {
   static FirebaseFirestore? _customFirestore;

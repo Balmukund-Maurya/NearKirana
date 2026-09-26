@@ -7,7 +7,6 @@ import 'package:near_kirana/main.dart';
 import 'package:near_kirana/shop_provider.dart';
 import 'package:near_kirana/shop_selector_screen.dart';
 import 'package:near_kirana/user_provider.dart';
-import 'package:near_kirana/admin_login_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 void main() {

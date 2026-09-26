@@ -23,7 +23,6 @@ import 'shop_selector_screen.dart';
 import 'map_selection_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -35,9 +34,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   if (!(prefs.getBool('hasMigratedSearchKeywordsV2') ?? false)) {
     try {
-      final docs = await FirebaseUtils.firestore
-          .collection('products')
-          .get();
+      final docs = await FirebaseUtils.firestore.collection('products').get();
       for (var doc in docs.docs) {
         final data = doc.data();
         if (data.containsKey('name')) {
@@ -75,7 +72,9 @@ void main() async {
       }
       if (migratedCount > 0) {
         await batch.commit();
-        debugPrint('Successfully migrated $migratedCount products to new categories array.');
+        debugPrint(
+          'Successfully migrated $migratedCount products to new categories array.',
+        );
       }
       await prefs.setBool('hasMigratedCategoriesV1', true);
     } catch (e) {
@@ -84,9 +83,7 @@ void main() async {
   }
 
   // Explicitly enable offline persistence
-  FirebaseUtils.firestore.settings = const Settings(
-    persistenceEnabled: true,
-  );
+  FirebaseUtils.firestore.settings = const Settings(persistenceEnabled: true);
 
   // Removed unused savedLanguage variable
   await NotificationService.initialize();
@@ -115,7 +112,8 @@ class NearKiranaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: Consumer<ShopProvider>(
         builder: (context, shopProvider, child) {
-          if (shopProvider.currentShopId != null && shopProvider.currentShopId!.isNotEmpty) {
+          if (shopProvider.currentShopId != null &&
+              shopProvider.currentShopId!.isNotEmpty) {
             return const LoginScreen();
           }
           return const ShopSelectorScreen();
@@ -194,10 +192,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (userProvider.deliveryAddress.isEmpty) {
         navigator.push(
           MaterialPageRoute(
-            builder: (context) => const MapSelectionScreen(
-              initialLat: 0.0,
-              initialLng: 0.0,
-            ),
+            builder: (context) =>
+                const MapSelectionScreen(initialLat: 0.0, initialLng: 0.0),
           ),
         );
       }
@@ -414,23 +410,28 @@ class _LoginScreenState extends State<LoginScreen> {
       if (querySnapshot.docs.isNotEmpty) {
         final doc = querySnapshot.docs.first;
         final data = doc.data();
-        
+
         String finalName = name;
         final dbName = data['name'] as String? ?? '';
-        final nameChangeCount = (data['name_change_count'] as num?)?.toInt() ?? 0;
-        
+        final nameChangeCount =
+            (data['name_change_count'] as num?)?.toInt() ?? 0;
+
         if (dbName.isNotEmpty && dbName != name) {
           if (nameChangeCount < 3) {
             await doc.reference.update({
               'name': name,
-              'name_change_count': FieldValue.increment(1)
+              'name_change_count': FieldValue.increment(1),
             });
             finalName = name;
           } else {
             finalName = dbName;
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(behavior: SnackBarBehavior.floating, content: Text('Name change limit (3) reached. Logging in as $dbName.'),
+                SnackBar(
+                  behavior: SnackBarBehavior.floating,
+                  content: Text(
+                    'Name change limit (3) reached. Logging in as $dbName.',
+                  ),
                   backgroundColor: Colors.orange,
                   duration: const Duration(seconds: 4),
                 ),
@@ -471,7 +472,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error connecting to server. Try again.'),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Error connecting to server. Try again.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -522,12 +525,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.lock_clock, color: Colors.red, size: 32),
+                          const Icon(
+                            Icons.lock_clock,
+                            color: Colors.red,
+                            size: 32,
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             'Too many wrong attempts!\nPlease wait $lockoutSecondsRemaining seconds.',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -558,7 +568,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text(
                         '$wrongAttempts/5 galat attempts. ${5 - wrongAttempts} baaki.',
                         style: TextStyle(
-                          color: wrongAttempts >= 3 ? Colors.red : Colors.orange,
+                          color: wrongAttempts >= 3
+                              ? Colors.red
+                              : Colors.orange,
                           fontSize: 12,
                         ),
                       ),
@@ -574,76 +586,86 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: isLockedOut ? null : () async {
-                    if (pinController.text.length != 4) return;
+                  onPressed: isLockedOut
+                      ? null
+                      : () async {
+                          if (pinController.text.length != 4) return;
 
-                    if (isNewUser) {
-                      // Save new PIN
-                      Navigator.pop(dialogContext);
-                      setState(() => _isLoading = true);
+                          if (isNewUser) {
+                            // Save new PIN
+                            Navigator.pop(dialogContext);
+                            setState(() => _isLoading = true);
 
-                      try {
-                        if (docRef != null) {
-                          await docRef.update({'pin': pinController.text});
-                        } else {
-                          await FirebaseUtils.firestore
-                              .collection('customers')
-                              .add({
-                                'name': name,
-                                'mobile': phone,
-                                'pin': pinController.text,
-                                'total_udhaar': 0,
-                                'auto_reminder': false,
-                                'created_at': FieldValue.serverTimestamp(),
-                              });
-                        }
-                        _completeLogin(name, phone);
-                      } catch (e) {
-                        if (!mounted) return;
-                        setState(() => _isLoading = false);
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error: $e')));
-                      }
-                    } else {
-                      // Verify existing PIN
-                      if (pinController.text == existingPin) {
-                        Navigator.pop(dialogContext);
-                        _completeLogin(name, phone);
-                      } else {
-                        setDialogState(() {
-                          isError = true;
-                          wrongAttempts++;
-                          pinController.clear();
-                        });
-
-                        // FIX-7: Lockout after 5 wrong attempts
-                        if (wrongAttempts >= 5) {
-                          setDialogState(() {
-                            isLockedOut = true;
-                            lockoutSecondsRemaining = 30;
-                          });
-                          // Countdown timer
-                          Future.doWhile(() async {
-                            await Future.delayed(const Duration(seconds: 1));
-                            if (!dialogContext.mounted) return false;
-                            setDialogState(() {
-                              lockoutSecondsRemaining--;
-                            });
-                            if (lockoutSecondsRemaining <= 0) {
-                              setDialogState(() {
-                                isLockedOut = false;
-                                wrongAttempts = 0;
-                                isError = false;
-                              });
-                              return false;
+                            try {
+                              if (docRef != null) {
+                                await docRef.update({
+                                  'pin': pinController.text,
+                                });
+                              } else {
+                                await FirebaseUtils.firestore
+                                    .collection('customers')
+                                    .add({
+                                      'name': name,
+                                      'mobile': phone,
+                                      'pin': pinController.text,
+                                      'total_udhaar': 0,
+                                      'auto_reminder': false,
+                                      'created_at':
+                                          FieldValue.serverTimestamp(),
+                                    });
+                              }
+                              _completeLogin(name, phone);
+                            } catch (e) {
+                              if (!mounted) return;
+                              setState(() => _isLoading = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  behavior: SnackBarBehavior.floating,
+                                  content: Text('Error: $e'),
+                                ),
+                              );
                             }
-                            return true;
-                          });
-                        }
-                      }
-                    }
-                  },
+                          } else {
+                            // Verify existing PIN
+                            if (pinController.text == existingPin) {
+                              Navigator.pop(dialogContext);
+                              _completeLogin(name, phone);
+                            } else {
+                              setDialogState(() {
+                                isError = true;
+                                wrongAttempts++;
+                                pinController.clear();
+                              });
+
+                              // FIX-7: Lockout after 5 wrong attempts
+                              if (wrongAttempts >= 5) {
+                                setDialogState(() {
+                                  isLockedOut = true;
+                                  lockoutSecondsRemaining = 30;
+                                });
+                                // Countdown timer
+                                Future.doWhile(() async {
+                                  await Future.delayed(
+                                    const Duration(seconds: 1),
+                                  );
+                                  if (!dialogContext.mounted) return false;
+                                  setDialogState(() {
+                                    lockoutSecondsRemaining--;
+                                  });
+                                  if (lockoutSecondsRemaining <= 0) {
+                                    setDialogState(() {
+                                      isLockedOut = false;
+                                      wrongAttempts = 0;
+                                      isError = false;
+                                    });
+                                    return false;
+                                  }
+                                  return true;
+                                });
+                              }
+                            }
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4CAF50),
                     foregroundColor: Colors.white,
@@ -675,14 +697,12 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (context) => const HomeScreen()),
           (route) => false,
         );
-        
+
         if (userProvider.deliveryAddress.isEmpty) {
           navigator.push(
             MaterialPageRoute(
-              builder: (context) => const MapSelectionScreen(
-                initialLat: 0.0,
-                initialLng: 0.0,
-              ),
+              builder: (context) =>
+                  const MapSelectionScreen(initialLat: 0.0, initialLng: 0.0),
             ),
           );
         }
@@ -695,7 +715,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final langProvider = Provider.of<LanguageProvider>(context);
     final shopProvider = Provider.of<ShopProvider>(context);
     final size = MediaQuery.of(context).size;
-    final shopName = shopProvider.shopName ?? langProvider.translate('app_name');
+    final shopName =
+        shopProvider.shopName ?? langProvider.translate('app_name');
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -948,7 +969,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
-                                            SnackBar(behavior: SnackBarBehavior.floating, content: Text(
+                                            SnackBar(
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                              content: Text(
                                                 langProvider.translate(
                                                           'enter_button',
                                                         ) ==
@@ -990,48 +1014,70 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 12),
 
                               TextButton.icon(
-                                onPressed: () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('Dukan Badlein?'),
-                                      content: const Text(
-                                        'Kya aap is dukan se bahar aakar doosri dukan chunna chahte hain? Aapka cart clear ho jayega.',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context, false),
-                                          child: const Text('Cancel'),
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Dukan Badlein?'),
+                                          content: const Text(
+                                            'Kya aap is dukan se bahar aakar doosri dukan chunna chahte hain? Aapka cart clear ho jayega.',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    AppColors.primaryDark,
+                                              ),
+                                              child: const Text(
+                                                'Haan, Badlein',
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        ElevatedButton(
-                                          onPressed: () => Navigator.pop(context, true),
-                                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryDark),
-                                          child: const Text('Haan, Badlein'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-
-                                  if (confirm == true && context.mounted) {
-                                    await Provider.of<ShopProvider>(context, listen: false).clearShop();
-                                    if (context.mounted) {
-                                      Provider.of<CartProvider>(context, listen: false).clearCart();
-                                    }
-                                    if (context.mounted) {
-                                      Navigator.pushAndRemoveUntil(
-                                        context,
-                                        MaterialPageRoute(builder: (context) => const ShopSelectorScreen()),
-                                        (route) => false,
                                       );
-                                    }
-                                  }
-                                },
-                                icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                                label: const Text('Change Shop'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.primaryDark,
-                                ),
-                              ).animate(delay: 600.ms).fadeIn(duration: 300.ms).slideY(begin: 0.05, end: 0),
+
+                                      if (confirm == true && context.mounted) {
+                                        await Provider.of<ShopProvider>(
+                                          context,
+                                          listen: false,
+                                        ).clearShop();
+                                        if (context.mounted) {
+                                          Provider.of<CartProvider>(
+                                            context,
+                                            listen: false,
+                                          ).clearCart();
+                                        }
+                                        if (context.mounted) {
+                                          Navigator.pushAndRemoveUntil(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const ShopSelectorScreen(),
+                                            ),
+                                            (route) => false,
+                                          );
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(
+                                      Icons.swap_horiz_rounded,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Change Shop'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.primaryDark,
+                                    ),
+                                  )
+                                  .animate(delay: 600.ms)
+                                  .fadeIn(duration: 300.ms)
+                                  .slideY(begin: 0.05, end: 0),
 
                               const SizedBox(height: 20),
 

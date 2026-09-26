@@ -170,8 +170,6 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
   final List<DocumentSnapshot> _orders = [];
   bool _isLoading = false;
   bool _hasMore = true;
-  final int _limit = 20;
-  DocumentSnapshot? _lastDocument;
 
   @override
   void initState() {
@@ -205,8 +203,8 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
       
       // Sort locally descending by created_at
       historyDocs.sort((a, b) {
-        final aData = a.data() as Map<String, dynamic>;
-        final bData = b.data() as Map<String, dynamic>;
+        final aData = a.data();
+        final bData = b.data();
         final aTime = aData['created_at'] as Timestamp?;
         final bTime = bData['created_at'] as Timestamp?;
         if (aTime == null && bTime == null) return 0;
@@ -231,7 +229,6 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
   Future<void> _refresh() async {
     setState(() {
       _orders.clear();
-      _lastDocument = null;
       _hasMore = true;
     });
     await _fetchOrders();

@@ -13,7 +13,6 @@ import 'package:lottie/lottie.dart';
 
 import 'map_selection_screen.dart';
 import 'cart_provider.dart';
-import 'language_provider.dart';
 import 'user_provider.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
@@ -79,7 +78,6 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -291,7 +289,6 @@ class _CartScreenState extends State<CartScreen> {
     BuildContext context,
     CartProvider cartProvider,
   ) {
-    final langProvider = Provider.of<LanguageProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final double subtotal = cartProvider.cartTotal;
     // FIX-5: Use dynamic settings from Firebase instead of hardcoded values
@@ -551,7 +548,6 @@ class _CartScreenState extends State<CartScreen> {
     CartProvider cartProvider,
   ) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
     final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
     final nameController = TextEditingController(
       text: userProvider.customerName,

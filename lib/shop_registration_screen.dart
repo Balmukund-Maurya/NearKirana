@@ -31,6 +31,10 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
   final _gstinController = TextEditingController(); // FSSAI or GSTIN
   final _deliveryRadiusController = TextEditingController(text: '1');
   final _pickupRadiusController = TextEditingController(text: '1');
+  final _deliveryFeeController = TextEditingController(text: '20.0');
+  final _minOrderController = TextEditingController(text: '300.0');
+  final _freeDeliveryThresholdController = TextEditingController(text: '500.0');
+  final _maxUdhaarController = TextEditingController(text: '2000.0');
 
   bool _isLoading = false;
   bool _obscurePin = true;
@@ -39,6 +43,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
   bool _isFetchingLocation = false;
   
   File? _shopImageFile;
+  File? _shopDocFile; // Shop verification document
 
   @override
   void dispose() {
@@ -49,6 +54,10 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
     _gstinController.dispose();
     _deliveryRadiusController.dispose();
     _pickupRadiusController.dispose();
+    _deliveryFeeController.dispose();
+    _minOrderController.dispose();
+    _freeDeliveryThresholdController.dispose();
+    _maxUdhaarController.dispose();
     super.dispose();
   }
 
@@ -60,7 +69,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (!mounted) return;
-        _showSnackBar('Location service off hai. GPS on karke dobara try karein.', isError: true);
+        _showSnackBar('Location service is off. Please enable GPS and try again.', isError: true);
         return;
       }
 
@@ -72,7 +81,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
           _showSnackBar(
             permission == LocationPermission.denied
                 ? 'Location permission denied!'
-                : 'Location permission permanently denied. App settings se allow karein.',
+                : 'Location permission permanently denied. Please allow from App Settings.',
             isError: true,
           );
           if (permission == LocationPermission.deniedForever) {
@@ -127,10 +136,10 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
       setState(() {
         _addressController.text = fullAddress;
       });
-      _showSnackBar('Location fetch ho gayi!', isError: false);
+      _showSnackBar('Location fetched successfully!', isError: false);
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar('Location nahi mil payi. Kripya apna GPS/Location on karein.', isError: true);
+      _showSnackBar('Location nahi mil payi. Please enable GPS/Location.', isError: true);
     } finally {
       if (mounted) {
         setState(() => _isFetchingLocation = false);
@@ -142,26 +151,64 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.camera, 
-      imageQuality: 30, // High compression to save space
+      imageQuality: 30,
       maxWidth: 800,
       maxHeight: 800,
     );
-
     if (pickedFile != null) {
-      setState(() {
-        _shopImageFile = File(pickedFile.path);
-      });
+      setState(() => _shopImageFile = File(pickedFile.path));
+    }
+  }
+
+  Future<void> _pickShopDoc() async {
+    final picker = ImagePicker();
+    final choice = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: AppColors.primaryDark),
+              title: const Text('Take Photo with Camera'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: AppColors.primaryDark),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null) return;
+    final pickedFile = await picker.pickImage(
+      source: choice,
+      imageQuality: 50,
+      maxWidth: 1200,
+      maxHeight: 1200,
+    );
+    if (pickedFile != null) {
+      setState(() => _shopDocFile = File(pickedFile.path));
     }
   }
 
   Future<void> _registerShop() async {
     if (!_formKey.currentState!.validate()) return;
     if (_addressController.text.isEmpty) {
-      _showSnackBar('Live location (GPS) fetch karna zaroori hai (Tap the Auto-Fetch Location button)', isError: true);
+      _showSnackBar('Live GPS location is required. Tap the Auto-Fetch Location button.', isError: true);
       return;
     }
     if (_shopImageFile == null) {
-      _showSnackBar('Dukaan ki live photo kheenchna zaroori hai', isError: true);
+      _showSnackBar('Live shop photo is required', isError: true);
+      return;
+    }
+    // At least one verification document must be provided
+    final hasGstin = _gstinController.text.trim().isNotEmpty;
+    final hasDoc = _shopDocFile != null;
+    if (!hasGstin && !hasDoc) {
+      _showSnackBar('At least one verification document is required: GSTIN, FSSAI, or a document upload', isError: true);
       return;
     }
 
@@ -177,22 +224,35 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
           .get();
 
       if (existingShop.docs.isNotEmpty) {
-        _showSnackBar('Is mobile number se pehle hi ek dukan registered hai!', isError: true);
+        _showSnackBar('A shop is already registered with this mobile number!', isError: true);
         setState(() => _isLoading = false);
         return;
       }
 
       final String shopId = 'SHOP_${DateTime.now().millisecondsSinceEpoch}';
 
-      // Convert image to Base64 to save directly in Firestore (100% Free)
+      // Convert shop image to Base64
       String base64Image = '';
       try {
         final bytes = await _shopImageFile!.readAsBytes();
         base64Image = base64Encode(bytes);
       } catch (e) {
         setState(() => _isLoading = false);
-        _showSnackBar('Photo process fail ho gayi: $e', isError: true);
+        _showSnackBar('Failed to process photo: $e', isError: true);
         return;
+      }
+
+      // Convert verification document to Base64 (if provided)
+      String base64Doc = '';
+      if (_shopDocFile != null) {
+        try {
+          final bytes = await _shopDocFile!.readAsBytes();
+          base64Doc = base64Encode(bytes);
+        } catch (e) {
+          setState(() => _isLoading = false);
+          _showSnackBar('Failed to process document: $e', isError: true);
+          return;
+        }
       }
 
       await FirebaseUtils.firestore.collection('shops').doc(shopId).set({
@@ -204,14 +264,16 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
         'address': _addressController.text.trim(),
         'gstin_fssai': _gstinController.text.trim(),
         'shop_image_base64': base64Image,
+        'shop_doc_image_base64': base64Doc,
         'lat': _shopLatitude,
         'lng': _shopLongitude,
         'admin_pin': _pinController.text.trim(),
         'is_active': false,
         'status': 'pending',
-        'delivery_fee': 20.0,
-        'minimum_order': 300.0,
-        'free_delivery_threshold': 500.0,
+        'delivery_fee': double.tryParse(_deliveryFeeController.text.trim()) ?? 20.0,
+        'minimum_order': double.tryParse(_minOrderController.text.trim()) ?? 300.0,
+        'free_delivery_threshold': double.tryParse(_freeDeliveryThresholdController.text.trim()) ?? 500.0,
+        'max_udhaar_limit': double.tryParse(_maxUdhaarController.text.trim()) ?? 2000.0,
         'delivery_radius_km': double.tryParse(_deliveryRadiusController.text.trim()) ?? 1.0,
         'pickup_radius_km': double.tryParse(_pickupRadiusController.text.trim()) ?? 1.0,
         'whatsapp_message_template': 'नमस्ते {shopName}, मेरा नाम {name} है और मेरा मोबाइल नंबर {phone} है। मुझे अपने ऑर्डर / अकाउंट के बारे में कुछ मदद चाहिए।',
@@ -222,7 +284,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
       if (!mounted) return;
 
-      _showSnackBar('Registration successful! Aapki dukan abhi pending approval hai. Admin ke verify karne ke baad ye live ho jayegi.', isError: false);
+      _showSnackBar('Registration successful! Your shop is pending approval. It will go live after admin verification.', isError: false);
 
       await Future.delayed(const Duration(seconds: 4));
 
@@ -282,23 +344,23 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                           .scale(curve: Curves.easeOutBack, duration: 500.ms),
                       const SizedBox(height: 16),
                       Text(
-                        'NearKirana Platform Par Judhein',
+                        'Join the NearKirana Platform',
                         style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 22),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 32),
                       _buildTextField(
                         controller: _shopNameController,
-                        label: 'Dukan Ka Naam',
+                        label: 'Shop Name',
                         icon: Icons.storefront_rounded,
-                        validator: (val) => val!.isEmpty ? 'Dukan ka naam zaroori hai' : null,
+                        validator: (val) => val!.isEmpty ? 'Shop name is required' : null,
                       ).animate().fadeIn(delay: 100.ms),
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _ownerNameController,
-                        label: 'Aapka Pura Naam',
+                        label: 'Your Full Name',
                         icon: Icons.person_rounded,
-                        validator: (val) => val!.isEmpty ? 'Naam zaroori hai' : null,
+                        validator: (val) => val!.isEmpty ? 'Name is required' : null,
                       ).animate().fadeIn(delay: 200.ms),
                       const SizedBox(height: 16),
                       SizedBox(
@@ -327,12 +389,167 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                         ),
                       ).animate().fadeIn(delay: 400.ms),
                       const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: _gstinController,
-                        label: 'FSSAI License / GSTIN',
-                        icon: Icons.verified_rounded,
-                        validator: (val) => val!.isEmpty ? 'FSSAI ya GST number zaruri hai' : null,
+                      // ── Verification Section ──
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: (_gstinController.text.trim().isNotEmpty || _shopDocFile != null)
+                                ? Colors.green
+                                : AppColors.primaryDark.withValues(alpha: 0.4),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                Icon(Icons.verified_user_rounded,
+                                    color: (_gstinController.text.trim().isNotEmpty || _shopDocFile != null)
+                                        ? Colors.green
+                                        : AppColors.primaryDark,
+                                    size: 20),
+                                Text('Shop Verification *',
+                                    style: AppTextStyles.bodySemiBold(color: AppColors.textDark)),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text('at least one required',
+                                      style: TextStyle(color: Colors.orange.shade700, fontSize: 11, fontWeight: FontWeight.w600)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Option 1: GSTIN / FSSAI (single combined field)
+                            TextFormField(
+                              controller: _gstinController,
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                labelText: 'GSTIN / FSSAI Number (if available)',
+                                hintText: 'Enter your GSTIN or FSSAI license number',
+                                prefixIcon: const Icon(Icons.verified_rounded, color: AppColors.primaryDark),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                filled: true,
+                                fillColor: AppColors.surface,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(children: [
+                              Expanded(child: Divider(color: Colors.grey.shade300)),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: Text('OR', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+                              ),
+                              Expanded(child: Divider(color: Colors.grey.shade300)),
+                            ]),
+                            const SizedBox(height: 8),
+                            // Option 3: Document Upload
+                            GestureDetector(
+                              onTap: _pickShopDoc,
+                              child: Container(
+                                height: 100,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _shopDocFile != null ? Colors.green : Colors.grey.shade300,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: _shopDocFile != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(11),
+                                        child: Stack(
+                                          children: [
+                                            Image.file(_shopDocFile!, fit: BoxFit.cover, width: double.infinity),
+                                            Positioned(
+                                              top: 4, right: 4,
+                                              child: GestureDetector(
+                                                onTap: () => setState(() => _shopDocFile = null),
+                                                child: const CircleAvatar(
+                                                  radius: 12,
+                                                  backgroundColor: Colors.red,
+                                                  child: Icon(Icons.close, size: 14, color: Colors.white),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.upload_file_rounded, size: 32, color: AppColors.primaryDark),
+                                          const SizedBox(height: 4),
+                                          Text('Upload Shop Registration Certificate or any Govt. Document',
+                                              style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                                              textAlign: TextAlign.center),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ).animate().fadeIn(delay: 450.ms),
+                      const SizedBox(height: 16),
+                      // Store Config fields
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _deliveryFeeController,
+                              label: 'Delivery Fee (₹)',
+                              icon: Icons.delivery_dining_rounded,
+                              keyboardType: TextInputType.number,
+                              validator: (val) => val!.isEmpty ? 'Required' : null,
+                            ).animate().fadeIn(delay: 452.ms),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _minOrderController,
+                              label: 'Min Order (₹)',
+                              icon: Icons.shopping_basket_rounded,
+                              keyboardType: TextInputType.number,
+                              validator: (val) => val!.isEmpty ? 'Required' : null,
+                            ).animate().fadeIn(delay: 454.ms),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _freeDeliveryThresholdController,
+                              label: 'Free Delivery (₹)',
+                              icon: Icons.card_giftcard_rounded,
+                              keyboardType: TextInputType.number,
+                              validator: (val) => val!.isEmpty ? 'Required' : null,
+                            ).animate().fadeIn(delay: 456.ms),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _maxUdhaarController,
+                              label: 'Max Udhaar (₹)',
+                              icon: Icons.account_balance_wallet_rounded,
+                              keyboardType: TextInputType.number,
+                              validator: (val) => val!.isEmpty ? 'Required' : null,
+                            ).animate().fadeIn(delay: 458.ms),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
                       Row(
                         children: [
@@ -342,7 +559,12 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                               label: 'Delivery Range (km)',
                               icon: Icons.delivery_dining_rounded,
                               keyboardType: TextInputType.number,
-                              validator: (val) => val!.isEmpty ? 'Zaroori' : null,
+                              validator: (val) {
+                                if (val!.isEmpty) return 'Required';
+                                final numVal = double.tryParse(val);
+                                if (numVal == null || numVal > 10) return 'Max 10 km';
+                                return null;
+                              },
                             ).animate().fadeIn(delay: 460.ms),
                           ),
                           const SizedBox(width: 12),
@@ -352,7 +574,12 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                               label: 'Pickup Range (km)',
                               icon: Icons.store_mall_directory_rounded,
                               keyboardType: TextInputType.number,
-                              validator: (val) => val!.isEmpty ? 'Zaroori' : null,
+                              validator: (val) {
+                                if (val!.isEmpty) return 'Required';
+                                final numVal = double.tryParse(val);
+                                if (numVal == null || numVal > 25) return 'Max 25 km';
+                                return null;
+                              },
                             ).animate().fadeIn(delay: 470.ms),
                           ),
                         ],
@@ -391,7 +618,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                         keyboardType: TextInputType.number,
                         maxLength: 6,
                         decoration: InputDecoration(
-                          labelText: 'Admin PIN Banayein (4 ya 6 digit)',
+                          labelText: 'Create Admin PIN (4 or 6 digits)',
                           prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.primaryDark),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -404,7 +631,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                           filled: true,
                           fillColor: AppColors.white,
                         ),
-                        validator: (val) => (val!.length < 4) ? 'Kam se kam 4 digit ka PIN banayein' : null,
+                        validator: (val) => (val!.length < 4) ? 'PIN must be at least 4 digits' : null,
                       ).animate().fadeIn(delay: 500.ms),
                       const SizedBox(height: 32),
                       ElevatedButton(

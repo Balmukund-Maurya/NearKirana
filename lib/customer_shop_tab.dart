@@ -72,7 +72,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
       debugPrint('Fetching categories for shopId: $shopId');
       List<String>? shopCategories;
 
-      if (shopId != null && shopId.isNotEmpty) {
+      if (shopId.isNotEmpty) {
         final shopDoc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
         if (shopDoc.exists) {
           final data = shopDoc.data()!;
@@ -119,9 +119,9 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final shopProvider = Provider.of<ShopProvider>(context);
+    final langProvider = Provider.of<LanguageProvider>(context);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -619,7 +619,6 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
     required Map<String, dynamic> productData,
     required bool isServiceable,
   }) {
-    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
     final double stock =
         (productData['stock_quantity'] as num?)?.toDouble() ?? 0.0;
     final bool isOutOfStock = stock <= 0;
@@ -1041,7 +1040,6 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
     String? imageUrl,
     Map<String, dynamic> productData,
   ) {
-    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
     final String brand = productData['brand'] ?? '';
     final String quantity = productData['quantity'] ?? '';
     final String ingredients = productData['ingredients'] ?? '';

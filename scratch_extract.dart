@@ -782,5 +782,6 @@ void main() {
 
   File('lib/l10n/app_en.arb').writeAsStringSync(jsonEncode(enArb));
   File('lib/l10n/app_hi.arb').writeAsStringSync(jsonEncode(hiArb));
+  // ignore: avoid_print
   print('Generated ARB files.');
 }

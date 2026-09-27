@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:simple_barcode_scanner/simple_barcode_scanner.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import 'language_provider.dart';
 import 'firestore_service.dart';
 import 'admin_product_forms.dart';
 import 'app_theme.dart';
@@ -50,10 +49,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
         showDialog(
           context: context,
           builder: (context) {
-            final langProvider = Provider.of<LanguageProvider>(
-              context,
-              listen: false,
-            );
+
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
@@ -298,6 +294,34 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (!Provider.of<ShopProvider>(context).isActive)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.orange.shade200, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.pending_actions_rounded, color: Colors.orange.shade700, size: 28),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        'Your shop is currently pending verification and is not live yet. You can continue setting up your store.',
+                        style: TextStyle(
+                          color: Colors.orange.shade900, 
+                          fontWeight: FontWeight.w600, 
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
             _buildDailySalesCard(
               context,
             ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),

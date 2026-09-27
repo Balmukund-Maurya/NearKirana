@@ -22,6 +22,8 @@ class AdminSettingsScreen extends StatefulWidget {
 }
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
+  final _shopNameController = TextEditingController();
+  final _ownerNameController = TextEditingController();
   final _deliveryFeeController = TextEditingController();
   final _minOrderController = TextEditingController();
   final _freeDeliveryThresholdController = TextEditingController();
@@ -45,6 +47,23 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   bool _isLoading = true;
 
   @override
+  void dispose() {
+    _shopNameController.dispose();
+    _ownerNameController.dispose();
+    _deliveryFeeController.dispose();
+    _minOrderController.dispose();
+    _freeDeliveryThresholdController.dispose();
+    _maxUdhaarController.dispose();
+    _pickupRadiusController.dispose();
+    _deliveryRadiusController.dispose();
+    _storeLatController.dispose();
+    _storeLngController.dispose();
+    _supportPhoneController.dispose();
+    _whatsappMessageController.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _loadSettings();
@@ -58,6 +77,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           : await FirebaseUtils.firestore.collection('settings').doc('app_config').get();
       if (doc.exists) {
         final data = doc.data()!;
+        _shopNameController.text = data['shop_name'] ?? '';
+        _ownerNameController.text = data['owner_name'] ?? '';
         _deliveryFeeController.text = (data['delivery_fee'] ?? 20.0).toString();
         _minOrderController.text = (data['minimum_order'] ?? 300.0).toString();
         _freeDeliveryThresholdController.text =
@@ -78,6 +99,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           _categories = List<String>.from(data['categories']);
         }
       } else {
+        _shopNameController.text = '';
+        _ownerNameController.text = '';
         _deliveryFeeController.text = '20.0';
         _minOrderController.text = '300.0';
         _freeDeliveryThresholdController.text = '500.0';
@@ -123,12 +146,34 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         return;
       }
 
+      if (deliveryRadius > 10) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Delivery Radius cannot exceed 10 km'), backgroundColor: AppColors.error),
+          );
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
+
+      if (pickupRadius > 25) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Pickup Radius cannot exceed 25 km'), backgroundColor: AppColors.error),
+          );
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
+
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       final settingsRef = shopId != null && shopId.isNotEmpty
           ? FirebaseUtils.firestore.collection('shops').doc(shopId)
           : FirebaseUtils.firestore.collection('settings').doc('app_config');
 
       await settingsRef.set({
+            'shop_name': _shopNameController.text.trim(),
+            'owner_name': _ownerNameController.text.trim(),
             'delivery_fee': deliveryFee,
             'minimum_order': minOrder,
             'free_delivery_threshold': freeDeliveryThreshold,
@@ -188,6 +233,25 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                     child: _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
                   ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
                   const SizedBox(height: 24),
+                  
+                  // Shop Name & Owner Name
+                  _buildConfigField(
+                    'Shop Name',
+                    _shopNameController,
+                    'Enter shop name',
+                    Icons.storefront_rounded,
+                    keyboardType: TextInputType.text,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildConfigField(
+                    'Owner Name',
+                    _ownerNameController,
+                    'Enter owner name',
+                    Icons.person_outline_rounded,
+                    keyboardType: TextInputType.text,
+                  ),
+                  const SizedBox(height: 24),
+                  
                   // Store Status
                   Container(
                         padding: const EdgeInsets.all(20),
@@ -436,11 +500,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                             ),
                             child: ReorderableListView.builder(
                               itemCount: _categories.length,
-                              onReorder: (int oldIndex, int newIndex) {
+                              onReorderItem: (int oldIndex, int newIndex) {
                                 setState(() {
-                                  if (newIndex > oldIndex) {
-                                    newIndex -= 1;
-                                  }
                                   final item = _categories.removeAt(oldIndex);
                                   _categories.insert(newIndex, item);
                                   HapticFeedback.lightImpact();

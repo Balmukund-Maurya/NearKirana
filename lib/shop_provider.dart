@@ -15,6 +15,7 @@ class ShopProvider with ChangeNotifier {
   String? _shopWhatsAppTemplate;
   String? _shopUpiId;
   String? _shopProfilePic;
+  bool _isActive = true;
 
   String? get currentShopId => _currentShopId;
   String? get shopName => _shopName;
@@ -25,6 +26,7 @@ class ShopProvider with ChangeNotifier {
   String? get shopWhatsAppTemplate => _shopWhatsAppTemplate;
   String? get shopUpiId => _shopUpiId;
   String? get shopProfilePic => _shopProfilePic;
+  bool get isActive => _isActive;
 
   Future<void> loadCurrentShop() async {
     final prefs = await SharedPreferences.getInstance();
@@ -37,6 +39,7 @@ class ShopProvider with ChangeNotifier {
     _shopWhatsAppTemplate = prefs.getString('current_shop_whatsapp_template');
     _shopUpiId = prefs.getString('current_shop_upi_id');
     _shopProfilePic = prefs.getString('current_shop_profile_pic');
+    _isActive = prefs.getBool('current_shop_is_active') ?? true;
 
     if (_currentShopId != null && _currentShopId!.isNotEmpty) {
       _listenToShop(_currentShopId!);
@@ -66,6 +69,7 @@ class ShopProvider with ChangeNotifier {
       _shopWhatsAppTemplate = data['whatsapp_message_template']?.toString() ?? _shopWhatsAppTemplate;
       _shopUpiId = data['upi_id']?.toString() ?? data['vpa']?.toString() ?? _shopUpiId;
       _shopProfilePic = data['profile_image_url']?.toString() ?? _shopProfilePic;
+      _isActive = data['is_active'] ?? true;
 
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -92,6 +96,7 @@ class ShopProvider with ChangeNotifier {
         if ((_shopProfilePic ?? '').isNotEmpty) {
           await prefs.setString('current_shop_profile_pic', _shopProfilePic!);
         }
+        await prefs.setBool('current_shop_is_active', _isActive);
       } catch (_) {}
 
       notifyListeners();
@@ -178,6 +183,7 @@ class ShopProvider with ChangeNotifier {
     await prefs.remove('current_shop_whatsapp_template');
     await prefs.remove('current_shop_upi_id');
     await prefs.remove('current_shop_profile_pic');
+    await prefs.remove('current_shop_is_active');
 
     notifyListeners();
   }

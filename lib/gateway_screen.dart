@@ -169,7 +169,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight.withOpacity(0.3),
+                      color: AppColors.primaryLight.withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.person_rounded, size: 40, color: AppColors.primaryDark),
@@ -319,7 +319,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
 
     if (existingShop.docs.isNotEmpty) {
       final shopDoc = existingShop.docs.first;
-      final shopData = shopDoc.data() as Map<String, dynamic>;
+      final shopData = shopDoc.data();
       final dbPin = shopData['admin_pin'] as String?;
       final shopName = shopData['shop_name'] as String? ?? 'Your Shop';
       final ownerName = shopData['owner_name'] as String? ?? 'Owner';
@@ -345,7 +345,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withOpacity(0.3),
+                            color: AppColors.primaryLight.withValues(alpha: 0.3),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.storefront_rounded, size: 40, color: AppColors.primaryDark),
@@ -445,7 +445,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
       final shopId = shopDoc.id;
       
       if (!mounted) return;
-      await Provider.of<ShopProvider>(context, listen: false).setShop(shopId, (shopDoc.data() as Map<String, dynamic>)['shop_name'] ?? '');
+      await Provider.of<ShopProvider>(context, listen: false).setShop(shopId, shopDoc.data()['shop_name'] ?? '');
       await prefs.setString('app_role', 'admin');
       
       if (!mounted) return;

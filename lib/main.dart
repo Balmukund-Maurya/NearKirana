@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,10 +22,19 @@ import 'modern_loader.dart';
 import 'shop_selector_screen.dart';
 import 'map_selection_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
-import 'widgets/custom_pin_pad.dart';
+import 'package:phone_email_auth/phone_email_auth.dart';
+import 'package:flutter/foundation.dart'; // Added for kIsWeb
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  if (!kIsWeb) {
+    try {
+      PhoneEmail.initializeApp(clientId: '17194425783292968499');
+    } catch (e) {
+      debugPrint('PhoneEmail init error: $e');
+    }
+  }
 
   final shopProvider = ShopProvider();
   await shopProvider.loadCurrentShop();
@@ -136,8 +145,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _mobileController = TextEditingController();
+
   bool _isLoading = true;
 
   @override
@@ -209,57 +217,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _mobileController.dispose();
+
     super.dispose();
   }
 
-  Widget _buildInputField({
-    required TextEditingController controller,
-    required String hintText,
-    required IconData icon,
-    String? prefixText,
-    TextInputType? keyboardType,
-    int? maxLength,
-    TextCapitalization textCapitalization = TextCapitalization.none,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.bgTint, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: AppTextStyles.body(color: AppColors.textLight),
-          prefixIcon: Icon(icon, color: AppColors.primaryDark, size: 22),
-          prefixText: prefixText,
-          prefixStyle: AppTextStyles.bodyMedium(color: AppColors.textDark),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 18,
-          ),
-          counterText: "",
-        ),
-        keyboardType: keyboardType,
-        maxLength: maxLength,
-        textCapitalization: textCapitalization,
-        inputFormatters: inputFormatters,
-        style: AppTextStyles.bodyMedium(),
-      ),
-    );
-  }
+
 
   void _showLanguageBottomSheet(BuildContext context) {
     SoundService().languageSwitch();
@@ -397,150 +359,114 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _handleLogin(String name, String phone) async {
-    setState(() => _isLoading = true);
-
-    try {
-      final querySnapshot = await FirebaseUtils.firestore
-          .collection('customers')
-          .where('mobile', isEqualTo: phone)
-          .limit(1)
-          .get();
-
-      if (querySnapshot.docs.isNotEmpty) {
-        final doc = querySnapshot.docs.first;
-        final data = doc.data();
-
-        String finalName = name;
-        final dbName = data['name'] as String? ?? '';
-        final nameChangeCount =
-            (data['name_change_count'] as num?)?.toInt() ?? 0;
-
-        if (dbName.isNotEmpty && dbName != name) {
-          if (nameChangeCount < 3) {
-            await doc.reference.update({
-              'name': name,
-              'name_change_count': FieldValue.increment(1),
-            });
-            finalName = name;
-          } else {
-            finalName = dbName;
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  behavior: SnackBarBehavior.floating,
-                  content: Text(
-                    'Name change limit (3) reached. Logging in as $dbName.',
-                  ),
-                  backgroundColor: Colors.orange,
-                  duration: const Duration(seconds: 4),
-                ),
-              );
-            }
-          }
-        } else {
-          finalName = dbName.isNotEmpty ? dbName : name;
-        }
-
-        if (data.containsKey('pin') && data['pin'] != null) {
-          // Returning user with PIN
-          setState(() => _isLoading = false);
-          _showPinDialog(
-            finalName,
-            phone,
-            data['pin'],
-            isNewUser: false,
-            docRef: doc.reference,
-          );
-        } else {
-          // Returning user (created by Admin) without PIN
-          setState(() => _isLoading = false);
-          _showPinDialog(
-            finalName,
-            phone,
-            null,
-            isNewUser: true,
-            docRef: doc.reference,
-          );
-        }
-      } else {
-        // Completely new user
-        setState(() => _isLoading = false);
-        _showPinDialog(name, phone, null, isNewUser: true, docRef: null);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Error connecting to server. Try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _showPinDialog(
-    String name,
-    String phone,
-    String? existingPin, {
-    required bool isNewUser,
-    DocumentReference? docRef,
-  }) {
-    showModalBottomSheet(
+  void _promptForNameAndRegister(String phone) {
+    String newName = '';
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      enableDrag: false,
-      isDismissible: false,
-      builder: (bottomSheetContext) {
-        return CustomPinPad(
-          isNewUser: isNewUser,
-          title: isNewUser ? 'Create 4-Digit PIN' : 'Enter 4-Digit PIN',
-          subtitle: isNewUser
-              ? 'Secure your account. Only you can order using this number.'
-              : 'Enter your 4-digit PIN to log in.',
-          existingPinHash: existingPin,
-          onPinEntered: (String pinOrHash) async {
-            Navigator.pop(bottomSheetContext);
-            setState(() => _isLoading = true);
-
-            try {
-              if (isNewUser) {
-                if (docRef != null) {
-                  await docRef.update({'pin': pinOrHash});
-                } else {
-                  await FirebaseUtils.firestore.collection('customers').add({
-                    'name': name,
-                    'mobile': phone,
-                    'pin': pinOrHash,
-                    'total_udhaar': 0,
-                    'auto_reminder': false,
-                    'created_at': FieldValue.serverTimestamp(),
-                  });
-                }
-              } else {
-                // If it's a returning user and they used a plain PIN, we upgrade it to a Hash here
-                if (pinOrHash != existingPin && pinOrHash != "BIOMETRIC_SUCCESS") {
-                  if (docRef != null) {
-                    await docRef.update({'pin': pinOrHash}); // Upgrades plain text PIN to Hash
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Welcome to NearKirana!'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Please enter your name to continue.'),
+              const SizedBox(height: 16),
+              TextField(
+                onChanged: (val) => newName = val,
+                decoration: const InputDecoration(
+                  hintText: 'Your Name',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () async {
+                if (newName.trim().isNotEmpty) {
+                  Navigator.pop(dialogContext);
+                  setState(() => _isLoading = true);
+                  try {
+                    await FirebaseUtils.firestore.collection('customers').add({
+                      'name': newName.trim(),
+                      'mobile': phone,
+                      'pin': 'PHONE_AUTH', // Marks user as Online
+                      'total_udhaar': 0,
+                      'auto_reminder': false,
+                      'created_at': FieldValue.serverTimestamp(),
+                    });
+                    if (!mounted) return;
+                    _completeLogin(newName.trim(), phone);
+                  } catch (e) {
+                    if (!mounted) return;
+                    setState(() => _isLoading = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
                   }
                 }
-              }
-              _completeLogin(name, phone);
-            } catch (e) {
-              if (!mounted) return;
-              setState(() => _isLoading = false);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  behavior: SnackBarBehavior.floating,
-                  content: Text('Error: $e'),
-                ),
-              );
-            }
-          },
+              },
+              child: const Text('Continue'),
+            )
+          ],
         );
+      },
+    );
+  }
+
+  void _handlePhoneEmailAuth(String accessToken) {
+    setState(() => _isLoading = true);
+    PhoneEmail.getUserInfo(
+      accessToken: accessToken,
+      clientId: '17194425783292968499',
+      onSuccess: (userData) async {
+        if (!mounted) return;
+        String? rawPhone = userData.phoneNumber;
+        if (rawPhone == null || rawPhone.isEmpty) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to retrieve phone number.')),
+          );
+          return;
+        }
+
+        // Normalize to exactly 10 digits to match existing db records
+        String phone = rawPhone.replaceAll(RegExp(r'\D'), '');
+        if (phone.length > 10) {
+          phone = phone.substring(phone.length - 10);
+        }
+
+        try {
+          final querySnapshot = await FirebaseUtils.firestore
+              .collection('customers')
+              .where('mobile', isEqualTo: phone)
+              .limit(1)
+              .get();
+
+          if (querySnapshot.docs.isNotEmpty) {
+            final doc = querySnapshot.docs.first;
+            final data = doc.data();
+            final dbName = data['name'] as String? ?? 'User';
+
+            // If user was offline (created by Admin without PIN), mark them as online
+            if (!data.containsKey('pin')) {
+              await doc.reference.update({'pin': 'PHONE_AUTH'});
+            }
+
+            _completeLogin(dbName, phone);
+          } else {
+            setState(() => _isLoading = false);
+            _promptForNameAndRegister(phone);
+          }
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
       },
     );
   }
@@ -721,17 +647,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
 
                       Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 28,
-                            vertical: 8,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const SizedBox(height: 16),
-
-                              // Logo
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 450),
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                                vertical: 8,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const SizedBox(height: 16),
+                                  
+                                  // Logo
                               Container(
                                     width: 90,
                                     height: 90,
@@ -784,98 +713,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
                               const SizedBox(height: 48),
 
-                              _buildInputField(
-                                    controller: _nameController,
-                                    hintText: langProvider.translate(
-                                      'name_hint',
-                                    ),
-                                    icon: Icons.person_outline_rounded,
-                                    textCapitalization:
-                                        TextCapitalization.words,
+                              SizedBox(
+                                    width: double.infinity,
+                                    height: 58,
+                                    child: kIsWeb
+                                        ? ElevatedButton(
+                                            onPressed: () {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Phone.email authentication is currently not supported on Web. Please use the mobile app.'),
+                                                ),
+                                              );
+                                            },
+                                            style: AppButtonStyles.primary(radius: 16),
+                                            child: const Text('Sign in with Phone (Web Not Supported)'),
+                                          )
+                                        : PhoneLoginButton(
+                                            borderRadius: 16,
+                                            buttonColor: AppColors.primaryDark,
+                                            label: 'Sign in with Phone',
+                                            onSuccess: (String accessToken, String jwtToken) {
+                                              if (accessToken.isNotEmpty) {
+                                                _handlePhoneEmailAuth(accessToken);
+                                              }
+                                            },
+                                          ),
                                   )
                                   .animate(delay: 350.ms)
                                   .fadeIn(duration: 400.ms)
                                   .slideY(begin: 0.15, end: 0),
-
-                              const SizedBox(height: 16),
-
-                              _buildInputField(
-                                    controller: _mobileController,
-                                    hintText: langProvider.translate(
-                                      'mobile_hint',
-                                    ),
-                                    icon: Icons.phone_android_rounded,
-                                    prefixText: '+91 ',
-                                    keyboardType: TextInputType.phone,
-                                    maxLength: 10,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                    ],
-                                  )
-                                  .animate(delay: 450.ms)
-                                  .fadeIn(duration: 400.ms)
-                                  .slideY(begin: 0.15, end: 0),
-
-                              const SizedBox(height: 24),
-
-                              SizedBox(
-                                    width: double.infinity,
-                                    height: 58,
-                                    child: ElevatedButton(
-                                      onPressed: () async {
-                                        final name = _nameController.text
-                                            .trim();
-                                        final phone = _mobileController.text
-                                            .trim();
-                                        if (phone.length == 10 &&
-                                            name.isNotEmpty) {
-                                          _handleLogin(name, phone);
-                                        } else {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              behavior:
-                                                  SnackBarBehavior.floating,
-                                              content: Text(
-                                                langProvider.translate(
-                                                          'enter_button',
-                                                        ) ==
-                                                        'Enter'
-                                                    ? 'Please enter your name and 10-digit mobile number'
-                                                    : 'Kripya apna naam aur 10-digit mobile number dalein',
-                                              ),
-                                              backgroundColor: AppColors.error,
-                                            ),
-                                          );
-                                        }
-                                      },
-                                      style: AppButtonStyles.primary(
-                                        radius: 16,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(
-                                            Icons.storefront_rounded,
-                                            size: 22,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Text(
-                                            langProvider.translate(
-                                              'enter_button',
-                                            ),
-                                            style: AppTextStyles.button(),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                  .animate(delay: 550.ms)
-                                  .fadeIn(duration: 400.ms)
-                                  .slideY(begin: 0.2, end: 0),
-
+                              
                               const SizedBox(height: 12),
 
                               TextButton.icon(
@@ -1007,6 +874,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                         ),
+                      ),
+                      ),
                       ),
                     ],
                   ),

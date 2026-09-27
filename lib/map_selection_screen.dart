@@ -82,9 +82,9 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       if (doc.exists && mounted) {
         final data = doc.data() as Map<String, dynamic>;
         setState(() {
-          _storeLat = (data['store_latitude'] as num?)?.toDouble();
-          _storeLng = (data['store_longitude'] as num?)?.toDouble();
-          _deliveryRadiusKm = (data['delivery_radius_km'] as num?)?.toDouble();
+          _storeLat = (data['store_latitude'] as num?)?.toDouble() ?? (data['lat'] as num?)?.toDouble();
+          _storeLng = (data['store_longitude'] as num?)?.toDouble() ?? (data['lng'] as num?)?.toDouble();
+          _deliveryRadiusKm = (data['delivery_radius_km'] as num?)?.toDouble() ?? 5.0;
           _storeName = (data['shop_name'] ?? shopProvider.shopName ?? 'Store').toString();
         });
 

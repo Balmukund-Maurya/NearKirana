@@ -61,15 +61,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     CustomPinPad(
-                      isNewUser: false,
-                      title: 'Dukaan Malik PIN',
-                      subtitle: 'Login karne ke liye apna 4-digit PIN dalein',
+                      isNewUser: _adminPinHash == null,
+                      title: _adminPinHash == null ? 'Create PIN' : 'Dukaan Malik PIN',
+                      subtitle: _adminPinHash == null ? 'Apna naya 4-digit PIN banayein' : 'Login karne ke liye apna 4-digit PIN dalein',
                       existingPinHash: _adminPinHash,
                       onPinEntered: (pinOrHash) async {
                         final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
                         
-                        // If legacy plaintext pin was used, upgrade it to hash
-                        if (pinOrHash != _adminPinHash && pinOrHash != "BIOMETRIC_SUCCESS" && shopId != null) {
+                        // If legacy plaintext pin was used or setting new pin, upgrade it to hash
+                        if ((pinOrHash != _adminPinHash || _adminPinHash == null) && pinOrHash != "BIOMETRIC_SUCCESS" && shopId != null) {
                            await FirebaseUtils.firestore.collection('shops').doc(shopId).update({
                              'admin_pin': pinOrHash
                            });

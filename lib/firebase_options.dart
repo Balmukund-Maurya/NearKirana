@@ -47,12 +47,12 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyC3LYYU_zb97NkpG1MbusYstE9CLb45sWo',
-    appId: '1:471004099824:web:553549a774a8ae96497e35',
-    messagingSenderId: '471004099824',
-    projectId: 'aditya-kirana-6fb5b',
-    authDomain: 'aditya-kirana-6fb5b.firebaseapp.com',
-    storageBucket: 'aditya-kirana-6fb5b.firebasestorage.app',
+    apiKey: 'AIzaSyDK0ZIO84-fCu7ekfmGEn2Gh3oQOCNT6h0',
+    appId: '1:331223738086:web:02e73159c8c89b90727d27',
+    messagingSenderId: '331223738086',
+    projectId: 'kiranastorebuilder-e78dd',
+    authDomain: 'kiranastorebuilder-e78dd.firebaseapp.com',
+    storageBucket: 'kiranastorebuilder-e78dd.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(

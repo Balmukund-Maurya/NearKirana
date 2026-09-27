@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'app_theme.dart';
 import 'modern_loader.dart';
@@ -28,12 +31,15 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _pinController = TextEditingController();
+  final _gstinController = TextEditingController(); // FSSAI or GSTIN
 
   bool _isLoading = false;
   bool _obscurePin = true;
   double? _shopLatitude;
   double? _shopLongitude;
   bool _isFetchingLocation = false;
+  
+  File? _shopImageFile;
 
   @override
   void dispose() {
@@ -42,6 +48,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
     _phoneController.dispose();
     _addressController.dispose();
     _pinController.dispose();
+    _gstinController.dispose();
     super.dispose();
   }
 
@@ -88,31 +95,15 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
       }
       if (!mounted) return;
 
+      if (!mounted) return;
+
       if (position == null) {
         _showSnackBar('Location fetch nahi ho paya. GPS signal thodi der baad try karein.', isError: true);
         return;
       }
 
-      // Open MapSelectionScreen for fine tuning
-      final LatLng? pickedLocation = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MapSelectionScreen(
-            initialLat: position!.latitude,
-            initialLng: position.longitude,
-            isPickingOnly: true,
-          ),
-        ),
-      );
-
-      if (!mounted) return;
-      if (pickedLocation == null) {
-        _showSnackBar('Location selection cancelled.', isError: true);
-        return;
-      }
-
-      _shopLatitude = pickedLocation.latitude;
-      _shopLongitude = pickedLocation.longitude;
+      _shopLatitude = position.latitude;
+      _shopLongitude = position.longitude;
 
       String fullAddress = 'Location selected on map';
       try {
@@ -147,10 +138,30 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
     }
   }
 
+  Future<void> _pickShopImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.camera, 
+      imageQuality: 30, // High compression to save space
+      maxWidth: 800,
+      maxHeight: 800,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _shopImageFile = File(pickedFile.path);
+      });
+    }
+  }
+
   Future<void> _registerShop() async {
     if (!_formKey.currentState!.validate()) return;
     if (_addressController.text.isEmpty) {
-      _showSnackBar('Location pick karna zaroori hai (Tap the Pick Location button)', isError: true);
+      _showSnackBar('Live location (GPS) fetch karna zaroori hai (Tap the Auto-Fetch Location button)', isError: true);
+      return;
+    }
+    if (_shopImageFile == null) {
+      _showSnackBar('Dukaan ki live photo kheenchna zaroori hai', isError: true);
       return;
     }
 
@@ -173,6 +184,17 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
       final String shopId = 'SHOP_${DateTime.now().millisecondsSinceEpoch}';
 
+      // Convert image to Base64 to save directly in Firestore (100% Free)
+      String base64Image = '';
+      try {
+        final bytes = await _shopImageFile!.readAsBytes();
+        base64Image = base64Encode(bytes);
+      } catch (e) {
+        setState(() => _isLoading = false);
+        _showSnackBar('Photo process fail ho gayi: $e', isError: true);
+        return;
+      }
+
       await FirebaseUtils.firestore.collection('shops').doc(shopId).set({
         'shop_id': shopId,
         'shop_name': _shopNameController.text.trim(),
@@ -180,10 +202,13 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
         'mobile': phone,
         'support_phone': phone,
         'address': _addressController.text.trim(),
+        'gstin_fssai': _gstinController.text.trim(),
+        'shop_image_base64': base64Image,
         'lat': _shopLatitude,
         'lng': _shopLongitude,
         'admin_pin': _pinController.text.trim(),
-        'is_active': true,
+        'is_active': false,
+        'status': 'pending',
         'delivery_fee': 20.0,
         'minimum_order': 300.0,
         'free_delivery_threshold': 500.0,
@@ -195,9 +220,9 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
       if (!mounted) return;
 
-      _showSnackBar('Badhai ho! Aapki Dukan platform par live ho gayi hai.', isError: false);
+      _showSnackBar('Registration successful! Aapki dukan abhi pending approval hai. Admin ke verify karne ke baad ye live ho jayegi.', isError: false);
 
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 4));
 
       if (mounted) {
         Navigator.pop(context);
@@ -297,8 +322,8 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                               : const Icon(Icons.location_on_rounded, color: Colors.white),
                           label: Text(
                             _addressController.text.isEmpty
-                                ? 'Pick Shop Location'
-                                : 'Location Selected. ( Tap to change )',
+                                ? 'Auto-Fetch Live GPS Location'
+                                : 'Live Location Fetched ✓',
                             style: AppTextStyles.bodySemiBold(color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -308,6 +333,40 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                           ),
                         ),
                       ).animate().fadeIn(delay: 400.ms),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _gstinController,
+                        label: 'FSSAI License / GSTIN',
+                        icon: Icons.verified_rounded,
+                        validator: (val) => val!.isEmpty ? 'FSSAI ya GST number zaruri hai' : null,
+                      ).animate().fadeIn(delay: 450.ms),
+                      const SizedBox(height: 16),
+                      // Image Picker UI
+                      GestureDetector(
+                        onTap: _pickShopImage,
+                        child: Container(
+                          height: 120,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.5), width: 1.5, style: BorderStyle.solid),
+                          ),
+                          child: _shopImageFile != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Image.file(_shopImageFile!, fit: BoxFit.cover),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.camera_alt_rounded, size: 40, color: AppColors.primaryDark),
+                                    const SizedBox(height: 8),
+                                    Text('Tap to Take Live Shop Photo', style: AppTextStyles.bodySemiBold(color: AppColors.primaryDark)),
+                                  ],
+                                ),
+                        ),
+                      ).animate().fadeIn(delay: 480.ms),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _pinController,

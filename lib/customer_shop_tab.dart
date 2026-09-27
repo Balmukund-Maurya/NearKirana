@@ -86,8 +86,11 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
       backgroundColor: AppColors.surface,
       body: Column(
         children: [
-          // Custom curved header
-          _buildHeader(context, langProvider, userProvider, shopProvider),
+          // Custom curved header (Mobile Only)
+          if (MediaQuery.of(context).size.width <= 800)
+            _buildHeader(context, langProvider, userProvider, shopProvider)
+          else
+            _buildDesktopHeader(langProvider),
           // Category chips
           _buildCategories(context, langProvider),
           // Out of service banner
@@ -172,6 +175,51 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                 buildProductCard: _buildProductCard,
                 userProvider: userProvider,
                 langProvider: langProvider,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopHeader(LanguageProvider langProvider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        border: Border(bottom: BorderSide(color: AppColors.bgTint, width: 1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Shop Fresh Products",
+            style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28),
+          ),
+          const SizedBox(height: 16),
+          // Search Bar
+          SizedBox(
+            height: 48,
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) {
+                if (_debounce?.isActive ?? false) _debounce!.cancel();
+                _debounce = Timer(const Duration(milliseconds: 300), () {
+                  setState(() => _searchQuery = val.trim().toLowerCase());
+                });
+              },
+              decoration: InputDecoration(
+                hintText: langProvider.translate('search_hint'),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryDark),
+                filled: true,
+                fillColor: AppColors.bgTint,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               ),
             ),
           ),

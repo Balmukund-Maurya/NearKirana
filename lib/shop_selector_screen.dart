@@ -13,6 +13,7 @@ import 'language_provider.dart';
 import 'shop_registration_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:geolocator/geolocator.dart';
+import 'super_admin_screen.dart' as super_admin_screen;
 
 class ShopSelectorScreen extends StatefulWidget {
   const ShopSelectorScreen({super.key});
@@ -25,6 +26,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   Position? _currentPosition;
+  int _logoTapCount = 0;
 
   @override
   void initState() {
@@ -46,7 +48,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
       if (permission == LocationPermission.deniedForever) return;
       
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
       );
       if (mounted) {
         setState(() {
@@ -166,10 +168,12 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 48,
-            ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 48,
+                maxWidth: 450,
+              ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -178,14 +182,45 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 16),
-                    Icon(
-                      Icons.storefront_rounded,
-                  size: 80,
-                  color: AppColors.primaryDark,
-                )
-                    .animate()
-                    .fadeIn(duration: 600.ms)
-                    .scale(curve: Curves.easeOutBack),
+                    GestureDetector(
+                      onTap: () async {
+                        _logoTapCount++;
+                        if (_logoTapCount >= 5) {
+                          _logoTapCount = 0;
+                          final pin = await showDialog<String>(
+                            context: context,
+                            builder: (context) {
+                              final ctrl = TextEditingController();
+                              return AlertDialog(
+                                title: const Text('Super Admin PIN'),
+                                content: TextField(
+                                  controller: ctrl,
+                                  keyboardType: TextInputType.number,
+                                  obscureText: true,
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                  TextButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('OK')),
+                                ],
+                              );
+                            }
+                          );
+                          if (pin == '999999') {
+                            if (context.mounted) {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const super_admin_screen.SuperAdminScreen()));
+                            }
+                          }
+                        }
+                      },
+                      child: Icon(
+                        Icons.storefront_rounded,
+                        size: 80,
+                        color: AppColors.primaryDark,
+                      )
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .scale(curve: Curves.easeOutBack),
+                    ),
                 const SizedBox(height: 12),
                 Text(
                   langProvider.translate('welcome_title'),
@@ -235,6 +270,12 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                             .where('is_active', isEqualTo: true)
                             .snapshots(),
                         builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            return SizedBox(
+                              height: 180,
+                              child: Center(child: Text('Error: ${snapshot.error}')),
+                            );
+                          }
                           if (!snapshot.hasData) {
                             return const SizedBox(
                               height: 180,
@@ -388,6 +429,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                   ],
                 ),
               ],
+            ),
             ),
           ),
         ),

@@ -302,9 +302,9 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     final data = doc.data() as Map<String, dynamic>;
     final double maxDeliveryRadiusKm =
         (data['delivery_radius_km'] as num?)?.toDouble() ?? 5.0;
-    final double storeLat = (data['store_latitude'] as num?)?.toDouble() ?? 0.0;
+    final double storeLat = (data['store_latitude'] as num?)?.toDouble() ?? (data['lat'] as num?)?.toDouble() ?? 0.0;
     final double storeLng =
-        (data['store_longitude'] as num?)?.toDouble() ?? 0.0;
+        (data['store_longitude'] as num?)?.toDouble() ?? (data['lng'] as num?)?.toDouble() ?? 0.0;
 
     _storeLat = storeLat;
     _storeLng = storeLng;

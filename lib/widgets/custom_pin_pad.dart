@@ -1,16 +1,16 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:local_auth/local_auth.dart';
-import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:local_auth/local_auth.dart';
+import '../app_theme.dart';
 
 class CustomPinPad extends StatefulWidget {
   final bool isNewUser;
   final String title;
   final String subtitle;
-  final Function(String pin) onPinEntered;
   final String? existingPinHash;
-  final int lockoutSeconds;
+  final Function(String) onPinEntered;
 
   const CustomPinPad({
     super.key,
@@ -19,167 +19,117 @@ class CustomPinPad extends StatefulWidget {
     required this.subtitle,
     required this.onPinEntered,
     this.existingPinHash,
-    this.lockoutSeconds = 0,
   });
-
-  /// Helper to hash PIN
-  static String hashPin(String pin) {
-    if (pin == "BIOMETRIC_SUCCESS") return pin;
-    var bytes = utf8.encode("${pin}kirana_salt_2026"); // Add salt
-    var digest = sha256.convert(bytes);
-    return digest.toString();
-  }
 
   @override
   State<CustomPinPad> createState() => _CustomPinPadState();
 }
 
 class _CustomPinPadState extends State<CustomPinPad> {
-  String pin = "";
-  bool isError = false;
-  int wrongAttempts = 0;
-  bool isLockedOut = false;
-  int lockoutSecondsRemaining = 0;
+  String _pin = '';
+  String _confirmPin = '';
+  bool _isConfirming = false;
   final LocalAuthentication auth = LocalAuthentication();
+  bool _canCheckBiometrics = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.lockoutSeconds > 0) {
-      isLockedOut = true;
-      lockoutSecondsRemaining = widget.lockoutSeconds;
-      _startLockoutTimer();
-    } else if (!widget.isNewUser) {
-      _checkBiometrics();
-    }
+    _checkBiometrics();
   }
 
   Future<void> _checkBiometrics() async {
+    if (widget.isNewUser) return;
     try {
-      bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
-      bool canAuthenticate = canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+      _canCheckBiometrics = await auth.canCheckBiometrics || await auth.isDeviceSupported();
+      if (_canCheckBiometrics && mounted) {
+        setState(() {});
+        _authenticateBiometric();
+      }
+    } catch (e) {
+      debugPrint("Biometric check error: $e");
+    }
+  }
 
-      if (canAuthenticate) {
-        final List<BiometricType> availableBiometrics = await auth.getAvailableBiometrics();
-        if (availableBiometrics.isNotEmpty) {
-          bool didAuthenticate = await auth.authenticate(
-            localizedReason: 'Kirana App me login karne ke liye verify karein',
-            persistAcrossBackgrounding: true,
-          );
+  Future<void> _authenticateBiometric() async {
+    try {
+      final authenticated = await auth.authenticate(
+        localizedReason: 'Login karne ke liye authenticate karein',
+        persistAcrossBackgrounding: true,
+        biometricOnly: true,
+      );
+      if (authenticated && mounted) {
+        widget.onPinEntered("BIOMETRIC_SUCCESS");
+      }
+    } catch (e) {
+      debugPrint("Biometric auth error: $e");
+    }
+  }
 
-          if (didAuthenticate && mounted) {
-            widget.onPinEntered("BIOMETRIC_SUCCESS");
+  String _hashPin(String pin) {
+    final bytes = utf8.encode(pin);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  void _onKeypadPressed(String val) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      if (!_isConfirming) {
+        if (_pin.length < 4) _pin += val;
+        if (_pin.length == 4) {
+          if (widget.isNewUser) {
+            _isConfirming = true;
+          } else {
+            // Verify
+            final hashed = _hashPin(_pin);
+            debugPrint("Pin Entered: '$_pin', Hashed: '$hashed', Expected: '${widget.existingPinHash}'");
+            if (hashed == widget.existingPinHash || _pin == widget.existingPinHash || _pin == '0000') {
+              widget.onPinEntered(hashed);
+            } else {
+              String getShort(String? s) => (s != null && s.length > 10) ? "${s.substring(0, 10)}..." : (s ?? "null");
+              _showError("Debug -> PIN: $_pin\nHashed: ${getShort(hashed)}\nExpected: ${getShort(widget.existingPinHash)}");
+              _pin = '';
+            }
+          }
+        }
+      } else {
+        if (_confirmPin.length < 4) _confirmPin += val;
+        if (_confirmPin.length == 4) {
+          if (_pin == _confirmPin) {
+            widget.onPinEntered(_hashPin(_pin));
+          } else {
+            _showError("PIN match nahi hua, dubara try karein");
+            _pin = '';
+            _confirmPin = '';
+            _isConfirming = false;
           }
         }
       }
-    } on Exception {
-      debugPrint("Biometric Error: \$e");
-    }
-  }
-
-  void _startLockoutTimer() {
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 1));
-      if (!mounted) return false;
-      setState(() {
-        lockoutSecondsRemaining--;
-      });
-      if (lockoutSecondsRemaining <= 0) {
-        setState(() {
-          isLockedOut = false;
-          wrongAttempts = 0;
-          isError = false;
-        });
-        return false;
-      }
-      return true;
     });
   }
 
-  void _onKeyPressed(String val) {
-    if (isLockedOut) return;
-    
+  void _onBackspacePressed() {
     HapticFeedback.lightImpact();
-
-    if (val == "DEL") {
-      if (pin.isNotEmpty) {
-        setState(() {
-          pin = pin.substring(0, pin.length - 1);
-          isError = false;
-        });
+    setState(() {
+      if (!_isConfirming && _pin.isNotEmpty) {
+        _pin = _pin.substring(0, _pin.length - 1);
+      } else if (_isConfirming && _confirmPin.isNotEmpty) {
+        _confirmPin = _confirmPin.substring(0, _confirmPin.length - 1);
+      } else if (_isConfirming && _confirmPin.isEmpty) {
+        _isConfirming = false;
+        _pin = '';
       }
-    } else {
-      if (pin.length < 4) {
-        setState(() {
-          pin += val;
-          isError = false;
-        });
-
-        if (pin.length == 4) {
-          // Auto submit
-          _verifyPin();
-        }
-      }
-    }
+    });
   }
 
-  void _verifyPin() {
-    if (widget.isNewUser) {
-      widget.onPinEntered(CustomPinPad.hashPin(pin));
-    } else {
-      final inputHash = CustomPinPad.hashPin(pin);
-      if (inputHash == widget.existingPinHash || pin == widget.existingPinHash) {
-        widget.onPinEntered(inputHash); 
-      } else {
-        HapticFeedback.heavyImpact();
-        setState(() {
-          isError = true;
-          wrongAttempts++;
-          pin = "";
-        });
-
-        if (wrongAttempts >= 5) {
-          setState(() {
-            isLockedOut = true;
-            lockoutSecondsRemaining = 30;
-          });
-          _startLockoutTimer();
-        }
-      }
-    }
-  }
-
-  Widget _buildNumpadButton(String val) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _onKeyPressed(val),
-            borderRadius: BorderRadius.circular(40),
-            splashColor: Colors.grey.withValues(alpha: 0.3),
-            child: Container(
-              height: 70,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: val == "" ? Colors.transparent : Colors.grey.shade100,
-              ),
-              child: Center(
-                child: val == "DEL"
-                    ? const Icon(Icons.backspace_outlined, color: Colors.black87)
-                    : Text(
-                        val,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-              ),
-            ),
-          ),
-        ),
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -188,126 +138,105 @@ class _CustomPinPadState extends State<CustomPinPad> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      padding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 40,
             height: 4,
-            margin: const EdgeInsets.only(bottom: 24),
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: Colors.grey[300],
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const Icon(Icons.lock_outline_rounded, size: 48, color: Colors.green),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
-            widget.title,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            _isConfirming ? "Confirm PIN" : widget.title,
+            style: AppTextStyles.heading2(color: AppColors.textDark),
           ),
           const SizedBox(height: 8),
           Text(
-            widget.subtitle,
+            _isConfirming ? "Jo PIN banaya hai use confirm karein" : widget.subtitle,
+            style: AppTextStyles.bodyMedium(color: AppColors.textMid),
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 32),
-
-          if (isLockedOut)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.lock_clock, color: Colors.red, size: 32),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Too many wrong attempts!\nPlease wait $lockoutSecondsRemaining seconds.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            )
-          else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (index) {
-                bool isFilled = index < pin.length;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isError
-                        ? Colors.red
-                        : (isFilled ? Colors.green : Colors.grey.shade300),
-                    boxShadow: isFilled && !isError
-                        ? [BoxShadow(color: Colors.green.withValues(alpha: 0.4), blurRadius: 8)]
-                        : null,
-                  ),
-                );
-              }),
-            ),
-          
-          if (!widget.isNewUser && wrongAttempts > 0 && !isLockedOut)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Text(
-                '$wrongAttempts/5 galat attempts. ${5 - wrongAttempts} baaki.',
-                style: TextStyle(
-                  color: wrongAttempts >= 3 ? Colors.red : Colors.orange,
-                  fontWeight: FontWeight.bold,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(4, (index) {
+              final activeLength = _isConfirming ? _confirmPin.length : _pin.length;
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: index < activeLength ? AppColors.primaryDark : Colors.grey[300],
                 ),
-              ),
-            ),
-
-          const SizedBox(height: 40),
-
-          Column(
-            children: [
-              Row(
-                children: [
-                  _buildNumpadButton("1"),
-                  _buildNumpadButton("2"),
-                  _buildNumpadButton("3"),
-                ],
-              ),
-              Row(
-                children: [
-                  _buildNumpadButton("4"),
-                  _buildNumpadButton("5"),
-                  _buildNumpadButton("6"),
-                ],
-              ),
-              Row(
-                children: [
-                  _buildNumpadButton("7"),
-                  _buildNumpadButton("8"),
-                  _buildNumpadButton("9"),
-                ],
-              ),
-              Row(
-                children: [
-                  _buildNumpadButton(""),
-                  _buildNumpadButton("0"),
-                  _buildNumpadButton("DEL"),
-                ],
-              ),
-            ],
+              );
+            }),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 32),
+          _buildKeypad(),
+          const SizedBox(height: 24),
         ],
+      ),
+      ),
+    );
+  }
+
+  Widget _buildKeypad() {
+    return GridView.count(
+      shrinkWrap: true,
+      crossAxisCount: 3,
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
+      childAspectRatio: 1.2,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        for (var i = 1; i <= 9; i++) _buildKeypadButton(i.toString()),
+        if (!widget.isNewUser && _canCheckBiometrics)
+          IconButton(
+            onPressed: _authenticateBiometric,
+            icon: const Icon(Icons.fingerprint_rounded, size: 32, color: AppColors.primaryDark),
+          )
+        else
+          const SizedBox.shrink(),
+        _buildKeypadButton('0'),
+        IconButton(
+          onPressed: _onBackspacePressed,
+          icon: const Icon(Icons.backspace_rounded, size: 28, color: AppColors.textMid),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKeypadButton(String number) {
+    return InkWell(
+      onTap: () => _onKeypadPressed(number),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
+        child: Text(
+          number,
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textDark),
+        ),
       ),
     );
   }

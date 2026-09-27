@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
@@ -10,8 +11,6 @@ import 'package:image_picker/image_picker.dart';
 
 import 'app_theme.dart';
 import 'modern_loader.dart';
-import 'package:provider/provider.dart';
-import 'language_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
 class ShopRegistrationScreen extends StatefulWidget {
@@ -252,12 +251,12 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(langProvider.translate('register_shop_title')),
+        title: Text(langProvider.register_shop_title),
       ),
       body: SafeArea(
         child: _isLoading
@@ -267,7 +266,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                   children: [
                     const ModernLoader(color: AppColors.primaryDark),
                     const SizedBox(height: 16),
-                    Text(langProvider.translate('shop_setting_up'), style: const TextStyle(color: AppColors.textMid)),
+                    Text(langProvider.shop_setting_up, style: const TextStyle(color: AppColors.textMid)),
                   ],
                 ),
               )
@@ -417,7 +416,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0,
                         ),
-                        child: Text(langProvider.translate('register_shop_title'), style: AppTextStyles.heading2(color: AppColors.white)),
+                        child: Text(langProvider.register_shop_title, style: AppTextStyles.heading2(color: AppColors.white)),
                       ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0),
                     ],
                   ),

@@ -1,7 +1,7 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'language_provider.dart';
 
 import 'admin_dashboard.dart';
 import 'modern_loader.dart';
@@ -50,7 +50,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(Provider.of<LanguageProvider>(context, listen: false).translate('owner_login')),
+        title: Text(AppLocalizations.of(context)!.owner_login),
       ),
       body: _isLoadingPin
           ? const Center(child: ModernLoader(color: AppColors.primaryDark))
@@ -89,17 +89,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: Text(Provider.of<LanguageProvider>(context, listen: false).translate('dukan_badlein_title')),
-                            content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('dukan_badlein_desc')),
+                            title: Text(AppLocalizations.of(context)!.dukan_badlein_title),
+                            content: Text(AppLocalizations.of(context)!.dukan_badlein_desc),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
-                                child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel')),
+                                child: Text(AppLocalizations.of(context)!.cancel),
                               ),
                               ElevatedButton(
                                 onPressed: () => Navigator.pop(context, true),
                                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryDark),
-                                child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('yes_change')),
+                                child: Text(AppLocalizations.of(context)!.yes_change),
                               ),
                             ],
                           ),
@@ -117,7 +117,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         }
                       },
                       icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                      label: Text(Provider.of<LanguageProvider>(context, listen: false).translate('change_shop_btn')),
+                      label: Text(AppLocalizations.of(context)!.change_shop_btn),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primaryDark,
                       ),

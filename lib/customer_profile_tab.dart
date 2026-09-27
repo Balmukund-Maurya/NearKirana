@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -32,7 +33,7 @@ class CustomerProfileTab extends StatelessWidget {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(langProvider.translate('my_profile')),
+        title: Text(AppLocalizations.of(context)!.my_profile),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -62,7 +63,7 @@ class CustomerProfileTab extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     userProvider.customerName.isEmpty
-                        ? langProvider.translate('guest')
+                        ? AppLocalizations.of(context)!.guest
                         : userProvider.customerName,
                     style: AppTextStyles.heading1(color: AppColors.textDark),
                   ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
@@ -92,8 +93,8 @@ class CustomerProfileTab extends StatelessWidget {
                 Expanded(
                   child: _buildMiniStatCard(
                     icon: Icons.shopping_bag_rounded,
-                    title: langProvider.translate('my_orders'),
-                    value: langProvider.translate('view_history'),
+                    title: AppLocalizations.of(context)!.my_orders,
+                    value: AppLocalizations.of(context)!.view_history,
                     color: AppColors.accentPink,
                     onTap: () {
                       HapticFeedback.lightImpact();
@@ -111,8 +112,8 @@ class CustomerProfileTab extends StatelessWidget {
                 Expanded(
                   child: _buildMiniStatCard(
                     icon: Icons.account_balance_wallet_rounded,
-                    title: langProvider.translate('khata'),
-                    value: langProvider.translate('view_ledger'),
+                    title: AppLocalizations.of(context)!.khata,
+                    value: AppLocalizations.of(context)!.view_ledger,
                     color: AppColors.primaryDark,
                     onTap: () async {
                       HapticFeedback.lightImpact();
@@ -175,7 +176,7 @@ class CustomerProfileTab extends StatelessWidget {
 
             // Main Options
             _buildInfoCard(
-              title: langProvider.translate('delivery_address'),
+              title: AppLocalizations.of(context)!.delivery_address,
               icon: Icons.location_on_rounded,
               color: const Color(0xFF4CAF50),
               content: _buildAddressContent(
@@ -187,7 +188,7 @@ class CustomerProfileTab extends StatelessWidget {
 
             const SizedBox(height: 20),
             _buildInfoCard(
-              title: langProvider.translate('app_language'),
+              title: AppLocalizations.of(context)!.app_language,
               icon: Icons.language_rounded,
               color: Colors.blue,
               content: _buildLanguageContent(context, langProvider),
@@ -195,7 +196,7 @@ class CustomerProfileTab extends StatelessWidget {
 
             const SizedBox(height: 20),
             _buildInfoCard(
-              title: langProvider.translate('help_support'),
+              title: AppLocalizations.of(context)!.help_support,
               icon: Icons.support_agent_rounded,
               color: Colors.orange,
               content: _buildSupportContent(context, langProvider),
@@ -267,13 +268,13 @@ class CustomerProfileTab extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       title: Text(
-                        langProvider.translate('logout'),
+                        AppLocalizations.of(context)!.logout,
                         style: AppTextStyles.heading2(
                           color: AppColors.textDark,
                         ),
                       ),
                       content: Text(
-                        langProvider.translate('logout_confirm'),
+                        AppLocalizations.of(context)!.logout_confirm,
                         style: AppTextStyles.bodyMedium(
                           color: AppColors.textMid,
                         ),
@@ -282,7 +283,7 @@ class CustomerProfileTab extends StatelessWidget {
                         TextButton(
                           onPressed: () => Navigator.pop(dialogContext),
                           child: Text(
-                            langProvider.translate('cancel'),
+                            AppLocalizations.of(context)!.cancel,
                             style: AppTextStyles.bodySemiBold(
                               color: AppColors.textMid,
                             ),
@@ -320,14 +321,14 @@ class CustomerProfileTab extends StatelessWidget {
                             ),
                             elevation: 0,
                           ),
-                          child: Text(langProvider.translate('logout')),
+                          child: Text(AppLocalizations.of(context)!.logout),
                         ),
                       ],
                     ),
                   );
                 },
                 icon: const Icon(Icons.logout_rounded, size: 24),
-                label: Text(langProvider.translate('logout')),
+                label: Text(AppLocalizations.of(context)!.logout),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error.withValues(alpha: 0.1),
                   foregroundColor: AppColors.error,
@@ -457,7 +458,7 @@ class CustomerProfileTab extends StatelessWidget {
         _buildSupportTile(
           icon: Icons.call_rounded,
           color: Colors.orange,
-          title: langProvider.translate('call_shop'),
+          title: AppLocalizations.of(context)!.call_shop,
           subtitle: 'Store Helpdesk',
           onTap: () async {
             HapticFeedback.lightImpact();
@@ -493,8 +494,8 @@ class CustomerProfileTab extends StatelessWidget {
         _buildSupportTile(
           icon: Icons.chat_rounded,
           color: Colors.green,
-          title: langProvider.translate('whatsapp_support'),
-          subtitle: langProvider.translate('chat_with_us'),
+          title: AppLocalizations.of(context)!.whatsapp_support,
+          subtitle: AppLocalizations.of(context)!.chat_with_us,
           onTap: () async {
             HapticFeedback.lightImpact();
             try {
@@ -587,7 +588,7 @@ class CustomerProfileTab extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          langProvider.translate('no_address'),
+          AppLocalizations.of(context)!.no_address,
           style: AppTextStyles.bodyMedium(color: AppColors.textMid),
         ),
       );
@@ -611,7 +612,7 @@ class CustomerProfileTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${langProvider.translate('house_no')} ${userProvider.customerHouseNo}',
+                    '${AppLocalizations.of(context)!.house_no} ${userProvider.customerHouseNo}',
                     style: AppTextStyles.bodySemiBold(
                       color: AppColors.textDark,
                     ),
@@ -641,7 +642,7 @@ class CustomerProfileTab extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  '${langProvider.translate('landmark_txt')} ${userProvider.customerLandmark}',
+                  '${AppLocalizations.of(context)!.landmark_txt} ${userProvider.customerLandmark}',
                   style: AppTextStyles.captionMedium(color: AppColors.textMid),
                 ),
               ],

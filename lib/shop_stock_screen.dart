@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +10,6 @@ import 'admin_product_forms.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
-import 'language_provider.dart';
 import 'utils/product_image_widget.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
@@ -128,7 +128,7 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(Provider.of<LanguageProvider>(context).translate('shop_stock')),
+        title: Text(AppLocalizations.of(context)!.shop_stock),
       ),
       body: Column(
         children: [

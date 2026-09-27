@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,7 +15,6 @@ import 'sound_service.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'shop_provider.dart';
-import 'language_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
 class AdminProductForms {
@@ -113,7 +113,7 @@ class AdminProductForms {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            Provider.of<LanguageProvider>(context, listen: false).translate('item_exists_update'),
+                            AppLocalizations.of(context)!.item_exists_update,
                           ),
                           duration: const Duration(seconds: 3),
                         ),
@@ -156,7 +156,7 @@ class AdminProductForms {
                                 };
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('product_fetched')),
+                                    content: Text(AppLocalizations.of(context)!.product_fetched),
                                     duration: const Duration(seconds: 2),
                                   ),
                                 );
@@ -164,7 +164,7 @@ class AdminProductForms {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      Provider.of<LanguageProvider>(context, listen: false).translate('barcode_not_found'),
+                                      AppLocalizations.of(context)!.barcode_not_found,
                                     ),
                                     duration: const Duration(seconds: 3),
                                   ),
@@ -180,7 +180,7 @@ class AdminProductForms {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                      Provider.of<LanguageProvider>(context, listen: false).translate('err_network_fetch'),
+                                      AppLocalizations.of(context)!.err_network_fetch,
                                   ),
                                   duration: const Duration(seconds: 3),
                                 ),
@@ -253,7 +253,7 @@ class AdminProductForms {
                                           ).showSnackBar(
                                             SnackBar(
                                               content: Text(
-                                                Provider.of<LanguageProvider>(context, listen: false).translate('product_deleted'),
+                                                AppLocalizations.of(context)!.product_deleted,
                                               ),
                                             ),
                                           );
@@ -265,7 +265,7 @@ class AdminProductForms {
                                           ).showSnackBar(
                                             SnackBar(
                                               content: Text(
-                                                Provider.of<LanguageProvider>(context, listen: false).translate('err_deleting_product'),
+                                                AppLocalizations.of(context)!.err_deleting_product,
                                               ),
                                             ),
                                           );
@@ -591,7 +591,7 @@ class AdminProductForms {
                               if (price <= 0 || stock < 0) {
                                 SnackbarHelper.showSnackBar(
                                   context,
-                                  Provider.of<LanguageProvider>(context, listen: false).translate('err_price_stock'),
+                                  AppLocalizations.of(context)!.err_price_stock,
                                   isError: true,
                                 );
                                 setState(() => isUploading = false);
@@ -614,7 +614,7 @@ class AdminProductForms {
                                 SoundService().productSaved();
                                 SnackbarHelper.showSnackBar(
                                   context,
-                                  Provider.of<LanguageProvider>(context, listen: false).translate('product_updated'),
+                                  AppLocalizations.of(context)!.product_updated,
                                 );
                               }
                             } catch (e) {
@@ -942,7 +942,7 @@ class AdminProductForms {
                                   priceController.text.isEmpty) {
                                 SnackbarHelper.showSnackBar(
                                   context,
-                                  Provider.of<LanguageProvider>(context, listen: false).translate('err_name_price'),
+                                  AppLocalizations.of(context)!.err_name_price,
                                   isError: true,
                                 );
                                 return;
@@ -979,7 +979,7 @@ class AdminProductForms {
                                 if (price <= 0 || stock < 0) {
                                   SnackbarHelper.showSnackBar(
                                     context,
-                                    Provider.of<LanguageProvider>(context, listen: false).translate('err_price_stock'),
+                                    AppLocalizations.of(context)!.err_price_stock,
                                     isError: true,
                                   );
                                   setState(() => isUploading = false);
@@ -1001,7 +1001,7 @@ class AdminProductForms {
                                   SoundService().productSaved();
                                   SnackbarHelper.showSnackBar(
                                     context,
-                                    Provider.of<LanguageProvider>(context, listen: false).translate('product_added'),
+                                    AppLocalizations.of(context)!.product_added,
                                   );
                                 }
                               } catch (e) {
@@ -1010,7 +1010,7 @@ class AdminProductForms {
                                 if (context.mounted) {
                                   SnackbarHelper.showSnackBar(
                                     context,
-                                    Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString().replaceAll('Exception: ', '')),
+                                    AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString().replaceAll('Exception: ', '')),
                                     isError: true,
                                   );
                                 }

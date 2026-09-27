@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,7 +9,6 @@ import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'package:provider/provider.dart';
-import 'language_provider.dart';
 import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
@@ -140,7 +140,7 @@ class _KhataScreenState extends State<KhataScreen> {
                               if (phone.length != 10 || amount <= 0) {
                                 HapticFeedback.heavyImpact();
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('invalid_khata_entry')), backgroundColor: AppColors.error),
+                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.invalid_khata_entry), backgroundColor: AppColors.error),
                                 );
                                 return;
                               }
@@ -168,7 +168,7 @@ class _KhataScreenState extends State<KhataScreen> {
                                     setState(() => isProcessing = false);
                                     HapticFeedback.heavyImpact();
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('name_required_khata')), backgroundColor: AppColors.error),
+                                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.name_required_khata), backgroundColor: AppColors.error),
                                     );
                                     return;
                                   }
@@ -201,13 +201,13 @@ class _KhataScreenState extends State<KhataScreen> {
                                   Navigator.pop(dialogContext);
                                   SoundService().success();
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('khata_entry_success')), backgroundColor: AppColors.primaryDark),
+                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.khata_entry_success), backgroundColor: AppColors.primaryDark),
                                   );
                                 }
                               } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
+                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
                                   );
                                 }
                               } finally {
@@ -228,7 +228,7 @@ class _KhataScreenState extends State<KhataScreen> {
                               width: 24,
                               child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                             )
-                          : Text(Provider.of<LanguageProvider>(context, listen: false).translate('add_entry'), style: AppTextStyles.heading2(color: AppColors.white)),
+                          : Text(AppLocalizations.of(context)!.add_entry, style: AppTextStyles.heading2(color: AppColors.white)),
                     ),
                     const SizedBox(height: 24),
                   ],
@@ -249,13 +249,13 @@ class _KhataScreenState extends State<KhataScreen> {
       await doc.reference.update({'is_banned': !isBanned});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate(isBanned ? 'customer_unblocked' : 'customer_blocked'))),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(isBanned ? AppLocalizations.of(context)!.customer_unblocked : AppLocalizations.of(context)!.customer_blocked)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
         );
       }
     }
@@ -269,7 +269,7 @@ class _KhataScreenState extends State<KhataScreen> {
         backgroundColor: AppColors.surface,
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: Text(Provider.of<LanguageProvider>(context).translate('customer_ledger')),
+          title: Text(AppLocalizations.of(context)!.customer_ledger),
           bottom: TabBar(
             labelColor: AppColors.white,
             unselectedLabelColor: AppColors.white.withValues(alpha: 0.7),
@@ -287,7 +287,7 @@ class _KhataScreenState extends State<KhataScreen> {
           onPressed: () => _showAddOfflineKhataEntryDialog(context),
           backgroundColor: AppColors.primaryDark,
           icon: const Icon(Icons.add_rounded, color: AppColors.white),
-          label: Text(Provider.of<LanguageProvider>(context, listen: false).translate('add_offline_khata'), style: AppTextStyles.bodySemiBold(color: AppColors.white)),
+          label: Text(AppLocalizations.of(context)!.add_offline_khata, style: AppTextStyles.bodySemiBold(color: AppColors.white)),
         ),
         body: Column(
           children: [

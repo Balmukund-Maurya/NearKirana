@@ -1,7 +1,7 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
-import 'language_provider.dart';
 import 'shop_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -244,7 +244,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
 
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('transaction_deleted')),
+                                                SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.transaction_deleted),
                                                   backgroundColor: Colors.green,
                                                 ),
                                               );
@@ -254,7 +254,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                           } catch (e) {
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString()))),
+                                                SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString()))),
                                               );
                                             }
                                           }
@@ -392,7 +392,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                               final amount = double.tryParse(amountController.text) ?? 0.0;
                               if (amount <= 0) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('invalid_amount')), backgroundColor: Colors.red),
+                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.invalid_amount), backgroundColor: Colors.red),
                                 );
                                 return;
                               }
@@ -430,14 +430,14 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                 if (context.mounted) {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate(isCredit ? 'udhaar_added' : 'payment_received_short')), backgroundColor: Colors.green),
+                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(isCredit ? AppLocalizations.of(context)!.udhaar_added : AppLocalizations.of(context)!.payment_received_short), backgroundColor: Colors.green),
                                   );
                                   _refresh();
                                 }
                               } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('generic_error').replaceAll('{error}', e.toString())), backgroundColor: Colors.red),
+                                    SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())), backgroundColor: Colors.red),
                                   );
                                   setModalState(() => isProcessing = false);
                                 }

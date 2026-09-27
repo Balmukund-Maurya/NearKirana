@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -84,7 +85,7 @@ class _CartScreenState extends State<CartScreen> {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: !widget.isTab,
-        title: Text(langProvider.translate('cart_title')),
+        title: Text(AppLocalizations.of(context)!.cart_title),
       ),
       body: Consumer<CartProvider>(
         builder: (context, cartProvider, child) {
@@ -103,7 +104,7 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    langProvider.translate('cart_empty'),
+                    AppLocalizations.of(context)!.cart_empty,
                     style: AppTextStyles.heading2(color: AppColors.textMid),
                   ),
                 ],
@@ -255,10 +256,7 @@ class _CartScreenState extends State<CartScreen> {
                       SoundService().blocked();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                            Provider.of<LanguageProvider>(
-                              context,
-                              listen: false,
-                            ).translate('qty_exceeds'),
+                            AppLocalizations.of(context)!.qty_exceeds,
                           ),
                           duration: const Duration(seconds: 1),
                           backgroundColor: AppColors.error,
@@ -330,7 +328,7 @@ class _CartScreenState extends State<CartScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  langProvider.translate('subtotal'),
+                  AppLocalizations.of(context)!.subtotal,
                   style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                 ),
                 Text(
@@ -345,7 +343,7 @@ class _CartScreenState extends State<CartScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    langProvider.translate('delivery_fee'),
+                    AppLocalizations.of(context)!.delivery_fee,
                     style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                   ),
                   Text(
@@ -365,7 +363,7 @@ class _CartScreenState extends State<CartScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${langProvider.translate('total_amount')}:',
+                  '${AppLocalizations.of(context)!.total_amount}:',
                   style: AppTextStyles.heading2(color: AppColors.textDark),
                 ),
                 Text(
@@ -428,7 +426,7 @@ class _CartScreenState extends State<CartScreen> {
                         : null,
                     icon: const Icon(Icons.moped_rounded, size: 24),
                     label: Text(
-                      '${langProvider.translate('home_delivery')}${deliveryFee > 0 ? ' (+₹$deliveryFee)' : ''}',
+                      '${AppLocalizations.of(context)!.home_delivery}${deliveryFee > 0 ? ' (+₹$deliveryFee)' : ''}',
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: canDeliver
@@ -508,7 +506,7 @@ class _CartScreenState extends State<CartScreen> {
                       }
                     : null,
                 icon: const Icon(Icons.storefront_rounded, size: 24),
-                label: Text(langProvider.translate('store_pickup')),
+                label: Text(AppLocalizations.of(context)!.store_pickup),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isPickupAllowed
                       ? AppColors.primaryLight.withValues(alpha: 0.2)
@@ -905,7 +903,7 @@ class _CartScreenState extends State<CartScreen> {
                               // 3 minutes cooldown
                               showBottomSheetError(
                                 context,
-                                langProvider.translate('wait_3_min'),
+                                AppLocalizations.of(context)!.wait_3_min,
                               );
                               return;
                             }
@@ -1003,9 +1001,7 @@ class _CartScreenState extends State<CartScreen> {
                                 if (context.mounted) {
                                   showBottomSheetError(
                                     context,
-                                    langProvider.translate(
-                                      'store_closed_error',
-                                    ),
+                                    AppLocalizations.of(context)!.store_closed_error,
                                   );
                                   setState(() => isProcessing = false);
                                 }
@@ -1031,7 +1027,7 @@ class _CartScreenState extends State<CartScreen> {
                                   }
                                   showBottomSheetError(
                                     context,
-                                    langProvider.translate('ghost_cart_error'),
+                                    AppLocalizations.of(context)!.ghost_cart_error,
                                   );
                                   setState(() => isProcessing = false);
                                 }
@@ -1216,9 +1212,7 @@ class _CartScreenState extends State<CartScreen> {
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
-                                            langProvider.translate(
-                                              'order_placed',
-                                            ),
+                                            AppLocalizations.of(context)!.order_placed,
                                             style: GoogleFonts.poppins(
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -1228,9 +1222,8 @@ class _CartScreenState extends State<CartScreen> {
                                     ),
                                     content: Text(
                                       deliveryType == 'Pickup'
-                                          ? langProvider.translate('thank_you_order_pickup')
-                                          : langProvider
-                                              .translate('thank_you_order')
+                                          ? AppLocalizations.of(context)!.thank_you_order_pickup
+                                          : AppLocalizations.of(context)!.thank_you_order
                                               .replaceAll(
                                                 '{total}',
                                                 processedTotal.toString(),
@@ -1244,7 +1237,7 @@ class _CartScreenState extends State<CartScreen> {
                                           }
                                         },
                                         child: Text(
-                                          langProvider.translate('ok_btn'),
+                                          AppLocalizations.of(context)!.ok_btn,
                                           style: GoogleFonts.poppins(
                                             color: const Color(0xFF4CAF50),
                                             fontWeight: FontWeight.bold,
@@ -1346,8 +1339,7 @@ class _CartScreenState extends State<CartScreen> {
                             ),
                           )
                         : Text(
-                            langProvider
-                                .translate('confirm_order')
+                            AppLocalizations.of(context)!.confirm_order
                                 .replaceAll('{total}', finalTotal.toString()),
                             style: const TextStyle(
                               color: Colors.white,

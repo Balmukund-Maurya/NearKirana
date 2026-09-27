@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,7 +10,6 @@ import 'shop_provider.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'cart_provider.dart';
-import 'language_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:geolocator/geolocator.dart';
 import 'super_admin_screen.dart' as super_admin_screen;
@@ -160,7 +160,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = AppLocalizations.of(context)!;
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.surface,
@@ -222,7 +222,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                     ),
                 const SizedBox(height: 12),
                 Text(
-                  langProvider.translate('welcome_title'),
+                  langProvider.welcome_title,
                   style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28),
                   textAlign: TextAlign.center,
                 )
@@ -231,7 +231,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                     .slideY(begin: 0.2, end: 0),
                 const SizedBox(height: 8),
                 Text(
-                  langProvider.translate('search_shop_subtitle'),
+                  langProvider.search_shop_subtitle,
                   style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 300.ms),
@@ -240,7 +240,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                   controller: _searchController,
                   onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
                   decoration: InputDecoration(
-                    hintText: langProvider.translate('search_shop_hint'),
+                    hintText: langProvider.search_shop_hint,
                     prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryDark),
                     filled: true,
                     fillColor: AppColors.white,
@@ -254,7 +254,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                 OutlinedButton.icon(
                   onPressed: _scanShopQR,
                   icon: const Icon(Icons.qr_code_scanner_rounded),
-                  label: Text(Provider.of<LanguageProvider>(context, listen: false).translate('scan_shop_qr')),
+                  label: Text(AppLocalizations.of(context)!.scan_shop_qr),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primaryDark,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -346,7 +346,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                           if (shops.isEmpty) {
                             return SizedBox(
                               height: 180,
-                              child: Center(child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('error_no_shop_found'))),
+                              child: Center(child: Text(AppLocalizations.of(context)!.error_no_shop_found)),
                             );
                           }
 

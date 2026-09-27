@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -42,7 +43,7 @@ class MyOrdersScreen extends StatelessWidget {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: !isTab,
-        title: Text(langProvider.translate('my_orders')),
+        title: Text(AppLocalizations.of(context)!.my_orders),
       ),
       body: phone.isEmpty || shopProvider.currentShopId == null
           ? Center(
@@ -56,7 +57,7 @@ class MyOrdersScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    langProvider.translate('please_login'),
+                    AppLocalizations.of(context)!.please_login,
                     style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                   ),
                 ],
@@ -106,7 +107,7 @@ class MyOrdersScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          langProvider.translate('no_orders'),
+                          AppLocalizations.of(context)!.no_orders,
                           style: AppTextStyles.bodyMedium(
                             color: AppColors.textMid,
                           ),
@@ -167,7 +168,7 @@ class MyOrdersScreen extends StatelessWidget {
         backgroundColor: AppColors.accentPink,
         icon: const Icon(Icons.call_rounded, color: AppColors.white),
         label: Text(
-          langProvider.translate('call_shop'),
+          AppLocalizations.of(context)!.call_shop,
           style: AppTextStyles.button(),
         ),
       ).animate().scale(delay: 500.ms),
@@ -211,7 +212,7 @@ class MyOrdersScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      langProvider.translate('date'),
+                      AppLocalizations.of(context)!.date,
                       style: AppTextStyles.captionMedium(
                         color: AppColors.textMid,
                       ),
@@ -228,7 +229,7 @@ class MyOrdersScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      langProvider.translate('total_amount'),
+                      AppLocalizations.of(context)!.total_amount,
                       style: AppTextStyles.captionMedium(
                         color: AppColors.textMid,
                       ),
@@ -265,7 +266,7 @@ class MyOrdersScreen extends StatelessWidget {
                 child: Text(
                   cancellationReason != null && cancellationReason.isNotEmpty
                       ? 'Order Cancel by Shop. Reason: $cancellationReason'
-                      : langProvider.translate('order_cancelled'),
+                      : AppLocalizations.of(context)!.order_cancelled,
                   style: AppTextStyles.bodySemiBold(
                     color: AppColors.error,
                   ),
@@ -288,13 +289,13 @@ class MyOrdersScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           title: Text(
-                            langProvider.translate('cancel_order_q'),
+                            AppLocalizations.of(context)!.cancel_order_q,
                             style: AppTextStyles.heading2(
                               color: AppColors.textDark,
                             ),
                           ),
                           content: Text(
-                            langProvider.translate('cancel_order_sure'),
+                            AppLocalizations.of(context)!.cancel_order_sure,
                             style: AppTextStyles.bodyMedium(
                               color: AppColors.textMid,
                             ),
@@ -303,7 +304,7 @@ class MyOrdersScreen extends StatelessWidget {
                             TextButton(
                               onPressed: () => Navigator.pop(dialogCtx),
                               child: Text(
-                                langProvider.translate('no_btn'),
+                                AppLocalizations.of(context)!.no_btn,
                                 style: AppTextStyles.bodySemiBold(
                                   color: AppColors.textMid,
                                 ),
@@ -377,7 +378,7 @@ class MyOrdersScreen extends StatelessWidget {
                                     showDialog(
                                       context: context,
                                       builder: (context) => AlertDialog(
-                                        title: Text(langProvider.translate('order_cancelled')),
+                                        title: Text(AppLocalizations.of(context)!.order_cancelled),
                                         content: const Text('Your order has been cancelled successfully.'),
                                         actions: [
                                           TextButton(
@@ -415,7 +416,7 @@ class MyOrdersScreen extends StatelessWidget {
                                   debugPrint('Cancel error: $e');
                                 }
                               },
-                              child: Text(langProvider.translate('yes_cancel')),
+                              child: Text(AppLocalizations.of(context)!.yes_cancel),
                             ),
                           ],
                         ),
@@ -427,7 +428,7 @@ class MyOrdersScreen extends StatelessWidget {
                       size: 18,
                     ),
                     label: Text(
-                      langProvider.translate('cancel_order_btn'),
+                      AppLocalizations.of(context)!.cancel_order_btn,
                       style: AppTextStyles.bodySemiBold(color: AppColors.error),
                     ),
                     style: TextButton.styleFrom(
@@ -475,7 +476,7 @@ class MyOrdersScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            langProvider.translate('out_for_delivery'),
+                            AppLocalizations.of(context)!.out_for_delivery,
                             style: AppTextStyles.captionMedium(
                               color: Colors.blue,
                             ),
@@ -548,7 +549,7 @@ class MyOrdersScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            langProvider.translate('delivery_pin'),
+                            AppLocalizations.of(context)!.delivery_pin,
                             style: AppTextStyles.captionMedium(
                               color: AppColors.accentPink,
                             ),
@@ -579,7 +580,7 @@ class MyOrdersScreen extends StatelessWidget {
                 collapsedIconColor: AppColors.primaryDark,
                 iconColor: AppColors.primaryDark,
                 title: Text(
-                  '${items.length} ${langProvider.translate('items')}',
+                  '${items.length} ${AppLocalizations.of(context)!.items}',
                   style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
                 ),
                 children: items.map((item) {

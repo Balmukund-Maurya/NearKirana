@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 
@@ -117,15 +118,22 @@ class NearKiranaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'NearKirana',
-      theme: AppTheme.theme,
-      debugShowCheckedModeBanner: false,
-      home: const GatewayScreen(),
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/shop-selector': (context) => const ShopSelectorScreen(),
-        '/gateway': (context) => const GatewayScreen(),
+    return Consumer<LanguageProvider>(
+      builder: (context, langProvider, child) {
+        return MaterialApp(
+          title: 'NearKirana',
+          theme: AppTheme.theme,
+          debugShowCheckedModeBanner: false,
+          locale: Locale(langProvider.currentLanguage),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const GatewayScreen(),
+          routes: {
+            '/login': (context) => const LoginScreen(),
+            '/shop-selector': (context) => const ShopSelectorScreen(),
+            '/gateway': (context) => const GatewayScreen(),
+          },
+        );
       },
     );
   }
@@ -239,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        langProvider.translate('language'),
+                        AppLocalizations.of(context)!.language,
                         style: AppTextStyles.heading2(),
                       ),
                       const SizedBox(height: 20),
@@ -506,7 +514,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final shopProvider = Provider.of<ShopProvider>(context);
     final size = MediaQuery.of(context).size;
     final shopName =
-        shopProvider.shopName ?? langProvider.translate('app_name');
+        shopProvider.shopName ?? AppLocalizations.of(context)!.app_name;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -703,7 +711,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: AppColors.bgTint,
                                 ),
                                 child: Text(
-                                  langProvider.translate('subtitle'),
+                                  AppLocalizations.of(context)!.subtitle,
                                   style: AppTextStyles.captionMedium(
                                     color: AppColors.primaryDark,
                                   ),
@@ -815,7 +823,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 20),
 
                               Text(
-                                langProvider.translate('terms'),
+                                AppLocalizations.of(context)!.terms,
                                 textAlign: TextAlign.center,
                                 style: AppTextStyles.caption(),
                               ).animate(delay: 650.ms).fadeIn(duration: 400.ms),
@@ -836,7 +844,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     child: Text(
                                       // FIX-13: Translated divider text
-                                      langProvider.translate('or_divider'),
+                                      AppLocalizations.of(context)!.or_divider,
                                       style: AppTextStyles.caption(),
                                     ),
                                   ),
@@ -864,7 +872,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   size: 18,
                                 ),
                                 label: Text(
-                                  langProvider.translate('owner_login'),
+                                  AppLocalizations.of(context)!.owner_login,
                                 ),
                                 style: TextButton.styleFrom(
                                   foregroundColor: AppColors.textMid,

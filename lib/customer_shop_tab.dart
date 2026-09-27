@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -143,7 +144,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                         ),
                       ),
                       child: Text(
-                        langProvider.translate('fix_btn'),
+                        AppLocalizations.of(context)!.fix_btn,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -211,7 +212,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                 });
               },
               decoration: InputDecoration(
-                hintText: langProvider.translate('search_hint'),
+                hintText: AppLocalizations.of(context)!.search_hint,
                 prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryDark),
                 filled: true,
                 fillColor: AppColors.bgTint,
@@ -283,13 +284,13 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        shopProvider.shopName ?? langProvider.translate('app_name'),
+                        shopProvider.shopName ?? AppLocalizations.of(context)!.app_name,
                         style: AppTextStyles.heading1(
                           color: AppColors.white,
                         ).copyWith(fontSize: 22),
                       ),
                       Text(
-                        '${langProvider.translate('greeting') == 'greeting' ? 'Namaste' : langProvider.translate('greeting')}, ${userProvider.customerName.isEmpty ? 'Guest' : userProvider.customerName.split(' ').first}',
+                        '${AppLocalizations.of(context)!.greeting == 'greeting' ? 'Namaste' : AppLocalizations.of(context)!.greeting}, ${userProvider.customerName.isEmpty ? 'Guest' : userProvider.customerName.split(' ').first}',
                         style: AppTextStyles.bodyMedium(
                           color: AppColors.white.withValues(alpha: 0.9),
                         ),
@@ -311,7 +312,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                   await Geolocator.isLocationServiceEnabled();
                               if (!serviceEnabled && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('please_enable_gps')),
+                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.please_enable_gps),
                                   ),
                                 );
                                 return;
@@ -461,7 +462,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                     });
                   },
                   decoration: InputDecoration(
-                    hintText: langProvider.translate('search_hint'),
+                    hintText: AppLocalizations.of(context)!.search_hint,
                     hintStyle: AppTextStyles.body(color: AppColors.textLight),
                     prefixIcon: const Icon(
                       Icons.search_rounded,
@@ -509,11 +510,18 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
         itemBuilder: (context, index) {
           final category = _categories[index];
           final isSelected = category == _selectedCategory;
-          final displayName =
-              langProvider.translate('cat_${category.toLowerCase()}') ==
-                  'cat_${category.toLowerCase()}'
-              ? category
-              : langProvider.translate('cat_${category.toLowerCase()}');
+          final l10n = AppLocalizations.of(context)!;
+          String displayName = category;
+          switch (category.toLowerCase()) {
+            case 'all': displayName = l10n.cat_all; break;
+            case 'dal': displayName = l10n.cat_dal; break;
+            case 'rice': displayName = l10n.cat_rice; break;
+            case 'spices': displayName = l10n.cat_spices; break;
+            case 'oil': displayName = l10n.cat_oil; break;
+            case 'snacks': displayName = l10n.cat_snacks; break;
+            case 'soap': displayName = l10n.cat_soap; break;
+            case 'loose': displayName = l10n.cat_loose; break;
+          }
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
@@ -787,7 +795,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                         context,
                                       ).showSnackBar(
                                         SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                            langProvider.translate('error_cant_deliver'),
+                                            AppLocalizations.of(context)!.error_cant_deliver,
                                         ),
                                           backgroundColor: AppColors.error,
                                         ),
@@ -810,9 +818,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                         context,
                                       ).showSnackBar(
                                         SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                            langProvider.translate(
-                                              'qty_exceeds',
-                                            ),
+                                            AppLocalizations.of(context)!.qty_exceeds,
                                           ),
                                           backgroundColor: AppColors.error,
                                           duration: const Duration(seconds: 1),
@@ -848,7 +854,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                   child: FittedBox(
                                     fit: BoxFit.scaleDown,
                                     child: Text(
-                                      langProvider.translate('add'),
+                                      AppLocalizations.of(context)!.add,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
@@ -934,7 +940,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                           if (!isServiceable) {
                                             HapticFeedback.heavyImpact();
                                             ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(behavior: SnackBarBehavior.floating, content: Text(langProvider.translate('error_cant_deliver')),
+                                              SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_cant_deliver),
                                                 backgroundColor: Colors.red,
                                               ),
                                             );
@@ -949,7 +955,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                             SoundService().blocked();
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                                  langProvider.translate('max_stock'),
+                                                  AppLocalizations.of(context)!.max_stock,
                                                 ),
                                                 backgroundColor: AppColors.error,
                                                 duration: const Duration(seconds: 1),
@@ -1206,7 +1212,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             SoundService().blocked();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                  langProvider.translate('qty_exceeds'),
+                                  AppLocalizations.of(context)!.qty_exceeds,
                                 ),
                                 backgroundColor: AppColors.error,
                                 duration: const Duration(seconds: 1),
@@ -1222,7 +1228,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                           ),
                         ),
                         child: Text(
-                          langProvider.translate('add'),
+                          AppLocalizations.of(context)!.add,
                           style: AppTextStyles.button(color: AppColors.white),
                         ),
                       );
@@ -1276,7 +1282,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                 SoundService().blocked();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                      langProvider.translate('max_stock'),
+                                      AppLocalizations.of(context)!.max_stock,
                                     ),
                                     backgroundColor: AppColors.error,
                                     duration: const Duration(seconds: 1),
@@ -1488,7 +1494,7 @@ class _ProductGridState extends State<ProductGrid> {
               Text(
                 widget.searchQuery.isNotEmpty
                     ? "We couldn't find any items matching '${widget.searchQuery}'."
-                    : widget.langProvider.translate('no_product'),
+                    : AppLocalizations.of(context)!.no_product,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   color: Colors.grey.shade600,

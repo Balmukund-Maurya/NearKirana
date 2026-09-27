@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,7 +9,6 @@ import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'animation_helpers.dart';
 import 'package:provider/provider.dart';
-import 'language_provider.dart';
 import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
@@ -38,12 +38,12 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(langProvider.translate('orders_tab')),
+        title: Text(langProvider.orders_tab),
         bottom: TabBar(
           controller: _tabController,
           labelStyle: AppTextStyles.bodySemiBold(color: AppColors.white),

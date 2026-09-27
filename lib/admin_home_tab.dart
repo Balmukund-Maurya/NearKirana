@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -65,7 +66,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    langProvider.translate('product_found'),
+                    AppLocalizations.of(context)!.product_found,
                     style: AppTextStyles.heading2(color: AppColors.textDark),
                   ),
                 ],
@@ -80,11 +81,11 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${langProvider.translate('price')}: ₹${product['price']}',
+                    '${AppLocalizations.of(context)!.price}: ₹${product['price']}',
                     style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
                   ),
                   Text(
-                    '${langProvider.translate('stock')}: ${product['stock_quantity']}',
+                    '${AppLocalizations.of(context)!.stock}: ${product['stock_quantity']}',
                     style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
                   ),
                 ],
@@ -97,7 +98,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                     AdminProductForms.showEditProductDialog(context, res);
                   },
                   child: Text(
-                    langProvider.translate('edit'),
+                    AppLocalizations.of(context)!.edit,
                     style: AppTextStyles.bodySemiBold(color: Colors.blue),
                   ),
                 ),
@@ -111,7 +112,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                     ),
                     elevation: 0,
                   ),
-                  child: Text(langProvider.translate('ok_btn')),
+                  child: Text(AppLocalizations.of(context)!.ok_btn),
                 ),
               ],
             );
@@ -284,13 +285,13 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(langProvider.translate('admin_dashboard')),
+        title: Text(langProvider.admin_dashboard),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -351,14 +352,14 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              langProvider.translate('scan_barcode'),
+                              langProvider.scan_barcode,
                               style: AppTextStyles.heading1(
                                 color: AppColors.white,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              langProvider.translate('add_or_update_product'),
+                              langProvider.add_or_update_product,
                               style: AppTextStyles.bodyMedium(
                                 color: AppColors.white.withValues(alpha: 0.8),
                               ),
@@ -384,7 +385,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                   AdminProductForms.showManualAddProductForm(context);
                 },
                 icon: const Icon(Icons.add_rounded, size: 24),
-                label: Text(langProvider.translate('add_new_item')),
+                label: Text(langProvider.add_new_item),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryLight.withValues(
                     alpha: 0.2,

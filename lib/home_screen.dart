@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +7,6 @@ import 'customer_shop_tab.dart';
 import 'cart_screen.dart';
 import 'my_orders_screen.dart';
 import 'customer_profile_tab.dart';
-import 'language_provider.dart';
 import 'cart_provider.dart';
 import 'app_theme.dart';
 
@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = AppLocalizations.of(context)!;
     final cartProvider = Provider.of<CartProvider>(context);
     final cartCount = cartProvider.itemCount;
 
@@ -42,23 +42,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _NavItem(
         icon: Icons.storefront_outlined,
         selectedIcon: Icons.storefront_rounded,
-        label: langProvider.translate('shop_tab'),
+        label: langProvider.shop_tab,
       ),
       _NavItem(
         icon: Icons.shopping_cart_outlined,
         selectedIcon: Icons.shopping_cart_rounded,
-        label: langProvider.translate('cart_tab'),
+        label: langProvider.cart_tab,
         badge: cartCount,
       ),
       _NavItem(
         icon: Icons.receipt_long_outlined,
         selectedIcon: Icons.receipt_long_rounded,
-        label: langProvider.translate('orders_tab'),
+        label: langProvider.orders_tab,
       ),
       _NavItem(
         icon: Icons.person_outline_rounded,
         selectedIcon: Icons.person_rounded,
-        label: langProvider.translate('profile'),
+        label: langProvider.profile,
       ),
     ];
 

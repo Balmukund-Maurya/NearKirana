@@ -1,10 +1,11 @@
+import 'package:near_kirana/language_provider.dart';
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 
-import 'language_provider.dart';
 import 'admin_settings_screen.dart';
 import 'admin_customers_screen.dart';
 import 'shop_qr_screen.dart';
@@ -58,13 +59,13 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(langProvider.translate('more_options')),
+        title: Text(langProvider.more_options),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -126,7 +127,7 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            langProvider.translate('admin_role'),
+                            langProvider.admin_role,
                             style: AppTextStyles.captionMedium(
                               color: AppColors.accentPink,
                             ),
@@ -163,13 +164,13 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
 
             // Menu Items
             _buildMenuSection(
-              title: langProvider.translate('store_management'),
+              title: langProvider.store_management,
               children: [
                 _buildMenuTile(
                   icon: Icons.people_alt_rounded,
                   color: Colors.blue,
-                  title: langProvider.translate('admin_customers'),
-                  subtitle: langProvider.translate('admin_customers_subtitle'),
+                  title: langProvider.admin_customers,
+                  subtitle: langProvider.admin_customers_subtitle,
                   onTap: () {
                     HapticFeedback.lightImpact();
                     Navigator.push(
@@ -183,8 +184,8 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                 _buildMenuTile(
                   icon: Icons.store_rounded,
                   color: Colors.orange,
-                  title: langProvider.translate('store_settings'),
-                  subtitle: langProvider.translate('store_settings_subtitle'),
+                  title: langProvider.store_settings,
+                  subtitle: langProvider.store_settings_subtitle,
                   onTap: () {
                     HapticFeedback.lightImpact();
                     Navigator.push(
@@ -201,16 +202,16 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
             const SizedBox(height: 24),
 
             _buildMenuSection(
-              title: langProvider.translate('app_settings'),
+              title: langProvider.app_settings,
               children: [
                 _buildMenuTile(
                   icon: Icons.language_rounded,
                   color: Colors.teal,
-                  title: langProvider.translate('language_setting'),
-                  subtitle: langProvider.translate('language_setting_subtitle'),
+                  title: langProvider.language_setting,
+                  subtitle: langProvider.language_setting_subtitle,
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    _showLanguageDialog(context, langProvider);
+                    _showLanguageDialog(context);
                   },
                 ),
               ],
@@ -232,13 +233,13 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       title: Text(
-                        langProvider.translate('admin_logout'),
+                        langProvider.admin_logout,
                         style: AppTextStyles.heading2(
                           color: AppColors.textDark,
                         ),
                       ),
                       content: Text(
-                        langProvider.translate('admin_logout_confirm'),
+                        langProvider.admin_logout_confirm,
                         style: AppTextStyles.bodyMedium(
                           color: AppColors.textMid,
                         ),
@@ -247,7 +248,7 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                         TextButton(
                           onPressed: () => Navigator.pop(dialogContext),
                           child: Text(
-                            langProvider.translate('cancel'),
+                            langProvider.cancel,
                             style: AppTextStyles.bodySemiBold(
                               color: AppColors.textMid,
                             ),
@@ -284,14 +285,14 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                             ),
                             elevation: 0,
                           ),
-                          child: Text(langProvider.translate('admin_logout')),
+                          child: Text(langProvider.admin_logout),
                         ),
                       ],
                     ),
                   );
                 },
                 icon: const Icon(Icons.logout_rounded, size: 24),
-                label: Text(langProvider.translate('admin_logout')),
+                label: Text(langProvider.admin_logout),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error.withValues(alpha: 0.1),
                   foregroundColor: AppColors.error,
@@ -306,7 +307,7 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
 
             const SizedBox(height: 32),
             Text(
-              langProvider.translate('admin_version'),
+              langProvider.admin_version,
               style: AppTextStyles.captionMedium(color: AppColors.textLight),
             ).animate().fadeIn(delay: 400.ms),
             const SizedBox(height: 16),
@@ -404,10 +405,7 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
     );
   }
 
-  void _showLanguageDialog(
-    BuildContext context,
-    LanguageProvider langProvider,
-  ) {
+  void _showLanguageDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -434,14 +432,14 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                 ),
               ),
               Text(
-                langProvider.translate('select_language'),
+                AppLocalizations.of(context)!.select_language,
                 style: AppTextStyles.heading2(color: AppColors.textDark),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              _buildLanguageOption(sheetContext, langProvider, 'hi', 'हिंदी', setSheetState),
+              _buildLanguageOption(sheetContext, Provider.of<LanguageProvider>(context, listen: false), 'hi', 'हिंदी', setSheetState),
               const SizedBox(height: 12),
-              _buildLanguageOption(sheetContext, langProvider, 'en', 'English', setSheetState),
+              _buildLanguageOption(sheetContext, Provider.of<LanguageProvider>(context, listen: false), 'en', 'English', setSheetState),
               const SizedBox(height: 16),
             ],
           ),

@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,7 +8,6 @@ import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
-import 'language_provider.dart';
 import 'map_selection_screen.dart';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
@@ -92,7 +92,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_loading_settings').replaceAll('{error}', e.toString())),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())),
             backgroundColor: AppColors.error,
           ),
         );
@@ -116,7 +116,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       if (deliveryFee < 0 || minOrder < 0 || freeDeliveryThreshold < 0 || maxUdhaar < 0 || pickupRadius < 0 || deliveryRadius < 0) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_negative_values')), backgroundColor: AppColors.error),
+            SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.err_negative_values), backgroundColor: AppColors.error),
           );
           setState(() => _isLoading = false);
         }
@@ -149,7 +149,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('settings_saved')),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.settings_saved),
             backgroundColor: AppColors.primaryDark,
           ),
         );
@@ -158,7 +158,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_saving_settings').replaceAll('{error}', e.toString())),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())),
             backgroundColor: AppColors.error,
           ),
         );
@@ -173,7 +173,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(Provider.of<LanguageProvider>(context).translate('store_settings')),
+        title: Text(AppLocalizations.of(context)!.store_settings),
       ),
       body: _isLoading
           ? const Center(
@@ -215,7 +215,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  Provider.of<LanguageProvider>(context).translate('store_is_open'),
+                                  AppLocalizations.of(context)!.store_is_open,
                                   style: AppTextStyles.heading2(
                                     color: AppColors.textDark,
                                   ),
@@ -256,7 +256,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
                   // Financial Rules
                   Text(
-                    Provider.of<LanguageProvider>(context).translate('financial_rules'),
+                    AppLocalizations.of(context)!.financial_rules,
                     style: AppTextStyles.heading2(color: AppColors.textDark),
                   ).animate().fadeIn(delay: 100.ms),
                   const SizedBox(height: 16),
@@ -361,16 +361,16 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                         _storeLngController.text = pickedLocation.longitude.toString();
                                       });
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('location_picked')), backgroundColor: AppColors.primaryDark),
+                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.location_picked), backgroundColor: AppColors.primaryDark),
                                       );
                                     } catch (e) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_reading_location').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
+                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
                                       );
                                     }
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(Provider.of<LanguageProvider>(context, listen: false).translate('err_no_location')), backgroundColor: AppColors.error),
+                                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.err_no_location), backgroundColor: AppColors.error),
                                     );
                                   }
                                 },

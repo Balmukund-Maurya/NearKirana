@@ -1,3 +1,4 @@
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,7 +9,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'user_provider.dart';
-import 'language_provider.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
@@ -232,7 +232,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     }
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final langProvider = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
@@ -255,14 +255,14 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
-          title: Text(langProvider.translate('out_of_delivery_area')),
+          title: Text(langProvider.out_of_delivery_area),
           content: Text(
-            userProvider.serviceabilityError ?? langProvider.translate('error_cant_deliver'),
+            userProvider.serviceabilityError ?? langProvider.error_cant_deliver,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(langProvider.translate('ok_btn')),
+              child: Text(AppLocalizations.of(context)!.ok_btn),
             ),
           ],
         ),
@@ -301,7 +301,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    langProvider.translate('enter_complete_address'),
+                    langProvider.enter_complete_address,
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -311,7 +311,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   TextField(
                     controller: localityController,
                     decoration: InputDecoration(
-                      labelText: langProvider.translate('locality_area'),
+                      labelText: langProvider.locality_area,
                       prefixIcon: const Icon(Icons.location_on_outlined),
                       border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -322,7 +322,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   TextField(
                     controller: landmarkController,
                     decoration: InputDecoration(
-                      labelText: langProvider.translate('landmark_optional'),
+                      labelText: langProvider.landmark_optional,
                       prefixIcon: const Icon(Icons.park_outlined),
                       border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -331,7 +331,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    langProvider.translate('save_address_as'),
+                    langProvider.save_address_as,
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -390,7 +390,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                         }
                       },
                       child: Text(
-                        langProvider.translate('save_address_btn'),
+                        langProvider.save_address_btn,
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -463,7 +463,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isPickingOnly ? 'Shop Location' : 'Delivery Location'),
@@ -560,7 +560,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                       boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
                     ),
                     child: Text(
-                      langProvider.translate('move_map_adjust'),
+                      langProvider.move_map_adjust,
                       style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -586,7 +586,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: langProvider.translate('search_area_hint'),
+                      hintText: langProvider.search_area_hint,
                       hintStyle: GoogleFonts.poppins(fontSize: 14),
                       prefixIcon: const Icon(Icons.search, color: Colors.blue),
                       suffixIcon: _searchController.text.isNotEmpty
@@ -720,7 +720,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               if (_isOutOfDeliveryZone) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(langProvider.translate('selected_loc_outside')),
+                    content: Text(langProvider.selected_loc_outside),
                     backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -736,10 +736,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
             ),
             label: Text(
               _isOutOfDeliveryZone
-                  ? langProvider.translate('out_of_delivery_area')
+                  ? langProvider.out_of_delivery_area
                   : widget.isPickingOnly
-                      ? langProvider.translate('confirm_location')
-                      : langProvider.translate('confirm_delivery_loc'),
+                      ? langProvider.confirm_location
+                      : langProvider.confirm_delivery_loc,
               style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

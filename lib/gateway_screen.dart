@@ -246,12 +246,58 @@ class _GatewayScreenState extends State<GatewayScreen> {
     final prefs = await SharedPreferences.getInstance();
 
     if (existingShop.docs.isNotEmpty) {
-      // Already registered, go to Admin Dashboard
+      // Already registered, prompt for PIN
       final shopDoc = existingShop.docs.first;
+      
+      final dbPin = (shopDoc.data() as Map<String, dynamic>)['admin_pin'] as String?;
+      if (dbPin != null && dbPin.isNotEmpty) {
+        if (!mounted) return;
+        final enteredPin = await showDialog<String>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            final ctrl = TextEditingController();
+            bool obscure = true;
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return AlertDialog(
+                  title: const Text('Enter Shop PIN'),
+                  content: TextField(
+                    controller: ctrl,
+                    keyboardType: TextInputType.number,
+                    obscureText: obscure,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your 6-digit PIN',
+                      suffixIcon: IconButton(
+                        icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => obscure = !obscure),
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                    TextButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Login')),
+                  ],
+                );
+              }
+            );
+          }
+        );
+
+        if (enteredPin == null) return; // User cancelled
+        if (enteredPin != dbPin) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Incorrect PIN'), backgroundColor: AppColors.error),
+          );
+          return;
+        }
+      }
+
       final shopId = shopDoc.id;
       
       if (!mounted) return;
-      await Provider.of<ShopProvider>(context, listen: false).setShop(shopId, shopDoc['shop_name'] ?? '');
+      await Provider.of<ShopProvider>(context, listen: false).setShop(shopId, (shopDoc.data() as Map<String, dynamic>)['shop_name'] ?? '');
       await prefs.setString('app_role', 'admin');
       
       if (!mounted) return;

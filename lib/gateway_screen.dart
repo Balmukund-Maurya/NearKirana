@@ -153,32 +153,104 @@ class _GatewayScreenState extends State<GatewayScreen> {
           Provider.of<UserProvider>(context, listen: false).setUser(dbName, _globalPhone!);
         }
       } else {
-        // Prompt for name and register
         final name = await showDialog<String>(
           context: context,
           barrierDismissible: false,
           builder: (context) {
             final ctrl = TextEditingController();
-            return AlertDialog(
-              title: const Text('What is your name?'),
-              content: TextField(
-                controller: ctrl,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your name',
-                  border: OutlineInputBorder(),
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: AppColors.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.person_rounded, size: 40, color: AppColors.primaryDark),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Welcome!',
+                      style: AppTextStyles.heading2(color: AppColors.textDark),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'What should we call you?',
+                      style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: ctrl,
+                      textCapitalization: TextCapitalization.words,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.heading2(color: AppColors.textDark),
+                      decoration: InputDecoration(
+                        hintText: 'Enter your name',
+                        hintStyle: AppTextStyles.heading2(color: AppColors.textLight),
+                        filled: true,
+                        fillColor: AppColors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text('Cancel', style: AppTextStyles.bodySemiBold(color: AppColors.textMid)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (ctrl.text.trim().isNotEmpty) {
+                                Navigator.pop(context, ctrl.text.trim());
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter your name'), backgroundColor: AppColors.error),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryDark,
+                              foregroundColor: AppColors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            child: Text('Save', style: AppTextStyles.bodySemiBold(color: AppColors.white)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                textCapitalization: TextCapitalization.words,
               ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    if (ctrl.text.trim().isNotEmpty) {
-                      Navigator.pop(context, ctrl.text.trim());
-                    }
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
             );
           },
         );
@@ -246,10 +318,12 @@ class _GatewayScreenState extends State<GatewayScreen> {
     final prefs = await SharedPreferences.getInstance();
 
     if (existingShop.docs.isNotEmpty) {
-      // Already registered, prompt for PIN
       final shopDoc = existingShop.docs.first;
-      
-      final dbPin = (shopDoc.data() as Map<String, dynamic>)['admin_pin'] as String?;
+      final shopData = shopDoc.data() as Map<String, dynamic>;
+      final dbPin = shopData['admin_pin'] as String?;
+      final shopName = shopData['shop_name'] as String? ?? 'Your Shop';
+      final ownerName = shopData['owner_name'] as String? ?? 'Owner';
+
       if (dbPin != null && dbPin.isNotEmpty) {
         if (!mounted) return;
         final enteredPin = await showDialog<String>(
@@ -260,24 +334,98 @@ class _GatewayScreenState extends State<GatewayScreen> {
             bool obscure = true;
             return StatefulBuilder(
               builder: (context, setState) {
-                return AlertDialog(
-                  title: const Text('Enter Shop PIN'),
-                  content: TextField(
-                    controller: ctrl,
-                    keyboardType: TextInputType.number,
-                    obscureText: obscure,
-                    decoration: InputDecoration(
-                      hintText: 'Enter your 6-digit PIN',
-                      suffixIcon: IconButton(
-                        icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => obscure = !obscure),
-                      ),
+                return Dialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  backgroundColor: AppColors.surface,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.storefront_rounded, size: 40, color: AppColors.primaryDark),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          shopName,
+                          style: AppTextStyles.heading2(color: AppColors.textDark),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Welcome back, $ownerName',
+                          style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        TextField(
+                          controller: ctrl,
+                          keyboardType: TextInputType.number,
+                          obscureText: obscure,
+                          maxLength: 6,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(letterSpacing: 8),
+                          decoration: InputDecoration(
+                            counterText: '',
+                            hintText: '••••••',
+                            hintStyle: AppTextStyles.heading2(color: AppColors.textLight).copyWith(letterSpacing: 8),
+                            filled: true,
+                            fillColor: AppColors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, color: AppColors.textMid),
+                              onPressed: () => setState(() => obscure = !obscure),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: Text('Cancel', style: AppTextStyles.bodySemiBold(color: AppColors.textMid)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => Navigator.pop(context, ctrl.text),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryDark,
+                                  foregroundColor: AppColors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                child: Text('Login', style: AppTextStyles.bodySemiBold(color: AppColors.white)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                    TextButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Login')),
-                  ],
                 );
               }
             );

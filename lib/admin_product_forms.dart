@@ -36,8 +36,7 @@ class AdminProductForms {
     bool isFetchingCategories = true;
 
     FirebaseUtils.firestore
-        .collection('settings')
-        .doc('app_config')
+        .collection('shops').doc(Provider.of<ShopProvider>(context, listen: false).currentShopId ?? 'app_config')
         .get()
         .then((doc) {
       if (doc.exists && doc.data()!.containsKey('categories')) {
@@ -503,8 +502,7 @@ class AdminProductForms {
                                               });
                                               try {
                                                 await FirebaseUtils.firestore
-                                                    .collection('settings')
-                                                    .doc('app_config')
+                                                    .collection('shops').doc(Provider.of<ShopProvider>(context, listen: false).currentShopId ?? 'app_config')
                                                     .update({
                                                   'categories': FieldValue.arrayUnion([val])
                                                 });
@@ -665,8 +663,7 @@ class AdminProductForms {
 
     // Fetch categories asynchronously
     FirebaseUtils.firestore
-        .collection('settings')
-        .doc('app_config')
+        .collection('shops').doc(Provider.of<ShopProvider>(context, listen: false).currentShopId ?? 'app_config')
         .get()
         .then((doc) {
       if (doc.exists && doc.data()!.containsKey('categories')) {
@@ -864,8 +861,7 @@ class AdminProductForms {
                                                 });
                                                 try {
                                                   await FirebaseUtils.firestore
-                                                      .collection('settings')
-                                                      .doc('app_config')
+                                                      .collection('shops').doc(Provider.of<ShopProvider>(context, listen: false).currentShopId ?? 'app_config')
                                                       .update({
                                                     'categories': FieldValue.arrayUnion([val])
                                                   });

@@ -421,59 +421,87 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                   const SizedBox(height: 16),
 
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    height: 350,
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppColors.bgTint, width: 1.5),
                     ),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    child: Column(
                       children: [
-                        ..._categories.map(
-                          (cat) => Chip(
-                            label: Text(
-                              cat,
-                              style: AppTextStyles.bodyMedium(
-                                color: AppColors.primaryDark,
-                              ),
+                        Expanded(
+                          child: Theme(
+                            data: Theme.of(context).copyWith(
+                              canvasColor: Colors.transparent,
                             ),
-                            backgroundColor: AppColors.primaryLight.withValues(
-                              alpha: 0.2,
+                            child: ReorderableListView.builder(
+                              itemCount: _categories.length,
+                              onReorder: (int oldIndex, int newIndex) {
+                                setState(() {
+                                  if (newIndex > oldIndex) {
+                                    newIndex -= 1;
+                                  }
+                                  final item = _categories.removeAt(oldIndex);
+                                  _categories.insert(newIndex, item);
+                                  HapticFeedback.lightImpact();
+                                });
+                              },
+                              itemBuilder: (context, index) {
+                                final cat = _categories[index];
+                                return Container(
+                                  key: ValueKey(cat),
+                                  margin: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.bgTint,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 0),
+                                    leading: const Icon(Icons.drag_indicator_rounded,
+                                        color: AppColors.textLight),
+                                    title: Text(
+                                      cat,
+                                      style: AppTextStyles.bodySemiBold(
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.close_rounded,
+                                          color: Colors.redAccent),
+                                      onPressed: () {
+                                        HapticFeedback.lightImpact();
+                                        setState(() => _categories.remove(cat));
+                                      },
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                            deleteIconColor: AppColors.primaryDark,
-                            side: BorderSide.none,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            onDeleted: () {
-                              HapticFeedback.lightImpact();
-                              setState(() => _categories.remove(cat));
-                            },
                           ),
                         ),
-                        ActionChip(
-                          label: Text(
-                            'Add Category',
-                            style: AppTextStyles.bodySemiBold(
-                              color: AppColors.white,
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.add_rounded),
+                              label: const Text('Add Category'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryDark,
+                                foregroundColor: AppColors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                _showAddCategoryDialog();
+                              },
                             ),
                           ),
-                          avatar: const Icon(
-                            Icons.add_rounded,
-                            size: 16,
-                            color: AppColors.white,
-                          ),
-                          backgroundColor: AppColors.primaryDark,
-                          side: BorderSide.none,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          onPressed: () {
-                            HapticFeedback.mediumImpact();
-                            _showAddCategoryDialog();
-                          },
                         ),
                       ],
                     ),

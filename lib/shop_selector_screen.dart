@@ -310,7 +310,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                                 
                                 return dist <= maxRadiusMeters;
                               }
-                              return true;
+                              return false; // Don't show shops with no coordinates if we are filtering by range
                             }).toList();
                           }
 

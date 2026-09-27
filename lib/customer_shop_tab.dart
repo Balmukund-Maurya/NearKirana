@@ -42,10 +42,22 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
     'Loose',
   ];
 
+  String? _lastShopId;
+
   @override
   void initState() {
     super.initState();
-    _fetchCategories();
+    // Fetch categories will be called in didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final shopId = Provider.of<ShopProvider>(context).currentShopId;
+    if (shopId != _lastShopId && shopId != null) {
+      _lastShopId = shopId;
+      _fetchCategories(shopId);
+    }
   }
 
   @override
@@ -55,25 +67,53 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
     super.dispose();
   }
 
-  Future<void> _fetchCategories() async {
+  Future<void> _fetchCategories(String shopId) async {
     try {
-      // FIX-1: Unified collection path — settings/app_config
-      final doc = await FirebaseUtils.firestore
-          .collection('settings')
-          .doc('app_config')
-          .get();
-      if (doc.exists && doc.data()!['categories'] != null) {
+      debugPrint('Fetching categories for shopId: $shopId');
+      List<String>? shopCategories;
+
+      if (shopId != null && shopId.isNotEmpty) {
+        final shopDoc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
+        if (shopDoc.exists) {
+          final data = shopDoc.data()!;
+          if (data.containsKey('categories') && data['categories'] != null) {
+            shopCategories = List<String>.from(data['categories']);
+            debugPrint('Loaded from shop: $shopCategories');
+          } else {
+             debugPrint('No categories field in shop doc');
+          }
+        } else {
+           debugPrint('Shop doc does not exist');
+        }
+      }
+
+      if (shopCategories == null || shopCategories.isEmpty) {
+        debugPrint('Falling back to app_config');
+        final doc = await FirebaseUtils.firestore
+            .collection('settings')
+            .doc('app_config')
+            .get();
+        if (doc.exists && doc.data()!['categories'] != null) {
+          shopCategories = List<String>.from(doc.data()!['categories']);
+          debugPrint('Loaded from app_config: $shopCategories');
+        }
+      }
+
+      if (shopCategories != null && shopCategories.isNotEmpty) {
         if (mounted) {
           setState(() {
             _categories = [
               'All',
-              ...List<String>.from(doc.data()!['categories']),
+              ...shopCategories!,
             ];
           });
+          debugPrint('Updated _categories state: $_categories');
+        } else {
+           debugPrint('Widget not mounted, skipping setState');
         }
       }
-    } catch (e) {
-      // Keep default
+    } catch (e, stack) {
+      debugPrint('Error in _fetchCategories: $e\n$stack');
     }
   }
 

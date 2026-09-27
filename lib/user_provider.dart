@@ -176,29 +176,13 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
       _storeLat = (data['store_latitude'] as num?)?.toDouble();
       _storeLng = (data['store_longitude'] as num?)?.toDouble();
 
-      if (radiusKm == null || _storeLat == null || _storeLng == null) {
-        _isServiceable = true;
-        _serviceabilityError = null;
-        notifyListeners();
-        return;
-      }
       _currentLat = prefs.getDouble('customerLat');
       _currentLng = prefs.getDouble('customerLng');
 
-      if (data['is_store_open'] == false) {
-        _isServiceable = false;
-        _serviceabilityError = 'Store is currently closed. We are not accepting new orders right now.';
-        notifyListeners();
-        return;
-      }
-
       if (_currentLat == null || _currentLng == null) {
-        _isServiceable =
-            true; // Let them browse, they will have to set address at checkout
+        _isServiceable = true; // Let them browse, they will have to set address at checkout
         _serviceabilityError = null;
         _autoLocality = 'Please select delivery address';
-        notifyListeners();
-        return;
       } else {
         try {
           List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -207,8 +191,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
           );
           if (placemarks.isNotEmpty) {
             final place = placemarks.first;
-            _autoLocality = '${place.subLocality ?? ''} ${place.locality ?? ''}'
-                .trim();
+            _autoLocality = '${place.subLocality ?? ''} ${place.locality ?? ''}'.trim();
             if (_autoLocality.isEmpty) {
               _autoLocality = place.name ?? 'Unknown Location';
             }
@@ -217,6 +200,20 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
           debugPrint('Geocoding error: $e');
           _autoLocality = 'Saved Location';
         }
+      }
+
+      if (radiusKm == null || _storeLat == null || _storeLng == null) {
+        _isServiceable = true;
+        _serviceabilityError = null;
+        notifyListeners();
+        return;
+      }
+
+      if (data['is_store_open'] == false) {
+        _isServiceable = false;
+        _serviceabilityError = 'Store is currently closed. We are not accepting new orders right now.';
+        notifyListeners();
+        return;
       }
 
       if (_currentLat != null && _currentLng != null) {

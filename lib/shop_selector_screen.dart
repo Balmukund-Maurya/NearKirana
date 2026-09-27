@@ -10,7 +10,6 @@ import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'cart_provider.dart';
 import 'language_provider.dart';
-import 'shop_registration_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:geolocator/geolocator.dart';
 import 'super_admin_screen.dart' as super_admin_screen;
@@ -285,42 +284,63 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
 
                           List<QueryDocumentSnapshot> shops = snapshot.data!.docs;
 
-                            if (_searchQuery.isEmpty) {
-                              shops = shops.toList();
-                              shops = shops.where((doc) {
-                                final name = (doc['shop_name'] ?? '').toString();
-                                return name.toLowerCase() != 'my shop';
-                              }).toList();
-                              shops.sort((a, b) {
-                                final aData = a.data() as Map<String, dynamic>;
-                                final bData = b.data() as Map<String, dynamic>;
-
-                                if (_currentPosition != null) {
-                                  final aLat = (aData['store_latitude'] as num?)?.toDouble();
-                                  final aLng = (aData['store_longitude'] as num?)?.toDouble();
-                                  final bLat = (bData['store_latitude'] as num?)?.toDouble();
-                                  final bLng = (bData['store_longitude'] as num?)?.toDouble();
-
-                                  if (aLat != null && aLng != null && bLat != null && bLng != null) {
-                                    final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, aLat, aLng);
-                                    final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, bLat, bLng);
-                                    return distA.compareTo(distB);
-                                  }
-                                }
-
-                                final aTime = aData['created_at'] as Timestamp?;
-                                final bTime = bData['created_at'] as Timestamp?;
-                                if (aTime == null && bTime == null) return 0;
-                                if (aTime == null) return 1;
-                                if (bTime == null) return -1;
-                                return bTime.compareTo(aTime);
-                              });
-                              shops = shops.take(5).toList();
+                          if (_searchQuery.isEmpty) {
+                            shops = shops.where((doc) {
+                              final name = (doc['shop_name'] ?? '').toString();
+                              return name.toLowerCase() != 'my shop';
+                            }).toList();
                           } else {
                             shops = shops.where((doc) {
                               final name = (doc['shop_name'] ?? '').toString().toLowerCase();
                               return name.contains(_searchQuery);
                             }).toList();
+                          }
+
+                          if (_currentPosition != null) {
+                            shops = shops.where((doc) {
+                              final data = doc.data() as Map<String, dynamic>;
+                              final sLat = (data['store_latitude'] ?? data['lat'] as num?)?.toDouble();
+                              final sLng = (data['store_longitude'] ?? data['lng'] as num?)?.toDouble();
+                              
+                              if (sLat != null && sLng != null) {
+                                final dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, sLat, sLng);
+                                final deliveryRadiusKm = (data['delivery_radius_km'] as num?)?.toDouble() ?? 5.0;
+                                final pickupRadiusKm = (data['pickup_radius_km'] as num?)?.toDouble() ?? 25.0;
+                                final maxRadiusMeters = (deliveryRadiusKm > pickupRadiusKm ? deliveryRadiusKm : pickupRadiusKm) * 1000;
+                                
+                                return dist <= maxRadiusMeters;
+                              }
+                              return true;
+                            }).toList();
+                          }
+
+                          shops.sort((a, b) {
+                            final aData = a.data() as Map<String, dynamic>;
+                            final bData = b.data() as Map<String, dynamic>;
+
+                            if (_currentPosition != null) {
+                              final aLat = (aData['store_latitude'] ?? aData['lat'] as num?)?.toDouble();
+                              final aLng = (aData['store_longitude'] ?? aData['lng'] as num?)?.toDouble();
+                              final bLat = (bData['store_latitude'] ?? bData['lat'] as num?)?.toDouble();
+                              final bLng = (bData['store_longitude'] ?? bData['lng'] as num?)?.toDouble();
+
+                              if (aLat != null && aLng != null && bLat != null && bLng != null) {
+                                final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, aLat, aLng);
+                                final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, bLat, bLng);
+                                return distA.compareTo(distB);
+                              }
+                            }
+
+                            final aTime = aData['created_at'] as Timestamp?;
+                            final bTime = bData['created_at'] as Timestamp?;
+                            if (aTime == null && bTime == null) return 0;
+                            if (aTime == null) return 1;
+                            if (bTime == null) return -1;
+                            return bTime.compareTo(aTime);
+                          });
+
+                          if (_searchQuery.isEmpty) {
+                            shops = shops.take(5).toList();
                           }
 
                           if (shops.isEmpty) {
@@ -340,8 +360,8 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                                   
                                   String distanceText = '';
                                   if (_currentPosition != null) {
-                                    final sLat = (data['store_latitude'] as num?)?.toDouble();
-                                    final sLng = (data['store_longitude'] as num?)?.toDouble();
+                                    final sLat = (data['store_latitude'] ?? data['lat'] as num?)?.toDouble();
+                                    final sLng = (data['store_longitude'] ?? data['lng'] as num?)?.toDouble();
                                     if (sLat != null && sLng != null) {
                                       final dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, sLat, sLng);
                                       if (dist < 1000) {
@@ -379,61 +399,14 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                           );
                         },
                       ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          top: BorderSide(color: AppColors.bgTint, width: 1),
-                        ),
-                      ),
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            langProvider.translate('are_you_shop_owner'),
-                            style: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ShopRegistrationScreen(),
-                                ),
-                              );
-                            },
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                            ),
-                            child: Text(
-                              langProvider.translate('register_your_shop'),
-                              style: AppTextStyles.bodySemiBold(
-                                color: AppColors.primaryDark,
-                              ).copyWith(
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ).animate().fadeIn(delay: 600.ms),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ],
-            ),
-            ),
-          ),
-        ),
-      ),
-    );
+                  ], // ends inner column children
+                ), // ends inner column
+              ], // ends outer column children
+            ), // ends outer column
+            ), // ends ConstrainedBox
+          ), // ends Center
+        ), // ends SingleChildScrollView
+      ), // ends SafeArea
+    ); // ends Scaffold
   }
 }

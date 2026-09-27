@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'user_provider.dart';
 import 'cart_provider.dart';
-import 'main.dart';
+import 'gateway_screen.dart';
 import 'language_provider.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'utils/product_image_widget.dart';
 import 'modern_loader.dart';
 import 'package:near_kirana/firebase_utils.dart';
+
 
 class CustomerProfileTab extends StatelessWidget {
   const CustomerProfileTab({super.key});
@@ -211,18 +212,18 @@ class CustomerProfileTab extends StatelessWidget {
                 child: const Icon(Icons.swap_horiz_rounded, color: Colors.blue),
               ),
               title: const Text(
-                'Dukan Badlein (Change Shop)',
+                'Change Shop',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
-              subtitle: const Text('Doosri dukan search ya scan karein'),
+              subtitle: const Text('Search or scan another shop'),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
               onTap: () async {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Dukan Badlein?'),
+                    title: const Text('Change Shop?'),
                     content: const Text(
-                      'Kya aap is dukan se bahar aakar doosri dukan chunna chahte hain? Aapka Cart clear ho jayega.',
+                      'Do you want to leave this shop and choose another? Your cart will be cleared.',
                     ),
                     actions: [
                       TextButton(
@@ -232,7 +233,7 @@ class CustomerProfileTab extends StatelessWidget {
                       ElevatedButton(
                         onPressed: () => Navigator.pop(context, true),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                        child: const Text('Haan, Badlein'),
+                        child: const Text('Yes, Change Shop'),
                       ),
                     ],
                   ),
@@ -305,7 +306,7 @@ class CustomerProfileTab extends StatelessWidget {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      const LoginScreen(fromLogout: true),
+                                      const GatewayScreen(),
                                 ),
                                 (route) => false,
                               );

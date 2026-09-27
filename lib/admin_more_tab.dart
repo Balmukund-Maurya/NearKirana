@@ -8,11 +8,12 @@ import 'language_provider.dart';
 import 'admin_settings_screen.dart';
 import 'admin_customers_screen.dart';
 import 'shop_qr_screen.dart';
-import 'main.dart';
+import 'gateway_screen.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
 import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
+
 
 class AdminMoreTab extends StatefulWidget {
   const AdminMoreTab({super.key});
@@ -261,13 +262,15 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                             await prefs.remove('isAdminLoggedIn');
                             await prefs.remove('customerName');
                             await prefs.remove('customerPhone');
+                            await prefs.remove('global_phone');
+                            await prefs.remove('app_role');
 
                             if (context.mounted) {
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      const LoginScreen(fromLogout: true),
+                                      const GatewayScreen(),
                                 ),
                                 (route) => false,
                               );

@@ -123,6 +123,8 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     // FIX-4: Clear cart on logout so next user doesn't see previous user's cart
     await prefs.remove('cart_items');
     await prefs.remove('last_order_time');
+    await prefs.remove('global_phone');
+    await prefs.remove('app_role');
     notifyListeners();
   }
 

@@ -20,9 +20,11 @@ import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_selector_screen.dart';
-import 'map_selection_screen.dart';
+import 'gateway_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:phone_email_auth/phone_email_auth.dart';
+import 'custom_auth_screen.dart';
+
 import 'package:flutter/foundation.dart'; // Added for kIsWeb
 
 void main() async {
@@ -119,18 +121,11 @@ class NearKiranaApp extends StatelessWidget {
       title: 'NearKirana',
       theme: AppTheme.theme,
       debugShowCheckedModeBanner: false,
-      home: Consumer<ShopProvider>(
-        builder: (context, shopProvider, child) {
-          if (shopProvider.currentShopId != null &&
-              shopProvider.currentShopId!.isNotEmpty) {
-            return const LoginScreen();
-          }
-          return const ShopSelectorScreen();
-        },
-      ),
+      home: const GatewayScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/shop-selector': (context) => const ShopSelectorScreen(),
+        '/gateway': (context) => const GatewayScreen(),
       },
     );
   }
@@ -197,14 +192,6 @@ class _LoginScreenState extends State<LoginScreen> {
         (route) => false,
       );
 
-      if (userProvider.deliveryAddress.isEmpty) {
-        navigator.push(
-          MaterialPageRoute(
-            builder: (context) =>
-                const MapSelectionScreen(initialLat: 0.0, initialLng: 0.0),
-          ),
-        );
-      }
       return;
     }
 
@@ -416,6 +403,26 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _startCustomPhoneLogin() async {
+    try {
+      final value = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CustomAuthScreen()),
+      );
+      if (value != null && value[AppConstant.authResponse] != null) {
+        final loginData = value[AppConstant.authResponse] as LoginModel;
+        if (loginData.accessTokenn != null && loginData.accessTokenn!.isNotEmpty) {
+          _handlePhoneEmailAuth(loginData.accessTokenn!);
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OTP Failed: $e')),
+      );
+    }
+  }
+
   void _handlePhoneEmailAuth(String accessToken) {
     setState(() => _isLoading = true);
     PhoneEmail.getUserInfo(
@@ -489,14 +496,6 @@ class _LoginScreenState extends State<LoginScreen> {
           (route) => false,
         );
 
-        if (userProvider.deliveryAddress.isEmpty) {
-          navigator.push(
-            MaterialPageRoute(
-              builder: (context) =>
-                  const MapSelectionScreen(initialLat: 0.0, initialLng: 0.0),
-            ),
-          );
-        }
       }
     }
   }
@@ -728,15 +727,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                             style: AppButtonStyles.primary(radius: 16),
                                             child: const Text('Sign in with Phone (Web Not Supported)'),
                                           )
-                                        : PhoneLoginButton(
-                                            borderRadius: 16,
-                                            buttonColor: AppColors.primaryDark,
-                                            label: 'Sign in with Phone',
-                                            onSuccess: (String accessToken, String jwtToken) {
-                                              if (accessToken.isNotEmpty) {
-                                                _handlePhoneEmailAuth(accessToken);
-                                              }
-                                            },
+                                        : ElevatedButton(
+                                            onPressed: _startCustomPhoneLogin,
+                                            style: AppButtonStyles.primary(radius: 16),
+                                            child: const Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.phone, color: Colors.white, size: 20),
+                                                SizedBox(width: 8),
+                                                Text('Sign in with Phone', style: TextStyle(color: Colors.white, fontSize: 16)),
+                                              ],
+                                            ),
                                           ),
                                   )
                                   .animate(delay: 350.ms)
@@ -750,9 +751,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                       final confirm = await showDialog<bool>(
                                         context: context,
                                         builder: (context) => AlertDialog(
-                                          title: const Text('Dukan Badlein?'),
+                                          title: const Text('Change Shop?'),
                                           content: const Text(
-                                            'Kya aap is dukan se bahar aakar doosri dukan chunna chahte hain? Aapka cart clear ho jayega.',
+                                            'Do you want to leave this shop and choose another? Your cart will be cleared.',
                                           ),
                                           actions: [
                                             TextButton(
@@ -768,7 +769,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                     AppColors.primaryDark,
                                               ),
                                               child: const Text(
-                                                'Haan, Badlein',
+                                                'Yes, Change Shop',
                                               ),
                                             ),
                                           ],

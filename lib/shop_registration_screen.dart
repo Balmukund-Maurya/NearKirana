@@ -10,14 +10,13 @@ import 'package:image_picker/image_picker.dart';
 
 import 'app_theme.dart';
 import 'modern_loader.dart';
-import 'package:latlong2/latlong.dart';
-import 'map_selection_screen.dart';
 import 'package:provider/provider.dart';
 import 'language_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
 class ShopRegistrationScreen extends StatefulWidget {
-  const ShopRegistrationScreen({super.key});
+  final String verifiedPhone;
+  const ShopRegistrationScreen({super.key, required this.verifiedPhone});
 
   @override
   State<ShopRegistrationScreen> createState() => _ShopRegistrationScreenState();
@@ -28,10 +27,11 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
   final _shopNameController = TextEditingController();
   final _ownerNameController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _pinController = TextEditingController();
   final _gstinController = TextEditingController(); // FSSAI or GSTIN
+  final _deliveryRadiusController = TextEditingController(text: '1');
+  final _pickupRadiusController = TextEditingController(text: '1');
 
   bool _isLoading = false;
   bool _obscurePin = true;
@@ -45,10 +45,11 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
   void dispose() {
     _shopNameController.dispose();
     _ownerNameController.dispose();
-    _phoneController.dispose();
     _addressController.dispose();
     _pinController.dispose();
     _gstinController.dispose();
+    _deliveryRadiusController.dispose();
+    _pickupRadiusController.dispose();
     super.dispose();
   }
 
@@ -169,7 +170,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
     HapticFeedback.mediumImpact();
 
     try {
-      final phone = _phoneController.text.trim();
+      final phone = widget.verifiedPhone;
 
       final existingShop = await FirebaseUtils.firestore
           .collection('shops')
@@ -212,6 +213,8 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
         'delivery_fee': 20.0,
         'minimum_order': 300.0,
         'free_delivery_threshold': 500.0,
+        'delivery_radius_km': double.tryParse(_deliveryRadiusController.text.trim()) ?? 1.0,
+        'pickup_radius_km': double.tryParse(_pickupRadiusController.text.trim()) ?? 1.0,
         'whatsapp_message_template': 'नमस्ते {shopName}, मेरा नाम {name} है और मेरा मोबाइल नंबर {phone} है। मुझे अपने ऑर्डर / अकाउंट के बारे में कुछ मदद चाहिए।',
         'upi_id': '',
         'banner_image_url': '',
@@ -299,15 +302,6 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                         validator: (val) => val!.isEmpty ? 'Naam zaroori hai' : null,
                       ).animate().fadeIn(delay: 200.ms),
                       const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: _phoneController,
-                        label: 'Mobile Number (Yahi Login ID hogi)',
-                        icon: Icons.phone_rounded,
-                        keyboardType: TextInputType.phone,
-                        maxLength: 10,
-                        validator: (val) => val!.length != 10 ? 'Sahi 10-digit number dalein' : null,
-                      ).animate().fadeIn(delay: 300.ms),
-                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         height: 56,
@@ -340,6 +334,30 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                         icon: Icons.verified_rounded,
                         validator: (val) => val!.isEmpty ? 'FSSAI ya GST number zaruri hai' : null,
                       ).animate().fadeIn(delay: 450.ms),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _deliveryRadiusController,
+                              label: 'Delivery Range (km)',
+                              icon: Icons.delivery_dining_rounded,
+                              keyboardType: TextInputType.number,
+                              validator: (val) => val!.isEmpty ? 'Zaroori' : null,
+                            ).animate().fadeIn(delay: 460.ms),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _pickupRadiusController,
+                              label: 'Pickup Range (km)',
+                              icon: Icons.store_mall_directory_rounded,
+                              keyboardType: TextInputType.number,
+                              validator: (val) => val!.isEmpty ? 'Zaroori' : null,
+                            ).animate().fadeIn(delay: 470.ms),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
                       // Image Picker UI
                       GestureDetector(

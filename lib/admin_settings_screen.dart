@@ -1,18 +1,22 @@
-import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import 'app_theme.dart';
-import 'sound_service.dart';
-import 'modern_loader.dart';
-import 'shop_provider.dart';
-import 'map_selection_screen.dart';
+import 'package:near_kirana/app_theme.dart';
+import 'package:near_kirana/sound_service.dart';
+import 'package:near_kirana/modern_loader.dart';
+import 'package:near_kirana/shop_provider.dart';
+import 'package:near_kirana/map_selection_screen.dart';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
-import 'utils/product_image_widget.dart';
+import 'package:near_kirana/utils/product_image_widget.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'package:near_kirana/admin_desktop_dashboard.dart';
+import 'package:near_kirana/widgets/admin_top_header.dart';
+import 'package:near_kirana/l10n/app_localizations.dart';
+import 'package:near_kirana/admin_language_theme_screen.dart';
+import 'package:near_kirana/admin_dashboard.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -22,28 +26,22 @@ class AdminSettingsScreen extends StatefulWidget {
 }
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
+  int _activeTabIndex = 0;
+  
   final _shopNameController = TextEditingController();
   final _ownerNameController = TextEditingController();
   final _deliveryFeeController = TextEditingController();
   final _minOrderController = TextEditingController();
   final _freeDeliveryThresholdController = TextEditingController();
   final _maxUdhaarController = TextEditingController();
-  final _pickupRadiusController = TextEditingController(); // FIX-3: Pickup radius
-  final _deliveryRadiusController = TextEditingController(); // FIX-32: Delivery radius
-  final _storeLatController = TextEditingController(); // FIX-32: Store Lat
-  final _storeLngController = TextEditingController(); // FIX-32: Store Lng
+  final _pickupRadiusController = TextEditingController();
+  final _deliveryRadiusController = TextEditingController();
+  final _storeLatController = TextEditingController();
+  final _storeLngController = TextEditingController();
   final _supportPhoneController = TextEditingController();
   final _whatsappMessageController = TextEditingController();
   bool _isStoreOpen = true;
-  List<String> _categories = [
-    'Dal',
-    'Rice',
-    'Spices',
-    'Oil',
-    'Snacks',
-    'Soap',
-    'Loose',
-  ];
+  List<String> _categories = [];
   bool _isLoading = true;
 
   @override
@@ -84,11 +82,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         _freeDeliveryThresholdController.text =
             (data['free_delivery_threshold'] ?? 500.0).toString();
         _isStoreOpen = data['is_store_open'] ?? true;
-        _maxUdhaarController.text = (data['max_udhaar_limit'] ?? 2000.0)
-            .toString();
-        // FIX-3: Load pickup radius (default 25km)
+        _maxUdhaarController.text = (data['max_udhaar_limit'] ?? 2000.0).toString();
         _pickupRadiusController.text = (data['pickup_radius_km'] ?? 25.0).toString();
-        // FIX-32: Load geo-fencing data
         _deliveryRadiusController.text = (data['delivery_radius_km'] ?? 5.0).toString();
         _storeLatController.text = (data['store_latitude'] ?? '').toString();
         _storeLngController.text = (data['store_longitude'] ?? '').toString();
@@ -97,29 +92,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
         if (data['categories'] != null) {
           _categories = List<String>.from(data['categories']);
+        } else if (data['product_categories'] != null) {
+          // Fallback if it was stored as product_categories
+          _categories = List<String>.from(data['product_categories']);
         }
-      } else {
-        _shopNameController.text = '';
-        _ownerNameController.text = '';
-        _deliveryFeeController.text = '20.0';
-        _minOrderController.text = '300.0';
-        _freeDeliveryThresholdController.text = '500.0';
-        _maxUdhaarController.text = '2000.0';
-        _pickupRadiusController.text = '25.0'; // FIX-3
-        _deliveryRadiusController.text = '5.0'; // FIX-32
-        _storeLatController.text = '';
-        _storeLngController.text = '';
-        _supportPhoneController.text = '';
-        _whatsappMessageController.text = "नमस्ते {shopName}, मेरा नाम {name} है और मेरा मोबाइल नंबर {phone} है। मुझे अपने ऑर्डर / अकाउंट के बारे में कुछ मदद चाहिए।";
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      debugPrint("Error loading settings: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -146,66 +125,38 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         return;
       }
 
-      if (deliveryRadius > 10) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Delivery Radius cannot exceed 10 km'), backgroundColor: AppColors.error),
-          );
-          setState(() => _isLoading = false);
-        }
-        return;
-      }
-
-      if (pickupRadius > 25) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Pickup Radius cannot exceed 25 km'), backgroundColor: AppColors.error),
-          );
-          setState(() => _isLoading = false);
-        }
-        return;
-      }
-
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       final settingsRef = shopId != null && shopId.isNotEmpty
           ? FirebaseUtils.firestore.collection('shops').doc(shopId)
           : FirebaseUtils.firestore.collection('settings').doc('app_config');
 
       await settingsRef.set({
-            'shop_name': _shopNameController.text.trim(),
-            'owner_name': _ownerNameController.text.trim(),
-            'delivery_fee': deliveryFee,
-            'minimum_order': minOrder,
-            'free_delivery_threshold': freeDeliveryThreshold,
-            'max_udhaar_limit': maxUdhaar,
-            'is_store_open': _isStoreOpen,
-            'categories': _categories,
-            // FIX-3: Save pickup radius
-            'pickup_radius_km': pickupRadius,
-            // FIX-32: Save delivery geo-fencing
-            'delivery_radius_km': deliveryRadius,
-            'store_latitude': double.tryParse(_storeLatController.text),
-            'store_longitude': double.tryParse(_storeLngController.text),
-            'support_phone': _supportPhoneController.text.trim(),
-            'whatsapp_message_template': _whatsappMessageController.text.trim(),
-          }, SetOptions(merge: true));
+        'shop_name': _shopNameController.text.trim(),
+        'owner_name': _ownerNameController.text.trim(),
+        'delivery_fee': deliveryFee,
+        'minimum_order': minOrder,
+        'free_delivery_threshold': freeDeliveryThreshold,
+        'max_udhaar_limit': maxUdhaar,
+        'is_store_open': _isStoreOpen,
+        'categories': _categories,
+        'pickup_radius_km': pickupRadius,
+        'delivery_radius_km': deliveryRadius,
+        'store_latitude': double.tryParse(_storeLatController.text),
+        'store_longitude': double.tryParse(_storeLngController.text),
+        'support_phone': _supportPhoneController.text.trim(),
+        'whatsapp_message_template': _whatsappMessageController.text.trim(),
+      }, SetOptions(merge: true));
 
       SoundService().play('save.mp3');
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.settings_saved),
-            backgroundColor: AppColors.primaryDark,
-          ),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.settings_saved), backgroundColor: AppColors.primaryDark),
         );
-        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error saving settings: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -215,389 +166,458 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.store_settings),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth > 900;
+        
+        if (isDesktop) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8F9FA),
+            body: Column(
+              children: [
+                const AdminTopHeader(),
+                Expanded(
+                  child: _isLoading 
+                      ? const Center(child: ModernLoader(color: AppColors.primaryDark))
+                      : _buildDesktopLayout(),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F9FA),
+          appBar: AppBar(title: Text(AppLocalizations.of(context)!.store_settings)),
+          body: _isLoading 
+              ? const Center(child: ModernLoader(color: AppColors.primaryDark))
+              : _buildDesktopLayout(), // Reusing for mobile for now with SingleChildScrollView
+        );
+      },
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildPageHeader(),
+          const SizedBox(height: 24),
+          _buildTabs(),
+          const SizedBox(height: 32),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Content
+              Expanded(
+                flex: 7,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildAccountInfoCard(),
+                    const SizedBox(height: 24),
+                    _buildShopBusinessCard(),
+                    const SizedBox(height: 24),
+                    _buildFinancialRulesCard(),
+                    const SizedBox(height: 24),
+                    _buildCategoriesCard(),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Right Content
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildAppInfoCard(),
+                    const SizedBox(height: 24),
+                    _buildQuickActionsCard(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: ModernLoader(color: AppColors.primaryDark),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+    );
+  }
+
+  Widget _buildPageHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Settings', style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28)),
+        const SizedBox(height: 4),
+        Text('Manage your store, account, and application preferences', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+      ],
+    );
+  }
+
+  Widget _buildTabs() {
+    final tabs = ['General', 'Shop & Business', 'Notifications', 'Users & Staff', 'Security', 'System'];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: tabs.asMap().entries.map((entry) {
+          final index = entry.key;
+          final label = entry.value;
+          final isActive = _activeTabIndex == index;
+          
+          IconData icon;
+          switch (label) {
+            case 'General': icon = Icons.settings_outlined; break;
+            case 'Shop & Business': icon = Icons.storefront_outlined; break;
+            case 'Notifications': icon = Icons.notifications_none_outlined; break;
+            case 'Users & Staff': icon = Icons.people_outline; break;
+            case 'Security': icon = Icons.shield_outlined; break;
+            case 'System': icon = Icons.storage_outlined; break;
+            default: icon = Icons.circle_outlined;
+          }
+
+          return GestureDetector(
+            onTap: () {
+              if (index == 0) setState(() => _activeTabIndex = index);
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: isActive ? AppColors.primaryLight.withValues(alpha: 0.1) : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isActive ? AppColors.primaryDark : AppColors.bgTint,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Center(
-                    child: _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
-                  ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-                  const SizedBox(height: 24),
-                  
-                  // Shop Name & Owner Name
-                  _buildConfigField(
-                    'Shop Name',
-                    _shopNameController,
-                    'Enter shop name',
-                    Icons.storefront_rounded,
-                    keyboardType: TextInputType.text,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildConfigField(
-                    'Owner Name',
-                    _ownerNameController,
-                    'Enter owner name',
-                    Icons.person_outline_rounded,
-                    keyboardType: TextInputType.text,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Store Status
-                  Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: _isStoreOpen
-                                ? AppColors.primaryDark.withValues(alpha: 0.3)
-                                : AppColors.error.withValues(alpha: 0.3),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  AppLocalizations.of(context)!.store_is_open,
-                                  style: AppTextStyles.heading2(
-                                    color: AppColors.textDark,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _isStoreOpen
-                                      ? 'Accepting new orders'
-                                      : 'Store is closed right now',
-                                  style: AppTextStyles.bodyMedium(
-                                    color: _isStoreOpen
-                                        ? AppColors.primaryDark
-                                        : AppColors.error,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Switch(
-                              value: _isStoreOpen,
-                              activeThumbColor: AppColors.primaryDark,
-                              inactiveTrackColor: AppColors.error.withValues(
-                                alpha: 0.3,
-                              ),
-                              inactiveThumbColor: AppColors.error,
-                              onChanged: (val) {
-                                HapticFeedback.lightImpact();
-                                setState(() => _isStoreOpen = val);
-                              },
-                            ),
-                          ],
-                        ),
-                      )
-                      .animate()
-                      .fadeIn(duration: 400.ms)
-                      .slideY(begin: 0.1, end: 0),
-
-                  const SizedBox(height: 32),
-
-                  // Financial Rules
+                  Icon(icon, size: 18, color: isActive ? AppColors.primaryDark : AppColors.textMid),
+                  const SizedBox(width: 8),
                   Text(
-                    AppLocalizations.of(context)!.financial_rules,
-                    style: AppTextStyles.heading2(color: AppColors.textDark),
-                  ).animate().fadeIn(delay: 100.ms),
-                  const SizedBox(height: 16),
-
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.bgTint, width: 1.5),
+                    label,
+                    style: TextStyle(
+                      color: isActive ? AppColors.primaryDark : AppColors.textDark,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 14,
                     ),
-                    child: Column(
-                      children: [
-                        _buildConfigField(
-                          'Delivery Fee (₹)',
-                          _deliveryFeeController,
-                          'e.g. 20',
-                          Icons.moped_rounded,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildConfigField(
-                          'Minimum Order Amount (₹)',
-                          _minOrderController,
-                          'e.g. 300',
-                          Icons.shopping_basket_rounded,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildConfigField(
-                          'Free Delivery Threshold (₹)',
-                          _freeDeliveryThresholdController,
-                          'e.g. 500',
-                          Icons.card_giftcard_rounded,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildConfigField(
-                          'Maximum Udhaar Limit (₹)',
-                          _maxUdhaarController,
-                          'e.g. 2000',
-                          Icons.account_balance_wallet_rounded,
-                        ),
-                        const SizedBox(height: 16),
-                        // FIX-3: Pickup radius setting
-                        _buildConfigField(
-                          'Pickup Order Radius (km)',
-                          _pickupRadiusController,
-                          'e.g. 25',
-                          Icons.storefront_rounded,
-                        ),
-                        const SizedBox(height: 16),
-                        // FIX-32: Delivery Geo-fencing
-                        _buildConfigField(
-                          'Delivery Radius (km)',
-                          _deliveryRadiusController,
-                          'e.g. 5',
-                          Icons.map_rounded,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  _buildConfigField(
-                                    'Store Latitude',
-                                    _storeLatController,
-                                    'e.g. 28.7041',
-                                    Icons.location_on_rounded,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildConfigField(
-                                    'Store Longitude',
-                                    _storeLngController,
-                                    'e.g. 77.1025',
-                                    Icons.location_on_rounded,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            SizedBox(
-                              height: 120, // matches height of two fields + spacing
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  final currentLat = double.tryParse(_storeLatController.text) ?? 0.0;
-                                  final currentLng = double.tryParse(_storeLngController.text) ?? 0.0;
-                                  final dynamic pickedLocation = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => MapSelectionScreen(
-                                        initialLat: currentLat,
-                                        initialLng: currentLng,
-                                        isPickingOnly: true,
-                                      ),
-                                    ),
-                                  );
-                                  if (!context.mounted) return;
-                                  if (pickedLocation != null) {
-                                    try {
-                                      setState(() {
-                                        _storeLatController.text = pickedLocation.latitude.toString();
-                                        _storeLngController.text = pickedLocation.longitude.toString();
-                                      });
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.location_picked), backgroundColor: AppColors.primaryDark),
-                                      );
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
-                                      );
-                                    }
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.err_no_location), backgroundColor: AppColors.error),
-                                    );
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryDark,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                ),
-                                child: const Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.map_rounded, size: 28),
-                                    SizedBox(height: 8),
-                                    Text('Pick on\nMap', textAlign: TextAlign.center),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _buildConfigField(
-                          'Support Phone Number',
-                          _supportPhoneController,
-                          'e.g. 9876543210 (10 digits)',
-                          Icons.support_agent_rounded,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildConfigField(
-                          'WhatsApp Support Message',
-                          _whatsappMessageController,
-                          'Use {name} and {phone} as placeholders',
-                          Icons.message_rounded,
-                          keyboardType: TextInputType.multiline,
-                          maxLines: 4,
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
-
-                  const SizedBox(height: 32),
-
-                  // Categories
-                  Text(
-                    'Product Categories',
-                    style: AppTextStyles.heading2(color: AppColors.textDark),
-                  ).animate().fadeIn(delay: 300.ms),
-                  const SizedBox(height: 16),
-
-                  Container(
-                    height: 350,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.bgTint, width: 1.5),
-                    ),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: Theme(
-                            data: Theme.of(context).copyWith(
-                              canvasColor: Colors.transparent,
-                            ),
-                            child: ReorderableListView.builder(
-                              itemCount: _categories.length,
-                              onReorderItem: (int oldIndex, int newIndex) {
-                                setState(() {
-                                  final item = _categories.removeAt(oldIndex);
-                                  _categories.insert(newIndex, item);
-                                  HapticFeedback.lightImpact();
-                                });
-                              },
-                              itemBuilder: (context, index) {
-                                final cat = _categories[index];
-                                return Container(
-                                  key: ValueKey(cat),
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.bgTint,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 0),
-                                    leading: const Icon(Icons.drag_indicator_rounded,
-                                        color: AppColors.textLight),
-                                    title: Text(
-                                      cat,
-                                      style: AppTextStyles.bodySemiBold(
-                                        color: AppColors.primaryDark,
-                                      ),
-                                    ),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.close_rounded,
-                                          color: Colors.redAccent),
-                                      onPressed: () {
-                                        HapticFeedback.lightImpact();
-                                        setState(() => _categories.remove(cat));
-                                      },
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.add_rounded),
-                              label: const Text('Add Category'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryDark,
-                                foregroundColor: AppColors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: () {
-                                HapticFeedback.mediumImpact();
-                                _showAddCategoryDialog();
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
-
-                  const SizedBox(height: 48),
-
-                  // Save Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _saveSettings,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
-                        foregroundColor: AppColors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Save Settings',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0),
-
-                  const SizedBox(height: 32),
+                  ),
                 ],
               ),
             ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildAccountInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: AppColors.bgTint),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Account Information', style: AppTextStyles.heading2(color: AppColors.textDark)),
+          const SizedBox(height: 4),
+          Text('Update your admin account details', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
+              const SizedBox(width: 32),
+              Expanded(
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: _buildHDField('Full Name *', _ownerNameController, Icons.person_outline, 'Admin User')),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildHDField('Phone Number', TextEditingController(text: ''), Icons.phone_outlined, 'N/A', readOnly: true)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShopBusinessCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: AppColors.bgTint),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Shop & Business Settings', style: AppTextStyles.heading2(color: AppColors.textDark)),
+                  const SizedBox(height: 4),
+                  Text('Manage your shop and business information', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+                ],
+              ),
+              Row(
+                children: [
+                  Text(_isStoreOpen ? 'Store Open' : 'Store Closed', style: TextStyle(color: _isStoreOpen ? AppColors.primaryDark : AppColors.error, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 8),
+                  Switch(
+                    value: _isStoreOpen,
+                    activeColor: AppColors.primaryDark,
+                    onChanged: (val) {
+                      setState(() => _isStoreOpen = val);
+                      HapticFeedback.lightImpact();
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: _buildHDField('Shop Name *', _shopNameController, Icons.storefront_outlined, 'NearKirana General Store')),
+              const SizedBox(width: 16),
+              Expanded(child: _buildHDField('Contact Number *', _supportPhoneController, Icons.phone_outlined, '98765 43210', prefixText: '+91 ')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _buildHDField('Store Latitude', _storeLatController, Icons.location_on_outlined, '28.7041')),
+              const SizedBox(width: 16),
+              Expanded(child: _buildHDField('Store Longitude', _storeLngController, Icons.location_on_outlined, '77.1025')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildHDField('WhatsApp Support Message', _whatsappMessageController, Icons.message_outlined, 'Message', maxLines: 2),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFinancialRulesCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: AppColors.bgTint),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Financial & Delivery Rules', style: AppTextStyles.heading2(color: AppColors.textDark)),
+          const SizedBox(height: 4),
+          Text('Configure delivery fees, minimum order limits, and radius', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: _buildHDField('Delivery Fee (₹)', _deliveryFeeController, Icons.moped_outlined, '20')),
+              const SizedBox(width: 16),
+              Expanded(child: _buildHDField('Minimum Order (₹)', _minOrderController, Icons.shopping_basket_outlined, '300')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _buildHDField('Free Delivery Threshold (₹)', _freeDeliveryThresholdController, Icons.card_giftcard_outlined, '500')),
+              const SizedBox(width: 16),
+              Expanded(child: _buildHDField('Max Udhaar Limit (₹)', _maxUdhaarController, Icons.account_balance_wallet_outlined, '2000')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _buildHDField('Delivery Radius (km)', _deliveryRadiusController, Icons.map_outlined, '5')),
+              const SizedBox(width: 16),
+              Expanded(child: _buildHDField('Pickup Radius (km)', _pickupRadiusController, Icons.storefront_outlined, '25')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoriesCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: AppColors.bgTint),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Product Categories', style: AppTextStyles.heading2(color: AppColors.textDark)),
+          const SizedBox(height: 4),
+          Text('Manage categories shown to customers', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ..._categories.map((cat) {
+                return Chip(
+                  label: Text(cat, style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.bold)),
+                  backgroundColor: AppColors.primaryLight.withValues(alpha: 0.1),
+                  deleteIcon: const Icon(Icons.close, size: 16, color: Colors.red),
+                  onDeleted: () => setState(() => _categories.remove(cat)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: AppColors.primaryLight.withValues(alpha: 0.3))),
+                );
+              }),
+              ActionChip(
+                label: const Text('Add Category'),
+                avatar: const Icon(Icons.add, size: 16),
+                onPressed: _showAddCategoryDialog,
+              )
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: AppColors.bgTint),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.widgets_outlined, size: 20, color: AppColors.textDark),
+              const SizedBox(width: 8),
+              Text('App Information', style: AppTextStyles.heading2(color: AppColors.textDark)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildInfoRow('App Version', 'v1.0.0'),
+          const SizedBox(height: 16),
+          _buildInfoRow('Last Updated', '15 Aug 2024'),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Environment', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('Production', style: TextStyle(color: AppColors.primaryDark, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow('Platform', 'Web Admin Panel'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: AppColors.bgTint),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.bolt_outlined, size: 20, color: AppColors.textDark),
+              const SizedBox(width: 8),
+              Text('Quick Actions', style: AppTextStyles.heading2(color: AppColors.textDark)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _saveSettings,
+            icon: const Icon(Icons.save_outlined),
+            label: const Text('Save Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => import_language_theme(context),
+            icon: const Icon(Icons.language, size: 18),
+            label: const Text('Language & Theme', style: TextStyle(fontSize: 14)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryDark,
+              side: const BorderSide(color: AppColors.primaryDark),
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void import_language_theme(BuildContext context) {
+    // Use the AdminDashboard static callback to navigate to index 11
+    // This ensures the screen is rendered inside AdminDesktopDashboard (with sidebar).
+    if (AdminDashboard.navCallback != null) {
+      AdminDashboard.navCallback!(11);
+    } else {
+      // Fallback: direct push (no sidebar) if not inside AdminDashboard
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const AdminLanguageThemeScreen()),
+      );
+    }
+  }
+
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+        Text(value, style: AppTextStyles.bodySemiBold(color: AppColors.textDark)),
+      ],
     );
   }
 
@@ -606,27 +626,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          'Add Category',
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: 'e.g. Stationery',
-            hintStyle: AppTextStyles.bodyMedium(color: AppColors.textMid),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
+        title: const Text('Add Category'),
+        content: TextField(controller: controller, decoration: const InputDecoration(hintText: 'Category Name')),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
-            ),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
@@ -634,13 +637,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 Navigator.pop(context);
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryDark,
-              foregroundColor: AppColors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
             child: const Text('Add'),
           ),
         ],
@@ -648,40 +644,30 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildConfigField(
-    String label,
-    TextEditingController controller,
-    String hint,
-    IconData icon, {
-    TextInputType keyboardType = TextInputType.number,
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      style: AppTextStyles.bodyMedium(color: AppColors.textDark),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: AppTextStyles.captionMedium(color: AppColors.textMid),
-        hintText: hint,
-        hintStyle: AppTextStyles.bodyMedium(color: AppColors.textLight),
-        prefixIcon: Icon(icon, color: AppColors.primaryDark, size: 20),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.bgTint),
+  Widget _buildHDField(String label, TextEditingController controller, IconData icon, String hint, {String? prefixText, bool readOnly = false, int maxLines = 1}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.bodySemiBold(color: AppColors.textDark).copyWith(fontSize: 13)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          readOnly: readOnly,
+          maxLines: maxLines,
+          style: AppTextStyles.bodyMedium(color: AppColors.textDark),
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixText: prefixText,
+            prefixIcon: Icon(icon, color: AppColors.textMid, size: 20),
+            filled: true,
+            fillColor: readOnly ? AppColors.bgTint.withValues(alpha: 0.5) : Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.bgTint)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.bgTint)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primaryDark)),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.bgTint),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
-        ),
-        filled: true,
-        fillColor: AppColors.surface,
-      ),
+      ],
     );
   }
 }
@@ -695,7 +681,6 @@ class _ShopAvatar extends StatefulWidget {
 
 class _ShopAvatarState extends State<_ShopAvatar> {
   bool _isUploading = false;
-
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
@@ -707,7 +692,7 @@ class _ShopAvatarState extends State<_ShopAvatar> {
         final finalImageUrl = 'data:image/jpeg;base64,$base64String';
         await widget.shopProvider.updateShopProfilePic(finalImageUrl);
       } catch (e) {
-        debugPrint('Error uploading shop profile pic: $e');
+        debugPrint('Error: $e');
       } finally {
         if (mounted) setState(() => _isUploading = false);
       }
@@ -722,36 +707,20 @@ class _ShopAvatarState extends State<_ShopAvatar> {
         alignment: Alignment.bottomRight,
         children: [
           Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primaryLight.withValues(alpha: 0.2),
-              border: Border.all(
-                color: AppColors.primaryLight,
-                width: 3,
-              ),
-            ),
+            width: 100, height: 100,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.bgTint),
             child: ClipOval(
               child: _isUploading
                   ? const Center(child: ModernLoader(color: AppColors.primaryDark))
                   : (widget.shopProvider.shopProfilePic != null && widget.shopProvider.shopProfilePic!.isNotEmpty)
                       ? ProductImageWidget(imageUrl: widget.shopProvider.shopProfilePic, width: 100, height: 100)
-                      : const Icon(
-                          Icons.store_rounded,
-                          size: 50,
-                          color: AppColors.primaryDark,
-                        ),
+                      : const Icon(Icons.person, size: 50, color: AppColors.textMid),
             ),
           ),
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppColors.primaryDark,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-            child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
+            child: const Icon(Icons.camera_alt_outlined, size: 16, color: AppColors.textDark),
           ),
         ],
       ),

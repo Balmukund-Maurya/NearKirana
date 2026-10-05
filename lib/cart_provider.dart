@@ -11,6 +11,7 @@ class CartItem {
   final bool isLoose;
   final double maxStock;
   double quantity;
+  final String? imageUrl;
 
   CartItem({
     required this.id,
@@ -19,6 +20,7 @@ class CartItem {
     required this.isLoose,
     required this.maxStock,
     this.quantity = 1.0,
+    this.imageUrl,
   });
 
   Map<String, dynamic> toJson() => {
@@ -28,6 +30,7 @@ class CartItem {
     'isLoose': isLoose,
     'maxStock': maxStock,
     'quantity': quantity,
+    'imageUrl': imageUrl,
   };
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
@@ -37,6 +40,7 @@ class CartItem {
     isLoose: json['isLoose'],
     maxStock: (json['maxStock'] as num).toDouble(),
     quantity: (json['quantity'] as num).toDouble(),
+    imageUrl: json['imageUrl'],
   );
 }
 
@@ -153,8 +157,9 @@ class CartProvider with ChangeNotifier {
     String name,
     double price,
     bool isLoose,
-    double maxStock,
-  ) {
+    double maxStock, {
+    String? imageUrl,
+  }) {
     bool success = true;
     if (_items.containsKey(productId)) {
       final existingCartItem = _items[productId]!;
@@ -173,6 +178,7 @@ class CartProvider with ChangeNotifier {
             isLoose: existingCartItem.isLoose,
             maxStock: maxStock,
             quantity: newQty,
+            imageUrl: imageUrl ?? existingCartItem.imageUrl,
           ),
         );
       }
@@ -190,6 +196,7 @@ class CartProvider with ChangeNotifier {
             isLoose: isLoose,
             maxStock: maxStock,
             quantity: initialQty,
+            imageUrl: imageUrl,
           ),
         );
       }

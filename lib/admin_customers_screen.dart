@@ -11,6 +11,8 @@ import 'modern_loader.dart';
 import 'animation_helpers.dart';
 import 'package:provider/provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'receive_payment_screen.dart';
+import 'admin_add_edit_customer_screen.dart';
 
 class AdminCustomersScreen extends StatefulWidget {
   const AdminCustomersScreen({super.key});
@@ -29,6 +31,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   bool _hasMore = true;
   final int _limit = 20;
   DocumentSnapshot? _lastDocument;
+  bool _showCustomerForm = false;
+  DocumentSnapshot? _customerToEdit;
 
   @override
   void initState() {
@@ -104,6 +108,17 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showCustomerForm) {
+      return AdminAddEditCustomerScreen(
+        customer: _customerToEdit,
+        onBack: () => setState(() => _showCustomerForm = false),
+        onSaved: () {
+          setState(() => _showCustomerForm = false);
+          _refresh();
+        },
+      );
+    }
+
     final langProvider = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -114,12 +129,15 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
         heroTag: 'fab_admin_customers_screen',
         onPressed: () {
           HapticFeedback.mediumImpact();
-          _showAddOfflineKhataEntryDialog(context);
+          setState(() {
+            _showCustomerForm = true;
+            _customerToEdit = null;
+          });
         },
         backgroundColor: AppColors.primaryDark,
-        icon: const Icon(Icons.add_rounded, color: AppColors.white),
+        icon: const Icon(Icons.person_add_alt_1_rounded, color: AppColors.white),
         label: const Text(
-          'Add Offline Khata',
+          'Add Customer',
           style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
         ),
       ).animate().scale(delay: 200.ms, curve: Curves.easeOutBack),
@@ -442,12 +460,20 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                               InkWell(
                                                 onTap: () {
                                                   HapticFeedback.mediumImpact();
-                                                  _showSettlePaymentDialog(
+                                                  Navigator.push(
                                                     context,
-                                                    doc.id,
-                                                    name,
-                                                    udhaar,
-                                                  );
+                                                    MaterialPageRoute(
+                                                      builder: (context) => ReceivePaymentScreen(
+                                                        customerId: doc.id,
+                                                        customerName: name,
+                                                        customerPhone: phone,
+                                                      ),
+                                                    ),
+                                                  ).then((value) {
+                                                    if (value == true) {
+                                                      _refresh();
+                                                    }
+                                                  });
                                                 },
                                                 borderRadius:
                                                     BorderRadius.circular(8),
@@ -483,12 +509,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                             InkWell(
                                               onTap: () {
                                                 HapticFeedback.lightImpact();
-                                                _showEditCustomerDialog(
-                                                  context,
-                                                  doc.id,
-                                                  name,
-                                                  phone,
-                                                );
+                                                setState(() {
+                                                  _showCustomerForm = true;
+                                                  _customerToEdit = doc;
+                                                });
                                               },
                                               borderRadius:
                                                   BorderRadius.circular(8),

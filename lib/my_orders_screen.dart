@@ -12,6 +12,7 @@ import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'my_orders_desktop_wrapper.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   final bool isTab;
@@ -41,7 +42,7 @@ class MyOrdersScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: AppBar(
+      appBar: MediaQuery.of(context).size.width > 800 ? null : AppBar(
         automaticallyImplyLeading: !isTab,
         title: Text(AppLocalizations.of(context)!.my_orders),
       ),
@@ -117,6 +118,10 @@ class MyOrdersScreen extends StatelessWidget {
                   );
                 }
 
+                if (MediaQuery.of(context).size.width > 800) {
+                  return MyOrdersDesktopWrapper(orders: orders);
+                }
+
                 return ListView.builder(
                   padding: const EdgeInsets.only(
                     top: 16,
@@ -162,7 +167,7 @@ class MyOrdersScreen extends StatelessWidget {
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: MediaQuery.of(context).size.width > 800 ? null : FloatingActionButton.extended(
         heroTag: 'fab_my_orders_screen',
         onPressed: () => _callShopOwner(context),
         backgroundColor: AppColors.accentPink,

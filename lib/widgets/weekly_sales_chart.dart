@@ -10,7 +10,8 @@ import 'package:near_kirana/firebase_utils.dart';
 import '../modern_loader.dart';
 
 class WeeklySalesChart extends StatelessWidget {
-  const WeeklySalesChart({super.key});
+  final bool isDesktop;
+  const WeeklySalesChart({super.key, this.isDesktop = false});
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +90,69 @@ class WeeklySalesChart extends StatelessWidget {
            );
         }
 
+        Widget chartContent = AspectRatio(
+          aspectRatio: isDesktop ? 2.0 : 1.5,
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              maxY: maxTotal * 1.2,
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipColor: (group) => AppColors.textDark,
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    return BarTooltipItem(
+                      '₹${rod.toY.toStringAsFixed(0)}',
+                      const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    );
+                  }
+                ),
+              ),
+              titlesData: FlTitlesData(
+                show: true,
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      DateTime date = startOf7DaysAgo.add(Duration(days: value.toInt()));
+                      String dayStr = DateFormat('E').format(date); // Mon, Tue...
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(dayStr, style: const TextStyle(color: AppColors.textMid, fontSize: 10)),
+                      );
+                    },
+                    reservedSize: 28,
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 40,
+                    getTitlesWidget: (value, meta) {
+                      if (value == 0) return const SizedBox.shrink();
+                      return Text(
+                         value >= 1000 ? '${(value/1000).toStringAsFixed(1)}k' : value.toStringAsFixed(0),
+                         style: const TextStyle(color: AppColors.textMid, fontSize: 10)
+                      );
+                    },
+                  ),
+                ),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              ),
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: maxTotal / 4 == 0 ? 1 : maxTotal / 4,
+                getDrawingHorizontalLine: (value) => const FlLine(color: AppColors.bgTint, strokeWidth: 1, dashArray: [5, 5]),
+              ),
+              borderData: FlBorderData(show: false),
+              barGroups: barGroups,
+            )
+          ),
+        );
+
+        if (isDesktop) return chartContent;
+
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -108,66 +172,7 @@ class WeeklySalesChart extends StatelessWidget {
             children: [
               Text('Weekly Sales', style: AppTextStyles.heading2(color: AppColors.textDark)),
               const SizedBox(height: 24),
-              AspectRatio(
-                aspectRatio: 1.5,
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    maxY: maxTotal * 1.2,
-                    barTouchData: BarTouchData(
-                      touchTooltipData: BarTouchTooltipData(
-                        getTooltipColor: (group) => AppColors.textDark,
-                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                          return BarTooltipItem(
-                            '₹${rod.toY.toStringAsFixed(0)}',
-                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          );
-                        }
-                      ),
-                    ),
-                    titlesData: FlTitlesData(
-                      show: true,
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            DateTime date = startOf7DaysAgo.add(Duration(days: value.toInt()));
-                            String dayStr = DateFormat('E').format(date); // Mon, Tue...
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(dayStr, style: const TextStyle(color: AppColors.textMid, fontSize: 10)),
-                            );
-                          },
-                          reservedSize: 28,
-                        ),
-                      ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 40,
-                          getTitlesWidget: (value, meta) {
-                            if (value == 0) return const SizedBox.shrink();
-                            return Text(
-                               value >= 1000 ? '${(value/1000).toStringAsFixed(1)}k' : value.toStringAsFixed(0),
-                               style: const TextStyle(color: AppColors.textMid, fontSize: 10)
-                            );
-                          },
-                        ),
-                      ),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    ),
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      horizontalInterval: maxTotal / 4 == 0 ? 1 : maxTotal / 4,
-                      getDrawingHorizontalLine: (value) => const FlLine(color: AppColors.bgTint, strokeWidth: 1),
-                    ),
-                    borderData: FlBorderData(show: false),
-                    barGroups: barGroups,
-                  )
-                ),
-              ),
+              chartContent,
             ],
           ),
         );

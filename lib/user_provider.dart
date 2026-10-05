@@ -10,6 +10,7 @@ import 'package:near_kirana/firebase_utils.dart';
 class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   String _customerName = '';
   String _phoneNumber = '';
+  String _email = '';
   String _deliveryAddress = '';
   String _customerHouseNo = '';
   String _customerLandmark = '';
@@ -20,6 +21,13 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   double? _storeLng;
   String _addressLabel = 'Home';
   String? _profileImageUrl;
+  Map<String, bool> _preferences = {
+    'push_notifications': true,
+    'offers': true,
+    'promo_emails': false,
+    'new_products': true,
+  };
+  List<Map<String, dynamic>> _savedAddresses = [];
 
   UserProvider() {
     WidgetsBinding.instance.addObserver(this);
@@ -43,6 +51,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String get customerName => _customerName;
   String get phoneNumber => _phoneNumber;
+  String get email => _email;
   String get deliveryAddress => _deliveryAddress;
   String get customerHouseNo => _customerHouseNo;
   String get customerLandmark => _customerLandmark;
@@ -53,6 +62,8 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   double? get storeLng => _storeLng;
   String get addressLabel => _addressLabel;
   String? get profileImageUrl => _profileImageUrl;
+  Map<String, bool> get preferences => _preferences;
+  List<Map<String, dynamic>> get savedAddresses => _savedAddresses;
 
   bool get isLoggedIn => _phoneNumber.isNotEmpty;
 
@@ -97,7 +108,57 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     await prefs.setString('customerHouseNo', houseNo);
     await prefs.setString('customerLandmark', landmark);
     await prefs.setString('addressLabel', label);
+    
+    // Auto-add to saved addresses if not present
+    final existingIndex = _savedAddresses.indexWhere((a) => a['address'] == address);
+    if (existingIndex == -1) {
+      _savedAddresses.add({
+        'address': address,
+        'houseNo': houseNo,
+        'landmark': landmark,
+        'label': label,
+        'lat': _currentLat,
+        'lng': _currentLng,
+      });
+      await prefs.setString('savedAddresses', jsonEncode(_savedAddresses));
+      _syncAddressesToFirebase();
+    }
+    
     notifyListeners();
+  }
+
+  Future<void> _syncAddressesToFirebase() async {
+    final phoneStr = _phoneNumber.replaceAll(RegExp(r'\D'), '');
+    if (phoneStr.isNotEmpty) {
+      try {
+        final qs = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phoneStr).get();
+        if (qs.docs.isNotEmpty) {
+          await FirebaseUtils.firestore.collection('customers').doc(qs.docs.first.id).update({
+            'saved_addresses': _savedAddresses,
+          });
+        }
+      } catch (e) {
+        debugPrint('Error syncing addresses to Firebase: $e');
+      }
+    }
+  }
+
+  Future<void> addSavedAddress(Map<String, dynamic> addressData) async {
+    _savedAddresses.add(addressData);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('savedAddresses', jsonEncode(_savedAddresses));
+    _syncAddressesToFirebase();
+    notifyListeners();
+  }
+
+  Future<void> deleteSavedAddress(int index) async {
+    if (index >= 0 && index < _savedAddresses.length) {
+      _savedAddresses.removeAt(index);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('savedAddresses', jsonEncode(_savedAddresses));
+      _syncAddressesToFirebase();
+      notifyListeners();
+    }
   }
 
   Future<void> logout() async {
@@ -120,12 +181,31 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     await prefs.remove('customerLng');
     await prefs.remove('addressLabel');
     await prefs.remove('customerProfilePic');
+    await prefs.remove('preferences');
+    await prefs.remove('savedAddresses');
+    _savedAddresses.clear();
     // FIX-4: Clear cart on logout so next user doesn't see previous user's cart
     await prefs.remove('cart_items');
     await prefs.remove('last_order_time');
     await prefs.remove('global_phone');
     await prefs.remove('app_role');
+    await prefs.remove('customerEmail');
     notifyListeners();
+  }
+
+  Future<void> deleteAccount() async {
+    final phoneStr = _phoneNumber.replaceAll(RegExp(r'\D'), '');
+    if (phoneStr.isNotEmpty) {
+      try {
+        final qs = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phoneStr).get();
+        for (var doc in qs.docs) {
+          await FirebaseUtils.firestore.collection('customers').doc(doc.id).delete();
+        }
+      } catch (e) {
+        debugPrint('Error deleting account from Firestore: $e');
+      }
+    }
+    await logout();
   }
 
   Future<void> checkServiceability() async {
@@ -276,6 +356,50 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     _profileImageUrl = base64Image;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('customerProfilePic', base64Image);
+    
+    final phoneStr = _phoneNumber.replaceAll(RegExp(r'\D'), '');
+    if (phoneStr.isNotEmpty) {
+      final qs = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phoneStr).get();
+      if (qs.docs.isNotEmpty) {
+        await FirebaseUtils.firestore.collection('customers').doc(qs.docs.first.id).update({
+          'profile_image': base64Image,
+        });
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> updateEmail(String newEmail) async {
+    _email = newEmail;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('customerEmail', newEmail);
+    
+    final phoneStr = _phoneNumber.replaceAll(RegExp(r'\D'), '');
+    if (phoneStr.isNotEmpty) {
+      final qs = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phoneStr).get();
+      if (qs.docs.isNotEmpty) {
+        await FirebaseUtils.firestore.collection('customers').doc(qs.docs.first.id).update({
+          'email': newEmail,
+        });
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> updatePreference(String key, bool value) async {
+    _preferences[key] = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('preferences', jsonEncode(_preferences));
+    
+    final phoneStr = _phoneNumber.replaceAll(RegExp(r'\D'), '');
+    if (phoneStr.isNotEmpty) {
+      final qs = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phoneStr).get();
+      if (qs.docs.isNotEmpty) {
+        await FirebaseUtils.firestore.collection('customers').doc(qs.docs.first.id).update({
+          'preferences': _preferences,
+        });
+      }
+    }
     notifyListeners();
   }
 
@@ -411,6 +535,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     _customerName = prefs.getString('customerName') ?? '';
     _phoneNumber = prefs.getString('customerPhone') ?? '';
+    _email = prefs.getString('customerEmail') ?? '';
     _deliveryAddress = prefs.getString('customerAddress') ?? '';
     _customerHouseNo = prefs.getString('customerHouseNo') ?? '';
     _customerLandmark = prefs.getString('customerLandmark') ?? '';
@@ -418,6 +543,27 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     _currentLng = prefs.getDouble('customerLng');
     _addressLabel = prefs.getString('addressLabel') ?? 'Home';
     _profileImageUrl = prefs.getString('customerProfilePic');
+    
+    final prefsStr = prefs.getString('preferences');
+    if (prefsStr != null) {
+      try {
+        final decoded = jsonDecode(prefsStr) as Map<String, dynamic>;
+        _preferences = decoded.map((key, value) => MapEntry(key, value as bool));
+      } catch (e) {
+        debugPrint('Error decoding preferences: $e');
+      }
+    }
+    
+    final savedAddrStr = prefs.getString('savedAddresses');
+    if (savedAddrStr != null) {
+      try {
+        final decodedList = jsonDecode(savedAddrStr) as List;
+        _savedAddresses = decodedList.map((e) => e as Map<String, dynamic>).toList();
+      } catch (e) {
+        debugPrint('Error decoding saved addresses: $e');
+      }
+    }
+    
     notifyListeners();
   }
 }

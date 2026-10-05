@@ -19,13 +19,17 @@ import 'package:image_picker/image_picker.dart';
 import 'utils/product_image_widget.dart';
 import 'modern_loader.dart';
 import 'package:near_kirana/firebase_utils.dart';
-
+import 'customer_profile_desktop_wrapper.dart';
 
 class CustomerProfileTab extends StatelessWidget {
   const CustomerProfileTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width > 800) {
+      return const CustomerProfileDesktopWrapper();
+    }
+    
     final userProvider = Provider.of<UserProvider>(context);
     final langProvider = Provider.of<LanguageProvider>(context);
 

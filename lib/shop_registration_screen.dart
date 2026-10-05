@@ -35,6 +35,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
   final _minOrderController = TextEditingController(text: '300.0');
   final _freeDeliveryThresholdController = TextEditingController(text: '500.0');
   final _maxUdhaarController = TextEditingController(text: '2000.0');
+  final _upiIdController = TextEditingController();
 
   bool _isLoading = false;
   bool _obscurePin = true;
@@ -58,6 +59,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
     _minOrderController.dispose();
     _freeDeliveryThresholdController.dispose();
     _maxUdhaarController.dispose();
+    _upiIdController.dispose();
     super.dispose();
   }
 
@@ -277,7 +279,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
         'delivery_radius_km': double.tryParse(_deliveryRadiusController.text.trim()) ?? 1.0,
         'pickup_radius_km': double.tryParse(_pickupRadiusController.text.trim()) ?? 1.0,
         'whatsapp_message_template': 'नमस्ते {shopName}, मेरा नाम {name} है और मेरा मोबाइल नंबर {phone} है। मुझे अपने ऑर्डर / अकाउंट के बारे में कुछ मदद चाहिए।',
-        'upi_id': '',
+        'upi_id': _upiIdController.text.trim(),
         'banner_image_url': '',
         'created_at': FieldValue.serverTimestamp(),
       });
@@ -584,6 +586,14 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _upiIdController,
+                        label: 'Shop UPI ID (for Customer Online Payment)',
+                        icon: Icons.qr_code_2_rounded,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: null,
+                      ).animate().fadeIn(delay: 472.ms),
                       const SizedBox(height: 16),
                       // Image Picker UI
                       GestureDetector(

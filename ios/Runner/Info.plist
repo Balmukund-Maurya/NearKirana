@@ -4,6 +4,14 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>upi</string>
+		<string>tel</string>
+		<string>phonepe</string>
+		<string>gpay</string>
+		<string>paytmmp</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to location when open to check delivery availability.</string>
 	<key>CFBundleDevelopmentRegion</key>

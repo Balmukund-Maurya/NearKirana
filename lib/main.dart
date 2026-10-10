@@ -1,7 +1,6 @@
 import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -148,7 +147,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-
   bool _isLoading = true;
 
   @override
@@ -212,11 +210,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-
     super.dispose();
   }
-
-
 
   void _showLanguageBottomSheet(BuildContext context) {
     SoundService().languageSwitch();
@@ -397,14 +392,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   } catch (e) {
                     if (!mounted) return;
                     setState(() => _isLoading = false);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
                   }
                 }
               },
               child: const Text('Continue'),
-            )
+            ),
           ],
         );
       },
@@ -419,15 +414,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (value != null && value[AppConstant.authResponse] != null) {
         final loginData = value[AppConstant.authResponse] as LoginModel;
-        if (loginData.accessTokenn != null && loginData.accessTokenn!.isNotEmpty) {
+        if (loginData.accessTokenn != null &&
+            loginData.accessTokenn!.isNotEmpty) {
           _handlePhoneEmailAuth(loginData.accessTokenn!);
         }
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP Failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('OTP Failed: $e')));
     }
   }
 
@@ -478,9 +474,9 @@ class _LoginScreenState extends State<LoginScreen> {
         } catch (e) {
           if (!mounted) return;
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
         }
       },
     );
@@ -503,7 +499,6 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (context) => const HomeScreen()),
           (route) => false,
         );
-
       }
     }
   }
@@ -666,225 +661,272 @@ class _LoginScreenState extends State<LoginScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   const SizedBox(height: 16),
-                                  
+
                                   // Logo
-                              Container(
-                                    width: 90,
-                                    height: 90,
-                                    decoration: AppDecorations.primaryGradient(
-                                      radius: 24,
-                                    ),
-                                    child: const Icon(
-                                      Icons.shopping_basket_rounded,
-                                      color: AppColors.white,
-                                      size: 44,
-                                    ),
-                                  )
-                                  .animate()
-                                  .scale(
-                                    begin: const Offset(0, 0),
-                                    end: const Offset(1, 1),
-                                    duration: 600.ms,
-                                    curve: Curves.elasticOut,
-                                  )
-                                  .fadeIn(duration: 400.ms),
+                                  Container(
+                                        width: 90,
+                                        height: 90,
+                                        decoration:
+                                            AppDecorations.primaryGradient(
+                                              radius: 24,
+                                            ),
+                                        child: const Icon(
+                                          Icons.shopping_basket_rounded,
+                                          color: AppColors.white,
+                                          size: 44,
+                                        ),
+                                      )
+                                      .animate()
+                                      .scale(
+                                        begin: const Offset(0, 0),
+                                        end: const Offset(1, 1),
+                                        duration: 600.ms,
+                                        curve: Curves.elasticOut,
+                                      )
+                                      .fadeIn(duration: 400.ms),
 
-                              const SizedBox(height: 24),
+                                  const SizedBox(height: 24),
 
-                              Text(
-                                    shopName,
-                                    textAlign: TextAlign.center,
-                                    style: AppTextStyles.display(),
-                                  )
-                                  .animate(delay: 150.ms)
-                                  .fadeIn(duration: 400.ms)
-                                  .slideY(begin: 0.2, end: 0),
+                                  Text(
+                                        shopName,
+                                        textAlign: TextAlign.center,
+                                        style: AppTextStyles.display(),
+                                      )
+                                      .animate(delay: 150.ms)
+                                      .fadeIn(duration: 400.ms)
+                                      .slideY(begin: 0.2, end: 0),
 
-                              const SizedBox(height: 8),
+                                  const SizedBox(height: 8),
 
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 6,
-                                ),
-                                decoration: AppDecorations.pill(
-                                  color: AppColors.bgTint,
-                                ),
-                                child: Text(
-                                  AppLocalizations.of(context)!.subtitle,
-                                  style: AppTextStyles.captionMedium(
-                                    color: AppColors.primaryDark,
-                                  ),
-                                ),
-                              ).animate(delay: 250.ms).fadeIn(duration: 400.ms),
+                                  Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 6,
+                                        ),
+                                        decoration: AppDecorations.pill(
+                                          color: AppColors.bgTint,
+                                        ),
+                                        child: Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.subtitle,
+                                          style: AppTextStyles.captionMedium(
+                                            color: AppColors.primaryDark,
+                                          ),
+                                        ),
+                                      )
+                                      .animate(delay: 250.ms)
+                                      .fadeIn(duration: 400.ms),
 
-                              const SizedBox(height: 48),
+                                  const SizedBox(height: 48),
 
-                              SizedBox(
-                                    width: double.infinity,
-                                    height: 58,
-                                    child: kIsWeb
-                                        ? ElevatedButton(
-                                            onPressed: () {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Phone.email authentication is currently not supported on Web. Please use the mobile app.'),
+                                  SizedBox(
+                                        width: double.infinity,
+                                        height: 58,
+                                        child: kIsWeb
+                                            ? ElevatedButton(
+                                                onPressed: () {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Phone.email authentication is currently not supported on Web. Please use the mobile app.',
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                style: AppButtonStyles.primary(
+                                                  radius: 16,
                                                 ),
-                                              );
-                                            },
-                                            style: AppButtonStyles.primary(radius: 16),
-                                            child: const Text('Sign in with Phone (Web Not Supported)'),
-                                          )
-                                        : ElevatedButton(
-                                            onPressed: _startCustomPhoneLogin,
-                                            style: AppButtonStyles.primary(radius: 16),
-                                            child: const Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Icon(Icons.phone, color: Colors.white, size: 20),
-                                                SizedBox(width: 8),
-                                                Text('Sign in with Phone', style: TextStyle(color: Colors.white, fontSize: 16)),
+                                                child: const Text(
+                                                  'Sign in with Phone (Web Not Supported)',
+                                                ),
+                                              )
+                                            : ElevatedButton(
+                                                onPressed:
+                                                    _startCustomPhoneLogin,
+                                                style: AppButtonStyles.primary(
+                                                  radius: 16,
+                                                ),
+                                                child: const Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.phone,
+                                                      color: Colors.white,
+                                                      size: 20,
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      'Sign in with Phone',
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 16,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                      )
+                                      .animate(delay: 350.ms)
+                                      .fadeIn(duration: 400.ms)
+                                      .slideY(begin: 0.15, end: 0),
+
+                                  const SizedBox(height: 12),
+
+                                  TextButton.icon(
+                                        onPressed: () async {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Change Shop?'),
+                                              content: const Text(
+                                                'Do you want to leave this shop and choose another? Your cart will be cleared.',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        false,
+                                                      ),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        true,
+                                                      ),
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            AppColors
+                                                                .primaryDark,
+                                                      ),
+                                                  child: const Text(
+                                                    'Yes, Change Shop',
+                                                  ),
+                                                ),
                                               ],
                                             ),
-                                          ),
-                                  )
-                                  .animate(delay: 350.ms)
-                                  .fadeIn(duration: 400.ms)
-                                  .slideY(begin: 0.15, end: 0),
-                              
-                              const SizedBox(height: 12),
-
-                              TextButton.icon(
-                                    onPressed: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Change Shop?'),
-                                          content: const Text(
-                                            'Do you want to leave this shop and choose another? Your cart will be cleared.',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, false),
-                                              child: const Text('Cancel'),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, true),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    AppColors.primaryDark,
-                                              ),
-                                              child: const Text(
-                                                'Yes, Change Shop',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-
-                                      if (confirm == true && context.mounted) {
-                                        await Provider.of<ShopProvider>(
-                                          context,
-                                          listen: false,
-                                        ).clearShop();
-                                        if (context.mounted) {
-                                          Provider.of<CartProvider>(
-                                            context,
-                                            listen: false,
-                                          ).clearCart();
-                                        }
-                                        if (context.mounted) {
-                                          Navigator.pushAndRemoveUntil(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const ShopSelectorScreen(),
-                                            ),
-                                            (route) => false,
                                           );
-                                        }
-                                      }
-                                    },
-                                    icon: const Icon(
-                                      Icons.swap_horiz_rounded,
-                                      size: 18,
-                                    ),
-                                    label: const Text('Change Shop'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: AppColors.primaryDark,
-                                    ),
-                                  )
-                                  .animate(delay: 600.ms)
-                                  .fadeIn(duration: 300.ms)
-                                  .slideY(begin: 0.05, end: 0),
 
-                              const SizedBox(height: 20),
+                                          if (confirm == true &&
+                                              context.mounted) {
+                                            await Provider.of<ShopProvider>(
+                                              context,
+                                              listen: false,
+                                            ).clearShop();
+                                            if (context.mounted) {
+                                              Provider.of<CartProvider>(
+                                                context,
+                                                listen: false,
+                                              ).clearCart();
+                                            }
+                                            if (context.mounted) {
+                                              Navigator.pushAndRemoveUntil(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const ShopSelectorScreen(),
+                                                ),
+                                                (route) => false,
+                                              );
+                                            }
+                                          }
+                                        },
+                                        icon: const Icon(
+                                          Icons.swap_horiz_rounded,
+                                          size: 18,
+                                        ),
+                                        label: const Text('Change Shop'),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor:
+                                              AppColors.primaryDark,
+                                        ),
+                                      )
+                                      .animate(delay: 600.ms)
+                                      .fadeIn(duration: 300.ms)
+                                      .slideY(begin: 0.05, end: 0),
 
-                              Text(
-                                AppLocalizations.of(context)!.terms,
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.caption(),
-                              ).animate(delay: 650.ms).fadeIn(duration: 400.ms),
+                                  const SizedBox(height: 20),
 
-                              const SizedBox(height: 32),
+                                  Text(
+                                        AppLocalizations.of(context)!.terms,
+                                        textAlign: TextAlign.center,
+                                        style: AppTextStyles.caption(),
+                                      )
+                                      .animate(delay: 650.ms)
+                                      .fadeIn(duration: 400.ms),
 
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Divider(
-                                      color: AppColors.bgTint,
-                                      thickness: 1.5,
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    child: Text(
-                                      // FIX-13: Translated divider text
-                                      AppLocalizations.of(context)!.or_divider,
-                                      style: AppTextStyles.caption(),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Divider(
-                                      color: AppColors.bgTint,
-                                      thickness: 1.5,
-                                    ),
-                                  ),
+                                  const SizedBox(height: 32),
+
+                                  Row(
+                                        children: [
+                                          Expanded(
+                                            child: Divider(
+                                              color: AppColors.bgTint,
+                                              thickness: 1.5,
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                            ),
+                                            child: Text(
+                                              // FIX-13: Translated divider text
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.or_divider,
+                                              style: AppTextStyles.caption(),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Divider(
+                                              color: AppColors.bgTint,
+                                              thickness: 1.5,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                      .animate(delay: 700.ms)
+                                      .fadeIn(duration: 400.ms),
+
+                                  const SizedBox(height: 16),
+
+                                  TextButton.icon(
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const AdminLoginScreen(),
+                                          ),
+                                        ),
+                                        icon: const Icon(
+                                          Icons.admin_panel_settings_outlined,
+                                          size: 18,
+                                        ),
+                                        label: Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.owner_login,
+                                        ),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: AppColors.textMid,
+                                        ),
+                                      )
+                                      .animate(delay: 750.ms)
+                                      .fadeIn(duration: 400.ms),
+
+                                  const SizedBox(height: 20),
                                 ],
-                              ).animate(delay: 700.ms).fadeIn(duration: 400.ms),
-
-                              const SizedBox(height: 16),
-
-                              TextButton.icon(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const AdminLoginScreen(),
-                                  ),
-                                ),
-                                icon: const Icon(
-                                  Icons.admin_panel_settings_outlined,
-                                  size: 18,
-                                ),
-                                label: Text(
-                                  AppLocalizations.of(context)!.owner_login,
-                                ),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.textMid,
-                                ),
-                              ).animate(delay: 750.ms).fadeIn(duration: 400.ms),
-
-                              const SizedBox(height: 20),
-                            ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      ),
                       ),
                     ],
                   ),

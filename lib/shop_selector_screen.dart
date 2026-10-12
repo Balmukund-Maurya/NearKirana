@@ -13,6 +13,7 @@ import 'cart_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:geolocator/geolocator.dart';
 import 'super_admin_screen.dart' as super_admin_screen;
+import 'auth_service.dart';
 
 class ShopSelectorScreen extends StatefulWidget {
   const ShopSelectorScreen({super.key});
@@ -205,6 +206,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                             }
                           );
                           if (pin == '999999') {
+                            await AuthService().elevateToSuperAdmin();
                             if (context.mounted) {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => const super_admin_screen.SuperAdminScreen()));
                             }

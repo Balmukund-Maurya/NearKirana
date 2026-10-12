@@ -10,6 +10,8 @@ import 'app_theme.dart';
 import 'shop_selector_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'widgets/custom_pin_pad.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'auth_service.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -73,6 +75,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                            await FirebaseUtils.firestore.collection('shops').doc(shopId).update({
                              'admin_pin': pinOrHash
                            });
+                        }
+
+                        if (shopId != null) {
+                          final prefs = await SharedPreferences.getInstance();
+                          final phone = prefs.getString('global_phone') ?? '';
+                          await AuthService().syncUserProfile(
+                            phone: phone,
+                            role: 'shop_owner',
+                            shopId: shopId,
+                          );
                         }
 
                         HapticFeedback.heavyImpact();

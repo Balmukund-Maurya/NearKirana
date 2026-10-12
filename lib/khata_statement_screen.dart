@@ -235,10 +235,15 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                             batch.delete(txRef);
 
                                             double balanceChange = isUdhaar ? -amount : amount;
-
-                                            batch.update(customerRef, {
+                                            final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+                                            final Map<String, dynamic> updateData = {
                                               'total_udhaar': FieldValue.increment(balanceChange),
-                                            });
+                                            };
+                                            if (shopId != null && shopId.isNotEmpty) {
+                                              updateData['shop_balances.$shopId'] = FieldValue.increment(balanceChange);
+                                            }
+
+                                            batch.update(customerRef, updateData);
 
                                             await batch.commit();
 
@@ -400,6 +405,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                               setModalState(() => isProcessing = true);
 
                               try {
+                                final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
                                 final batch = FirebaseUtils.firestore.batch();
                                 
                                 final txRef = FirebaseUtils.firestore
@@ -412,6 +418,7 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                   'amount': amount,
                                   'type': isCredit ? 'udhaar' : 'jama',
                                   'description': descController.text.trim(),
+                                  if (shopId != null && shopId.isNotEmpty) 'shop_id': shopId,
                                   'timestamp': FieldValue.serverTimestamp(),
                                 });
 
@@ -421,9 +428,15 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
                                 
                                 double balanceChange = isCredit ? amount : -amount;
                                 
-                                batch.update(customerRef, {
+                                final Map<String, dynamic> updateData = {
                                   'total_udhaar': FieldValue.increment(balanceChange),
-                                });
+                                };
+                                if (shopId != null && shopId.isNotEmpty) {
+                                  updateData['shop_balances.$shopId'] = FieldValue.increment(balanceChange);
+                                  updateData['shop_ids'] = FieldValue.arrayUnion([shopId]);
+                                }
+
+                                batch.update(customerRef, updateData);
 
                                 await batch.commit();
 

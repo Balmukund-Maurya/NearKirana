@@ -46,7 +46,7 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
     try {
       Query q = FirebaseUtils.firestore
           .collection('orders')
-          .where('status', whereIn: ['Delivered', 'Cancelled'])
+          .where('status', whereIn: const ['Delivered', 'Cancelled', 'Rejected'])
           .orderBy('created_at', descending: true)
           .limit(_limit);
 

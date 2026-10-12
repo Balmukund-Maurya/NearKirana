@@ -14,6 +14,7 @@ import 'package:near_kirana/firebase_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'main.dart' show LoginScreen;
 import 'user_provider.dart';
+import 'auth_service.dart';
 
 class GatewayScreen extends StatefulWidget {
   const GatewayScreen({super.key});
@@ -40,6 +41,12 @@ class _GatewayScreenState extends State<GatewayScreen> {
     if (!mounted) return;
 
     if (_globalPhone != null && _globalPhone!.isNotEmpty) {
+      final currentShopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+      await AuthService().syncUserProfile(
+        phone: _globalPhone!,
+        role: role == 'admin' ? 'shop_owner' : 'customer',
+        shopId: role == 'admin' ? currentShopId : null,
+      );
       if (role == 'customer') {
         final shopProvider = Provider.of<ShopProvider>(context, listen: false);
         if (shopProvider.currentShopId != null && shopProvider.currentShopId!.isNotEmpty) {
@@ -277,6 +284,11 @@ class _GatewayScreenState extends State<GatewayScreen> {
 
         await prefs.setString('customerName', name);
         await prefs.setString('customerPhone', _globalPhone!);
+        await AuthService().syncUserProfile(
+          phone: _globalPhone!,
+          role: 'customer',
+          name: name,
+        );
         if (mounted) {
           Provider.of<UserProvider>(context, listen: false).setUser(name, _globalPhone!);
         }
@@ -447,6 +459,12 @@ class _GatewayScreenState extends State<GatewayScreen> {
       if (!mounted) return;
       await Provider.of<ShopProvider>(context, listen: false).setShop(shopId, shopDoc.data()['shop_name'] ?? '');
       await prefs.setString('app_role', 'admin');
+      await AuthService().syncUserProfile(
+        phone: _globalPhone!,
+        role: 'shop_owner',
+        shopId: shopId,
+        name: ownerName,
+      );
       
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboard()));

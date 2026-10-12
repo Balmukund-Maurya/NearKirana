@@ -24,12 +24,16 @@ import 'gateway_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:phone_email_auth/phone_email_auth.dart';
 import 'custom_auth_screen.dart';
+import 'auth_service.dart';
+import 'crash_reporting_service.dart';
 
 import 'package:flutter/foundation.dart'; // Added for kIsWeb
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  CrashReportingService().init();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await AuthService().ensureAuthenticated();
   if (!kIsWeb) {
     try {
       PhoneEmail.initializeApp(clientId: '17194425783292968499');

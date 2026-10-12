@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'auth_service.dart';
 
 class ShopRegistrationScreen extends StatefulWidget {
   final String verifiedPhone;
@@ -97,10 +98,10 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
       try {
         position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            timeLimit: Duration(seconds: 10),
+            accuracy: LocationAccuracy.low,
+            timeLimit: Duration(seconds: 5),
           ),
-        );
+        ).timeout(const Duration(seconds: 5));
       } catch (_) {
         position = await Geolocator.getLastKnownPosition();
       }
@@ -118,7 +119,8 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
       String fullAddress = 'Location selected on map';
       try {
-        final placemarks = await placemarkFromCoordinates(_shopLatitude!, _shopLongitude!);
+        final placemarks = await placemarkFromCoordinates(_shopLatitude!, _shopLongitude!)
+            .timeout(const Duration(seconds: 5));
         if (!mounted) return;
 
         if (placemarks.isNotEmpty) {
@@ -281,8 +283,16 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
         'whatsapp_message_template': 'नमस्ते {shopName}, मेरा नाम {name} है और मेरा मोबाइल नंबर {phone} है। मुझे अपने ऑर्डर / अकाउंट के बारे में कुछ मदद चाहिए।',
         'upi_id': _upiIdController.text.trim(),
         'banner_image_url': '',
+        'owner_uid': AuthService().currentUid ?? '',
         'created_at': FieldValue.serverTimestamp(),
       });
+
+      await AuthService().syncUserProfile(
+        phone: phone,
+        role: 'shop_owner',
+        shopId: shopId,
+        name: _ownerNameController.text.trim(),
+      );
 
       if (!mounted) return;
 

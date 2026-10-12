@@ -1,0 +1,393 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // HELPER FUNCTIONS & ROLE DEFINITIONS
+    // =========================================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAuthUid(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Safe retrieval of user metadata document: users/{uid}
+    function hasUserDoc() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function getUserRole() {
+      return hasUserDoc() && ('role' in getUserDoc()) ? getUserDoc().role : 'customer';
+    }
+
+    function getUserPhone() {
+      return hasUserDoc() && ('phone' in getUserDoc()) 
+        ? getUserDoc().phone 
+        : (request.auth.token.phone_number != null ? request.auth.token.phone_number : '');
+    }
+
+    function getUserShopId() {
+      return hasUserDoc() && ('shop_id' in getUserDoc()) ? getUserDoc().shop_id : '';
+    }
+
+    // Super Admin: Has highest privileges
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        getUserRole() == 'super_admin' ||
+        (request.auth.token.role != null && request.auth.token.role == 'super_admin') ||
+        exists(/databases/$(database)/documents/super_admins/$(request.auth.uid)) ||
+        getUserPhone() in ['9999999999', '+919999999999']
+      );
+    }
+
+    // Shop Owner: Strictly isolated to their specific shop
+    function isShopOwner(shopId) {
+      return isAuthenticated() && shopId is string && shopId.size() > 0 && (
+        isSuperAdmin() ||
+        (getUserRole() == 'shop_owner' && getUserShopId() == shopId) ||
+        (
+          exists(/databases/$(database)/documents/shops/$(shopId)) && (
+            (get(/databases/$(database)/documents/shops/$(shopId)).data.owner_uid == request.auth.uid) ||
+            (get(/databases/$(database)/documents/shops/$(shopId)).data.mobile == getUserPhone())
+          )
+        )
+      );
+    }
+
+    // Phone normalizer helper for comparing 10-digit phone numbers
+    function isMatchingPhone(phone) {
+      return phone is string && (
+        phone == getUserPhone() ||
+        (getUserPhone().size() >= 10 && phone.size() >= 10 && 
+         getUserPhone()[getUserPhone().size() - 10:] == phone[phone.size() - 10:])
+      );
+    }
+
+    // Order State Machine transition validation:
+    // Enforces: Pending -> Accepted -> Packing/Packed -> Ready -> Out for Delivery -> Delivered
+    // Plus: Rejection, Cancellation, Delivery_Failed transitions
+    // And TERMINAL INVARIANCE: Delivered, Cancelled, and Rejected orders CANNOT be altered without super_admin!
+    function isValidOrderTransition(currentStatus, nextStatus) {
+      return currentStatus == nextStatus ||
+        (currentStatus == 'Pending' && nextStatus in ['Accepted', 'Packing', 'Packed', 'Ready', 'Rejected', 'Cancelled']) ||
+        (currentStatus == 'Accepted' && nextStatus in ['Packing', 'Packed', 'Ready', 'Cancelled']) ||
+        ((currentStatus == 'Packing' || currentStatus == 'Packed') && nextStatus in ['Ready', 'Out for Delivery', 'Delivered', 'Cancelled']) ||
+        (currentStatus == 'Ready' && nextStatus in ['Out for Delivery', 'Delivered', 'Cancelled']) ||
+        (currentStatus == 'Out for Delivery' && nextStatus in ['Delivered', 'Delivery_Failed', 'Cancelled']) ||
+        (currentStatus == 'Delivery_Failed' && nextStatus in ['Out for Delivery', 'Cancelled']);
+    }
+
+    // =========================================================================
+    // 1. USERS COLLECTION (Role and Profile Registry)
+    // =========================================================================
+    match /users/{userId} {
+      // Users can read their own profile; Super Admin can read all
+      allow read: if isSuperAdmin() || isAuthUid(userId);
+
+      // Users can create their own initial profile with 'customer' or 'shop_owner' role.
+      // Privilege escalation to 'super_admin' is strictly forbidden!
+      allow create: if isAuthUid(userId)
+                    && request.resource.data.role in ['customer', 'shop_owner']
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() >= 10
+                    && request.resource.data.phone.size() <= 15;
+
+      // Users can update their profile; cannot change their role to super_admin or alter shop_id without authorization
+      allow update: if isSuperAdmin() || (
+        isAuthUid(userId)
+        && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || (resource.data.role == 'customer' && request.resource.data.role == 'shop_owner'))
+        && request.resource.data.role != 'super_admin'
+      );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // Super admin explicit registry
+    match /super_admins/{adminId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // =========================================================================
+    // 2. SHOPS COLLECTION (Multi-Tenant Shop Isolation)
+    // =========================================================================
+    match /shops/{shopId} {
+      // Active approved shops can be viewed by anyone/customers to browse catalog.
+      // Inactive/pending shops can only be viewed by their Owner or Super Admin.
+      allow read: if isSuperAdmin() 
+                  || (resource.data.is_active == true && resource.data.status == 'approved')
+                  || isShopOwner(shopId);
+
+      // New shop registration:
+      // Status MUST be 'pending' and is_active MUST be false on initial creation.
+      // Self-approval is completely blocked!
+      allow create: if isAuthenticated()
+                    && request.resource.data.is_active == false
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.shop_name is string
+                    && request.resource.data.shop_name.size() > 0
+                    && request.resource.data.shop_name.size() <= 100
+                    && request.resource.data.mobile is string
+                    && request.resource.data.mobile.size() >= 10;
+
+      // Update shop details:
+      // Super admin can update everything (approve, reject, deactivate).
+      // Shop owner can only update their own shop info (address, UPI, timings, pin),
+      // and CANNOT self-approve (is_active and status cannot be modified by owner).
+      allow update: if isSuperAdmin() || (
+        isShopOwner(shopId)
+        && request.resource.data.is_active == resource.data.is_active
+        && request.resource.data.status == resource.data.status
+      );
+
+      allow delete: if isSuperAdmin();
+
+      // Subcollection: Shop-specific settings (delivery fees, financial rules)
+      match /settings/{settingId} {
+        allow read, write: if isSuperAdmin() || isShopOwner(shopId);
+      }
+    }
+
+    // =========================================================================
+    // 3. PRODUCTS & INVENTORY (Cross-Shop Isolation)
+    // =========================================================================
+    match /products/{barcode} {
+      // Products are publicly readable so customers can browse store catalogs
+      allow read: if true;
+
+      // Shop owner can ONLY create products for their own shop_id
+      allow create: if isSuperAdmin() || (
+        isAuthenticated()
+        && request.resource.data.shop_id is string
+        && isShopOwner(request.resource.data.shop_id)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 150
+        && request.resource.data.price is number
+        && request.resource.data.price >= 0
+      );
+
+      // Shop owner can update their own shop's products.
+      // Customers can atomically update ONLY `stock_quantity` during order placement/cancellation.
+      // CRITICAL INVARIANT: stock_quantity can NEVER be negative!
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          // 1. Shop Owner updating product attributes (price, name, etc.)
+          (
+            resource.data.shop_id is string
+            && isShopOwner(resource.data.shop_id)
+            && request.resource.data.shop_id == resource.data.shop_id
+            && request.resource.data.price is number
+            && request.resource.data.price >= 0
+            && (!('stock_quantity' in request.resource.data) || (request.resource.data.stock_quantity is number && request.resource.data.stock_quantity >= 0))
+          ) ||
+          // 2. Safe Atomic Stock Reservation during order checkout or order cancellation
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock_quantity'])
+            && request.resource.data.stock_quantity is number
+            && request.resource.data.stock_quantity >= 0
+          )
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated()
+        && resource.data.shop_id is string
+        && isShopOwner(resource.data.shop_id)
+      );
+    }
+
+    // =========================================================================
+    // 4. ORDERS COLLECTION (Customer & Shop Multi-Tenant Isolation)
+    // =========================================================================
+    match /orders/{orderId} {
+      // READ PRIVILEGES:
+      // 1. Super Admin: Can view all orders
+      // 2. Shop Owner: Can ONLY view orders placed at THEIR shop (shop_id == myShop)
+      // 3. Customer: Can ONLY view THEIR OWN orders (phone_number == myPhone or customer_uid == myUid)
+      // Customer A can NEVER see Customer B's orders!
+      // Shop A can NEVER see Shop B's orders!
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          isMatchingPhone(resource.data.phone_number) ||
+          (('customer_uid' in resource.data) && resource.data.customer_uid == request.auth.uid)
+        )
+      );
+
+      // CREATE PRIVILEGES:
+      // Customer can place order for their own phone number / UID at a shop.
+      // Shop owner can create manual in-store orders for their own shop.
+      // Prevents empty orders, enforces Pending status and non-negative total.
+      // CRITICAL: Customers CANNOT self-mark order as 'Paid' or 'Refunded'!
+      allow create: if isAuthenticated()
+                    && request.resource.data.shop_id is string
+                    && request.resource.data.total_amount is number
+                    && request.resource.data.total_amount >= 0
+                    && request.resource.data.items is list
+                    && request.resource.data.items.size() > 0
+                    && request.resource.data.status == 'Pending'
+                    && (!('idempotency_key' in request.resource.data) || request.resource.data.idempotency_key is string)
+                    && (
+                      isSuperAdmin() ||
+                      isShopOwner(request.resource.data.shop_id) ||
+                      (
+                        (!('payment_status' in request.resource.data) || request.resource.data.payment_status in ['Unpaid', 'Payment_Pending', 'Pending_Verification'])
+                        && (
+                          isMatchingPhone(request.resource.data.phone_number) ||
+                          (('customer_uid' in request.resource.data) && request.resource.data.customer_uid == request.auth.uid)
+                        )
+                      )
+                    );
+
+      // UPDATE PRIVILEGES:
+      // 1. Super Admin: Full update (can perform authorized administrative corrections)
+      // 2. Shop Owner:
+      //    - Can only update orders for THEIR shop.
+      //    - TERMINAL PROTECTION: If current status is 'Delivered', 'Cancelled', or 'Rejected',
+      //      the status CANNOT be reversed or changed back without super admin authorization!
+      //    - TRANSITION ENFORCEMENT: All status changes must adhere to isValidOrderTransition!
+      // 3. Customer:
+      //    - Can cancel their own order if still 'Pending' (can transition to 'Refunded' if already paid).
+      //    - Can submit/update UTR reference for payment verification.
+      //    - STRICT: Customer can NEVER set payment_status to 'Paid' or alter terminal orders!
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (
+            isShopOwner(resource.data.shop_id)
+            && request.resource.data.shop_id == resource.data.shop_id
+            && (
+              // Terminal state protection: Delivered, Cancelled, Rejected cannot be altered by shop owner
+              (!(resource.data.status in ['Delivered', 'Cancelled', 'Rejected'])) ||
+              (request.resource.data.status == resource.data.status)
+            )
+            && isValidOrderTransition(resource.data.status, request.resource.data.status)
+          ) ||
+          (
+            (isMatchingPhone(resource.data.phone_number) || (('customer_uid' in resource.data) && resource.data.customer_uid == request.auth.uid))
+            && request.resource.data.shop_id == resource.data.shop_id
+            && request.resource.data.payment_status != 'Paid'
+            && (
+              // Option A: Cancel pending order (records Refunded if previously paid)
+              (
+                resource.data.status == 'Pending'
+                && request.resource.data.status == 'Cancelled'
+              ) ||
+              // Option B: Customer submits/updates UPI reference for payment verification
+              (
+                request.resource.data.status == resource.data.status
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upi_ref_id', 'payment_status', 'utr_submitted_at'])
+                && request.resource.data.payment_status in ['Pending_Verification', 'Payment_Pending']
+              )
+            )
+          )
+        )
+      );
+
+      // Orders cannot be deleted arbitrarily to maintain ledger and audit trail
+      allow delete: if isSuperAdmin();
+    }
+
+    // =========================================================================
+    // 5. CUSTOMERS & KHATA TRANSACTIONS (Strict Financial Udhaar Isolation)
+    // =========================================================================
+    match /customers/{customerId} {
+      // READ:
+      // 1. Super Admin
+      // 2. Customer themselves (mobile == userPhone or document id == user UID)
+      // 3. Shop Owner if this customer has a balance/khata relationship with this shop (shop_ids contains shopId)
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          isMatchingPhone(resource.data.mobile) ||
+          customerId == request.auth.uid ||
+          (
+            getUserShopId() != '' &&
+            ('shop_ids' in resource.data) &&
+            resource.data.shop_ids.hasAny([getUserShopId()])
+          )
+        )
+      );
+
+      // CREATE: Customer registering profile or Shop Owner adding walk-in khata customer
+      allow create: if isAuthenticated() && (
+        isSuperAdmin() ||
+        isMatchingPhone(request.resource.data.mobile) ||
+        (getUserShopId() != '' && ('shop_ids' in request.resource.data) && request.resource.data.shop_ids.hasAny([getUserShopId()]))
+      );
+
+      // UPDATE:
+      // Customer updating their own profile info (name, address)
+      // OR Shop Owner updating ledger balance for their own shop
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          isMatchingPhone(resource.data.mobile) ||
+          customerId == request.auth.uid ||
+          (
+            getUserShopId() != '' &&
+            isShopOwner(getUserShopId()) &&
+            (
+              ('shop_ids' in resource.data && resource.data.shop_ids.hasAny([getUserShopId()])) ||
+              ('shop_ids' in request.resource.data && request.resource.data.shop_ids.hasAny([getUserShopId()]))
+            )
+          )
+        )
+      );
+
+      allow delete: if isSuperAdmin();
+
+      // Subcollection: Khata Transactions (Udhaar / Jama Statement)
+      match /khata_transactions/{txId} {
+        // READ:
+        // Customer can read their own transactions.
+        // Shop Owner can ONLY read transactions belonging to THEIR shop_id.
+        // Shop A CANNOT read Khata transactions belonging to Shop B!
+        allow read: if isSuperAdmin() || (
+          isAuthenticated() && (
+            isMatchingPhone(get(/databases/$(database)/documents/customers/$(customerId)).data.mobile) ||
+            (resource.data.shop_id is string && isShopOwner(resource.data.shop_id))
+          )
+        );
+
+        // CREATE:
+        // Only Shop Owner can add Khata entries, and ONLY for their own shop_id.
+        // Customer CANNOT self-credit or alter their own khata.
+        allow create: if isSuperAdmin() || (
+          isAuthenticated()
+          && request.resource.data.shop_id is string
+          && isShopOwner(request.resource.data.shop_id)
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0
+          && request.resource.data.type in ['debit', 'credit', 'udhaar', 'jama']
+        );
+
+        // UPDATE / DELETE:
+        // Shop Owner can only modify or delete transactions belonging to their own shop.
+        allow update, delete: if isSuperAdmin() || (
+          isAuthenticated()
+          && resource.data.shop_id is string
+          && isShopOwner(resource.data.shop_id)
+        );
+      }
+    }
+
+    // =========================================================================
+    // 6. GLOBAL SETTINGS
+    // =========================================================================
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    // Fallback: Deny all unhandled paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

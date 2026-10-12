@@ -12,6 +12,8 @@ import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'payment_service.dart';
+import 'order_state_machine.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   final bool isTab;
@@ -186,6 +188,14 @@ class MyOrdersScreen extends StatelessWidget {
     required String? cancellationReason,
     required List<dynamic> items,
   }) {
+    final String paymentMethod = data['payment_method'] ?? 'Cash on Delivery';
+    final String? paymentStatus = data['payment_status'] as String?;
+    final bool isRefunded = paymentStatus == PaymentStatus.refunded;
+    final bool isPendingVerification = paymentStatus == PaymentStatus.pendingVerification;
+    final bool isFailed = paymentStatus == PaymentStatus.failed;
+    final bool isPaymentPending = paymentStatus == PaymentStatus.paymentPending;
+    final String? upiRefId = data['upi_ref_id'] as String?;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -254,7 +264,7 @@ class MyOrdersScreen extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: (data['payment_method'] == 'UPI')
+                    color: (paymentMethod == 'UPI')
                         ? AppColors.primaryLight.withValues(alpha: 0.15)
                         : Colors.grey.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -263,21 +273,21 @@ class MyOrdersScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        (data['payment_method'] == 'UPI')
+                        (paymentMethod == 'UPI')
                             ? Icons.account_balance_wallet_rounded
-                            : Icons.payments_rounded,
+                            : (paymentMethod == 'Khata'
+                                ? Icons.book_rounded
+                                : Icons.payments_rounded),
                         size: 14,
-                        color: (data['payment_method'] == 'UPI')
+                        color: (paymentMethod == 'UPI')
                             ? AppColors.primaryDark
                             : AppColors.textMid,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        (data['payment_method'] == 'UPI')
-                            ? 'UPI (Paid)'
-                            : (data['payment_method'] ?? 'Cash on Delivery'),
+                        paymentMethod,
                         style: AppTextStyles.captionMedium(
-                          color: (data['payment_method'] == 'UPI')
+                          color: (paymentMethod == 'UPI')
                               ? AppColors.primaryDark
                               : AppColors.textMid,
                         ).copyWith(fontWeight: FontWeight.bold),
@@ -285,24 +295,107 @@ class MyOrdersScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Text(
-                  (data['payment_status'] == 'Paid' || data['payment_method'] == 'UPI')
-                      ? 'Paid Online'
-                      : 'Pay on Delivery',
-                  style: AppTextStyles.captionMedium(
-                    color: (data['payment_status'] == 'Paid' || data['payment_method'] == 'UPI')
-                        ? AppColors.primaryDark
-                        : AppColors.textMid,
-                  ),
-                ),
+                _buildCustomerPaymentStatusBadge(paymentStatus, paymentMethod),
               ],
             ),
+            if (paymentMethod == 'UPI' && status != 'Cancelled' && (isPendingVerification || isPaymentPending || isFailed)) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isFailed
+                      ? AppColors.error.withValues(alpha: 0.08)
+                      : (isPendingVerification
+                          ? Colors.amber.withValues(alpha: 0.1)
+                          : Colors.orange.withValues(alpha: 0.1)),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isFailed
+                        ? AppColors.error.withValues(alpha: 0.3)
+                        : (isPendingVerification
+                            ? Colors.amber.withValues(alpha: 0.3)
+                            : Colors.orange.withValues(alpha: 0.3)),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isFailed
+                          ? Icons.error_outline_rounded
+                          : (isPendingVerification
+                              ? Icons.hourglass_top_rounded
+                              : Icons.info_outline_rounded),
+                      size: 16,
+                      color: isFailed
+                          ? AppColors.error
+                          : (isPendingVerification
+                              ? Colors.amber.shade900
+                              : Colors.orange.shade900),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isFailed
+                            ? 'Payment rejected. Check or re-submit UTR.'
+                            : (isPendingVerification
+                                ? 'Verifying payment: ${upiRefId ?? ''}'
+                                : 'Missing payment ref. Submit UTR to verify.'),
+                        style: AppTextStyles.caption(
+                          color: isFailed
+                              ? AppColors.error
+                              : (isPendingVerification
+                                  ? Colors.amber.shade900
+                                  : Colors.orange.shade900),
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _showUpdateUtrDialog(context, doc.id, upiRefId),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        upiRefId != null ? 'Edit UTR' : 'Enter UTR',
+                        style: AppTextStyles.caption(
+                          color: isFailed ? AppColors.error : AppColors.primaryDark,
+                        ).copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (isRefunded) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.replay_rounded, size: 16, color: Colors.purple),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Refund Processed: ₹${(data['refund_amount'] ?? data['total_amount'] ?? 0).toString()} (ID: ${data['refund_id'] ?? 'REF-DONE'})',
+                        style: AppTextStyles.caption(color: Colors.purple.shade800).copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Divider(height: 1, thickness: 1, color: AppColors.bgTint),
             ),
 
-            if (status == 'Cancelled')
+            if (status == OrderStatus.cancelled)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -318,7 +411,7 @@ class MyOrdersScreen extends StatelessWidget {
                 ),
                 child: Text(
                   cancellationReason != null && cancellationReason.isNotEmpty
-                      ? 'Order Cancel by Shop. Reason: $cancellationReason'
+                      ? 'Order Cancelled: $cancellationReason'
                       : AppLocalizations.of(context)!.order_cancelled,
                   style: AppTextStyles.bodySemiBold(
                     color: AppColors.error,
@@ -326,9 +419,69 @@ class MyOrdersScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               )
+            else if (status == OrderStatus.rejected)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.cancel_outlined, color: AppColors.error, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Order Rejected: ${data['rejection_reason'] ?? cancellationReason ?? 'Store unavailable'}',
+                        style: AppTextStyles.bodySemiBold(
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
             else ...[
+              if (status == OrderStatus.deliveryFailed) ...[
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.deepOrange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.deepOrange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: Colors.deepOrange, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Delivery Attempt Failed: ${data['delivery_failure_reason'] ?? 'Pending Re-dispatch'}. Store will re-attempt shortly.',
+                          style: AppTextStyles.captionMedium(
+                            color: Colors.deepOrange.shade800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               _buildTimeline(status),
-              if (status == 'Pending') ...[
+              if (status == OrderStatus.pending) ...[
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerRight,
@@ -391,8 +544,12 @@ class MyOrdersScreen extends StatelessWidget {
 
                                         final status =
                                             snapshot.data()?['status'] ??
-                                            'Pending';
-                                        if (status != 'Pending') {
+                                            OrderStatus.pending;
+                                        OrderStateMachine.assertValidTransition(
+                                          status,
+                                          OrderStatus.cancelled,
+                                        );
+                                        if (status != OrderStatus.pending) {
                                           throw Exception('NOT_PENDING');
                                         }
 
@@ -422,17 +579,40 @@ class MyOrdersScreen extends StatelessWidget {
                                           }
                                         }
 
-                                        transaction.update(orderRef, {
+                                        final orderData = snapshot.data() ?? {};
+                                        final currentPaymentStatus = orderData['payment_status'] as String?;
+                                        final bool wasPaid = currentPaymentStatus == PaymentStatus.paid;
+                                        final double orderTotal = (orderData['total_amount'] as num?)?.toDouble() ?? 0.0;
+
+                                        final orderUpdates = <String, dynamic>{
                                           'status': 'Cancelled',
-                                        });
+                                          'cancellation_reason': 'Cancelled by customer',
+                                        };
+
+                                        if (wasPaid) {
+                                          orderUpdates['payment_status'] = PaymentStatus.refunded;
+                                          orderUpdates['refund_id'] = PaymentService.generateRefundId();
+                                          orderUpdates['refund_amount'] = orderTotal;
+                                          orderUpdates['refund_reason'] = 'Order cancelled by customer';
+                                          orderUpdates['refunded_at'] = FieldValue.serverTimestamp();
+                                          orderUpdates['refunded_by'] = 'customer';
+                                        }
+
+                                        transaction.update(orderRef, orderUpdates);
                                       });
                                   if (context.mounted) {
                                     SoundService().success();
+                                    final wasPaid = (data['payment_status'] as String?) == PaymentStatus.paid;
+                                    final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
                                     showDialog(
                                       context: context,
                                       builder: (context) => AlertDialog(
-                                        title: Text(AppLocalizations.of(context)!.order_cancelled),
-                                        content: const Text('Your order has been cancelled successfully.'),
+                                        title: Text(wasPaid
+                                            ? 'Order Cancelled & Refund Initiated'
+                                            : AppLocalizations.of(context)!.order_cancelled),
+                                        content: Text(wasPaid
+                                            ? 'Your order has been cancelled and a refund of ₹${total.toStringAsFixed(0)} has been recorded.'
+                                            : 'Your order has been cancelled successfully.'),
                                         actions: [
                                           TextButton(
                                             onPressed: () => Navigator.pop(context),
@@ -671,12 +851,7 @@ class MyOrdersScreen extends StatelessWidget {
   }
 
   Widget _buildTimeline(String currentStatus) {
-    int currentIndex = 0;
-    if (currentStatus == 'Packed') currentIndex = 1;
-    if (currentStatus == 'Out for Delivery' || currentStatus == 'Ready') {
-      currentIndex = 2;
-    }
-    if (currentStatus == 'Delivered') currentIndex = 3;
+    final currentIndex = OrderStateMachine.getTimelineStepIndex(currentStatus);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -685,11 +860,15 @@ class MyOrdersScreen extends StatelessWidget {
         children: [
           _buildTimelineStep('Pending', 0, currentIndex),
           _buildTimelineLine(currentIndex > 0),
-          _buildTimelineStep('Packed', 1, currentIndex),
+          _buildTimelineStep('Accepted', 1, currentIndex),
           _buildTimelineLine(currentIndex > 1),
-          _buildTimelineStep('Out', 2, currentIndex),
+          _buildTimelineStep('Packing', 2, currentIndex),
           _buildTimelineLine(currentIndex > 2),
-          _buildTimelineStep('Delivered', 3, currentIndex),
+          _buildTimelineStep('Ready', 3, currentIndex),
+          _buildTimelineLine(currentIndex > 3),
+          _buildTimelineStep('Out', 4, currentIndex),
+          _buildTimelineLine(currentIndex > 4),
+          _buildTimelineStep('Delivered', 5, currentIndex),
         ],
       ),
     );
@@ -699,21 +878,22 @@ class MyOrdersScreen extends StatelessWidget {
     final bool isCompleted = stepIndex <= currentIndex;
     final bool isCurrent = stepIndex == currentIndex;
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 28,
-          height: 28,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: isCompleted ? AppColors.primaryDark : AppColors.bgTint,
             border: isCurrent
-                ? Border.all(color: AppColors.primaryLight, width: 3)
+                ? Border.all(color: AppColors.primaryLight, width: 2.5)
                 : null,
             boxShadow: isCompleted
                 ? [
                     BoxShadow(
-                      color: AppColors.primaryDark.withValues(alpha: 0.3),
-                      blurRadius: 6,
+                      color: AppColors.primaryDark.withValues(alpha: 0.25),
+                      blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ]
@@ -722,22 +902,22 @@ class MyOrdersScreen extends StatelessWidget {
           child: isCompleted
               ? const Icon(
                   Icons.check_rounded,
-                  size: 16,
+                  size: 14,
                   color: AppColors.white,
                 )
               : null,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           label,
-          style:
-              AppTextStyles.captionMedium(
-                color: isCompleted
-                    ? AppColors.primaryDark
-                    : AppColors.textLight,
-              ).copyWith(
-                fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
-              ),
+          style: AppTextStyles.caption(
+            color: isCompleted
+                ? AppColors.primaryDark
+                : AppColors.textLight,
+          ).copyWith(
+            fontSize: 10,
+            fontWeight: isCompleted ? FontWeight.bold : FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -746,12 +926,179 @@ class MyOrdersScreen extends StatelessWidget {
   Widget _buildTimelineLine(bool isCompleted) {
     return Expanded(
       child: Container(
-        margin: const EdgeInsets.only(bottom: 24, left: 4, right: 4),
-        height: 3,
+        margin: const EdgeInsets.only(bottom: 20, left: 2, right: 2),
+        height: 2.5,
         decoration: BoxDecoration(
           color: isCompleted ? AppColors.primaryDark : AppColors.bgTint,
           borderRadius: BorderRadius.circular(2),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCustomerPaymentStatusBadge(String? status, String method) {
+    Color bg;
+    Color border;
+    Color textColor;
+    String label;
+    IconData icon;
+
+    switch (status) {
+      case PaymentStatus.paid:
+        bg = AppColors.primaryLight.withValues(alpha: 0.15);
+        border = AppColors.primaryDark.withValues(alpha: 0.3);
+        textColor = AppColors.primaryDark;
+        label = 'Paid Online';
+        icon = Icons.check_circle_rounded;
+        break;
+      case PaymentStatus.refunded:
+        bg = Colors.purple.withValues(alpha: 0.1);
+        border = Colors.purple.withValues(alpha: 0.3);
+        textColor = Colors.purple.shade700;
+        label = 'Refunded';
+        icon = Icons.replay_rounded;
+        break;
+      case PaymentStatus.pendingVerification:
+        bg = Colors.amber.withValues(alpha: 0.15);
+        border = Colors.amber.withValues(alpha: 0.4);
+        textColor = Colors.amber.shade900;
+        label = 'Pending Verification';
+        icon = Icons.hourglass_top_rounded;
+        break;
+      case PaymentStatus.failed:
+        bg = AppColors.error.withValues(alpha: 0.1);
+        border = AppColors.error.withValues(alpha: 0.3);
+        textColor = AppColors.error;
+        label = 'Failed';
+        icon = Icons.cancel_rounded;
+        break;
+      case PaymentStatus.paymentPending:
+        bg = Colors.orange.withValues(alpha: 0.1);
+        border = Colors.orange.withValues(alpha: 0.3);
+        textColor = Colors.orange.shade900;
+        label = 'Payment Pending';
+        icon = Icons.pending_actions_rounded;
+        break;
+      default:
+        bg = Colors.grey.withValues(alpha: 0.1);
+        border = Colors.grey.withValues(alpha: 0.3);
+        textColor = AppColors.textMid;
+        label = (method == 'UPI') ? 'Pending' : 'Pay on Delivery';
+        icon = Icons.schedule_rounded;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppTextStyles.caption(color: textColor).copyWith(fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpdateUtrDialog(BuildContext context, String orderId, String? currentUtr) {
+    final controller = TextEditingController(text: currentUtr ?? '');
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primaryDark),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('Submit Payment UTR', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Enter 12-digit UPI Transaction / UTR number from your payment app (GPay, PhonePe, Paytm):',
+                  style: TextStyle(fontSize: 13, color: AppColors.textMid),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.text,
+                  decoration: InputDecoration(
+                    labelText: 'UTR / Transaction ID',
+                    hintText: 'e.g. 423948291039',
+                    errorText: errorText,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.receipt_long_rounded),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final utr = controller.text.trim();
+                  if (!PaymentService().isValidUtr(utr)) {
+                    setDialogState(() {
+                      errorText = 'Enter valid 8-35 character UTR / ref number';
+                    });
+                    return;
+                  }
+                  try {
+                    await PaymentService().submitCustomerUtr(orderId: orderId, utr: utr);
+                    if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          content: Text('UTR submitted! Shopkeeper will verify shortly.'),
+                          backgroundColor: AppColors.primaryDark,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    setDialogState(() {
+                      errorText = e.toString().replaceAll('Exception: ', '');
+                    });
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryDark,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Submit'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

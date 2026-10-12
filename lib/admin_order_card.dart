@@ -11,6 +11,8 @@ import 'modern_loader.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'animation_helpers.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'payment_service.dart';
+import 'order_state_machine.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;
@@ -35,9 +37,16 @@ class AdminOrderCard extends StatelessWidget {
         ? DateFormat('dd MMM yyyy, hh:mm a').format(createdAt.toDate())
         : '';
     final String paymentMethod = data['payment_method'] ?? 'Unpaid';
-    final bool isPaid = data['payment_status'] == 'Paid' ||
-        paymentMethod == 'UPI' ||
-        (paymentMethod != 'Unpaid' && paymentMethod != 'Cash on Delivery');
+    final String paymentStatus = data['payment_status'] ??
+        (paymentMethod == 'Cash on Delivery'
+            ? PaymentStatus.unpaid
+            : PaymentStatus.pendingVerification);
+    final bool isPaid = paymentStatus == PaymentStatus.paid;
+    final bool isPendingVerification =
+        paymentStatus == PaymentStatus.pendingVerification ||
+            paymentStatus == PaymentStatus.paymentPending;
+    final bool isFailed = paymentStatus == PaymentStatus.failed;
+    final bool isRefunded = paymentStatus == PaymentStatus.refunded;
     final String? upiRefId = data['upi_ref_id']?.toString();
 
     return Container(
@@ -359,46 +368,64 @@ class AdminOrderCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isPaid
-                            ? AppColors.primaryLight.withValues(alpha: 0.2)
-                            : AppColors.error.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isPaid
-                              ? AppColors.primaryDark
-                              : AppColors.error,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isPaid
-                                ? Icons.check_circle_rounded
-                                : Icons.pending_rounded,
-                            size: 14,
-                            color: isPaid
-                                ? AppColors.primaryDark
-                                : AppColors.error,
+                    Builder(
+                      builder: (context) {
+                        final Color badgeBg;
+                        final Color badgeBorder;
+                        final IconData badgeIcon;
+                        final String badgeText;
+
+                        if (isPaid) {
+                          badgeBg = AppColors.primaryLight.withValues(alpha: 0.2);
+                          badgeBorder = AppColors.primaryDark;
+                          badgeIcon = Icons.check_circle_rounded;
+                          badgeText = (paymentMethod == 'UPI') ? 'UPI (Paid)' : '$paymentMethod (Paid)';
+                        } else if (isRefunded) {
+                          badgeBg = Colors.purple.withValues(alpha: 0.15);
+                          badgeBorder = Colors.purple;
+                          badgeIcon = Icons.currency_exchange_rounded;
+                          badgeText = 'Refunded';
+                        } else if (isFailed) {
+                          badgeBg = AppColors.error.withValues(alpha: 0.15);
+                          badgeBorder = AppColors.error;
+                          badgeIcon = Icons.cancel_rounded;
+                          badgeText = 'Payment Failed';
+                        } else if (isPendingVerification) {
+                          badgeBg = Colors.amber.withValues(alpha: 0.15);
+                          badgeBorder = Colors.amber[800]!;
+                          badgeIcon = Icons.hourglass_top_rounded;
+                          badgeText = 'UPI (Verify Pending)';
+                        } else {
+                          badgeBg = Colors.grey.withValues(alpha: 0.15);
+                          badgeBorder = Colors.grey[600]!;
+                          badgeIcon = Icons.payments_outlined;
+                          badgeText = 'COD (Unpaid)';
+                        }
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            (isPaid && paymentMethod == 'UPI')
-                                ? 'UPI (Paid)'
-                                : paymentMethod,
-                            style: AppTextStyles.bodySemiBold(
-                              color: isPaid
-                                  ? AppColors.primaryDark
-                                  : AppColors.error,
-                            ).copyWith(fontSize: 12),
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: badgeBorder),
                           ),
-                        ],
-                      ),
+                          child: Row(
+                            children: [
+                              Icon(badgeIcon, size: 14, color: badgeBorder),
+                              const SizedBox(width: 6),
+                              Text(
+                                badgeText,
+                                style: AppTextStyles.bodySemiBold(
+                                  color: badgeBorder,
+                                ).copyWith(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -442,11 +469,171 @@ class AdminOrderCard extends StatelessWidget {
                   ),
                 ],
 
+                // Shopkeeper Payment Verification Action Block for UPI
+                if (paymentMethod == 'UPI' && isPendingVerification && status != 'Cancelled') ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.verified_user_outlined, size: 16, color: Colors.orange),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Verify customer payment before confirming:',
+                                style: AppTextStyles.captionMedium(
+                                  color: AppColors.textDark,
+                                ).copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.check_circle_outline, size: 16),
+                                label: const Text('Verify & Mark Paid'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4CAF50),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () async {
+                                  final utr = upiRefId ?? 'SHOP_CONFIRMED';
+                                  await PaymentService().verifyAndMarkPaid(
+                                    orderId: orderDoc.id,
+                                    shopId: data['shop_id'] ?? '',
+                                    utrRef: utr,
+                                    verifiedBy: 'Shop Owner Verified',
+                                  );
+                                  if (context.mounted) {
+                                    SoundService().success();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Payment verified & marked Paid!')),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              label: const Text('Invalid UTR'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () async {
+                                await PaymentService().markPaymentFailed(
+                                  orderId: orderDoc.id,
+                                  shopId: data['shop_id'] ?? '',
+                                  reason: 'Payment not received / Invalid UTR provided by customer.',
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Payment marked as Failed.')),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Refund Information Banner
+                if (isRefunded) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.currency_exchange_rounded, size: 16, color: Colors.purple),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Refund Processed: ₹${(data['refund_amount'] as num?)?.toDouble() ?? total} | ID: ${data['refund_id'] ?? 'REF_CONFIRMED'}',
+                            style: AppTextStyles.captionMedium(color: Colors.purple.shade900),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Delivery Failed Information Banner
+                if (status == OrderStatus.deliveryFailed) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.deepOrange.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.report_problem_rounded, size: 16, color: Colors.deepOrange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Delivery Failed: ${data['delivery_failure_reason'] ?? 'Customer unavailable'}',
+                            style: AppTextStyles.captionMedium(color: Colors.deepOrange.shade900),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Rejected Order Banner
+                if (status == OrderStatus.rejected) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.cancel_rounded, size: 16, color: AppColors.error),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Order Rejected: ${data['cancellation_reason'] ?? 'Shop unavailable'}',
+                            style: AppTextStyles.captionMedium(color: AppColors.error),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // Actions
-                if (status == 'Pending' ||
-                    status == 'Packed' ||
-                    status == 'Out for Delivery' ||
-                    status == 'Ready') ...[
+                if (OrderStatus.activeStatuses.contains(status)) ...[
                   const SizedBox(height: 20),
                   _buildActionRow(context, orderDoc, type, status, total),
                 ],
@@ -468,14 +655,24 @@ class AdminOrderCard extends StatelessWidget {
     final String orderId = orderDoc.id;
     final Map<String, dynamic> data = orderDoc.data() as Map<String, dynamic>;
 
-    if (currentStatus == 'Pending' ||
-        currentStatus == 'Packed' ||
-        currentStatus == 'Out for Delivery' ||
-        currentStatus == 'Ready') {
+    if (currentStatus == OrderStatus.outForDelivery) {
       return Row(
         children: [
           Expanded(
-            child: _buildCancelButton(context, orderId, totalAmount, data),
+            child: OutlinedButton.icon(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                _showFailedDeliveryDialog(context, orderId, data);
+              },
+              icon: const Icon(Icons.report_problem_rounded, size: 16),
+              label: const Text('Failed Delivery'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.deepOrange,
+                side: const BorderSide(color: Colors.deepOrange),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -492,14 +689,175 @@ class AdminOrderCard extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: _buildNextStepButton(
-        context,
-        orderId,
-        data,
-        deliveryType,
-        currentStatus,
+    if (currentStatus == OrderStatus.deliveryFailed) {
+      return Row(
+        children: [
+          Expanded(
+            child: _buildCancelButton(context, orderId, totalAmount, data, label: 'Return Order'),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: _buildNextStepButton(
+              context,
+              orderId,
+              data,
+              deliveryType,
+              currentStatus,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (currentStatus == OrderStatus.pending) {
+      return Row(
+        children: [
+          Expanded(
+            child: _buildCancelButton(context, orderId, totalAmount, data, label: 'Reject / Cancel'),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: _buildNextStepButton(
+              context,
+              orderId,
+              data,
+              deliveryType,
+              currentStatus,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildCancelButton(context, orderId, totalAmount, data),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: _buildNextStepButton(
+            context,
+            orderId,
+            data,
+            deliveryType,
+            currentStatus,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showFailedDeliveryDialog(
+    BuildContext context,
+    String orderId,
+    Map<String, dynamic> data,
+  ) {
+    String selectedReason = 'Customer Unreachable / Phone Switched Off';
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Row(
+            children: [
+              const Icon(Icons.report_problem_rounded, color: Colors.deepOrange),
+              const SizedBox(width: 8),
+              Text(
+                'Report Failed Delivery',
+                style: AppTextStyles.heading2(color: AppColors.textDark),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select reason why delivery could not be completed:',
+                  style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                ),
+                const SizedBox(height: 12),
+                RadioGroup<String>(
+                  groupValue: selectedReason,
+                  onChanged: (val) => setState(() => selectedReason = val!),
+                  child: Column(
+                    children: [
+                      ...[
+                        'Customer Unreachable / Phone Switched Off',
+                        'Customer Refused to Accept Order',
+                        'Incorrect / Incomplete Address',
+                        'Customer Asked to Reschedule',
+                        'Door Locked / Nobody Home',
+                        'Other',
+                      ].map((reason) {
+                        return RadioListTile<String>(
+                          title: Text(reason, style: AppTextStyles.bodyMedium(color: AppColors.textDark)),
+                          value: reason,
+                          activeColor: Colors.deepOrange,
+                          contentPadding: EdgeInsets.zero,
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('Cancel', style: AppTextStyles.bodySemiBold(color: AppColors.textMid)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  OrderStateMachine.assertValidTransition(
+                    data['status'] ?? OrderStatus.outForDelivery,
+                    OrderStatus.deliveryFailed,
+                  );
+                  await FirebaseUtils.firestore.collection('orders').doc(orderId).update({
+                    'status': OrderStatus.deliveryFailed,
+                    'delivery_failure_reason': selectedReason,
+                    'delivery_failed_at': FieldValue.serverTimestamp(),
+                  });
+                  SoundService().statusUpdated();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        content: Text('Order marked as Delivery Failed. You can re-dispatch or return/cancel.'),
+                        backgroundColor: Colors.deepOrange,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Mark Failed'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -511,48 +869,51 @@ class AdminOrderCard extends StatelessWidget {
     String deliveryType,
     String currentStatus,
   ) {
-    String nextStatus = '';
-    String buttonText = '';
-    IconData buttonIcon = Icons.check_rounded;
-    Color buttonColor = AppColors.primaryDark;
+    final nextStatus = OrderStateMachine.getNextProgressiveStatus(
+      currentStatus,
+      deliveryType: deliveryType,
+    );
+    if (nextStatus == null) return const SizedBox.shrink();
 
-    if (currentStatus == 'Pending') {
-      nextStatus = 'Packed';
-      buttonText = 'Pack Order';
-      buttonIcon = Icons.inventory_2_rounded;
-      buttonColor = Colors.orange;
-    } else if (currentStatus == 'Packed') {
-      if (deliveryType == 'Delivery') {
-        nextStatus = 'Out for Delivery';
-        buttonText = 'Dispatch';
-        buttonIcon = Icons.moped_rounded;
-        buttonColor = Colors.blue;
-      } else {
-        nextStatus = 'Ready';
-        buttonText = 'Ready for Pickup';
-        buttonIcon = Icons.storefront_rounded;
-        buttonColor = Colors.blue;
-      }
-    } else if (currentStatus == 'Out for Delivery' ||
-        currentStatus == 'Ready') {
-      nextStatus = 'Delivered';
-      buttonText = 'Verify Delivery';
-      buttonIcon = Icons.done_all_rounded;
-      buttonColor = AppColors.primaryDark;
-    }
+    final buttonText = OrderStateMachine.getProgressiveButtonLabel(
+      currentStatus,
+      deliveryType: deliveryType,
+    );
+    final buttonIcon = OrderStateMachine.getProgressiveButtonIcon(currentStatus);
+    final buttonColor = OrderStateMachine.getProgressiveButtonColor(currentStatus);
 
     return ElevatedButton.icon(
-      onPressed: () {
+      onPressed: () async {
         HapticFeedback.mediumImpact();
-        if (nextStatus == 'Delivered') {
-          _showDeliveryVerificationDialog(context, orderId, data, nextStatus);
-        } else if (nextStatus == 'Out for Delivery') {
-          _showDispatchDialog(context, orderId, data, nextStatus);
-        } else {
-          FirebaseUtils.firestore.collection('orders').doc(orderId).update({
-            'status': nextStatus,
-          });
-          SoundService().statusUpdated();
+        try {
+          OrderStateMachine.assertValidTransition(currentStatus, nextStatus);
+
+          if (nextStatus == OrderStatus.delivered) {
+            _showDeliveryVerificationDialog(context, orderId, data, nextStatus);
+          } else if (nextStatus == OrderStatus.outForDelivery) {
+            _showDispatchDialog(context, orderId, data, nextStatus);
+          } else {
+            await FirebaseUtils.firestore.collection('orders').doc(orderId).update({
+              'status': nextStatus,
+              if (nextStatus == OrderStatus.accepted)
+                'accepted_at': FieldValue.serverTimestamp(),
+              if (nextStatus == OrderStatus.packing)
+                'packing_started_at': FieldValue.serverTimestamp(),
+              if (nextStatus == OrderStatus.ready)
+                'ready_at': FieldValue.serverTimestamp(),
+            });
+            SoundService().statusUpdated();
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                content: Text(e.toString().replaceAll('Exception: ', '').replaceAll('StateError: ', '')),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
         }
       },
       icon: Icon(buttonIcon, size: 20),
@@ -571,15 +932,25 @@ class AdminOrderCard extends StatelessWidget {
     BuildContext context,
     String orderId,
     double totalAmount,
-    Map<String, dynamic> data,
-  ) {
+    Map<String, dynamic> data, {
+    String label = 'Cancel',
+  }) {
+    final currentStatus = data['status']?.toString() ?? OrderStatus.pending;
+    final isRejection = currentStatus == OrderStatus.pending;
+
     return TextButton.icon(
       onPressed: () {
         HapticFeedback.lightImpact();
-        _showCancelDialog(context, orderId, totalAmount, data);
+        _showCancelDialog(
+          context,
+          orderId,
+          totalAmount,
+          data,
+          isRejection: isRejection,
+        );
       },
-      icon: const Icon(Icons.cancel_rounded, size: 18),
-      label: const Text('Cancel'),
+      icon: Icon(isRejection ? Icons.thumb_down_alt_outlined : Icons.cancel_rounded, size: 18),
+      label: Text(label),
       style: TextButton.styleFrom(
         backgroundColor: AppColors.error.withValues(alpha: 0.1),
         foregroundColor: AppColors.error,
@@ -755,6 +1126,8 @@ class AdminOrderCard extends StatelessWidget {
                               'status': nextStatus,
                               'payment_method': selectedPayment,
                               'pin_bypassed': true,
+                              if (nextStatus == 'Delivered' && selectedPayment != 'Khata')
+                                'payment_status': PaymentStatus.paid,
                             });
 
                             if (nextStatus == 'Delivered' && selectedPayment == 'Khata') {
@@ -820,6 +1193,8 @@ class AdminOrderCard extends StatelessWidget {
                             batch.update(orderRef, {
                               'status': nextStatus,
                               'payment_method': selectedPayment,
+                              if (nextStatus == 'Delivered' && selectedPayment != 'Khata')
+                                'payment_status': PaymentStatus.paid,
                             });
 
                             // Add Khata update to SAME batch if delivered via Khata
@@ -982,9 +1357,10 @@ class AdminOrderCard extends StatelessWidget {
     BuildContext context,
     String orderId,
     double totalAmount,
-    Map<String, dynamic> data,
-  ) {
-    String selectedReason = 'Out of Stock';
+    Map<String, dynamic> data, {
+    bool isRejection = false,
+  }) {
+    String selectedReason = isRejection ? 'Item Out of Stock' : 'Out of Stock';
 
     showDialog(
       context: context,
@@ -998,7 +1374,7 @@ class AdminOrderCard extends StatelessWidget {
               const Icon(Icons.warning_amber_rounded, color: AppColors.error),
               const SizedBox(width: 8),
               Text(
-                'Cancel Order',
+                isRejection ? 'Reject Order' : 'Cancel Order',
                 style: AppTextStyles.heading2(color: AppColors.textDark),
               ),
             ],
@@ -1008,7 +1384,9 @@ class AdminOrderCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Select a reason for cancellation:',
+                isRejection
+                    ? 'Select a reason for rejecting order:'
+                    : 'Select a reason for cancellation:',
                 style: AppTextStyles.bodyMedium(color: AppColors.textMid),
               ),
               const SizedBox(height: 12),
@@ -1021,6 +1399,7 @@ class AdminOrderCard extends StatelessWidget {
                       'Out of Stock',
                       'Shop is Closed',
                       'Outside Delivery Area',
+                      'Customer Requested',
                       'Other',
                     ].map((reason) {
                       return RadioListTile<String>(
@@ -1055,6 +1434,7 @@ class AdminOrderCard extends StatelessWidget {
                   data,
                   selectedReason,
                   totalAmount,
+                  targetStatus: isRejection ? OrderStatus.rejected : OrderStatus.cancelled,
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -1065,7 +1445,7 @@ class AdminOrderCard extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: const Text('Cancel Order'),
+              child: Text(isRejection ? 'Reject Order' : 'Cancel Order'),
             ),
           ],
         ),
@@ -1078,8 +1458,9 @@ class AdminOrderCard extends StatelessWidget {
     String orderId,
     Map<String, dynamic> data,
     String selectedReason,
-    double finalTotal,
-  ) async {
+    double finalTotal, {
+    String targetStatus = OrderStatus.cancelled,
+  }) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1115,10 +1496,10 @@ class AdminOrderCard extends StatelessWidget {
           throw Exception('Order not found');
         }
 
-        final status = orderSnapshot.data()?['status'] as String?;
-        if (status == 'Cancelled') {
-          throw Exception('Already cancelled');
-        }
+        final currentStatus = orderSnapshot.data()?['status'] as String? ?? OrderStatus.pending;
+        
+        // Assert valid state machine transition (terminal protection)
+        OrderStateMachine.assertValidTransition(currentStatus, targetStatus);
 
         final items = data['items'] as List<dynamic>? ?? [];
         
@@ -1133,7 +1514,7 @@ class AdminOrderCard extends StatelessWidget {
         }
         
         // --- 2. PERFORM ALL WRITES ---
-        if (status == 'Delivered' && customerRef != null) {
+        if (currentStatus == OrderStatus.delivered && customerRef != null) {
           transaction.update(customerRef, {
             'shop_balances.${data['shop_id']}': FieldValue.increment(-finalTotal),
           });
@@ -1146,10 +1527,28 @@ class AdminOrderCard extends StatelessWidget {
           });
         }
 
-        transaction.update(orderDocRef, {
-          'status': 'Cancelled',
+        final orderUpdates = <String, dynamic>{
+          'status': targetStatus,
           'cancellation_reason': selectedReason,
-        });
+        };
+        if (targetStatus == OrderStatus.rejected) {
+          orderUpdates['rejection_reason'] = selectedReason;
+        }
+
+        final currentPaymentStatus = data['payment_status'] as String?;
+        final wasPaid = currentPaymentStatus == PaymentStatus.paid;
+        if (wasPaid) {
+          final refundId = PaymentService.generateRefundId();
+          orderUpdates['payment_status'] = PaymentStatus.refunded;
+          orderUpdates['refund_id'] = refundId;
+          orderUpdates['refund_amount'] = finalTotal;
+          orderUpdates['refund_reason'] = selectedReason;
+          orderUpdates['refunded_at'] = FieldValue.serverTimestamp();
+          orderUpdates['refunded_by'] = 'merchant';
+        }
+
+        transaction.update(orderDocRef, orderUpdates);
+
 
         for (var item in items) {
           final String? itemId = item['id']?.toString();
@@ -1170,11 +1569,14 @@ class AdminOrderCard extends StatelessWidget {
       if (context.mounted) {
         Navigator.pop(context); // Close loading indicator
         SoundService().play('cancel.mp3');
+        final wasPaid = (data['payment_status'] as String?) == PaymentStatus.paid;
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Order Cancelled'),
-            content: const Text('The order has been cancelled and stock has been restored successfully.'),
+            title: Text(wasPaid ? 'Order Cancelled & Refund Initiated' : 'Order Cancelled'),
+            content: Text(wasPaid
+                ? 'The order has been cancelled, stock restored, and a refund of ₹${finalTotal.toStringAsFixed(0)} has been recorded.'
+                : 'The order has been cancelled and stock has been restored successfully.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -1197,37 +1599,28 @@ class AdminOrderCard extends StatelessWidget {
   }
 
   Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Pending':
-        return Colors.orange;
-      case 'Packed':
-        return Colors.blue;
-      case 'Out for Delivery':
-        return Colors.blueAccent;
-      case 'Ready':
-        return Colors.blueAccent;
-      case 'Delivered':
-        return AppColors.primaryDark;
-      case 'Cancelled':
-        return AppColors.error;
-      default:
-        return AppColors.textMid;
-    }
+    return OrderStateMachine.getStatusColor(status);
   }
 
   IconData _getStatusIcon(String status) {
     switch (status) {
-      case 'Pending':
+      case OrderStatus.pending:
         return Icons.pending_actions_rounded;
-      case 'Packed':
+      case OrderStatus.accepted:
+        return Icons.check_circle_outline_rounded;
+      case OrderStatus.packing:
+      case OrderStatus.packed:
         return Icons.inventory_2_rounded;
-      case 'Out for Delivery':
-        return Icons.moped_rounded;
-      case 'Ready':
+      case OrderStatus.ready:
         return Icons.storefront_rounded;
-      case 'Delivered':
+      case OrderStatus.outForDelivery:
+        return Icons.moped_rounded;
+      case OrderStatus.delivered:
         return Icons.check_circle_rounded;
-      case 'Cancelled':
+      case OrderStatus.deliveryFailed:
+        return Icons.report_problem_rounded;
+      case OrderStatus.rejected:
+      case OrderStatus.cancelled:
         return Icons.cancel_rounded;
       default:
         return Icons.info_rounded;

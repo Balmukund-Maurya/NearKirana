@@ -24,6 +24,8 @@ import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'auth_service.dart';
+import 'payment_service.dart';
 
 class CartScreen extends StatefulWidget {
   final bool isTab;
@@ -1474,10 +1476,21 @@ class _CartScreenState extends State<CartScreen> {
                       onPressed: isProcessing
                           ? null
                           : () async {
-                              if (nameController.text.isEmpty ||
-                                  phoneController.text.isEmpty) {
+                              if (isProcessing) return;
+
+                              if (nameController.text.trim().isEmpty ||
+                                  phoneController.text.trim().isEmpty) {
+                                showBottomSheetError(
+                                  context,
+                                  'Please enter your name and phone number.',
+                                );
                                 return;
                               }
+
+                              // Immediately lock UI synchronously to prevent duplicate order / double-tap race conditions
+                              setState(() {
+                                isProcessing = true;
+                              });
 
                               final prefs =
                                   await SharedPreferences.getInstance();
@@ -1489,6 +1502,7 @@ class _CartScreenState extends State<CartScreen> {
                                   DateTime.now().millisecondsSinceEpoch;
                               if (now - lastOrderTime < 180000) {
                                 // 3 minutes cooldown
+                                setState(() => isProcessing = false);
                                 showBottomSheetError(
                                   context,
                                   AppLocalizations.of(context)!.wait_3_min,
@@ -1499,6 +1513,7 @@ class _CartScreenState extends State<CartScreen> {
                               if (deliveryType == 'Delivery' &&
                                   (userProvider.currentLat == null ||
                                       userProvider.currentLng == null)) {
+                                setState(() => isProcessing = false);
                                 showBottomSheetError(
                                   context,
                                   'Please add a delivery address on the map.',
@@ -1508,6 +1523,7 @@ class _CartScreenState extends State<CartScreen> {
                               if (deliveryType == 'Delivery' &&
                                   userProvider.customerHouseNo.isEmpty &&
                                   userProvider.deliveryAddress.isEmpty) {
+                                setState(() => isProcessing = false);
                                 showBottomSheetError(
                                   context,
                                   'Please enter your House/Flat No.',
@@ -1516,6 +1532,7 @@ class _CartScreenState extends State<CartScreen> {
                               }
                               if (deliveryType == 'Delivery' &&
                                   !userProvider.isServiceable) {
+                                setState(() => isProcessing = false);
                                 showBottomSheetError(
                                   context,
                                   userProvider.serviceabilityError ??
@@ -1526,16 +1543,13 @@ class _CartScreenState extends State<CartScreen> {
 
                               if (selectedPaymentMethod == 'UPI' &&
                                   shopUpiId.isEmpty) {
+                                setState(() => isProcessing = false);
                                 showBottomSheetError(
                                   context,
                                   'This shopkeeper has not configured online UPI yet. Please select Cash on Delivery.',
                                 );
                                 return;
                               }
-
-                              setState(() {
-                                isProcessing = true;
-                              });
 
                               // Khata is strictly for offline customers now.
                               // We only check if the user is banned.
@@ -1672,7 +1686,7 @@ class _CartScreenState extends State<CartScreen> {
                                         (data['price'] as num?)?.toDouble() ??
                                         0.0;
 
-                                    if (currentStock < item.quantity) {
+                                    if (currentStock <= 0 || currentStock < item.quantity) {
                                       throw Exception(
                                         'STOCK_ERROR|${item.id}|${item.name}|$currentStock',
                                       );
@@ -1683,10 +1697,17 @@ class _CartScreenState extends State<CartScreen> {
                                       );
                                     }
 
+                                    final double newStock =
+                                        currentStock - item.quantity;
+                                    if (newStock < 0) {
+                                      throw Exception(
+                                        'STOCK_ERROR|${item.id}|${item.name}|$currentStock',
+                                      );
+                                    }
+
                                     recalculatedSubtotal +=
                                         currentPrice * item.quantity;
-                                    stockUpdates[productRef] =
-                                        currentStock - item.quantity;
+                                    stockUpdates[productRef] = newStock;
 
                                     verifiedItemsMap.add({
                                       'id': item.id,
@@ -1763,8 +1784,11 @@ class _CartScreenState extends State<CartScreen> {
 
                                   transaction.set(orderRef, {
                                     'shop_id': shopId,
-                                    'customer_name': nameController.text,
-                                    'phone_number': phoneController.text,
+                                    'idempotency_key':
+                                        '${AuthService().currentUid ?? phoneController.text.trim()}_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}',
+                                    'customer_name': nameController.text.trim(),
+                                    'phone_number': phoneController.text.trim(),
+                                    'customer_uid': AuthService().currentUid,
                                     'delivery_address':
                                         deliveryType == 'Delivery'
                                         ? finalDeliveryAddress
@@ -1784,8 +1808,10 @@ class _CartScreenState extends State<CartScreen> {
                                     'payment_method': selectedPaymentMethod,
                                     'payment_status':
                                         selectedPaymentMethod == 'UPI'
-                                        ? 'Paid'
-                                        : 'Unpaid',
+                                        ? (utrController.text.trim().isNotEmpty
+                                            ? PaymentStatus.pendingVerification
+                                            : PaymentStatus.paymentPending)
+                                        : PaymentStatus.unpaid,
                                     'upi_id': selectedPaymentMethod == 'UPI'
                                         ? shopUpiId
                                         : null,
@@ -1906,13 +1932,15 @@ class _CartScreenState extends State<CartScreen> {
                                                 const SizedBox(width: 6),
                                                 Text(
                                                   selectedPaymentMethod == 'UPI'
-                                                      ? 'Payment: Online UPI (Paid)'
+                                                      ? (utrController.text.trim().isNotEmpty
+                                                          ? 'Payment: UPI (Verification Pending)'
+                                                          : 'Payment: UPI (Pending)')
                                                       : 'Payment: Cash on Delivery',
                                                   style: GoogleFonts.poppins(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w600,
                                                     color: selectedPaymentMethod == 'UPI'
-                                                        ? const Color(0xFF4CAF50)
+                                                        ? Colors.orange[800]
                                                         : Colors.grey[800],
                                                   ),
                                                 ),
@@ -1959,12 +1987,19 @@ class _CartScreenState extends State<CartScreen> {
                                       final name = parts[2];
                                       final stock =
                                           double.tryParse(parts[3]) ?? 0;
-                                      cartProvider.setQuantity(id, stock);
-
-                                      showBottomSheetError(
-                                        context,
-                                        "Oh no! 🚨 '$name' only has ${stock.toStringAsFixed(0)} left in stock. We've updated your cart.",
-                                      );
+                                      if (stock <= 0) {
+                                        cartProvider.removeItem(id);
+                                        showBottomSheetError(
+                                          context,
+                                          "Kshama karein! 🚨 '$name' abhi kisi aur customer ne kharid liya hai aur stock khatam ho gaya hai. Item cart se hata diya gaya hai.",
+                                        );
+                                      } else {
+                                        cartProvider.setQuantity(id, stock);
+                                        showBottomSheetError(
+                                          context,
+                                          "Oh no! 🚨 '$name' ka kewal ${stock.toStringAsFixed(0)} bacha hai. Kisi aur ne baki stock le liya. Aapka cart update kar diya gaya hai.",
+                                        );
+                                      }
                                       return;
                                     }
                                   } else if (errorMsg.startsWith(

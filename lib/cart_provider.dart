@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'crash_reporting_service.dart';
 
 class CartItem {
   final String id;
@@ -194,6 +195,13 @@ class CartProvider with ChangeNotifier {
         );
       }
     }
+    if (success) {
+      CrashReportingService().addBreadcrumb(
+        'Cart: Added $name',
+        category: 'cart',
+        data: {'product_id': productId, 'price': price, 'is_loose': isLoose},
+      );
+    }
     notifyListeners();
     _saveCart();
     return success;
@@ -236,6 +244,7 @@ class CartProvider with ChangeNotifier {
   }
 
   void removeItem(String productId) {
+    CrashReportingService().addBreadcrumb('Cart: Removed item $productId', category: 'cart');
     _items.remove(productId);
     notifyListeners();
     _saveCart();
@@ -249,6 +258,7 @@ class CartProvider with ChangeNotifier {
     final double newQty = currentQty + change;
 
     if (newQty <= 0) {
+      CrashReportingService().addBreadcrumb('Cart: Removed item $productId (quantity <= 0)', category: 'cart');
       _items.remove(productId);
       notifyListeners();
       _saveCart();
@@ -256,6 +266,11 @@ class CartProvider with ChangeNotifier {
     }
 
     if (newQty > existingCartItem.maxStock) {
+      CrashReportingService().addBreadcrumb(
+        'Cart: Hit max stock limit for $productId',
+        category: 'cart',
+        data: {'requested': newQty, 'maxStock': existingCartItem.maxStock},
+      );
       return false; // Reached max stock
     }
 
@@ -276,6 +291,7 @@ class CartProvider with ChangeNotifier {
   }
 
   void clearCart() {
+    CrashReportingService().addBreadcrumb('Cart: Cleared all items', category: 'cart');
     _items.clear();
     notifyListeners();
     _saveCart();

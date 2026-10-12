@@ -79,7 +79,15 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
           .where('shop_id', isEqualTo: shopId)
           .where(
             'status',
-            whereIn: ['Pending', 'Packed', 'Ready', 'Out for Delivery'],
+            whereIn: const [
+              'Pending',
+              'Accepted',
+              'Packing',
+              'Packed',
+              'Ready',
+              'Out for Delivery',
+              'Delivery_Failed',
+            ],
           )
           .snapshots(),
       builder: (context, snapshot) {
@@ -196,7 +204,7 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
       final querySnapshot = await FirebaseUtils.firestore
           .collection('orders')
           .where('shop_id', isEqualTo: shopId)
-          .where('status', whereIn: ['Delivered', 'Cancelled'])
+          .where('status', whereIn: const ['Delivered', 'Cancelled', 'Rejected'])
           .get();
 
       final historyDocs = querySnapshot.docs.toList();

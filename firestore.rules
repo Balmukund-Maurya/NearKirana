@@ -493,6 +493,18 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
+    // =========================================================================
+    // 9. CRASH REPORTS & ACTIONABLE TELEMETRY (Feature 44)
+    // =========================================================================
+    match /crash_reports/{reportId} {
+      // Super admin can inspect all production crash logs
+      allow read: if isSuperAdmin();
+      // Any client session or app instance can submit crash and error logs
+      allow create: if true;
+      // Protected updates and deletes
+      allow update, delete: if isSuperAdmin();
+    }
+
     // Fallback: Deny all unhandled paths
     match /{document=**} {
       allow read, write: if false;

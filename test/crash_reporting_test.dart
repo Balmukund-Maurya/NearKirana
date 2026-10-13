@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:near_kirana/crash_reporting_service.dart';
 
 void main() {
@@ -13,8 +14,14 @@ void main() {
 
   group('CrashReportingService & Actionable Logging', () {
     test('Breadcrumb ring buffer records events in sequence', () {
-      crashService.addBreadcrumb('Customer added Parle-G to cart', category: 'cart');
-      crashService.addBreadcrumb('Customer applied coupon SAVE50', category: 'coupon');
+      crashService.addBreadcrumb(
+        'Customer added Parle-G to cart',
+        category: 'cart',
+      );
+      crashService.addBreadcrumb(
+        'Customer applied coupon SAVE50',
+        category: 'coupon',
+      );
 
       final breadcrumbs = crashService.getBreadcrumbs();
       expect(breadcrumbs.length, equals(3)); // 1 from init + 2 added
@@ -24,19 +31,37 @@ void main() {
       expect(breadcrumbs[2].category, equals('coupon'));
     });
 
-    test('Breadcrumb ring buffer enforces max 50 items and evicts oldest FIFO', () {
-      // Add 60 breadcrumbs
-      for (int i = 1; i <= 60; i++) {
-        crashService.addBreadcrumb('Action $i', category: 'test');
-      }
-
+    test('recordAction convenience alias logs user actions correctly', () {
+      crashService.recordAction(
+        'User opened CartScreen',
+        category: 'navigation',
+        data: {'tab': 'cart'},
+      );
       final breadcrumbs = crashService.getBreadcrumbs();
-      expect(breadcrumbs.length, equals(CrashReportingService.maxBreadcrumbs)); // Exactly 50
-
-      // Oldest actions (Action 1 to 11) should have been evicted
-      expect(breadcrumbs.first.message, equals('Action 11'));
-      expect(breadcrumbs.last.message, equals('Action 60'));
+      expect(breadcrumbs.last.message, equals('User opened CartScreen'));
+      expect(breadcrumbs.last.category, equals('navigation'));
+      expect(breadcrumbs.last.data?['tab'], equals('cart'));
     });
+
+    test(
+      'Breadcrumb ring buffer enforces max 50 items and evicts oldest FIFO',
+      () {
+        // Add 60 breadcrumbs
+        for (int i = 1; i <= 60; i++) {
+          crashService.addBreadcrumb('Action $i', category: 'test');
+        }
+
+        final breadcrumbs = crashService.getBreadcrumbs();
+        expect(
+          breadcrumbs.length,
+          equals(CrashReportingService.maxBreadcrumbs),
+        ); // Exactly 50
+
+        // Oldest actions (Action 1 to 11) should have been evicted
+        expect(breadcrumbs.first.message, equals('Action 11'));
+        expect(breadcrumbs.last.message, equals('Action 60'));
+      },
+    );
 
     test('User context is captured and attached to error reports', () {
       crashService.setUser(
@@ -64,10 +89,7 @@ void main() {
       crashService.setUser(uid: 'temp_user', role: 'customer');
       crashService.clearUser();
 
-      final report = crashService.recordError(
-        'Uncaught test error',
-        null,
-      );
+      final report = crashService.recordError('Uncaught test error', null);
 
       expect(report.userContext.containsKey('uid'), isFalse);
       expect(report.userContext.containsKey('role'), isFalse);
@@ -80,10 +102,7 @@ void main() {
       final report = crashService.recordError(
         'Payment gateway error',
         null,
-        contextData: {
-          'order_id': 'ORD_123',
-          'amount': 450.0,
-        },
+        contextData: {'order_id': 'ORD_123', 'amount': 450.0},
       );
 
       expect(report.customKeys['app_version'], equals('2.4.0'));
@@ -111,25 +130,139 @@ void main() {
       expect(capturedReport!.error, contains('UPI intent launch failed'));
       expect(capturedReport!.reason, equals('App not installed'));
       expect(capturedReport!.fatal, isTrue);
-      expect(capturedReport!.breadcrumbs.any((b) => b.message == 'Navigated to PaymentScreen'), isTrue);
-    });
-
-    test('Flutter UI error details are converted to actionable ErrorReport', () {
-      final flutterDetails = FlutterErrorDetails(
-        exception: StateError('RenderFlex overflowed by 24 pixels'),
-        stack: StackTrace.current,
-        library: 'widgets library',
-        context: ErrorDescription('building CartItemWidget'),
+      expect(
+        capturedReport!.breadcrumbs.any(
+          (b) => b.message == 'Navigated to PaymentScreen',
+        ),
+        isTrue,
       );
-
-      crashService.recordFlutterError(flutterDetails);
-
-      final reports = crashService.getStoredReports();
-      expect(reports.isNotEmpty, isTrue);
-      final lastReport = reports.last;
-      expect(lastReport.error, contains('RenderFlex overflowed by 24 pixels'));
-      expect(lastReport.reason, contains('building CartItemWidget'));
-      expect(lastReport.toString(), contains('ACTIONABLE CRASH REPORT'));
     });
+
+    test(
+      'Flutter UI error details are converted to actionable ErrorReport',
+      () {
+        final flutterDetails = FlutterErrorDetails(
+          exception: StateError('RenderFlex overflowed by 24 pixels'),
+          stack: StackTrace.current,
+          library: 'widgets library',
+          context: ErrorDescription('building CartItemWidget'),
+        );
+
+        crashService.recordFlutterError(flutterDetails);
+
+        final reports = crashService.getStoredReports();
+        expect(reports.isNotEmpty, isTrue);
+        final lastReport = reports.last;
+        expect(
+          lastReport.error,
+          contains('RenderFlex overflowed by 24 pixels'),
+        );
+        expect(lastReport.reason, contains('building CartItemWidget'));
+        expect(lastReport.toString(), contains('ACTIONABLE CRASH REPORT'));
+      },
+    );
+
+    test(
+      'reportCrashToFirestore writes structured error report into Firestore collection',
+      () async {
+        final fakeFirestore = FakeFirebaseFirestore();
+        final report = ErrorReport(
+          error: 'Database timeout',
+          reason: 'Firestore unreachable',
+          fatal: true,
+          userContext: {'uid': 'user_abc', 'role': 'customer'},
+          customKeys: {'screen': 'OrderReviewScreen'},
+          breadcrumbs: [Breadcrumb(message: 'Tapped Place Order')],
+        );
+
+        final docId = await CrashReportingService.reportCrashToFirestore(
+          report,
+          firestore: fakeFirestore,
+        );
+        expect(docId, isNotNull);
+
+        final doc = await fakeFirestore
+            .collection('crash_reports')
+            .doc(docId!)
+            .get();
+        expect(doc.exists, isTrue);
+        expect(doc.data()?['error'], equals('Database timeout'));
+        expect(doc.data()?['reason'], equals('Firestore unreachable'));
+        expect(doc.data()?['fatal'], isTrue);
+      },
+    );
+
+    test(
+      'fetchRecentCrashReports retrieves reports sorted by timestamp',
+      () async {
+        final fakeFirestore = FakeFirebaseFirestore();
+        final now = DateTime.now();
+
+        await fakeFirestore.collection('crash_reports').add({
+          'error': 'Error 1',
+          'timestamp': now
+              .subtract(const Duration(minutes: 5))
+              .toIso8601String(),
+        });
+        await fakeFirestore.collection('crash_reports').add({
+          'error': 'Error 2',
+          'timestamp': now.toIso8601String(),
+        });
+
+        final reports = await CrashReportingService.fetchRecentCrashReports(
+          limit: 10,
+          firestore: fakeFirestore,
+        );
+        expect(reports.length, equals(2));
+        expect(reports.first['error'], equals('Error 2'));
+      },
+    );
+
+    test(
+      'Automatic Firestore sink persists unhandled errors when enabled in init',
+      () async {
+        final fakeFirestore = FakeFirebaseFirestore();
+        final service = CrashReportingService();
+        service.reset();
+        service.init(enableFirestoreSink: true, firestore: fakeFirestore);
+
+        service.recordError(
+          'Simulated crash in background job',
+          null,
+          reason: 'Out of memory',
+        );
+
+        final reports = await fakeFirestore.collection('crash_reports').get();
+        expect(reports.docs.length, equals(1));
+        expect(
+          reports.docs.first.data()['error'],
+          contains('Simulated crash in background job'),
+        );
+      },
+    );
+
+    test(
+      'ErrorReport and Breadcrumb map serialization and deserialization round-trip',
+      () {
+        final original = ErrorReport(
+          error: 'Serialization test',
+          reason: 'Testing JSON converter',
+          fatal: false,
+          userContext: {'phone': '9999999999'},
+          customKeys: {'device': 'Android 14'},
+          breadcrumbs: [Breadcrumb(message: 'Step 1', category: 'action')],
+        );
+
+        final map = original.toMap();
+        final reconstructed = ErrorReport.fromMap(map);
+
+        expect(reconstructed.error, equals(original.error));
+        expect(reconstructed.reason, equals(original.reason));
+        expect(reconstructed.fatal, equals(original.fatal));
+        expect(reconstructed.userContext['phone'], equals('9999999999'));
+        expect(reconstructed.customKeys['device'], equals('Android 14'));
+        expect(reconstructed.breadcrumbs.first.message, equals('Step 1'));
+      },
+    );
   });
 }

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'firebase_utils.dart';
 
 /// Structured breadcrumb representing an action or state change leading up to an event
 class Breadcrumb {
@@ -15,6 +17,17 @@ class Breadcrumb {
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
+  factory Breadcrumb.fromMap(Map<String, dynamic> map) {
+    return Breadcrumb(
+      message: map['message']?.toString() ?? '',
+      category: map['category']?.toString() ?? 'action',
+      data: map['data'] != null ? Map<String, dynamic>.from(map['data']) : null,
+      timestamp: map['timestamp'] != null
+          ? DateTime.tryParse(map['timestamp'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toMap() => {
     'message': message,
     'category': category,
@@ -23,7 +36,8 @@ class Breadcrumb {
   };
 
   @override
-  String toString() => '[${timestamp.toIso8601String()}] [$category] $message ${data != null ? data.toString() : ""}';
+  String toString() =>
+      '[${timestamp.toIso8601String()}] [$category] $message ${data != null ? data.toString() : ""}';
 }
 
 /// Actionable, structured crash and error report payload
@@ -47,6 +61,23 @@ class ErrorReport {
     required this.customKeys,
     required this.breadcrumbs,
   }) : timestamp = timestamp ?? DateTime.now();
+
+  factory ErrorReport.fromMap(Map<String, dynamic> map) {
+    return ErrorReport(
+      error: map['error']?.toString() ?? 'Unknown Error',
+      stackTrace: map['stackTrace']?.toString(),
+      reason: map['reason']?.toString(),
+      fatal: map['fatal'] == true,
+      timestamp: map['timestamp'] != null
+          ? DateTime.tryParse(map['timestamp'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      userContext: Map<String, dynamic>.from(map['userContext'] ?? {}),
+      customKeys: Map<String, dynamic>.from(map['customKeys'] ?? {}),
+      breadcrumbs: (map['breadcrumbs'] as List<dynamic>? ?? [])
+          .map((b) => Breadcrumb.fromMap(Map<String, dynamic>.from(b)))
+          .toList(),
+    );
+  }
 
   Map<String, dynamic> toMap() => {
     'error': error,
@@ -82,7 +113,8 @@ $stackTrace
 /// Catches Flutter framework errors and unhandled asynchronous exceptions,
 /// appending a rich contextual breadcrumb trail so production bugs can be easily diagnosed.
 class CrashReportingService {
-  static final CrashReportingService _instance = CrashReportingService._internal();
+  static final CrashReportingService _instance =
+      CrashReportingService._internal();
   factory CrashReportingService() => _instance;
   CrashReportingService._internal();
 
@@ -97,15 +129,23 @@ class CrashReportingService {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
+  bool _enableFirestoreSink = false;
+  bool get isFirestoreSinkEnabled => _enableFirestoreSink;
+  FirebaseFirestore? _firestore;
+
   /// Optional remote persistence hook (e.g. Firestore / Crashlytics / API)
   Future<void> Function(ErrorReport report)? onReportRecorded;
 
   /// Initialize global crash reporting and error boundary hooks
   void init({
     Future<void> Function(ErrorReport report)? onRemoteRecord,
+    bool enableFirestoreSink = false,
+    FirebaseFirestore? firestore,
   }) {
     if (_isInitialized) return;
     _isInitialized = true;
+    _enableFirestoreSink = enableFirestoreSink;
+    _firestore = firestore;
     onReportRecorded = onRemoteRecord;
 
     // 1. Hook Flutter UI & widget errors
@@ -166,11 +206,18 @@ class CrashReportingService {
     if (_breadcrumbs.length >= maxBreadcrumbs) {
       _breadcrumbs.removeAt(0); // Evict oldest
     }
-    _breadcrumbs.add(Breadcrumb(
-      message: message,
-      category: category,
-      data: data,
-    ));
+    _breadcrumbs.add(
+      Breadcrumb(message: message, category: category, data: data),
+    );
+  }
+
+  /// Convenience alias for logging a user action breadcrumb
+  void recordAction(
+    String message, {
+    String category = 'action',
+    Map<String, dynamic>? data,
+  }) {
+    addBreadcrumb(message, category: category, data: data);
   }
 
   /// Record a Flutter UI framework error
@@ -229,13 +276,58 @@ class CrashReportingService {
     // Print actionable log in debug or test modes
     debugPrint(report.toString());
 
-    // Execute remote webhook / Firestore dispatch if configured
+    // Execute remote webhook / callback if configured
     if (onReportRecorded != null) {
       try {
         onReportRecorded!(report);
       } catch (e) {
         debugPrint('Failed to send error report to remote sink: $e');
       }
+    }
+
+    // Persist to Firestore sink if enabled
+    if (_enableFirestoreSink) {
+      reportCrashToFirestore(report, firestore: _firestore);
+    }
+  }
+
+  /// Persists a structured error report to Firestore 'crash_reports' collection
+  static Future<String?> reportCrashToFirestore(
+    ErrorReport report, {
+    FirebaseFirestore? firestore,
+  }) async {
+    try {
+      final db = firestore ?? FirebaseUtils.firestore;
+      final docRef = await db.collection('crash_reports').add({
+        ...report.toMap(),
+        'recorded_at': FieldValue.serverTimestamp(),
+      });
+      return docRef.id;
+    } catch (e) {
+      debugPrint('Failed to persist crash report to Firestore: $e');
+      return null;
+    }
+  }
+
+  /// Fetches recent crash reports for developer/admin monitoring and diagnostics
+  static Future<List<Map<String, dynamic>>> fetchRecentCrashReports({
+    int limit = 25,
+    FirebaseFirestore? firestore,
+  }) async {
+    try {
+      final db = firestore ?? FirebaseUtils.firestore;
+      final querySnapshot = await db
+          .collection('crash_reports')
+          .orderBy('timestamp', descending: true)
+          .limit(limit)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => {'id': doc.id, ...doc.data()})
+          .toList();
+    } catch (e) {
+      debugPrint('Failed to fetch crash reports from Firestore: $e');
+      return [];
     }
   }
 
@@ -252,6 +344,8 @@ class CrashReportingService {
     _userContext.clear();
     _customKeys.clear();
     _isInitialized = false;
+    _enableFirestoreSink = false;
+    _firestore = null;
     onReportRecorded = null;
   }
 }

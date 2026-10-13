@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:near_kirana/user_provider.dart';
+import 'package:near_kirana/widgets/substitution_widgets.dart';
+import 'package:near_kirana/product_substitution_service.dart';
+import 'package:near_kirana/substitution_model.dart';
 
 class DesktopOrderTrackingView extends StatelessWidget {
   final QueryDocumentSnapshot order;
@@ -17,12 +20,20 @@ class DesktopOrderTrackingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = order.data() as Map<String, dynamic>;
-    final status = data['status'] ?? 'Pending';
-    final double total = double.tryParse(data['total_amount']?.toString() ?? '0') ?? 0.0;
-    final double subtotal = double.tryParse(data['subtotal']?.toString() ?? total.toString()) ?? total;
-    final double deliveryFee = double.tryParse(data['delivery_fee']?.toString() ?? '0') ?? 0.0;
-    final double discount = double.tryParse(data['discount']?.toString() ?? '0') ?? 0.0;
+    return StreamBuilder<DocumentSnapshot>(
+      stream: order.reference.snapshots(),
+      builder: (context, snapshot) {
+        final liveData = (snapshot.hasData && snapshot.data!.exists)
+            ? (snapshot.data!.data() as Map<String, dynamic>?)
+            : null;
+        final data = liveData ?? (order.data() as Map<String, dynamic>);
+        final status = data['status'] ?? 'Pending';
+        final double total = double.tryParse(data['total_amount']?.toString() ?? '0') ?? 0.0;
+        final double subtotal = double.tryParse(data['subtotal']?.toString() ?? total.toString()) ?? total;
+        final double deliveryFee = double.tryParse(data['delivery_fee']?.toString() ?? '0') ?? 0.0;
+        final double discount = double.tryParse(data['discount']?.toString() ?? '0') ?? 0.0;
+        final proposals = ProductSubstitutionService.getAllProposals(data);
+        final pendingProposals = proposals.where((p) => p.isPending).toList();
     
     final Timestamp? createdAt = data['created_at'] as Timestamp?;
     // Format: 12 Aug 2024, 10:30 AM (Mock for now, using simpler logic)
@@ -94,6 +105,14 @@ class DesktopOrderTrackingView extends StatelessWidget {
           ),
           
           const SizedBox(height: 32),
+          
+          if (pendingProposals.isNotEmpty) ...[
+            SubstitutionApprovalBanner(
+              orderId: order.id,
+              proposals: pendingProposals,
+            ),
+            const SizedBox(height: 24),
+          ],
           
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,6 +541,8 @@ class DesktopOrderTrackingView extends StatelessWidget {
                                         Text(itemName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF111827))),
                                         const SizedBox(height: 4),
                                         Text('Qty: $qty', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                        if (itemData['is_substituted'] == true && itemData['substituted_from'] != null)
+                                          SubstitutedItemBadge(originalName: itemData['substituted_from'].toString()),
                                       ],
                                     ),
                                   ),
@@ -602,6 +623,8 @@ class DesktopOrderTrackingView extends StatelessWidget {
           ),
         ],
       ),
+    );
+      },
     );
   }
 

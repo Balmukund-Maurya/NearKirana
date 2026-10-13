@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:near_kirana/widgets/substitution_widgets.dart';
+import 'package:near_kirana/product_substitution_service.dart';
+import 'package:near_kirana/substitution_model.dart';
 
 class DesktopOrderDetailsView extends StatefulWidget {
   final QueryDocumentSnapshot order;
@@ -21,13 +24,21 @@ class DesktopOrderDetailsView extends StatefulWidget {
 class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
   @override
   Widget build(BuildContext context) {
-    final data = widget.order.data() as Map<String, dynamic>;
-    final String orderId = widget.order.id.substring(0, 8).toUpperCase();
-    final String shopName = data['shop_name'] ?? 'NearKirana Store';
-    final double totalAmount = double.tryParse(data['total_amount']?.toString() ?? '0') ?? 0.0;
-    final String status = data['status'] ?? 'Pending';
-    final Timestamp? createdAt = data['created_at'] as Timestamp?;
-    final items = data['items'] as List<dynamic>? ?? [];
+    return StreamBuilder<DocumentSnapshot>(
+      stream: widget.order.reference.snapshots(),
+      builder: (context, snapshot) {
+        final liveData = (snapshot.hasData && snapshot.data!.exists)
+            ? (snapshot.data!.data() as Map<String, dynamic>?)
+            : null;
+        final data = liveData ?? (widget.order.data() as Map<String, dynamic>);
+        final String orderId = widget.order.id.substring(0, 8).toUpperCase();
+        final String shopName = data['shop_name'] ?? 'NearKirana Store';
+        final double totalAmount = double.tryParse(data['total_amount']?.toString() ?? '0') ?? 0.0;
+        final String status = data['status'] ?? 'Pending';
+        final Timestamp? createdAt = data['created_at'] as Timestamp?;
+        final items = data['items'] as List<dynamic>? ?? [];
+        final proposals = ProductSubstitutionService.getAllProposals(data);
+        final pendingProposals = proposals.where((p) => p.isPending).toList();
     
     // Address data
     final addressData = data['delivery_address'] as Map<String, dynamic>? ?? {};
@@ -242,6 +253,14 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                               _buildHorizontalTimeline(status),
                               
                               const SizedBox(height: 24),
+                              if (pendingProposals.isNotEmpty) ...[
+                                SubstitutionApprovalBanner(
+                                  orderId: widget.order.id,
+                                  proposals: pendingProposals,
+                                  onResolved: () => setState(() {}),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
                               
                               // Delivery Banner
                               Container(
@@ -381,6 +400,11 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                                                     Text(name, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF111827))),
                                                     const SizedBox(height: 4),
                                                     Text(unit, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                                                    if (itemData['is_substituted'] == true &&
+                                                        itemData['substituted_from'] != null)
+                                                      SubstitutedItemBadge(
+                                                        originalName: itemData['substituted_from'].toString(),
+                                                      ),
                                                   ],
                                                 ),
                                               ),
@@ -737,6 +761,8 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
           )
         ],
       ),
+    );
+      },
     );
   }
 

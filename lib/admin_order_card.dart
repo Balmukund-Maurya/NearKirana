@@ -14,6 +14,9 @@ import 'package:near_kirana/firebase_utils.dart';
 import 'payment_service.dart';
 import 'order_state_machine.dart';
 import 'notification_service.dart';
+import 'package:near_kirana/widgets/substitution_widgets.dart';
+import 'package:near_kirana/product_substitution_service.dart';
+import 'package:near_kirana/substitution_model.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;
@@ -50,6 +53,8 @@ class AdminOrderCard extends StatelessWidget {
     final bool isFailed = paymentStatus == PaymentStatus.failed;
     final bool isRefunded = paymentStatus == PaymentStatus.refunded;
     final String? upiRefId = data['upi_ref_id']?.toString();
+    final proposals = ProductSubstitutionService.getAllProposals(data);
+    final pendingProposals = proposals.where((p) => p.isPending).toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -112,6 +117,34 @@ class AdminOrderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (pendingProposals.isNotEmpty) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade100.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.amber.shade400),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.swap_horiz_rounded, size: 16, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${pendingProposals.length} item substitution proposal awaiting customer approval',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // Customer Info
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -311,29 +344,119 @@ class AdminOrderCard extends StatelessWidget {
                         ],
                       ),
                       children: items.map((item) {
-                        return Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: 8.0,
-                            left: 8,
-                            right: 8,
+                        final String itemId = item['id']?.toString() ?? item['productId']?.toString() ?? '';
+                        final String itemName = item['name']?.toString() ?? '';
+                        final bool isSubstituted = item['is_substituted'] == true;
+                        final String? substitutedFrom = item['substituted_from']?.toString();
+                        final pendingProposal = proposals.where((p) =>
+                            p.isPending &&
+                            (p.originalProductId == itemId ||
+                                p.originalProductName.toLowerCase() == itemName.toLowerCase())).firstOrNull;
+                        final bool canPropose = ['Pending', 'Accepted', 'Packing', 'Packed'].contains(status) &&
+                            pendingProposal == null;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isSubstituted
+                                ? const Color(0xFFECFDF5)
+                                : (pendingProposal != null ? Colors.amber.shade50 : Colors.transparent),
+                            borderRadius: BorderRadius.circular(8),
+                            border: (isSubstituted || pendingProposal != null)
+                                ? Border.all(
+                                    color: isSubstituted ? const Color(0xFFA7F3D0) : Colors.amber.shade300,
+                                    width: 1,
+                                  )
+                                : null,
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  '• ${item['name']}',
-                                  style: AppTextStyles.bodyMedium(
-                                    color: AppColors.textMid,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '• ${item['name']}',
+                                      style: AppTextStyles.bodyMedium(
+                                        color: AppColors.textMid,
+                                      ).copyWith(fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  Text(
+                                    '${item['quantity']}x • ₹${((item['price'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(0)}',
+                                    style: AppTextStyles.bodySemiBold(
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (isSubstituted && substitutedFrom != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: SubstitutedItemBadge(originalName: substitutedFrom),
+                                ),
+                              if (pendingProposal != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Proposal Pending: "${pendingProposal.substituteProductName}" (${pendingProposal.formattedDifference})',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.amber.shade900,
+                                          ),
+                                        ),
+                                      ),
+                                      InkWell(
+                                        onTap: () async {
+                                          await ProductSubstitutionService.instance.cancelSubstitutionProposal(
+                                            orderId: orderDoc.id,
+                                            proposalId: pendingProposal.id,
+                                          );
+                                        },
+                                        child: const Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                          child: Text(
+                                            'Cancel',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                              Text(
-                                '${item['quantity']}x',
-                                style: AppTextStyles.bodySemiBold(
-                                  color: AppColors.textDark,
+                              if (canPropose)
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    icon: const Icon(Icons.swap_horiz, size: 14, color: AppColors.primaryDark),
+                                    label: const Text(
+                                      'Suggest Alternative',
+                                      style: TextStyle(fontSize: 11, color: AppColors.primaryDark, fontWeight: FontWeight.bold),
+                                    ),
+                                    onPressed: () {
+                                      ProposeSubstitutionDialog.show(
+                                        context,
+                                        orderId: orderDoc.id,
+                                        item: Map<String, dynamic>.from(item as Map),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         );

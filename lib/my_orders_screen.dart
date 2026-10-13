@@ -15,6 +15,9 @@ import 'package:near_kirana/firebase_utils.dart';
 import 'payment_service.dart';
 import 'order_state_machine.dart';
 import 'my_orders_desktop_wrapper.dart';
+import 'package:near_kirana/widgets/substitution_widgets.dart';
+import 'package:near_kirana/product_substitution_service.dart';
+import 'package:near_kirana/substitution_model.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   final bool isTab;
@@ -200,6 +203,8 @@ class MyOrdersScreen extends StatelessWidget {
     final bool isFailed = paymentStatus == PaymentStatus.failed;
     final bool isPaymentPending = paymentStatus == PaymentStatus.paymentPending;
     final String? upiRefId = data['upi_ref_id'] as String?;
+    final proposals = ProductSubstitutionService.getAllProposals(data);
+    final pendingProposals = proposals.where((p) => p.isPending).toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -850,6 +855,14 @@ class MyOrdersScreen extends StatelessWidget {
               ),
             ],
 
+            if (pendingProposals.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              SubstitutionApprovalBanner(
+                orderId: doc.id,
+                proposals: pendingProposals,
+              ),
+            ],
+
             const SizedBox(height: 16),
             Material(
               color: Colors.transparent,
@@ -873,11 +886,21 @@ class MyOrdersScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(
-                            itemData['name'] ?? '',
-                            style: AppTextStyles.bodyMedium(
-                              color: AppColors.textMid,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                itemData['name'] ?? '',
+                                style: AppTextStyles.bodyMedium(
+                                  color: AppColors.textMid,
+                                ),
+                              ),
+                              if (itemData['is_substituted'] == true &&
+                                  itemData['substituted_from'] != null)
+                                SubstitutedItemBadge(
+                                  originalName: itemData['substituted_from'].toString(),
+                                ),
+                            ],
                           ),
                         ),
                         Text(

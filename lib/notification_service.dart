@@ -608,6 +608,51 @@ class NotificationService {
     };
   }
 
+  /// Dispatches notifications for product substitution proposals, approvals, and rejections
+  static Future<Map<String, dynamic>> dispatchSubstitutionNotification({
+    required String orderId,
+    required String type, // 'proposed', 'accepted', 'rejected'
+    required String message,
+    String? customerPhone,
+    String? customerUid,
+    required String shopId,
+    FirebaseFirestore? firestore,
+  }) async {
+    final db = firestore ?? FirebaseUtils.firestore;
+    final shortOrderId =
+        orderId.length >= 6 ? orderId.substring(0, 6) : orderId;
+    String title = '🔄 Alternative Item Proposed (#$shortOrderId)';
+    if (type == 'accepted') {
+      title = '✅ Alternative Item Approved (#$shortOrderId)';
+    } else if (type == 'rejected') {
+      title = '❌ Alternative Item Declined (#$shortOrderId)';
+    }
+
+    final notificationRef = db.collection('notifications').doc();
+    final now = FieldValue.serverTimestamp();
+
+    final notificationDoc = {
+      'id': notificationRef.id,
+      'order_id': orderId,
+      'type': 'substitution_$type',
+      'title': title,
+      'body': message,
+      'customer_phone': customerPhone ?? '',
+      if (customerUid != null) 'customer_uid': customerUid,
+      'shop_id': shopId,
+      'created_at': now,
+      'is_read': false,
+    };
+
+    try {
+      await notificationRef.set(notificationDoc);
+    } catch (e) {
+      debugPrint('Failed to dispatch substitution notification: $e');
+    }
+
+    return notificationDoc;
+  }
+
   /// Failed-delivery retry processor: Inspects failed items in notification_queue and retries
   static Future<int> retryFailedNotifications({
     FirebaseFirestore? firestore,

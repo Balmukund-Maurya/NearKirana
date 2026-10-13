@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_utils.dart';
 import 'payment_service.dart';
+import 'notification_service.dart';
 
 /// Request model representing an individual cart item in an atomic order placement
 class OrderItemRequest {
@@ -249,7 +250,7 @@ class AtomicOrderService {
         .doc(targetOrderId);
 
     // STEP 2: Execute Atomic Firestore Transaction
-    return await _firestore.runTransaction<OrderPlacementResult>((
+    final result = await _firestore.runTransaction<OrderPlacementResult>((
       transaction,
     ) async {
       // -----------------------------------------------------------------------
@@ -422,6 +423,24 @@ class AtomicOrderService {
         reservedStocks: reservedStocksMap,
       );
     });
+
+    if (!result.isDuplicate) {
+      try {
+        await NotificationService.dispatchOrderStatusNotification(
+          orderId: result.orderId,
+          newStatus: 'Pending',
+          customerPhone: params.customerPhone,
+          customerUid: params.customerUid,
+          shopId: params.shopId,
+          orderTotal: result.totalAmount,
+          firestore: _firestore,
+        );
+      } catch (e) {
+        // Notification failure should never block or fail order placement
+      }
+    }
+
+    return result;
   }
 
   /// Cancels an order atomically and safely restores reserved stock back to the products catalog.
@@ -434,7 +453,9 @@ class AtomicOrderService {
   }) async {
     final orderRef = _firestore.collection('orders').doc(orderId);
 
-    return await _firestore.runTransaction<bool>((transaction) async {
+    final didCancel = await _firestore.runTransaction<bool>((
+      transaction,
+    ) async {
       final orderSnap = await transaction.get(orderRef);
       if (!orderSnap.exists) {
         throw Exception('Order not found');
@@ -518,5 +539,31 @@ class AtomicOrderService {
       transaction.update(orderRef, orderUpdates);
       return true;
     });
+
+    if (didCancel) {
+      try {
+        final orderDoc = await _firestore
+            .collection('orders')
+            .doc(orderId)
+            .get();
+        final data = orderDoc.data();
+        if (data != null) {
+          await NotificationService.dispatchOrderStatusNotification(
+            orderId: orderId,
+            newStatus: 'Cancelled',
+            customerPhone: data['phone_number']?.toString() ?? '',
+            customerUid: data['customer_uid']?.toString(),
+            shopId: data['shop_id']?.toString() ?? '',
+            orderTotal: (data['total_amount'] as num?)?.toDouble(),
+            failureReason: reason,
+            firestore: _firestore,
+          );
+        }
+      } catch (e) {
+        // Notification failure should never affect cancellation success
+      }
+    }
+
+    return didCancel;
   }
 }

@@ -123,6 +123,11 @@ service cloud.firestore {
       );
 
       allow delete: if isSuperAdmin();
+
+      // FCM device registration tokens for user
+      match /fcm_tokens/{tokenId} {
+        allow read, write: if isSuperAdmin() || isAuthUid(userId);
+      }
     }
 
     // Super admin explicit registry
@@ -411,6 +416,50 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if isAuthenticated();
       allow write: if isSuperAdmin();
+    }
+
+    // =========================================================================
+    // 7. PUSH NOTIFICATIONS & DEVICE TOKENS (Feature 41)
+    // =========================================================================
+    match /device_tokens/{tokenId} {
+      // Users can manage their own device FCM registration tokens
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.uid == request.auth.uid ||
+        isMatchingPhone(resource.data.phone)
+      ));
+      allow create, update: if isAuthenticated() && (
+        request.resource.data.uid == request.auth.uid ||
+        isMatchingPhone(request.resource.data.phone)
+      );
+      allow delete: if isSuperAdmin() || (isAuthenticated() && resource.data.uid == request.auth.uid);
+    }
+
+    match /notifications/{notificationId} {
+      // Users can read notifications directed to their phone or UID
+      // Shop owners can read notifications addressed to their shop
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.recipient_uid == request.auth.uid) ||
+          isMatchingPhone(resource.data.recipient_phone) ||
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id))
+        )
+      );
+      allow create: if isAuthenticated()
+                    && request.resource.data.title is string
+                    && request.resource.data.body is string;
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.recipient_uid == request.auth.uid ||
+          isMatchingPhone(resource.data.recipient_phone)
+        )
+      );
+      allow delete: if isSuperAdmin();
+    }
+
+    match /notification_queue/{queueId} {
+      allow read: if isSuperAdmin() || isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isSuperAdmin();
     }
 
     // Fallback: Deny all unhandled paths

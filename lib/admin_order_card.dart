@@ -13,6 +13,7 @@ import 'animation_helpers.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'payment_service.dart';
 import 'order_state_machine.dart';
+import 'notification_service.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;
@@ -37,14 +38,15 @@ class AdminOrderCard extends StatelessWidget {
         ? DateFormat('dd MMM yyyy, hh:mm a').format(createdAt.toDate())
         : '';
     final String paymentMethod = data['payment_method'] ?? 'Unpaid';
-    final String paymentStatus = data['payment_status'] ??
+    final String paymentStatus =
+        data['payment_status'] ??
         (paymentMethod == 'Cash on Delivery'
             ? PaymentStatus.unpaid
             : PaymentStatus.pendingVerification);
     final bool isPaid = paymentStatus == PaymentStatus.paid;
     final bool isPendingVerification =
         paymentStatus == PaymentStatus.pendingVerification ||
-            paymentStatus == PaymentStatus.paymentPending;
+        paymentStatus == PaymentStatus.paymentPending;
     final bool isFailed = paymentStatus == PaymentStatus.failed;
     final bool isRefunded = paymentStatus == PaymentStatus.refunded;
     final String? upiRefId = data['upi_ref_id']?.toString();
@@ -236,7 +238,9 @@ class AdminOrderCard extends StatelessWidget {
                             } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Could not open Maps.'),
+                                  const SnackBar(
+                                    behavior: SnackBarBehavior.floating,
+                                    content: Text('Could not open Maps.'),
                                   ),
                                 );
                               }
@@ -273,69 +277,69 @@ class AdminOrderCard extends StatelessWidget {
                     data: Theme.of(
                       context,
                     ).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    collapsedIconColor: AppColors.primaryDark,
-                    iconColor: AppColors.primaryDark,
-                    title: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withValues(
-                              alpha: 0.2,
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      collapsedIconColor: AppColors.primaryDark,
+                      iconColor: AppColors.primaryDark,
+                      title: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
                             ),
-                            borderRadius: BorderRadius.circular(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight.withValues(
+                                alpha: 0.2,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${items.length}',
+                              style: AppTextStyles.bodySemiBold(
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
                           ),
-                          child: Text(
-                            '${items.length}',
+                          const SizedBox(width: 8),
+                          Text(
+                            'Items Ordered',
                             style: AppTextStyles.bodySemiBold(
-                              color: AppColors.primaryDark,
+                              color: AppColors.textDark,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Items Ordered',
-                          style: AppTextStyles.bodySemiBold(
-                            color: AppColors.textDark,
+                        ],
+                      ),
+                      children: items.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: 8.0,
+                            left: 8,
+                            right: 8,
                           ),
-                        ),
-                      ],
-                    ),
-                    children: items.map((item) {
-                      return Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: 8.0,
-                          left: 8,
-                          right: 8,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '• ${item['name']}',
-                                style: AppTextStyles.bodyMedium(
-                                  color: AppColors.textMid,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '• ${item['name']}',
+                                  style: AppTextStyles.bodyMedium(
+                                    color: AppColors.textMid,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Text(
-                              '${item['quantity']}x',
-                              style: AppTextStyles.bodySemiBold(
-                                color: AppColors.textDark,
+                              Text(
+                                '${item['quantity']}x',
+                                style: AppTextStyles.bodySemiBold(
+                                  color: AppColors.textDark,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
                 ),
 
                 const Padding(
@@ -376,10 +380,14 @@ class AdminOrderCard extends StatelessWidget {
                         final String badgeText;
 
                         if (isPaid) {
-                          badgeBg = AppColors.primaryLight.withValues(alpha: 0.2);
+                          badgeBg = AppColors.primaryLight.withValues(
+                            alpha: 0.2,
+                          );
                           badgeBorder = AppColors.primaryDark;
                           badgeIcon = Icons.check_circle_rounded;
-                          badgeText = (paymentMethod == 'UPI') ? 'UPI (Paid)' : '$paymentMethod (Paid)';
+                          badgeText = (paymentMethod == 'UPI')
+                              ? 'UPI (Paid)'
+                              : '$paymentMethod (Paid)';
                         } else if (isRefunded) {
                           badgeBg = Colors.purple.withValues(alpha: 0.15);
                           badgeBorder = Colors.purple;
@@ -470,21 +478,29 @@ class AdminOrderCard extends StatelessWidget {
                 ],
 
                 // Shopkeeper Payment Verification Action Block for UPI
-                if (paymentMethod == 'UPI' && isPendingVerification && status != 'Cancelled') ...[
+                if (paymentMethod == 'UPI' &&
+                    isPendingVerification &&
+                    status != 'Cancelled') ...[
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.amber.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.verified_user_outlined, size: 16, color: Colors.orange),
+                            const Icon(
+                              Icons.verified_user_outlined,
+                              size: 16,
+                              color: Colors.orange,
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -501,14 +517,21 @@ class AdminOrderCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                icon: const Icon(Icons.check_circle_outline, size: 16),
+                                icon: const Icon(
+                                  Icons.check_circle_outline,
+                                  size: 16,
+                                ),
                                 label: const Text('Verify & Mark Paid'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF4CAF50),
                                   foregroundColor: Colors.white,
                                   elevation: 0,
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
                                 onPressed: () async {
                                   final utr = upiRefId ?? 'SHOP_CONFIRMED';
@@ -521,7 +544,11 @@ class AdminOrderCard extends StatelessWidget {
                                   if (context.mounted) {
                                     SoundService().success();
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Payment verified & marked Paid!')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Payment verified & marked Paid!',
+                                        ),
+                                      ),
                                     );
                                   }
                                 },
@@ -534,18 +561,28 @@ class AdminOrderCard extends StatelessWidget {
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.red,
                                 side: const BorderSide(color: Colors.red),
-                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                               onPressed: () async {
                                 await PaymentService().markPaymentFailed(
                                   orderId: orderDoc.id,
                                   shopId: data['shop_id'] ?? '',
-                                  reason: 'Payment not received / Invalid UTR provided by customer.',
+                                  reason:
+                                      'Payment not received / Invalid UTR provided by customer.',
                                 );
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Payment marked as Failed.')),
+                                    const SnackBar(
+                                      content: Text(
+                                        'Payment marked as Failed.',
+                                      ),
+                                    ),
                                   );
                                 }
                               },
@@ -561,20 +598,31 @@ class AdminOrderCard extends StatelessWidget {
                 if (isRefunded) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.purple.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: Colors.purple.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.currency_exchange_rounded, size: 16, color: Colors.purple),
+                        const Icon(
+                          Icons.currency_exchange_rounded,
+                          size: 16,
+                          color: Colors.purple,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Refund Processed: ₹${(data['refund_amount'] as num?)?.toDouble() ?? total} | ID: ${data['refund_id'] ?? 'REF_CONFIRMED'}',
-                            style: AppTextStyles.captionMedium(color: Colors.purple.shade900),
+                            style: AppTextStyles.captionMedium(
+                              color: Colors.purple.shade900,
+                            ),
                           ),
                         ),
                       ],
@@ -586,20 +634,31 @@ class AdminOrderCard extends StatelessWidget {
                 if (status == OrderStatus.deliveryFailed) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.deepOrange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.deepOrange.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: Colors.deepOrange.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.report_problem_rounded, size: 16, color: Colors.deepOrange),
+                        const Icon(
+                          Icons.report_problem_rounded,
+                          size: 16,
+                          color: Colors.deepOrange,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Delivery Failed: ${data['delivery_failure_reason'] ?? 'Customer unavailable'}',
-                            style: AppTextStyles.captionMedium(color: Colors.deepOrange.shade900),
+                            style: AppTextStyles.captionMedium(
+                              color: Colors.deepOrange.shade900,
+                            ),
                           ),
                         ),
                       ],
@@ -611,20 +670,31 @@ class AdminOrderCard extends StatelessWidget {
                 if (status == OrderStatus.rejected) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: AppColors.error.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.cancel_rounded, size: 16, color: AppColors.error),
+                        const Icon(
+                          Icons.cancel_rounded,
+                          size: 16,
+                          color: AppColors.error,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Order Rejected: ${data['cancellation_reason'] ?? 'Shop unavailable'}',
-                            style: AppTextStyles.captionMedium(color: AppColors.error),
+                            style: AppTextStyles.captionMedium(
+                              color: AppColors.error,
+                            ),
                           ),
                         ),
                       ],
@@ -670,7 +740,9 @@ class AdminOrderCard extends StatelessWidget {
                 foregroundColor: Colors.deepOrange,
                 side: const BorderSide(color: Colors.deepOrange),
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ),
@@ -693,7 +765,13 @@ class AdminOrderCard extends StatelessWidget {
       return Row(
         children: [
           Expanded(
-            child: _buildCancelButton(context, orderId, totalAmount, data, label: 'Return Order'),
+            child: _buildCancelButton(
+              context,
+              orderId,
+              totalAmount,
+              data,
+              label: 'Return Order',
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -714,7 +792,13 @@ class AdminOrderCard extends StatelessWidget {
       return Row(
         children: [
           Expanded(
-            child: _buildCancelButton(context, orderId, totalAmount, data, label: 'Reject / Cancel'),
+            child: _buildCancelButton(
+              context,
+              orderId,
+              totalAmount,
+              data,
+              label: 'Reject / Cancel',
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -762,10 +846,15 @@ class AdminOrderCard extends StatelessWidget {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: Row(
             children: [
-              const Icon(Icons.report_problem_rounded, color: Colors.deepOrange),
+              const Icon(
+                Icons.report_problem_rounded,
+                color: Colors.deepOrange,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Report Failed Delivery',
@@ -797,7 +886,12 @@ class AdminOrderCard extends StatelessWidget {
                         'Other',
                       ].map((reason) {
                         return RadioListTile<String>(
-                          title: Text(reason, style: AppTextStyles.bodyMedium(color: AppColors.textDark)),
+                          title: Text(
+                            reason,
+                            style: AppTextStyles.bodyMedium(
+                              color: AppColors.textDark,
+                            ),
+                          ),
                           value: reason,
                           activeColor: Colors.deepOrange,
                           contentPadding: EdgeInsets.zero,
@@ -812,7 +906,10 @@ class AdminOrderCard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: AppTextStyles.bodySemiBold(color: AppColors.textMid)),
+              child: Text(
+                'Cancel',
+                style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -822,17 +919,31 @@ class AdminOrderCard extends StatelessWidget {
                     data['status'] ?? OrderStatus.outForDelivery,
                     OrderStatus.deliveryFailed,
                   );
-                  await FirebaseUtils.firestore.collection('orders').doc(orderId).update({
-                    'status': OrderStatus.deliveryFailed,
-                    'delivery_failure_reason': selectedReason,
-                    'delivery_failed_at': FieldValue.serverTimestamp(),
-                  });
+                  await FirebaseUtils.firestore
+                      .collection('orders')
+                      .doc(orderId)
+                      .update({
+                        'status': OrderStatus.deliveryFailed,
+                        'delivery_failure_reason': selectedReason,
+                        'delivery_failed_at': FieldValue.serverTimestamp(),
+                      });
+                  NotificationService.dispatchOrderStatusNotification(
+                    orderId: orderId,
+                    newStatus: OrderStatus.deliveryFailed,
+                    customerPhone: data['phone_number']?.toString() ?? '',
+                    customerUid: data['customer_uid']?.toString(),
+                    shopId: data['shop_id']?.toString() ?? '',
+                    orderTotal: (data['total_amount'] as num?)?.toDouble(),
+                    failureReason: selectedReason,
+                  );
                   SoundService().statusUpdated();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         behavior: SnackBarBehavior.floating,
-                        content: Text('Order marked as Delivery Failed. You can re-dispatch or return/cancel.'),
+                        content: Text(
+                          'Order marked as Delivery Failed. You can re-dispatch or return/cancel.',
+                        ),
                         backgroundColor: Colors.deepOrange,
                       ),
                     );
@@ -842,7 +953,9 @@ class AdminOrderCard extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         behavior: SnackBarBehavior.floating,
-                        content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+                        content: Text(
+                          'Error: ${e.toString().replaceAll('Exception: ', '')}',
+                        ),
                         backgroundColor: AppColors.error,
                       ),
                     );
@@ -852,7 +965,9 @@ class AdminOrderCard extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepOrange,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text('Mark Failed'),
             ),
@@ -879,8 +994,12 @@ class AdminOrderCard extends StatelessWidget {
       currentStatus,
       deliveryType: deliveryType,
     );
-    final buttonIcon = OrderStateMachine.getProgressiveButtonIcon(currentStatus);
-    final buttonColor = OrderStateMachine.getProgressiveButtonColor(currentStatus);
+    final buttonIcon = OrderStateMachine.getProgressiveButtonIcon(
+      currentStatus,
+    );
+    final buttonColor = OrderStateMachine.getProgressiveButtonColor(
+      currentStatus,
+    );
 
     return ElevatedButton.icon(
       onPressed: () async {
@@ -893,15 +1012,26 @@ class AdminOrderCard extends StatelessWidget {
           } else if (nextStatus == OrderStatus.outForDelivery) {
             _showDispatchDialog(context, orderId, data, nextStatus);
           } else {
-            await FirebaseUtils.firestore.collection('orders').doc(orderId).update({
-              'status': nextStatus,
-              if (nextStatus == OrderStatus.accepted)
-                'accepted_at': FieldValue.serverTimestamp(),
-              if (nextStatus == OrderStatus.packing)
-                'packing_started_at': FieldValue.serverTimestamp(),
-              if (nextStatus == OrderStatus.ready)
-                'ready_at': FieldValue.serverTimestamp(),
-            });
+            await FirebaseUtils.firestore
+                .collection('orders')
+                .doc(orderId)
+                .update({
+                  'status': nextStatus,
+                  if (nextStatus == OrderStatus.accepted)
+                    'accepted_at': FieldValue.serverTimestamp(),
+                  if (nextStatus == OrderStatus.packing)
+                    'packing_started_at': FieldValue.serverTimestamp(),
+                  if (nextStatus == OrderStatus.ready)
+                    'ready_at': FieldValue.serverTimestamp(),
+                });
+            NotificationService.dispatchOrderStatusNotification(
+              orderId: orderId,
+              newStatus: nextStatus,
+              customerPhone: data['phone_number']?.toString() ?? '',
+              customerUid: data['customer_uid']?.toString(),
+              shopId: data['shop_id']?.toString() ?? '',
+              orderTotal: (data['total_amount'] as num?)?.toDouble(),
+            );
             SoundService().statusUpdated();
           }
         } catch (e) {
@@ -909,7 +1039,12 @@ class AdminOrderCard extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 behavior: SnackBarBehavior.floating,
-                content: Text(e.toString().replaceAll('Exception: ', '').replaceAll('StateError: ', '')),
+                content: Text(
+                  e
+                      .toString()
+                      .replaceAll('Exception: ', '')
+                      .replaceAll('StateError: ', ''),
+                ),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -949,7 +1084,10 @@ class AdminOrderCard extends StatelessWidget {
           isRejection: isRejection,
         );
       },
-      icon: Icon(isRejection ? Icons.thumb_down_alt_outlined : Icons.cancel_rounded, size: 18),
+      icon: Icon(
+        isRejection ? Icons.thumb_down_alt_outlined : Icons.cancel_rounded,
+        size: 18,
+      ),
       label: Text(label),
       style: TextButton.styleFrom(
         backgroundColor: AppColors.error.withValues(alpha: 0.1),
@@ -1051,7 +1189,9 @@ class AdminOrderCard extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       '* Please select a payment method',
-                      style: AppTextStyles.captionMedium(color: AppColors.error),
+                      style: AppTextStyles.captionMedium(
+                        color: AppColors.error,
+                      ),
                     ),
                   ),
                 const SizedBox(height: 12),
@@ -1074,7 +1214,9 @@ class AdminOrderCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? AppColors.primaryLight.withValues(alpha: 0.2)
+                                  ? AppColors.primaryLight.withValues(
+                                      alpha: 0.2,
+                                    )
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
@@ -1126,50 +1268,79 @@ class AdminOrderCard extends StatelessWidget {
                               'status': nextStatus,
                               'payment_method': selectedPayment,
                               'pin_bypassed': true,
-                              if (nextStatus == 'Delivered' && selectedPayment != 'Khata')
+                              if (nextStatus == 'Delivered' &&
+                                  selectedPayment != 'Khata')
                                 'payment_status': PaymentStatus.paid,
                             });
 
-                            if (nextStatus == 'Delivered' && selectedPayment == 'Khata') {
+                            if (nextStatus == 'Delivered' &&
+                                selectedPayment == 'Khata') {
                               final phone = data['phone_number'] as String?;
-                              final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
+                              final total =
+                                  (data['total_amount'] as num?)?.toDouble() ??
+                                  0.0;
                               if (phone != null && total > 0) {
-                                final customerQuery = await FirebaseUtils.firestore
+                                final customerQuery = await FirebaseUtils
+                                    .firestore
                                     .collection('customers')
                                     .where('mobile', isEqualTo: phone)
                                     .limit(1)
                                     .get();
                                 if (customerQuery.docs.isNotEmpty) {
-                                  final customerRef = customerQuery.docs.first.reference;
+                                  final customerRef =
+                                      customerQuery.docs.first.reference;
                                   batch.update(customerRef, {
-                                    'shop_balances.${data['shop_id']}': FieldValue.increment(total),
+                                    'shop_balances.${data['shop_id']}':
+                                        FieldValue.increment(total),
                                     'total_udhaar': FieldValue.increment(total),
-                                    'shop_ids': FieldValue.arrayUnion([data['shop_id']]),
+                                    'shop_ids': FieldValue.arrayUnion([
+                                      data['shop_id'],
+                                    ]),
                                   });
-                                  batch.set(customerRef.collection('khata_transactions').doc(), {
-                                    'amount': total,
-                                    'type': 'debit',
-                                    'shop_id': data['shop_id'],
-                                    'description': 'Order Delivered (#${orderId.substring(0, 5)})',
-                                    'timestamp': FieldValue.serverTimestamp(),
-                                  });
+                                  batch.set(
+                                    customerRef
+                                        .collection('khata_transactions')
+                                        .doc(),
+                                    {
+                                      'amount': total,
+                                      'type': 'debit',
+                                      'shop_id': data['shop_id'],
+                                      'description':
+                                          'Order Delivered (#${orderId.substring(0, 5)})',
+                                      'timestamp': FieldValue.serverTimestamp(),
+                                    },
+                                  );
                                 }
                               }
                             }
 
                             await batch.commit();
+                            NotificationService.dispatchOrderStatusNotification(
+                              orderId: orderId,
+                              newStatus: nextStatus,
+                              customerPhone:
+                                  data['phone_number']?.toString() ?? '',
+                              customerUid: data['customer_uid']?.toString(),
+                              shopId: data['shop_id']?.toString() ?? '',
+                              orderTotal: (data['total_amount'] as num?)
+                                  ?.toDouble(),
+                            );
                             SoundService().orderDelivered();
                           },
                           child: Text(
                             'Skip PIN',
-                            style: AppTextStyles.bodySemiBold(color: AppColors.error),
+                            style: AppTextStyles.bodySemiBold(
+                              color: AppColors.error,
+                            ),
                           ),
                         ),
                       TextButton(
                         onPressed: () => Navigator.pop(dialogContext),
                         child: Text(
                           'Cancel',
-                          style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
+                          style: AppTextStyles.bodySemiBold(
+                            color: AppColors.textMid,
+                          ),
                         ),
                       ),
                       ElevatedButton(
@@ -1193,39 +1364,64 @@ class AdminOrderCard extends StatelessWidget {
                             batch.update(orderRef, {
                               'status': nextStatus,
                               'payment_method': selectedPayment,
-                              if (nextStatus == 'Delivered' && selectedPayment != 'Khata')
+                              if (nextStatus == 'Delivered' &&
+                                  selectedPayment != 'Khata')
                                 'payment_status': PaymentStatus.paid,
                             });
 
                             // Add Khata update to SAME batch if delivered via Khata
-                            if (nextStatus == 'Delivered' && selectedPayment == 'Khata') {
+                            if (nextStatus == 'Delivered' &&
+                                selectedPayment == 'Khata') {
                               final phone = data['phone_number'] as String?;
-                              final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
+                              final total =
+                                  (data['total_amount'] as num?)?.toDouble() ??
+                                  0.0;
                               if (phone != null && total > 0) {
-                                final customerQuery = await FirebaseUtils.firestore
+                                final customerQuery = await FirebaseUtils
+                                    .firestore
                                     .collection('customers')
                                     .where('mobile', isEqualTo: phone)
                                     .limit(1)
                                     .get();
                                 if (customerQuery.docs.isNotEmpty) {
-                                  final customerRef = customerQuery.docs.first.reference;
+                                  final customerRef =
+                                      customerQuery.docs.first.reference;
                                   batch.update(customerRef, {
-                                    'shop_balances.${data['shop_id']}': FieldValue.increment(total),
+                                    'shop_balances.${data['shop_id']}':
+                                        FieldValue.increment(total),
                                     'total_udhaar': FieldValue.increment(total),
-                                    'shop_ids': FieldValue.arrayUnion([data['shop_id']]),
+                                    'shop_ids': FieldValue.arrayUnion([
+                                      data['shop_id'],
+                                    ]),
                                   });
-                                  batch.set(customerRef.collection('khata_transactions').doc(), {
-                                    'amount': total,
-                                    'type': 'debit',
-                                    'shop_id': data['shop_id'],
-                                    'description': 'Order Delivered (#${orderId.substring(0, 5)})',
-                                    'timestamp': FieldValue.serverTimestamp(),
-                                  });
+                                  batch.set(
+                                    customerRef
+                                        .collection('khata_transactions')
+                                        .doc(),
+                                    {
+                                      'amount': total,
+                                      'type': 'debit',
+                                      'shop_id': data['shop_id'],
+                                      'description':
+                                          'Order Delivered (#${orderId.substring(0, 5)})',
+                                      'timestamp': FieldValue.serverTimestamp(),
+                                    },
+                                  );
                                 }
                               }
                             }
 
                             await batch.commit();
+                            NotificationService.dispatchOrderStatusNotification(
+                              orderId: orderId,
+                              newStatus: nextStatus,
+                              customerPhone:
+                                  data['phone_number']?.toString() ?? '',
+                              customerUid: data['customer_uid']?.toString(),
+                              shopId: data['shop_id']?.toString() ?? '',
+                              orderTotal: (data['total_amount'] as num?)
+                                  ?.toDouble(),
+                            );
                             SoundService().orderDelivered();
                           } else {
                             HapticFeedback.heavyImpact();
@@ -1319,7 +1515,10 @@ class AdminOrderCard extends StatelessWidget {
               if (name.isEmpty) {
                 HapticFeedback.heavyImpact();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Please enter a name.')),
+                  const SnackBar(
+                    behavior: SnackBarBehavior.floating,
+                    content: Text('Please enter a name.'),
+                  ),
                 );
                 return;
               }
@@ -1327,7 +1526,7 @@ class AdminOrderCard extends StatelessWidget {
               await prefs.setString('last_delivery_boy_name', name);
               await prefs.setString('last_delivery_boy_phone', phone);
 
-              FirebaseUtils.firestore
+              await FirebaseUtils.firestore
                   .collection('orders')
                   .doc(orderId)
                   .update({
@@ -1335,6 +1534,15 @@ class AdminOrderCard extends StatelessWidget {
                     'delivery_boy_name': name,
                     'delivery_boy_phone': phone,
                   });
+              NotificationService.dispatchOrderStatusNotification(
+                orderId: orderId,
+                newStatus: nextStatus,
+                customerPhone: data['phone_number']?.toString() ?? '',
+                customerUid: data['customer_uid']?.toString(),
+                shopId: data['shop_id']?.toString() ?? '',
+                orderTotal: (data['total_amount'] as num?)?.toDouble(),
+                deliveryBoyName: name,
+              );
               SoundService().orderDispatched();
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
@@ -1405,7 +1613,9 @@ class AdminOrderCard extends StatelessWidget {
                       return RadioListTile<String>(
                         title: Text(
                           reason,
-                          style: AppTextStyles.bodyMedium(color: AppColors.textDark),
+                          style: AppTextStyles.bodyMedium(
+                            color: AppColors.textDark,
+                          ),
                         ),
                         value: reason,
                         activeColor: AppColors.error,
@@ -1434,7 +1644,9 @@ class AdminOrderCard extends StatelessWidget {
                   data,
                   selectedReason,
                   totalAmount,
-                  targetStatus: isRejection ? OrderStatus.rejected : OrderStatus.cancelled,
+                  targetStatus: isRejection
+                      ? OrderStatus.rejected
+                      : OrderStatus.cancelled,
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -1464,9 +1676,8 @@ class AdminOrderCard extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
-        child: ModernLoader(color: AppColors.primaryDark),
-      ),
+      builder: (_) =>
+          const Center(child: ModernLoader(color: AppColors.primaryDark)),
     );
     try {
       final phone = data['phone_number'] as String?;
@@ -1491,32 +1702,37 @@ class AdminOrderCard extends StatelessWidget {
             .collection('orders')
             .doc(orderId);
         final orderSnapshot = await transaction.get(orderDocRef);
-        
+
         if (!orderSnapshot.exists) {
           throw Exception('Order not found');
         }
 
-        final currentStatus = orderSnapshot.data()?['status'] as String? ?? OrderStatus.pending;
-        
+        final currentStatus =
+            orderSnapshot.data()?['status'] as String? ?? OrderStatus.pending;
+
         // Assert valid state machine transition (terminal protection)
         OrderStateMachine.assertValidTransition(currentStatus, targetStatus);
 
         final items = data['items'] as List<dynamic>? ?? [];
-        
+
         // --- 1. PERFORM ALL READS FIRST ---
         final Map<DocumentReference, DocumentSnapshot> productDocs = {};
         for (var item in items) {
           final String? itemId = item['id']?.toString();
           if (itemId != null) {
-            final productRef = FirebaseUtils.firestore.collection('products').doc(itemId);
+            final productRef = FirebaseUtils.firestore
+                .collection('products')
+                .doc(itemId);
             productDocs[productRef] = await transaction.get(productRef);
           }
         }
-        
+
         // --- 2. PERFORM ALL WRITES ---
         if (currentStatus == OrderStatus.delivered && customerRef != null) {
           transaction.update(customerRef, {
-            'shop_balances.${data['shop_id']}': FieldValue.increment(-finalTotal),
+            'shop_balances.${data['shop_id']}': FieldValue.increment(
+              -finalTotal,
+            ),
           });
           transaction.set(customerRef.collection('khata_transactions').doc(), {
             'amount': finalTotal,
@@ -1549,13 +1765,14 @@ class AdminOrderCard extends StatelessWidget {
 
         transaction.update(orderDocRef, orderUpdates);
 
-
         for (var item in items) {
           final String? itemId = item['id']?.toString();
           if (itemId != null) {
             final double qty = (item['quantity'] as num).toDouble();
-            final productRef = FirebaseUtils.firestore.collection('products').doc(itemId);
-            
+            final productRef = FirebaseUtils.firestore
+                .collection('products')
+                .doc(itemId);
+
             final productDoc = productDocs[productRef];
             if (productDoc != null && productDoc.exists) {
               transaction.update(productRef, {
@@ -1566,17 +1783,34 @@ class AdminOrderCard extends StatelessWidget {
         }
       });
 
+      NotificationService.dispatchOrderStatusNotification(
+        orderId: orderId,
+        newStatus: targetStatus,
+        customerPhone: data['phone_number']?.toString() ?? '',
+        customerUid: data['customer_uid']?.toString(),
+        shopId: data['shop_id']?.toString() ?? '',
+        orderTotal: finalTotal,
+        failureReason: selectedReason,
+      );
+
       if (context.mounted) {
         Navigator.pop(context); // Close loading indicator
         SoundService().play('cancel.mp3');
-        final wasPaid = (data['payment_status'] as String?) == PaymentStatus.paid;
+        final wasPaid =
+            (data['payment_status'] as String?) == PaymentStatus.paid;
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text(wasPaid ? 'Order Cancelled & Refund Initiated' : 'Order Cancelled'),
-            content: Text(wasPaid
-                ? 'The order has been cancelled, stock restored, and a refund of ₹${finalTotal.toStringAsFixed(0)} has been recorded.'
-                : 'The order has been cancelled and stock has been restored successfully.'),
+            title: Text(
+              wasPaid
+                  ? 'Order Cancelled & Refund Initiated'
+                  : 'Order Cancelled',
+            ),
+            content: Text(
+              wasPaid
+                  ? 'The order has been cancelled, stock restored, and a refund of ₹${finalTotal.toStringAsFixed(0)} has been recorded.'
+                  : 'The order has been cancelled and stock has been restored successfully.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -1590,7 +1824,11 @@ class AdminOrderCard extends StatelessWidget {
       if (context.mounted) {
         Navigator.pop(context); // Close loading indicator
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              'Error: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
             backgroundColor: AppColors.error,
           ),
         );

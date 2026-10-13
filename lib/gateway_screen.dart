@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -826,7 +826,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
                   return;
                 }
                 // Auth call
-                if (kIsWeb) {
+                if (kIsWeb || kDebugMode) {
                   final phone = _phoneController.text.trim();
                   SharedPreferences.getInstance().then((prefs) {
                     prefs.setString('global_phone', phone);

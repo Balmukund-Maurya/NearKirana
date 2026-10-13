@@ -505,9 +505,68 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
+    // =========================================================================
+    // 10. RETURNS, REFUNDS & COMPLAINTS (Feature 51)
+    // =========================================================================
+    match /complaints/{complaintId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          isMatchingPhone(resource.data.customer_phone) ||
+          (('customer_uid' in resource.data) && resource.data.customer_uid == request.auth.uid)
+        )
+      );
+
+      allow create: if isAuthenticated() && (
+        isSuperAdmin() ||
+        (request.resource.data.shop_id is string && isShopOwner(request.resource.data.shop_id)) ||
+        isMatchingPhone(request.resource.data.customer_phone) ||
+        (('customer_uid' in request.resource.data) && request.resource.data.customer_uid == request.auth.uid)
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (
+            (isMatchingPhone(resource.data.customer_phone) || (('customer_uid' in resource.data) && resource.data.customer_uid == request.auth.uid))
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'cancelled'
+          )
+        )
+      );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // =========================================================================
+    // 11. SHOPPING LISTS & REORDER (Feature 52)
+    // =========================================================================
+    match /shopping_lists/{listId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          isMatchingPhone(resource.data.customer_phone) ||
+          (('shop_id' in resource.data) && isShopOwner(resource.data.shop_id))
+        )
+      );
+
+      allow create: if isAuthenticated() && (
+        isSuperAdmin() ||
+        isMatchingPhone(request.resource.data.customer_phone)
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && isMatchingPhone(resource.data.customer_phone)
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && isMatchingPhone(resource.data.customer_phone)
+      );
+    }
+
     // Fallback: Deny all unhandled paths
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
+

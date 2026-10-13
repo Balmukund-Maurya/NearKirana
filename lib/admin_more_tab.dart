@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'admin_settings_screen.dart';
 import 'admin_customers_screen.dart';
+import 'admin_complaints_screen.dart';
 import 'shop_qr_screen.dart';
 import 'gateway_screen.dart';
 import 'app_theme.dart';
@@ -177,6 +178,21 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AdminCustomersScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuTile(
+                  icon: Icons.assignment_return_rounded,
+                  color: Colors.deepPurple,
+                  title: 'Complaints & Returns',
+                  subtitle: 'Review damaged items, replacements & refunds',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminComplaintsScreen(),
                       ),
                     );
                   },

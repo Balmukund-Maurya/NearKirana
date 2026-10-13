@@ -27,6 +27,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   
   final _shopNameController = TextEditingController();
   final _ownerNameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _deliveryFeeController = TextEditingController();
   final _minOrderController = TextEditingController();
   final _freeDeliveryThresholdController = TextEditingController();
@@ -42,11 +43,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   bool _isStoreOpen = true;
   List<String> _categories = [];
   bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void dispose() {
     _shopNameController.dispose();
     _ownerNameController.dispose();
+    _phoneController.dispose();
     _deliveryFeeController.dispose();
     _minOrderController.dispose();
     _freeDeliveryThresholdController.dispose();
@@ -56,6 +59,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     _storeLatController.dispose();
     _storeLngController.dispose();
     _basePrepTimeController.dispose();
+    _upiIdController.dispose();
     _supportPhoneController.dispose();
     _whatsappMessageController.dispose();
     super.dispose();
@@ -77,6 +81,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         final data = doc.data()!;
         _shopNameController.text = data['shop_name'] ?? '';
         _ownerNameController.text = data['owner_name'] ?? '';
+        _phoneController.text = data['phone'] ?? data['owner_phone'] ?? data['support_phone'] ?? '';
         _deliveryFeeController.text = (data['delivery_fee'] ?? 20.0).toString();
         _minOrderController.text = (data['minimum_order'] ?? 300.0).toString();
         _freeDeliveryThresholdController.text =
@@ -107,8 +112,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   Future<void> _saveSettings() async {
+    if (_isSaving) return;
     HapticFeedback.mediumImpact();
-    setState(() => _isLoading = true);
+    setState(() => _isSaving = true);
     try {
       final double deliveryFee = double.tryParse(_deliveryFeeController.text) ?? 20.0;
       final double minOrder = double.tryParse(_minOrderController.text) ?? 300.0;
@@ -122,7 +128,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.err_negative_values), backgroundColor: AppColors.error),
           );
-          setState(() => _isLoading = false);
+          setState(() => _isSaving = false);
         }
         return;
       }
@@ -149,9 +155,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         'support_phone': _supportPhoneController.text.trim(),
         'whatsapp_message_template': _whatsappMessageController.text.trim(),
         'upi_id': _upiIdController.text.trim(),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)).timeout(const Duration(seconds: 8));
 
-      SoundService().play('save.mp3');
+      SoundService().productSaved();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.settings_saved), backgroundColor: AppColors.primaryDark),
@@ -164,7 +170,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -374,7 +380,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             const SizedBox(height: 20),
             _buildHDField('Full Name *', _ownerNameController, Icons.person_outline, 'Admin User'),
             const SizedBox(height: 16),
-            _buildHDField('Phone Number', TextEditingController(text: ''), Icons.phone_outlined, 'N/A', readOnly: true),
+            _buildHDField('Phone Number', _phoneController, Icons.phone_outlined, 'N/A', readOnly: true),
           ] else ...[
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,7 +394,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                         children: [
                           Expanded(child: _buildHDField('Full Name *', _ownerNameController, Icons.person_outline, 'Admin User')),
                           const SizedBox(width: 16),
-                          Expanded(child: _buildHDField('Phone Number', TextEditingController(text: ''), Icons.phone_outlined, 'N/A', readOnly: true)),
+                          Expanded(child: _buildHDField('Phone Number', _phoneController, Icons.phone_outlined, 'N/A', readOnly: true)),
                         ],
                       ),
                     ],
@@ -687,9 +693,18 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: _saveSettings,
-            icon: const Icon(Icons.save_outlined),
-            label: const Text('Save Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            onPressed: _isSaving ? null : _saveSettings,
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: Text(
+              _isSaving ? 'Saving...' : 'Save Settings',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryDark,
               foregroundColor: Colors.white,
@@ -716,12 +731,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   void _importLanguageTheme(BuildContext context) {
-    // Use the AdminDashboard static callback to navigate to index 11
-    // This ensures the screen is rendered inside AdminDesktopDashboard (with sidebar).
-    if (AdminDashboard.navCallback != null) {
+    final isDesktop = MediaQuery.of(context).size.width > 900;
+    if (isDesktop && AdminDashboard.navCallback != null) {
       AdminDashboard.navCallback!(11);
     } else {
-      // Fallback: direct push (no sidebar) if not inside AdminDashboard
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const AdminLanguageThemeScreen()),
       );
@@ -760,7 +773,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   Widget _buildHDField(String label, TextEditingController controller, IconData icon, String hint, {String? prefixText, bool readOnly = false, int maxLines = 1}) {

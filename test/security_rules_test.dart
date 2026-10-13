@@ -22,6 +22,7 @@ void main() {
     expect(rulesContent.contains('match /products/{barcode}'), isTrue);
     expect(rulesContent.contains('match /customers/{customerId}'), isTrue);
     expect(rulesContent.contains('match /users/{userId}'), isTrue);
+    expect(rulesContent.contains('match /complaints/{complaintId}'), isTrue);
   });
 
   test('Multi-tenant isolation: Shop Owner A and Shop Owner B data isolation', () async {

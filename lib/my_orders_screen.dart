@@ -18,6 +18,9 @@ import 'my_orders_desktop_wrapper.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
 import 'package:near_kirana/widgets/rating_review_dialog.dart';
+import 'package:near_kirana/widgets/order_complaint_section.dart';
+import 'package:near_kirana/widgets/reorder_summary_dialog.dart';
+import 'package:near_kirana/shopping_list_service.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   final bool isTab;
@@ -890,6 +893,16 @@ class MyOrdersScreen extends StatelessWidget {
               ],
             ],
 
+            OrderComplaintSection(
+              orderId: doc.id,
+              shopId: data['shop_id']?.toString() ?? '',
+              customerPhone: data['phone_number']?.toString() ?? '',
+              customerName: data['customer_name']?.toString() ?? 'Customer',
+              orderItems: items,
+              orderStatus: status,
+              orderData: data,
+            ),
+
             const SizedBox(height: 16),
             Material(
               color: Colors.transparent,
@@ -943,8 +956,116 @@ class MyOrdersScreen extends StatelessWidget {
               ),
             ),
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    final phone = data['phone_number']?.toString() ?? '';
+                    final shopId = data['shop_id']?.toString() ?? '';
+                    _showSaveOrderAsListDialog(context, doc.id, phone, shopId, items);
+                  },
+                  icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+                  label: const Text('Save as List'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryDark,
+                    side: BorderSide(color: AppColors.primaryDark.withValues(alpha: 0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    final shopId = data['shop_id']?.toString() ?? '';
+                    ReorderSummaryDialog.showForItems(
+                      context: context,
+                      sourceTitle: 'Order #${doc.id}',
+                      shopId: shopId,
+                      items: items.map((i) => Map<String, dynamic>.from(i as Map)).toList(),
+                    );
+                  },
+                  icon: const Icon(Icons.replay_rounded, size: 18),
+                  label: const Text('Reorder'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showSaveOrderAsListDialog(
+    BuildContext context,
+    String orderId,
+    String phone,
+    String shopId,
+    List<dynamic> items,
+  ) {
+    final nameCtrl = TextEditingController(text: 'Reorder List #$orderId');
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Save Order as List', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Save items from this order to quickly reorder next time:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameCtrl,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.bookmark_border_rounded),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              await ShoppingListService().createListFromOrder(
+                orderId: orderId,
+                name: nameCtrl.text.trim(),
+                customerPhone: phone,
+                shopId: shopId,
+                items: items,
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Saved "${nameCtrl.text}" to your shopping lists!'),
+                    backgroundColor: AppColors.primaryDark,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Save List'),
+          ),
+        ],
       ),
     );
   }

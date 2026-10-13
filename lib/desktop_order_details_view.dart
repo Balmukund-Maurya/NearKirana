@@ -4,7 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
 import 'package:near_kirana/widgets/rating_review_dialog.dart';
+import 'package:flutter/services.dart';
 import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
+import 'package:near_kirana/widgets/order_complaint_section.dart';
+import 'package:near_kirana/widgets/reorder_summary_dialog.dart';
+import 'package:near_kirana/shopping_list_service.dart';
 
 class DesktopOrderDetailsView extends StatefulWidget {
   final QueryDocumentSnapshot order;
@@ -311,6 +315,18 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                                   const SizedBox(height: 16),
                                 ],
                               ],
+
+                              OrderComplaintSection(
+                                orderId: widget.order.id,
+                                shopId: data['shop_id']?.toString() ?? '',
+                                customerPhone: data['phone_number']?.toString() ?? '',
+                                customerName: data['customer_name']?.toString() ?? 'Customer',
+                                orderItems: items,
+                                orderStatus: status,
+                                orderData: data,
+                                onComplaintUpdated: () => setState(() {}),
+                              ),
+                              const SizedBox(height: 16),
                               
                               // Delivery Banner
                               Container(
@@ -802,6 +818,90 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                             ],
                           ),
                         ),
+                        
+                        const SizedBox(height: 24),
+
+                        // Reorder & Repeat Shopping Card
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.replay_rounded, color: Color(0xFF047857), size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Repeat Order',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Reorder the same items with real-time stock and price check.',
+                                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                              ),
+                              const SizedBox(height: 20),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        HapticFeedback.lightImpact();
+                                        final phone = data['phone_number']?.toString() ?? '';
+                                        final shopId = data['shop_id']?.toString() ?? '';
+                                        _showSaveOrderAsListDesktop(context, widget.order.id, phone, shopId, items);
+                                      },
+                                      icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+                                      label: const Text('Save as List'),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        side: const BorderSide(color: Color(0xFFD1D5DB)),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        HapticFeedback.mediumImpact();
+                                        final shopId = data['shop_id']?.toString() ?? '';
+                                        ReorderSummaryDialog.showForItems(
+                                          context: context,
+                                          sourceTitle: 'Order #${widget.order.id}',
+                                          shopId: shopId,
+                                          items: items.map((i) => Map<String, dynamic>.from(i as Map)).toList(),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.shopping_bag_outlined, size: 16),
+                                      label: const Text('Reorder to Cart'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF047857),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -909,6 +1009,71 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSaveOrderAsListDesktop(
+    BuildContext context,
+    String orderId,
+    String phone,
+    String shopId,
+    List<dynamic> items,
+  ) {
+    final nameCtrl = TextEditingController(text: 'Reorder List #$orderId');
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Save Order as List', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Save items from this order into a reusable shopping list:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameCtrl,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                prefixIcon: const Icon(Icons.bookmark_border_rounded),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF047857),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              await ShoppingListService().createListFromOrder(
+                orderId: orderId,
+                name: nameCtrl.text.trim(),
+                customerPhone: phone,
+                shopId: shopId,
+                items: items,
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Saved "${nameCtrl.text}" to your shopping lists!'),
+                    backgroundColor: const Color(0xFF047857),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Save List'),
           ),
         ],
       ),

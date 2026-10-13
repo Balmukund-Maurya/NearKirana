@@ -25,6 +25,7 @@ import 'payment_service.dart';
 import 'desktop_checkout_view.dart';
 import 'atomic_order_service.dart';
 import 'address_selection_bottom_sheet.dart';
+import 'shopping_list_service.dart';
 
 class CartScreen extends StatefulWidget {
   final bool isTab;
@@ -126,6 +127,18 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: !widget.isTab,
         title: Text(AppLocalizations.of(context)!.cart_title),
+        actions: [
+          Consumer<CartProvider>(
+            builder: (context, cart, _) {
+              if (cart.items.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.bookmark_add_outlined),
+                tooltip: 'Save Cart as List',
+                onPressed: () => _showSaveCartAsListDialog(context, cart),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<CartProvider>(
         builder: (context, cartProvider, child) {
@@ -3294,6 +3307,77 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSaveCartAsListDialog(BuildContext context, CartProvider cart) {
+    HapticFeedback.lightImpact();
+    final nameCtrl = TextEditingController(text: 'My Grocery List');
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Save Cart as Shopping List', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Save all ${cart.itemCount} current cart items to quickly reorder next time.',
+              style: const TextStyle(fontSize: 13, color: AppColors.textMid),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'e.g. Weekly Grocery, Monthly Ration',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.bookmark_border_rounded),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+
+              Navigator.pop(dialogCtx);
+              await ShoppingListService().createListFromCart(
+                name: name,
+                customerPhone: userProvider.phoneNumber,
+                shopId: shopProvider.currentShopId ?? '',
+                cartItems: cart.itemsList,
+              );
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Saved "${nameCtrl.text}" to your shopping lists!'),
+                    backgroundColor: AppColors.primaryDark,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Save List'),
           ),
         ],
       ),

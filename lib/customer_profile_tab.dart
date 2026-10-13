@@ -21,6 +21,7 @@ import 'modern_loader.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'customer_profile_desktop_wrapper.dart';
 import 'address_selection_bottom_sheet.dart';
+import 'shopping_lists_screen.dart';
 
 class CustomerProfileTab extends StatelessWidget {
   const CustomerProfileTab({super.key});
@@ -178,6 +179,55 @@ class CustomerProfileTab extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
+
+            // Shopping Lists & Reorder
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.15)),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryDark.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryDark.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.bookmark_border_rounded, color: AppColors.primaryDark),
+                  ),
+                  title: const Text(
+                    'Shopping Lists & Reorder',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  subtitle: const Text(
+                    'Weekly grocery, saved lists & repeat orders',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMid),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.textMid),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ShoppingListsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.1, end: 0),
 
             // Main Options
             _buildInfoCard(

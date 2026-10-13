@@ -144,43 +144,60 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 1100;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 900;
+    final isWide = screenWidth >= 1100;
+    final isMobile = !isDesktop;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
+      appBar: isMobile
+          ? AppBar(
+              title: const Text('Language & Theme'),
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            )
+          : null,
       body: Column(
         children: [
-          const AdminTopHeader(),
+          if (isDesktop) const AdminTopHeader(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 16.0 : 32.0,
+                vertical: isMobile ? 16.0 : 32.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Page header
-                  Text('Language & Theme', style: AppTextStyles.heading1(color: AppColors.textDark)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Customize your admin panel appearance and language preferences',
-                    style: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                  ),
-                  const SizedBox(height: 32),
+                  // Page header (only on desktop since mobile has AppBar)
+                  if (isDesktop) ...[
+                    Text('Language & Theme', style: AppTextStyles.heading1(color: AppColors.textDark)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Customize your admin panel appearance and language preferences',
+                      style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
 
                   // Two-column layout
                   if (isWide)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(flex: 7, child: _buildLeftColumn()),
+                        Expanded(flex: 7, child: _buildLeftColumn(isMobile: isMobile)),
                         const SizedBox(width: 24),
-                        Expanded(flex: 3, child: _buildRightColumn()),
+                        Expanded(flex: 3, child: _buildRightColumn(isMobile: isMobile)),
                       ],
                     )
                   else
                     Column(
                       children: [
-                        _buildLeftColumn(),
+                        _buildLeftColumn(isMobile: isMobile),
                         const SizedBox(height: 24),
-                        _buildRightColumn(),
+                        _buildRightColumn(isMobile: isMobile),
                       ],
                     ),
                 ],
@@ -194,20 +211,21 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
 
   // ─────────────────────────────────────────── LEFT COLUMN ──────────────────
 
-  Widget _buildLeftColumn() {
+  Widget _buildLeftColumn({bool isMobile = false}) {
     return Column(
       children: [
-        _buildLanguageSettingsCard(),
+        _buildLanguageSettingsCard(isMobile: isMobile),
         const SizedBox(height: 24),
-        _buildThemeSettingsCard(),
+        _buildThemeSettingsCard(isMobile: isMobile),
         const SizedBox(height: 24),
-        _buildThemeColorsCard(),
+        _buildThemeColorsCard(isMobile: isMobile),
       ],
     );
   }
 
-  Widget _buildLanguageSettingsCard() {
+  Widget _buildLanguageSettingsCard({bool isMobile = false}) {
     return _card(
+      isMobile: isMobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -223,13 +241,15 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
                 child: const Icon(Icons.language, color: AppColors.primaryDark, size: 22),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Language Settings', style: AppTextStyles.title(color: AppColors.textDark)),
-                  Text('Choose your preferred language for the admin panel',
-                      style: AppTextStyles.captionMedium(color: AppColors.textMid)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Language Settings', style: AppTextStyles.title(color: AppColors.textDark)),
+                    Text('Choose your preferred language for the admin panel',
+                        style: AppTextStyles.captionMedium(color: AppColors.textMid)),
+                  ],
+                ),
               ),
             ],
           ),
@@ -309,8 +329,34 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
     );
   }
 
-  Widget _buildThemeSettingsCard() {
+  Widget _buildThemeSettingsCard({bool isMobile = false}) {
+    final lightCard = _buildThemeCard(
+      key: 'light',
+      icon: Icons.wb_sunny_outlined,
+      label: 'Light Theme',
+      desc: 'Clean and bright interface',
+      preview: _buildLightPreview(),
+      isMobile: isMobile,
+    );
+    final darkCard = _buildThemeCard(
+      key: 'dark',
+      icon: Icons.nightlight_round_outlined,
+      label: 'Dark Theme',
+      desc: 'Easy on the eyes during low light',
+      preview: _buildDarkPreview(),
+      isMobile: isMobile,
+    );
+    final systemCard = _buildThemeCard(
+      key: 'system',
+      icon: Icons.computer_outlined,
+      label: 'System Theme',
+      desc: 'Automatically match your system theme',
+      preview: _buildSystemPreview(),
+      isMobile: isMobile,
+    );
+
     return _card(
+      isMobile: isMobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -325,44 +371,39 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
                 child: const Icon(Icons.palette_outlined, color: AppColors.primaryDark, size: 22),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Theme Settings', style: AppTextStyles.title(color: AppColors.textDark)),
-                  Text('Choose your preferred theme for the admin panel',
-                      style: AppTextStyles.captionMedium(color: AppColors.textMid)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Theme Settings', style: AppTextStyles.title(color: AppColors.textDark)),
+                    Text('Choose your preferred theme for the admin panel',
+                        style: AppTextStyles.captionMedium(color: AppColors.textMid)),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: _buildThemeCard(
-                key: 'light',
-                icon: Icons.wb_sunny_outlined,
-                label: 'Light Theme',
-                desc: 'Clean and bright interface',
-                preview: _buildLightPreview(),
-              )),
-              const SizedBox(width: 16),
-              Expanded(child: _buildThemeCard(
-                key: 'dark',
-                icon: Icons.nightlight_round_outlined,
-                label: 'Dark Theme',
-                desc: 'Easy on the eyes during low light',
-                preview: _buildDarkPreview(),
-              )),
-              const SizedBox(width: 16),
-              Expanded(child: _buildThemeCard(
-                key: 'system',
-                icon: Icons.computer_outlined,
-                label: 'System Theme',
-                desc: 'Automatically match your system theme',
-                preview: _buildSystemPreview(),
-              )),
-            ],
-          ),
+          const SizedBox(height: 20),
+          if (isMobile)
+            Column(
+              children: [
+                lightCard,
+                const SizedBox(height: 12),
+                darkCard,
+                const SizedBox(height: 12),
+                systemCard,
+              ],
+            )
+          else
+            Row(
+              children: [
+                Expanded(child: lightCard),
+                const SizedBox(width: 16),
+                Expanded(child: darkCard),
+                const SizedBox(width: 16),
+                Expanded(child: systemCard),
+              ],
+            ),
         ],
       ),
     );
@@ -374,6 +415,7 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
     required String label,
     required String desc,
     required Widget preview,
+    bool isMobile = false,
   }) {
     final isSelected = _selectedTheme == key;
     return GestureDetector(
@@ -388,40 +430,85 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
             width: isSelected ? 2 : 1,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Preview area
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-              child: SizedBox(height: 110, child: preview),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
+        child: isMobile
+            ? Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 70,
+                        height: 50,
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(width: 140, height: 100, child: preview),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(icon, size: 16, color: isSelected ? AppColors.primaryDark : AppColors.textMid),
+                              const SizedBox(width: 6),
+                              Text(
+                                label,
+                                style: AppTextStyles.bodyMedium(
+                                  color: isSelected ? AppColors.primaryDark : AppColors.textDark,
+                                ).copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(desc, style: AppTextStyles.captionMedium(color: AppColors.textMid)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (isSelected)
+                      const Icon(Icons.check_circle, color: AppColors.primaryDark, size: 22)
+                    else
+                      Icon(Icons.radio_button_unchecked, color: Colors.grey.shade400, size: 22),
+                  ],
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(icon, size: 16, color: isSelected ? AppColors.primaryDark : AppColors.textMid),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                    child: SizedBox(height: 110, child: preview),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
                       children: [
-                        Text(label, style: AppTextStyles.bodyMedium(
-                          color: isSelected ? AppColors.primaryDark : AppColors.textDark,
-                        )),
-                        Text(desc, style: AppTextStyles.captionMedium(color: AppColors.textMid)),
+                        Icon(icon, size: 16, color: isSelected ? AppColors.primaryDark : AppColors.textMid),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(label, style: AppTextStyles.bodyMedium(
+                                color: isSelected ? AppColors.primaryDark : AppColors.textDark,
+                              )),
+                              Text(desc, style: AppTextStyles.captionMedium(color: AppColors.textMid)),
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          const Icon(Icons.check_circle, color: AppColors.primaryDark, size: 18)
+                        else
+                          Icon(Icons.radio_button_unchecked, color: Colors.grey.shade400, size: 18),
                       ],
                     ),
                   ),
-                  if (isSelected)
-                    const Icon(Icons.check_circle, color: AppColors.primaryDark, size: 18)
-                  else
-                    Icon(Icons.radio_button_unchecked, color: Colors.grey.shade400, size: 18),
                 ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -599,8 +686,9 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
     );
   }
 
-  Widget _buildThemeColorsCard() {
+  Widget _buildThemeColorsCard({bool isMobile = false}) {
     return _card(
+      isMobile: isMobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -615,41 +703,51 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
                 child: const Icon(Icons.color_lens_outlined, color: AppColors.primaryDark, size: 22),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Theme Colors', style: AppTextStyles.title(color: AppColors.textDark)),
-                  Text('Choose a primary color for the admin panel',
-                      style: AppTextStyles.captionMedium(color: AppColors.textMid)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Theme Colors', style: AppTextStyles.title(color: AppColors.textDark)),
+                    Text('Choose a primary color for the admin panel',
+                        style: AppTextStyles.captionMedium(color: AppColors.textMid)),
+                  ],
+                ),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: _colors.map((c) => _buildColorSwatch(
-              key: c['key'] as String,
-              label: c['label'] as String,
-              color: c['value'] as Color,
-            )).toList(),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _colors.map((c) => Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: _buildColorSwatch(
+                  key: c['key'] as String,
+                  label: c['label'] as String,
+                  color: c['value'] as Color,
+                ),
+              )).toList(),
+            ),
           ),
           const SizedBox(height: 32),
           // Save button
           Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: _isSaving ? null : _savePreferences,
-              icon: _isSaving
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Icon(Icons.save_outlined, size: 18),
-              label: const Text('Save Preferences'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryDark,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 0,
+            alignment: isMobile ? Alignment.center : Alignment.centerRight,
+            child: SizedBox(
+              width: isMobile ? double.infinity : null,
+              child: ElevatedButton.icon(
+                onPressed: _isSaving ? null : _savePreferences,
+                icon: _isSaving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.save_outlined, size: 18),
+                label: Text(_isSaving ? 'Saving...' : 'Save Preferences'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryDark,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
               ),
             ),
           ),
@@ -698,20 +796,21 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
 
   // ─────────────────────────────────────────── RIGHT COLUMN ─────────────────
 
-  Widget _buildRightColumn() {
+  Widget _buildRightColumn({bool isMobile = false}) {
     return Column(
       children: [
-        _buildPreviewCard(),
+        _buildPreviewCard(isMobile: isMobile),
         const SizedBox(height: 24),
-        _buildQuickActionsCard(),
+        _buildQuickActionsCard(isMobile: isMobile),
         const SizedBox(height: 24),
-        _buildSupportedLanguagesCard(),
+        _buildSupportedLanguagesCard(isMobile: isMobile),
       ],
     );
   }
 
-  Widget _buildPreviewCard() {
+  Widget _buildPreviewCard({bool isMobile = false}) {
     return _card(
+      isMobile: isMobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -719,7 +818,9 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
             children: [
               const Icon(Icons.visibility_outlined, color: AppColors.textDark, size: 20),
               const SizedBox(width: 8),
-              Text('Preview', style: AppTextStyles.title(color: AppColors.textDark)),
+              Expanded(
+                child: Text('Preview', style: AppTextStyles.title(color: AppColors.textDark)),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -869,8 +970,9 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
     );
   }
 
-  Widget _buildQuickActionsCard() {
+  Widget _buildQuickActionsCard({bool isMobile = false}) {
     return _card(
+      isMobile: isMobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -878,7 +980,9 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
             children: [
               const Icon(Icons.bolt, color: AppColors.textDark, size: 20),
               const SizedBox(width: 8),
-              Text('Quick Actions', style: AppTextStyles.title(color: AppColors.textDark)),
+              Expanded(
+                child: Text('Quick Actions', style: AppTextStyles.title(color: AppColors.textDark)),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -933,8 +1037,9 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
     );
   }
 
-  Widget _buildSupportedLanguagesCard() {
+  Widget _buildSupportedLanguagesCard({bool isMobile = false}) {
     return _card(
+      isMobile: isMobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -942,7 +1047,9 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
             children: [
               const Icon(Icons.public, color: AppColors.primaryDark, size: 20),
               const SizedBox(width: 8),
-              Text('Supported Languages', style: AppTextStyles.title(color: AppColors.textDark)),
+              Expanded(
+                child: Text('Supported Languages', style: AppTextStyles.title(color: AppColors.textDark)),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -979,10 +1086,10 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
 
   // ──────────────────────────────────────────── HELPERS ─────────────────────
 
-  Widget _card({required Widget child}) {
+  Widget _card({required Widget child, bool isMobile = false}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),

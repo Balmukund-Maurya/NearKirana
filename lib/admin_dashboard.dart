@@ -23,6 +23,7 @@ import 'admin_language_theme_screen.dart';
 import 'admin_orders_desktop_view.dart';
 import 'admin_customers_desktop_view.dart';
 import 'admin_khata_desktop_view.dart';
+import 'admin_complaints_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -108,7 +109,7 @@ class _AdminDashboardState extends State<AdminDashboard>
           return AdminDesktopDashboard(
             selectedIndex: _selectedIndex,
             onNavTap: _onNavTap,
-            child: (_selectedIndex == 1 || _selectedIndex == 4 || _selectedIndex == 5 || effectiveIndex == 2 || _selectedIndex == 9 || _selectedIndex == 6 || _selectedIndex == 8 || _selectedIndex == 7 || _selectedIndex == 10 || _selectedIndex == 11)
+            child: (_selectedIndex == 1 || _selectedIndex == 4 || _selectedIndex == 5 || effectiveIndex == 2 || _selectedIndex == 9 || _selectedIndex == 6 || _selectedIndex == 8 || _selectedIndex == 7 || _selectedIndex == 10 || _selectedIndex == 11 || _selectedIndex == 12)
                 ? _buildDesktopScreen(_selectedIndex)
                 : Scaffold(
               backgroundColor: const Color(0xFFF0F2F5),
@@ -334,6 +335,8 @@ class _AdminDashboardState extends State<AdminDashboard>
         return const AdminUserProfileScreen();
       case 11:
         return const AdminLanguageThemeScreen();
+      case 12:
+        return const AdminComplaintsScreen();
       default:
         return const AdminMoreTab();
     }

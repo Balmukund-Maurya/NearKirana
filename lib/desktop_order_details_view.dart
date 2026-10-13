@@ -3,9 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
-import 'package:near_kirana/substitution_model.dart';
 import 'package:near_kirana/widgets/rating_review_dialog.dart';
-import 'package:near_kirana/rating_review_service.dart';
+import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 
 class DesktopOrderDetailsView extends StatefulWidget {
   final QueryDocumentSnapshot order;
@@ -127,7 +126,13 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                 Row(
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        DigitalReceiptDialog.showForOrder(
+                          context,
+                          orderData: data,
+                          orderId: widget.order.id,
+                        );
+                      },
                       icon: const Icon(Icons.receipt_long, size: 18, color: Colors.black87),
                       label: const Text('Download Invoice', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
                       style: OutlinedButton.styleFrom(

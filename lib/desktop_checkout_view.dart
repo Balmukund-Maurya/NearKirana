@@ -12,6 +12,7 @@ import 'package:near_kirana/payment_service.dart';
 import 'package:near_kirana/address_selection_bottom_sheet.dart';
 import 'package:near_kirana/coupon_model.dart';
 import 'package:near_kirana/widgets/coupon_widgets.dart';
+import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 
 class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
@@ -1394,6 +1395,30 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         }
       }
 
+      final receiptOrderData = {
+        'order_id': result.orderId,
+        'items': items.map((i) => {
+          'id': i.productId,
+          'name': i.name,
+          'quantity': i.quantity,
+          'price': i.price,
+          'total_price': i.quantity * i.price,
+          'is_loose': i.isLoose,
+        }).toList(),
+        'subtotal': cartProvider.cartTotal,
+        'discount': _appliedCouponResult?.discountAmount ?? 0.0,
+        'coupon_code': _appliedCouponResult?.coupon?.code,
+        'delivery_fee': deliveryFee,
+        'total_amount': result.totalAmount,
+        'payment_method': paymentMethod,
+        'payment_status': paymentStatus,
+        'customer_name': customerName,
+        'phone_number': phone,
+        'delivery_address': finalDeliveryAddress,
+        'delivery_pin': result.deliveryPin,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
       cartProvider.clearCart();
       SoundService().orderSuccess();
 
@@ -1426,6 +1451,18 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () {
+                  DigitalReceiptDialog.showForOrder(
+                    context,
+                    orderData: receiptOrderData,
+                    orderId: result.orderId,
+                  );
+                },
+                icon: const Icon(Icons.receipt_long, size: 18),
+                label: const Text("View Digital Receipt"),
+              ),
+              const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(ctx);

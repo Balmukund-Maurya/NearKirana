@@ -4,9 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:near_kirana/user_provider.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
-import 'package:near_kirana/substitution_model.dart';
 import 'package:near_kirana/widgets/rating_review_dialog.dart';
-import 'package:near_kirana/rating_review_service.dart';
+import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 
 class DesktopOrderTrackingView extends StatelessWidget {
   final QueryDocumentSnapshot order;
@@ -216,7 +215,13 @@ class DesktopOrderTrackingView extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 24),
                                   OutlinedButton.icon(
-                                    onPressed: () {},
+                                    onPressed: () {
+                                       DigitalReceiptDialog.showForOrder(
+                                         context,
+                                         orderData: data,
+                                         orderId: order.id,
+                                       );
+                                    },
                                     icon: const Icon(Icons.receipt_long, color: Color(0xFF374151), size: 18),
                                     label: const Text('View Invoice', style: TextStyle(color: Color(0xFF374151), fontWeight: FontWeight.bold)),
                                     style: OutlinedButton.styleFrom(

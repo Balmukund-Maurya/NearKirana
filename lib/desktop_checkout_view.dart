@@ -10,6 +10,8 @@ import 'package:near_kirana/sound_service.dart';
 import 'package:near_kirana/atomic_order_service.dart';
 import 'package:near_kirana/payment_service.dart';
 import 'package:near_kirana/address_selection_bottom_sheet.dart';
+import 'package:near_kirana/coupon_model.dart';
+import 'package:near_kirana/widgets/coupon_widgets.dart';
 
 class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
@@ -30,6 +32,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   int _selectedAddressIndex = 0;
   int _selectedPaymentIndex = 0;
   final TextEditingController _instructionsController = TextEditingController();
+  CouponValidationResult? _appliedCouponResult;
 
   final Color primaryGreen = const Color(
     0xFF0F766E,
@@ -47,6 +50,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
+    final shopProvider = Provider.of<ShopProvider>(context);
+    final String currentShopId = shopProvider.currentShopId ?? '';
+    final String customerPhone = userProvider.phoneNumber;
     final cartItems = cartProvider.itemsList;
 
     // Derived Calculations
@@ -60,10 +66,10 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         ? deliveryFeeAmount
         : 0.0;
 
-    // Simulate some discount for the UI fidelity (mockup shows ₹32 discount)
-    final double discount = subtotal > 500 ? 32.0 : 0.0;
+    // Promotional Coupon / Discount Engine (Feature 49)
+    final double discount = _appliedCouponResult?.totalSavings ?? 0.0;
     final double finalTotal =
-        subtotal + (canDeliver ? deliveryFee : 0) - discount;
+        max(0.0, subtotal + (canDeliver ? deliveryFee : 0) - discount);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -564,6 +570,25 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             ),
 
                             const Divider(height: 32, color: Color(0xFFE5E7EB)),
+
+                            // COUPONS & DISCOUNT ENGINE (Feature 49)
+                            CouponInputCard(
+                              subtotal: subtotal,
+                              shopId: currentShopId.isNotEmpty ? currentShopId : null,
+                              customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
+                              appliedResult: _appliedCouponResult,
+                              onCouponApplied: (result) {
+                                setState(() {
+                                  _appliedCouponResult = result;
+                                });
+                              },
+                              onCouponRemoved: () {
+                                setState(() {
+                                  _appliedCouponResult = null;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 16),
 
                             // PRICE DETAILS
                             const Text(
@@ -1340,6 +1365,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           paymentStatus: paymentStatus,
           instructions: _instructionsController.text.trim(),
           idempotencyKey: idempotencyKey,
+          couponCode: _appliedCouponResult?.coupon?.code,
           items: items,
           extraData: {
             'estimated_delivery_window': estimate.formattedWindow,
@@ -1419,6 +1445,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           backgroundColor: AppColors.error,
         ),
       );
+    } on InvalidCouponException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Coupon Error: ${e.message}"),
+          backgroundColor: AppColors.error,
+        ),
+      );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1428,10 +1462,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         ),
       );
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isProcessingCheckout = false;
         });
+      }
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_utils.dart';
 import 'payment_service.dart';
 import 'notification_service.dart';
+import 'coupon_model.dart';
 
 /// Request model representing an individual cart item in an atomic order placement
 class OrderItemRequest {
@@ -71,6 +72,7 @@ class OrderPlacementParams {
   final double? freeDeliveryThreshold;
   final bool enforceStockCheck;
   final bool enforceStoreOpen;
+  final String? couponCode;
   final Map<String, dynamic>? extraData;
 
   const OrderPlacementParams({
@@ -95,6 +97,7 @@ class OrderPlacementParams {
     this.freeDeliveryThreshold,
     this.enforceStockCheck = true,
     this.enforceStoreOpen = false,
+    this.couponCode,
     this.extraData,
   });
 }
@@ -108,6 +111,8 @@ class OrderPlacementResult {
   final double totalAmount;
   final double subtotal;
   final double deliveryFee;
+  final double discount;
+  final String? couponCode;
   final Map<String, double> reservedStocks;
 
   const OrderPlacementResult({
@@ -118,8 +123,21 @@ class OrderPlacementResult {
     required this.totalAmount,
     required this.subtotal,
     required this.deliveryFee,
+    this.discount = 0.0,
+    this.couponCode,
     this.reservedStocks = const {},
   });
+}
+
+/// Thrown when a coupon code cannot be applied or verified
+class InvalidCouponException extends AtomicOrderException {
+  final String couponCode;
+  final String reason;
+
+  InvalidCouponException({
+    required this.couponCode,
+    required this.reason,
+  }) : super('Coupon "$couponCode" is invalid: $reason');
 }
 
 /// Base class for all atomic order errors
@@ -236,7 +254,41 @@ class AtomicOrderService {
         totalAmount: (data['total_amount'] as num?)?.toDouble() ?? 0.0,
         subtotal: (data['subtotal'] as num?)?.toDouble() ?? 0.0,
         deliveryFee: (data['delivery_fee'] as num?)?.toDouble() ?? 0.0,
+        discount: (data['discount'] as num?)?.toDouble() ?? 0.0,
+        couponCode: data['coupon_code']?.toString(),
       );
+    }
+
+    // Pre-flight Coupon Resolution if requested
+    DocumentReference? preflightCouponRef;
+    int preflightUserUsageCount = 0;
+    final cleanCouponCode = params.couponCode?.toUpperCase().trim();
+
+    if (cleanCouponCode != null && cleanCouponCode.isNotEmpty) {
+      final cQuery = await _firestore
+          .collection('coupons')
+          .where('code', isEqualTo: cleanCouponCode)
+          .limit(1)
+          .get();
+
+      if (cQuery.docs.isEmpty) {
+        throw InvalidCouponException(
+          couponCode: cleanCouponCode,
+          reason: 'Coupon code does not exist',
+        );
+      }
+
+      preflightCouponRef = cQuery.docs.first.reference;
+
+      final cleanPhone = params.customerPhone.replaceAll(RegExp(r'\D'), '');
+      if (cleanPhone.isNotEmpty) {
+        final uQuery = await _firestore
+            .collection('coupon_usages')
+            .where('coupon_id', isEqualTo: preflightCouponRef.id)
+            .where('customer_phone', isEqualTo: cleanPhone)
+            .get();
+        preflightUserUsageCount = uQuery.docs.length;
+      }
     }
 
     // Generate deterministic or safe order document reference
@@ -269,6 +321,8 @@ class AtomicOrderService {
           totalAmount: (data['total_amount'] as num?)?.toDouble() ?? 0.0,
           subtotal: (data['subtotal'] as num?)?.toDouble() ?? 0.0,
           deliveryFee: (data['delivery_fee'] as num?)?.toDouble() ?? 0.0,
+          discount: (data['discount'] as num?)?.toDouble() ?? 0.0,
+          couponCode: data['coupon_code']?.toString(),
         );
       }
 
@@ -358,11 +412,98 @@ class AtomicOrderService {
         );
       }
 
-      final double calculatedDeliveryFee =
+      // 1.4 Coupon Verification & Server-Side Discount Calculation (Inside Transaction Read Phase)
+      CouponModel? verifiedCoupon;
+      double serverDiscount = 0.0;
+      double deliveryDiscount = 0.0;
+      final couponRef = preflightCouponRef;
+
+      if (couponRef != null) {
+        final couponSnap = await transaction.get(couponRef);
+        if (!couponSnap.exists) {
+          throw InvalidCouponException(
+            couponCode: cleanCouponCode!,
+            reason: 'Coupon record no longer exists',
+          );
+        }
+
+        final cData = couponSnap.data() as Map<String, dynamic>;
+        verifiedCoupon = CouponModel.fromMap(cData, id: couponRef.id);
+
+        if (!verifiedCoupon.isActive) {
+          throw InvalidCouponException(
+            couponCode: cleanCouponCode!,
+            reason: 'Coupon is currently inactive',
+          );
+        }
+
+        if (verifiedCoupon.shopId != null &&
+            verifiedCoupon.shopId!.isNotEmpty &&
+            verifiedCoupon.shopId != params.shopId) {
+          throw InvalidCouponException(
+            couponCode: cleanCouponCode!,
+            reason: 'Coupon is not valid for this store',
+          );
+        }
+
+        final now = DateTime.now();
+        if (verifiedCoupon.startDate != null && now.isBefore(verifiedCoupon.startDate!)) {
+          throw InvalidCouponException(
+            couponCode: cleanCouponCode!,
+            reason: 'Coupon is not yet active',
+          );
+        }
+
+        if (verifiedCoupon.isExpired(now)) {
+          throw InvalidCouponException(
+            couponCode: cleanCouponCode!,
+            reason: 'Coupon has expired',
+          );
+        }
+
+        if (liveSubtotal < verifiedCoupon.minOrderValue) {
+          throw InvalidCouponException(
+            couponCode: cleanCouponCode!,
+            reason: 'Minimum cart value of ₹${verifiedCoupon.minOrderValue.toStringAsFixed(0)} required',
+          );
+        }
+
+        if (verifiedCoupon.isFullyClaimed()) {
+          throw InvalidCouponException(
+            couponCode: cleanCouponCode!,
+            reason: 'Coupon global usage limit reached',
+          );
+        }
+
+        if (preflightUserUsageCount >= verifiedCoupon.perUserLimit) {
+          throw InvalidCouponException(
+            couponCode: cleanCouponCode!,
+            reason: 'You have already reached the maximum usage limit for this coupon',
+          );
+        }
+
+        serverDiscount = verifiedCoupon.calculateDiscount(
+          subtotal: liveSubtotal,
+          deliveryFee: params.deliveryFee,
+        );
+
+        if (verifiedCoupon.type == CouponDiscountType.freeDelivery) {
+          deliveryDiscount = params.deliveryFee;
+        }
+      }
+
+      // 1.5 Calculate final delivery fee and net payable total
+      double calculatedDeliveryFee =
           (params.deliveryType == 'Delivery' && liveSubtotal < freeThreshold)
           ? params.deliveryFee
           : 0.0;
-      final double liveFinalTotal = liveSubtotal + calculatedDeliveryFee;
+
+      if (deliveryDiscount > 0) {
+        calculatedDeliveryFee = 0.0;
+      }
+
+      final double liveFinalTotal =
+          ((liveSubtotal - serverDiscount).clamp(0.0, double.infinity)) + calculatedDeliveryFee;
 
       // -----------------------------------------------------------------------
       // PHASE 2: ALL WRITES (Executed atomically together)
@@ -396,6 +537,11 @@ class AtomicOrderService {
         'delivery_type': params.deliveryType,
         'delivery_fee': calculatedDeliveryFee,
         'subtotal': liveSubtotal,
+        'discount': serverDiscount,
+        if (cleanCouponCode != null && cleanCouponCode.isNotEmpty) ...{
+          'coupon_code': cleanCouponCode,
+          'coupon_id': verifiedCoupon?.id,
+        },
         'total_amount': liveFinalTotal,
         'items': verifiedItemsList,
         'status': 'Pending',
@@ -412,6 +558,25 @@ class AtomicOrderService {
 
       transaction.set(orderRef, orderData);
 
+      // 2.4 Atomically increment coupon usage and record usage log
+      if (couponRef != null && verifiedCoupon != null) {
+        transaction.update(couponRef, {
+          'used_count': verifiedCoupon.usedCount + 1,
+        });
+
+        final usageRef = _firestore
+            .collection('coupon_usages')
+            .doc('usage_${orderRef.id}_${verifiedCoupon.id}');
+        transaction.set(usageRef, {
+          'coupon_id': verifiedCoupon.id,
+          'coupon_code': verifiedCoupon.code,
+          'order_id': orderRef.id,
+          'customer_phone': params.customerPhone.replaceAll(RegExp(r'\D'), ''),
+          'discount_applied': serverDiscount,
+          'used_at': FieldValue.serverTimestamp(),
+        });
+      }
+
       return OrderPlacementResult(
         orderId: orderRef.id,
         isDuplicate: false,
@@ -420,6 +585,8 @@ class AtomicOrderService {
         totalAmount: liveFinalTotal,
         subtotal: liveSubtotal,
         deliveryFee: calculatedDeliveryFee,
+        discount: serverDiscount,
+        couponCode: cleanCouponCode,
         reservedStocks: reservedStocksMap,
       );
     });

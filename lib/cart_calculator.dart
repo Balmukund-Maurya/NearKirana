@@ -115,13 +115,30 @@ class CartCalculator {
   static double calculateDiscount(
     double subtotal, {
     Coupon? coupon,
+    dynamic couponModel,
     double manualDiscount = 0.0,
   }) {
     if (subtotal <= 0) return 0.0;
 
     double discount = 0.0;
 
-    if (coupon != null) {
+    if (couponModel != null) {
+      if (couponModel.minOrderValue == null || subtotal >= (couponModel.minOrderValue as num).toDouble()) {
+        final typeStr = couponModel.typeString as String;
+        final double val = (couponModel.discountValue as num).toDouble();
+        final double? maxDisc = (couponModel.maxDiscount as num?)?.toDouble();
+
+        if (typeStr == 'percent') {
+          double calculated = (subtotal * val) / 100.0;
+          if (maxDisc != null && calculated > maxDisc) {
+            calculated = maxDisc;
+          }
+          discount += calculated;
+        } else if (typeStr == 'flat') {
+          discount += val;
+        }
+      }
+    } else if (coupon != null) {
       if (subtotal >= coupon.minOrder) {
         if (coupon.type == 'percent') {
           double calculated = (subtotal * coupon.value) / 100.0;

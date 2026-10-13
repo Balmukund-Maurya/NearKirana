@@ -103,10 +103,13 @@ class AdminProductForms {
                         } else if (existingProduct['category'] != null) {
                           selectedCategories = [existingProduct['category'].toString()];
                         }
-                        // Extract extra details if they exist to keep them safe on update
                         fetchedExtraDetails = {
                           'brand': existingProduct['brand'],
                           'ingredients': existingProduct['ingredients'],
+                          if (existingProduct['purchase_price'] != null)
+                            'purchase_price': existingProduct['purchase_price'],
+                          if (existingProduct['cost_price'] != null)
+                            'cost_price': existingProduct['cost_price'],
                         };
                       });
                       ScaffoldMessenger.of(context).showSnackBar(

@@ -139,6 +139,7 @@ void main() {
 
     setUp(() async {
       fakeFirestore = FakeFirebaseFirestore();
+      FirebaseUtils.setFirestore(fakeFirestore);
       service = ComplaintService(firestore: fakeFirestore);
 
       // Seed an order
@@ -192,7 +193,7 @@ void main() {
     });
 
     test('streamShopComplaints streams complaints filtered by shopId', () async {
-      await service.createComplaint(
+      final c1 = await service.createComplaint(
         orderId: 'ORD-001',
         shopId: 'SHOP_KIRANA_1',
         customerPhone: '9876543210',
@@ -209,6 +210,9 @@ void main() {
         type: ComplaintType.damaged,
         description: 'Other shop complaint',
       );
+
+      final doc = await fakeFirestore.collection('complaints').doc(c1.id).get();
+      expect(doc.exists, isTrue);
 
       final list = await service.streamShopComplaints('SHOP_KIRANA_1').firstWhere((l) => l.isNotEmpty);
       expect(list.length, 1);

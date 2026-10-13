@@ -13,11 +13,14 @@ class ComplaintService {
   CollectionReference<Map<String, dynamic>> get _complaintsRef =>
       _firestore.collection('complaints');
 
-  /// Generate human-readable tracking complaint ID (e.g., CMP-72819)
+  static int _idCounter = 100;
+
+  /// Generate human-readable tracking complaint ID (e.g., CMP-72819-101)
   static String generateComplaintId() {
     final now = DateTime.now().millisecondsSinceEpoch;
     final suffix = (now % 90000) + 10000;
-    return 'CMP-$suffix';
+    final counter = ++_idCounter;
+    return 'CMP-$suffix-$counter';
   }
 
   /// Create a new complaint lodged by a customer
@@ -51,17 +54,15 @@ class ComplaintService {
       updatedAt: now,
     );
 
-    final batch = _firestore.batch();
-
     // 1. Save complaint record
     final compDocRef = _complaintsRef.doc(complaintId);
-    batch.set(compDocRef, complaint.toMap());
+    await compDocRef.set(complaint.toMap());
 
     // 2. Link complaint to order record for quick customer visibility (if order exists)
     final orderDocRef = _firestore.collection('orders').doc(orderId);
     final orderDoc = await orderDocRef.get();
     if (orderDoc.exists) {
-      batch.update(orderDocRef, {
+      await orderDocRef.update({
         'has_complaint': true,
         'complaint_id': complaintId,
         'complaint_status': ComplaintStatus.pending.value,
@@ -70,7 +71,6 @@ class ComplaintService {
       });
     }
 
-    await batch.commit();
     return complaint;
   }
 

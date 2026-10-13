@@ -28,6 +28,7 @@ class AdminAddProductScreen extends StatefulWidget {
 class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
+  final _purchasePriceController = TextEditingController();
   final _mrpController = TextEditingController();
   final _stockController = TextEditingController();
   final _quantityController = TextEditingController();
@@ -48,7 +49,13 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
   @override
   void initState() {
     super.initState();
+    _priceController.addListener(_onPriceOrCostChanged);
+    _purchasePriceController.addListener(_onPriceOrCostChanged);
     _initData();
+  }
+
+  void _onPriceOrCostChanged() {
+    if (mounted) setState(() {});
   }
   
   Future<void> _initData() async {
@@ -75,6 +82,10 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
         if (existingProduct != null) {
           _nameController.text = existingProduct['name'] ?? '';
           _priceController.text = existingProduct['price']?.toString() ?? '';
+          final pCost = existingProduct['purchase_price'] ?? existingProduct['cost_price'];
+          if (pCost != null) {
+            _purchasePriceController.text = pCost.toString();
+          }
           _mrpController.text = existingProduct['mrp']?.toString() ?? '';
           _stockController.text = existingProduct['stock_quantity']?.toString() ?? '';
           _quantityController.text = existingProduct['quantity']?.toString() ?? '';
@@ -102,8 +113,11 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
 
   @override
   void dispose() {
+    _priceController.removeListener(_onPriceOrCostChanged);
+    _purchasePriceController.removeListener(_onPriceOrCostChanged);
     _nameController.dispose();
     _priceController.dispose();
+    _purchasePriceController.dispose();
     _mrpController.dispose();
     _stockController.dispose();
     _quantityController.dispose();
@@ -162,6 +176,11 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
       
       if (_mrpController.text.isNotEmpty) {
         extraData['mrp'] = mrp;
+      }
+      final purchasePrice = double.tryParse(_purchasePriceController.text.trim());
+      if (purchasePrice != null && purchasePrice > 0) {
+        extraData['purchase_price'] = purchasePrice;
+        extraData['cost_price'] = purchasePrice;
       }
       if (_selectedCategories.isNotEmpty) {
         extraData['categories'] = _selectedCategories;
@@ -567,40 +586,146 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
   }
 
   Widget _buildPricingInformationCard() {
+    final sellPrice = double.tryParse(_priceController.text.trim()) ?? 0.0;
+    final buyPrice = double.tryParse(_purchasePriceController.text.trim()) ?? 0.0;
+    final hasBoth = sellPrice > 0 && buyPrice > 0;
+    final profit = sellPrice - buyPrice;
+    final marginPct = sellPrice > 0 ? (profit / sellPrice) * 100 : 0.0;
+    final isLowMargin = hasBoth && marginPct < 8.0 && profit >= 0;
+    final isLoss = hasBoth && profit < 0;
+    final isHealthy = hasBoth && marginPct >= 15.0;
+
+    Color badgeBgColor;
+    Color badgeTextColor;
+    String badgeTitle;
+    String? alertTip;
+
+    if (!hasBoth) {
+      badgeBgColor = AppColors.primaryLight.withValues(alpha: 0.1);
+      badgeTextColor = AppColors.primaryDark;
+      badgeTitle = 'Enter both selling & purchase price to calculate live profit margin';
+    } else if (isLoss) {
+      badgeBgColor = Colors.red.shade50;
+      badgeTextColor = Colors.red.shade800;
+      badgeTitle = 'Gross Loss: -₹${(-profit).toStringAsFixed(2)} (${marginPct.toStringAsFixed(1)}%)';
+      alertTip = 'Selling price is below purchase cost! You are losing money on this item.';
+    } else if (isLowMargin) {
+      badgeBgColor = Colors.amber.shade50;
+      badgeTextColor = Colors.orange.shade900;
+      badgeTitle = 'Low Margin Alert: ₹${profit.toStringAsFixed(2)} (${marginPct.toStringAsFixed(1)}%)';
+      alertTip = 'Slim profit margin (< 8%). Consider raising price or negotiating supplier rates.';
+    } else if (isHealthy) {
+      badgeBgColor = Colors.green.shade50;
+      badgeTextColor = Colors.green.shade800;
+      badgeTitle = 'Healthy Margin: ₹${profit.toStringAsFixed(2)} (${marginPct.toStringAsFixed(1)}%)';
+    } else {
+      badgeBgColor = Colors.blue.shade50;
+      badgeTextColor = Colors.blue.shade800;
+      badgeTitle = 'Profit Margin: ₹${profit.toStringAsFixed(2)} (${marginPct.toStringAsFixed(1)}%)';
+    }
+
     return _buildCard(
-      title: 'Pricing Information',
-      subtitle: 'Set the product pricing and tax details',
+      title: 'Pricing & Cost Information',
+      subtitle: 'Set purchase cost, selling price and monitor live profit margins',
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(child: _buildTextField('Purchase Price (₹) *', TextEditingController(), Icons.shopping_bag_outlined, '220.00')), // We don't have purchase price in model, but leaving field for visual match
+              Expanded(
+                child: _buildTextField(
+                  'Purchase Price (₹) *',
+                  _purchasePriceController,
+                  Icons.shopping_bag_outlined,
+                  '220.00',
+                  isNumber: true,
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: _buildTextField('Selling Price (₹) *', _priceController, Icons.sell_outlined, '260.00', isNumber: true)),
+              Expanded(
+                child: _buildTextField(
+                  'Selling Price (₹) *',
+                  _priceController,
+                  Icons.sell_outlined,
+                  '260.00',
+                  isNumber: true,
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: _buildTextField('MRP (₹)', _mrpController, Icons.local_offer_outlined, '280.00', isNumber: true)),
+              Expanded(
+                child: _buildTextField(
+                  'MRP (₹)',
+                  _mrpController,
+                  Icons.local_offer_outlined,
+                  '280.00',
+                  isNumber: true,
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: _buildTextField('Tax (%)', TextEditingController(), Icons.percent_outlined, '5% (GST)')), // We don't have tax in model
+              Expanded(
+                child: _buildTextField(
+                  'Tax (%)',
+                  TextEditingController(),
+                  Icons.percent_outlined,
+                  '0% (GST Exempt)',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: badgeBgColor,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isLoss
+                    ? Colors.red.shade300
+                    : (isLowMargin ? Colors.orange.shade300 : Colors.transparent),
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.bar_chart, color: AppColors.primaryDark, size: 18),
-                    const SizedBox(width: 8),
-                    Text('Profit Margin: - (-)', style: AppTextStyles.bodyMedium(color: AppColors.primaryDark)),
+                    Row(
+                      children: [
+                        Icon(
+                          isLoss
+                              ? Icons.error_outline
+                              : (isLowMargin ? Icons.warning_amber_rounded : Icons.bar_chart),
+                          color: badgeTextColor,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          badgeTitle,
+                          style: AppTextStyles.bodySemiBold(color: badgeTextColor),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'Customer Pays: ₹${_priceController.text.isNotEmpty ? _priceController.text : "0.00"}',
+                      style: AppTextStyles.bodySemiBold(color: badgeTextColor),
+                    ),
                   ],
                 ),
-                Text('Total Price (incl. tax): ₹${_priceController.text.isNotEmpty ? _priceController.text : "0.00"}', style: AppTextStyles.bodySemiBold(color: AppColors.primaryDark)),
+                if (alertTip != null) ...[
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 28),
+                    child: Text(
+                      alertTip,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: badgeTextColor,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           )

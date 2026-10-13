@@ -271,7 +271,6 @@ class AdvancedAnalyticsSummary {
   bool get hasPurchasePriceGaps => productsMissingPurchasePrice > 0;
 
   static AdvancedAnalyticsSummary empty({AnalyticsTimePeriod period = AnalyticsTimePeriod.last30Days}) {
-    final now = DateTime.now();
     return AdvancedAnalyticsSummary(
       timePeriod: period,
       startDate: period.getStartDate(),

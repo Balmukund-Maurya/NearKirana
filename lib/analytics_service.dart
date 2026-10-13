@@ -6,11 +6,18 @@ import 'analytics_models.dart';
 
 /// Business service managing sales analytics, purchase costs, margins, and store expenses
 class AnalyticsService {
-  static final AnalyticsService _instance = AnalyticsService._internal();
-  factory AnalyticsService() => _instance;
-  AnalyticsService._internal();
+  static AnalyticsService? _instance;
+  final FirebaseFirestore _firestore;
 
-  final FirebaseFirestore _firestore = FirebaseUtils.firestore;
+  factory AnalyticsService({FirebaseFirestore? firestore}) {
+    if (firestore != null) {
+      return AnalyticsService._internal(firestore);
+    }
+    _instance ??= AnalyticsService._internal(FirebaseUtils.firestore);
+    return _instance!;
+  }
+
+  AnalyticsService._internal(this._firestore);
 
   /// Default margin estimate percentage (15%) when a product has no recorded purchase price yet.
   static const double defaultEstimatedMarginRatio = 0.85;
@@ -160,8 +167,8 @@ class AnalyticsService {
                 catalogInfo?['purchase_price'] ??
                 catalogInfo?['cost_price'];
 
-            if (rawCost != null && (rawCost as num) > 0) {
-              purchaseCost = (rawCost as num).toDouble();
+            if (rawCost != null && rawCost is num && rawCost > 0) {
+              purchaseCost = rawCost.toDouble();
             } else {
               // Intelligent Kirana fallback estimate (85% cost = 15% margin)
               purchaseCost = sellPrice * defaultEstimatedMarginRatio;
@@ -341,6 +348,11 @@ class AnalyticsService {
 
     await docRef.set(expense.toMap());
     return docRef.id;
+  }
+
+  /// Update an existing store expense
+  Future<void> updateExpense(ShopExpense expense) async {
+    await _firestore.collection('expenses').doc(expense.id).update(expense.toMap());
   }
 
   /// Delete a store expense

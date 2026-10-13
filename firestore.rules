@@ -563,6 +563,43 @@ service cloud.firestore {
       );
     }
 
+    // =========================================================================
+    // 12. STORE OPERATING EXPENSES (Feature 53: Sales & Profit Analytics)
+    // =========================================================================
+    match /expenses/{expenseId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id))
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.resource.data.shop_id is string &&
+          isShopOwner(request.resource.data.shop_id) &&
+          request.resource.data.amount is number &&
+          request.resource.data.amount >= 0
+        )
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id) &&
+          request.resource.data.shop_id == resource.data.shop_id &&
+          request.resource.data.amount is number &&
+          request.resource.data.amount >= 0
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
     // Fallback: Deny all unhandled paths
     match /{document=**} {
       allow read, write: if false;

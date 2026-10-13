@@ -9,22 +9,45 @@ import 'my_orders_screen.dart';
 import 'customer_profile_tab.dart';
 import 'cart_provider.dart';
 import 'app_theme.dart';
+import 'customer_desktop_dashboard.dart';
+import 'desktop_khata_view.dart';
+import 'desktop_offers_view.dart';
+import 'desktop_wishlist_view.dart';
+import 'desktop_settings_view.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int initialIndex;
+  const HomeScreen({super.key, this.initialIndex = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
 
-  final List<Widget> _tabs = [
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
+
+
+  List<Widget> get _tabs => [
     const CustomerShopTab(),
     const CartScreen(isTab: true),
     const MyOrdersScreen(isTab: true),
     const CustomerProfileTab(),
+    const DesktopKhataView(),
+    DesktopOffersView(onNavigate: (index) {
+      _onNavTap(index);
+    }),
+    DesktopWishlistView(onNavigate: (index) {
+      _onNavTap(index);
+    }),
+    DesktopSettingsView(onNavigate: (index) {
+      _onNavTap(index);
+    }),
   ];
 
   void _onNavTap(int index) {
@@ -67,137 +90,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         final isDesktop = constraints.maxWidth > 800;
 
         if (isDesktop) {
-          // DESKTOP LAYOUT (Blinkit Style)
-          return Scaffold(
-            backgroundColor: const Color(0xFFF0F2F5),
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(70),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 48),
-                child: Row(
-                  children: [
-                    // Logo
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: AppDecorations.primaryGradient(radius: 12),
-                          child: const Icon(
-                            Icons.shopping_basket_rounded,
-                            color: AppColors.white,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          "NearKirana",
-                          style: AppTextStyles.heading2(color: AppColors.primaryDark),
-                        ),
+          return DesktopCustomerDashboard(
+            selectedIndex: _selectedIndex,
+            onNavTap: _onNavTap,
+            child: Scaffold(
+              backgroundColor: const Color(0xFFF0F2F5),
+              body: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 24, left: 24, right: 24),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 20,
+                        )
                       ],
                     ),
-                    const Spacer(),
-                    // Nav Items (Right aligned)
-                    Row(
-                      children: navItems.asMap().entries.map((entry) {
-                        final i = entry.key;
-                        final item = entry.value;
-                        final isSelected = _selectedIndex == i;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 12),
-                          child: InkWell(
-                            onTap: () => _onNavTap(i),
-                            borderRadius: BorderRadius.circular(12),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primaryLight.withValues(alpha: 0.2)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isSelected ? item.selectedIcon : item.icon,
-                                    color: isSelected
-                                        ? AppColors.primaryDark
-                                        : AppColors.textMid,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    item.label,
-                                    style: TextStyle(
-                                      fontWeight: isSelected
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                      color: isSelected
-                                          ? AppColors.primaryDark
-                                          : AppColors.textMid,
-                                    ),
-                                  ),
-                                  if (item.badge != null && item.badge! > 0) ...[
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.error,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Text(
-                                        item.badge.toString(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      child: IndexedStack(index: _selectedIndex, children: _tabs),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            body: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                child: Container(
-                  margin: const EdgeInsets.only(top: 24),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 20,
-                      )
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    child: IndexedStack(index: _selectedIndex, children: _tabs),
                   ),
                 ),
               ),

@@ -638,3 +638,641 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get err_no_location => 'कोई स्थान नहीं चुना गया था।';
 }
+
+/// The translations for Hindi, using the Latin script (`hi_Latn`).
+class AppLocalizationsHiLatn extends AppLocalizationsHi {
+  AppLocalizationsHiLatn() : super('hi_Latn');
+
+  @override
+  String get or_divider => 'ya';
+
+  @override
+  String get app_name => 'Meri Dukan';
+
+  @override
+  String get subtitle => 'Aapki Digital Kirana Dukan';
+
+  @override
+  String get name_hint => 'Apna Naam Daalein';
+
+  @override
+  String get mobile_hint => 'Mobile Number';
+
+  @override
+  String get enter_button => 'Dukan Mein Pravesh Karein';
+
+  @override
+  String get terms =>
+      'Aage badhne par, aap hamari Terms & Conditions se sahmat hote hain';
+
+  @override
+  String get owner_login => 'Dukan Malik / Admin Login';
+
+  @override
+  String get language => 'Bhasha Badlein';
+
+  @override
+  String get error_loading => 'Kuch galat ho gaya.';
+
+  @override
+  String get no_product => 'Koi product uplabdh nahi hai.';
+
+  @override
+  String get add => '+ Add Karein';
+
+  @override
+  String get added_to_cart => 'Cart mein add ho gaya!';
+
+  @override
+  String get admin_dashboard => 'Admin Dashboard';
+
+  @override
+  String get scan_barcode => 'Scan Barcode / Naya Bill';
+
+  @override
+  String get quick_add => 'Khula Item (Quick Add)';
+
+  @override
+  String get shop_stock => 'Dukan Inventory';
+
+  @override
+  String get customer_ledger => 'Grahak Khata';
+
+  @override
+  String get live_orders => 'Naye Orders (Live)';
+
+  @override
+  String get cart_title => 'Aapka Cart';
+
+  @override
+  String get total_amount => 'Kul Rashi';
+
+  @override
+  String get place_order => 'Order Place Karein';
+
+  @override
+  String get home_delivery => 'Ghar Par Delivery';
+
+  @override
+  String get store_pickup => 'Dukan Se Pickup';
+
+  @override
+  String get add_new_item => 'Naya Item Jodein';
+
+  @override
+  String get store_closed_error =>
+      'Dukan abhi band hai. Kripya thodi der baad koshish karein.';
+
+  @override
+  String get ghost_cart_error =>
+      'Aapke cart ke kuch items ab uplabdh nahi hain aur hata diye gaye hain.';
+
+  @override
+  String get out_of_stock => 'Stock Khatam';
+
+  @override
+  String get profile => 'Profile';
+
+  @override
+  String get my_profile => 'Meri Profile';
+
+  @override
+  String get guest => 'Mehmaan';
+
+  @override
+  String get delivery_address => 'Delivery Address';
+
+  @override
+  String get app_language => 'App ki Bhasha';
+
+  @override
+  String get help_support => 'Madad & Support';
+
+  @override
+  String get call_shop => 'Dukan Malik ko Call Karein';
+
+  @override
+  String get whatsapp_support => 'WhatsApp Support';
+
+  @override
+  String get chat_with_us => 'Humse Chat Karein';
+
+  @override
+  String get logout => 'Logout Karein';
+
+  @override
+  String get logout_confirm =>
+      'Kya aap sach mein logout karna chahte hain? Cart khali ho jayega.';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get no_address =>
+      'Koi address saved nahi hai. Pehle order ke dauran save ho jayega.';
+
+  @override
+  String get house_no => 'Makaan/Flat No:';
+
+  @override
+  String get landmark_txt => 'Landmark:';
+
+  @override
+  String get shop_tab => 'Dukan';
+
+  @override
+  String get cart_tab => 'Cart';
+
+  @override
+  String get orders_tab => 'Orders';
+
+  @override
+  String get my_orders => 'Mere Orders';
+
+  @override
+  String get please_login => 'Orders dekhne ke liye login karein.';
+
+  @override
+  String get cart_empty => 'Aapka cart khali hai.';
+
+  @override
+  String get search_hint => 'Products search karein...';
+
+  @override
+  String get cat_all => 'Sabhi';
+
+  @override
+  String get cat_dal => 'Dal';
+
+  @override
+  String get cat_rice => 'Chawal';
+
+  @override
+  String get cat_spices => 'Masale';
+
+  @override
+  String get cat_oil => 'Tel';
+
+  @override
+  String get cat_snacks => 'Snacks';
+
+  @override
+  String get cat_soap => 'Sabun';
+
+  @override
+  String get cat_loose => 'Khula';
+
+  @override
+  String get fix_btn => 'Theek Karein';
+
+  @override
+  String get max_stock => 'Maximum stock pahunch gaya!';
+
+  @override
+  String get qty_exceeds => 'Mangi gayi matra uplabdh stock se zyada hai.';
+
+  @override
+  String get adjust_location => 'Map par location adjust karein 📍';
+
+  @override
+  String get enter_house_no => 'Kripya apna Makaan/Flat No. daalein.';
+
+  @override
+  String get wait_3_min =>
+      'Doosra order karne se pehle kripya 3 minute wait karein.';
+
+  @override
+  String get order_placed => 'Order Safaltapoorvak Place Hua.';
+
+  @override
+  String get thank_you_order => 'Dhanyawad! Aapka order receive ho gaya hai.';
+
+  @override
+  String get thank_you_order_pickup =>
+      'Dhanyawad! Aapka order receive ho gaya hai. Kripya dukan se collect karein.';
+
+  @override
+  String get ok_btn => 'Theek Hai';
+
+  @override
+  String get confirm_order => 'Order Confirm Karein';
+
+  @override
+  String get cancel_order_q => 'Order Cancel Karein?';
+
+  @override
+  String get cancel_order_sure =>
+      'Kya aap sach mein yeh order cancel karna chahte hain?';
+
+  @override
+  String get no_btn => 'Nahi';
+
+  @override
+  String get yes_cancel => 'Haan, Cancel Karein';
+
+  @override
+  String get order_cancelled => 'Order Safaltapoorvak Cancel Hua.';
+
+  @override
+  String get cancel_order_btn => 'Order Cancel Karein';
+
+  @override
+  String get name_lbl => 'Naam';
+
+  @override
+  String get mobile_lbl => 'Mobile';
+
+  @override
+  String get address_lbl => 'Pata';
+
+  @override
+  String get edit_profile => 'Profile Edit Karein';
+
+  @override
+  String get save_profile => 'Profile Save Karein';
+
+  @override
+  String get contact_no => 'Contact Number';
+
+  @override
+  String get personal_info => 'Personal Info';
+
+  @override
+  String get account_settings => 'Account Settings';
+
+  @override
+  String get subtotal => 'Subtotal';
+
+  @override
+  String get delivery_fee => 'Delivery Charge';
+
+  @override
+  String get checkout => 'Checkout';
+
+  @override
+  String get order_no => 'Order #';
+
+  @override
+  String get date => 'Date';
+
+  @override
+  String get status => 'Status';
+
+  @override
+  String get items => 'Items';
+
+  @override
+  String get out_for_delivery => 'Delivery ke liye nikal gaya';
+
+  @override
+  String get delivery_pin => 'Delivery PIN';
+
+  @override
+  String get delivery_mode => 'Delivery Mode';
+
+  @override
+  String get no_orders => 'Koi order nahi mila.';
+
+  @override
+  String get view_history => 'History Dekhein';
+
+  @override
+  String get khata => 'Khata';
+
+  @override
+  String get view_ledger => 'Ledger Dekhein';
+
+  @override
+  String get admin_user => 'Admin User';
+
+  @override
+  String get admin_role => 'Dukan Malik';
+
+  @override
+  String get store_management => 'Dukan Management';
+
+  @override
+  String get admin_customers => 'Grahak';
+
+  @override
+  String get admin_customers_subtitle => 'Sabhi grahak profiles manage karein';
+
+  @override
+  String get store_settings => 'Delivery & Setup';
+
+  @override
+  String get store_settings_subtitle => 'Delivery fees, timings & niyam';
+
+  @override
+  String get app_settings => 'App Settings';
+
+  @override
+  String get language_setting => 'Bhasha';
+
+  @override
+  String get language_setting_subtitle => 'App ki bhasha badlein';
+
+  @override
+  String get admin_logout => 'Logout';
+
+  @override
+  String get admin_logout_confirm =>
+      'Kya aap sach mein admin panel se log out karna chahte hain?';
+
+  @override
+  String get admin_version => 'Shop Admin - Version 1.0.0';
+
+  @override
+  String get select_language => 'Bhasha Chunein';
+
+  @override
+  String get add_or_update_product => 'Product add ya update karein';
+
+  @override
+  String get live_orders_subtitle => 'Aaj ke active orders';
+
+  @override
+  String get today_sales => 'Aaj ki Bikri';
+
+  @override
+  String get greeting => 'Namaste';
+
+  @override
+  String get error_no_shop_found => 'Aapke area mein koi dukan nahi mili.';
+
+  @override
+  String get scan_shop_qr => 'Dukan ka QR Code Scan Karein';
+
+  @override
+  String get delete_product => 'Product Delete Karein?';
+
+  @override
+  String get add_new_category => 'Nayi Category Jodein';
+
+  @override
+  String get add_btn => 'Jodein';
+
+  @override
+  String get food_item_veg_nonveg => 'Khaadya Item (Veg/Non-Veg dot dikhayein)';
+
+  @override
+  String get veg_product => 'Shakahari Product';
+
+  @override
+  String get loose_item => 'Khula Item';
+
+  @override
+  String get dukan_badlein_title => 'Dukan Badlein?';
+
+  @override
+  String get dukan_badlein_desc =>
+      'Kya aap sach mein chuni hui dukan badalna chahte hain?';
+
+  @override
+  String get yes_change => 'Haan, Badlein';
+
+  @override
+  String get change_shop_btn => 'Dukan Badlein';
+
+  @override
+  String get error_connecting =>
+      'Server se connect karne mein samasya. Phir se koshish karein.';
+
+  @override
+  String get invalid_khata_entry =>
+      'Sahi 10-digit phone aur rashi > 0 daalein.';
+
+  @override
+  String get name_required_khata => 'Naye grahak ke liye naam jaruri hai!';
+
+  @override
+  String get khata_entry_success => 'Khata Entry Safaltapoorvak Judi!';
+
+  @override
+  String get add_entry => 'Entry Jodein';
+
+  @override
+  String get add_offline_khata => 'Offline Khata Jodein';
+
+  @override
+  String get settings_saved => 'Settings safaltapoorvak save hui!';
+
+  @override
+  String get negative_values_error => 'Rashi negative nahi ho sakti!';
+
+  @override
+  String get pick_on_map => 'Map Par\nChunein';
+
+  @override
+  String get welcome_title => 'NearKirana Mein Aapka Swagat Hai';
+
+  @override
+  String get search_shop_subtitle =>
+      'Apne paas ki dukanein khojein ya unka QR Code scan karein.';
+
+  @override
+  String get search_shop_hint => 'Dukan ka naam khojein...';
+
+  @override
+  String get type_to_search_shops =>
+      'Dukanein search karne ke liye type karein';
+
+  @override
+  String get find_stores_near_you => 'Apne paas ki dukanein khojein';
+
+  @override
+  String get turn_on_gps =>
+      'Apne aas-paas ki dukanein dekhne ke liye GPS on karein.';
+
+  @override
+  String get searching_stores => 'Paas ki dukanein khoj rahe hain...';
+
+  @override
+  String get are_you_shop_owner => 'Kya aap dukan ke malik hain?';
+
+  @override
+  String get register_your_shop => 'Apni Dukan Register Karein';
+
+  @override
+  String get move_map_adjust => 'Location adjust karne ke liye map ko hilayein';
+
+  @override
+  String get enter_complete_address => 'Pura Pata Daalein';
+
+  @override
+  String get locality_area => 'Mohalla / Area';
+
+  @override
+  String get house_flat_no => 'Makaan / Flat / Block No.';
+
+  @override
+  String get landmark_optional => 'Landmark (Optional)';
+
+  @override
+  String get save_address_as => 'Pata save karein';
+
+  @override
+  String get save_address_btn => 'Address Save Karein';
+
+  @override
+  String get confirm_location => 'Location Confirm Karein';
+
+  @override
+  String get confirm_delivery_loc => 'Delivery Location Confirm Karein';
+
+  @override
+  String get out_of_delivery_area => 'Delivery Area Se Bahar';
+
+  @override
+  String get selected_loc_outside =>
+      'Chuni gayi location delivery area se bahar hai!';
+
+  @override
+  String get search_area_hint => 'Area, landmark ya shehar search karein...';
+
+  @override
+  String get error_cant_deliver =>
+      'Kshama karein! Hum aapki chuni gayi location par deliver nahi karte.';
+
+  @override
+  String get please_enable_gps => 'Kripya GPS enable karein';
+
+  @override
+  String get register_shop_title => 'Dukan Register Karein';
+
+  @override
+  String get shop_setting_up => 'Aapki dukan setup ho rahi hai...';
+
+  @override
+  String get product_found => 'Product Mil Gaya';
+
+  @override
+  String get price => 'Keemat';
+
+  @override
+  String get stock => 'Stock';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get manage_customers => 'Grahak Manage Karein';
+
+  @override
+  String get record_payment => 'Payment Record Karein';
+
+  @override
+  String get invalid_amount => 'Kripya sahi rashi daalein.';
+
+  @override
+  String get cannot_collect_more =>
+      'Baqaya rashi se zyada collect nahi kar sakte.';
+
+  @override
+  String get payment_received => 'Payment prapt hui.';
+
+  @override
+  String get profile_updated => 'Profile safaltapoorvak update hui.';
+
+  @override
+  String get save_btn => 'Save Karein';
+
+  @override
+  String get more_options => 'Aur Options';
+
+  @override
+  String get store_is_open => 'Dukan Khuli Hai';
+
+  @override
+  String get financial_rules => 'Financial Niyam';
+
+  @override
+  String get delivery_options => 'Delivery Options';
+
+  @override
+  String get store_location => 'Dukan ki Location';
+
+  @override
+  String get product_deleted => 'Product safaltapoorvak delete hua.';
+
+  @override
+  String get err_deleting_product => 'Product delete karne mein asafal.';
+
+  @override
+  String get item_exists_update =>
+      'Item pehle se maujood hai! Aap details update kar sakte hain.';
+
+  @override
+  String get product_fetched => 'Product details prapt hui!';
+
+  @override
+  String get barcode_not_found =>
+      'Database mein barcode nahi mila. Kripya manually daalein.';
+
+  @override
+  String get err_network_fetch =>
+      'Network error. Product details fetch nahi ho saki.';
+
+  @override
+  String get err_price_stock => 'Error: Keemat > 0 aur Stock >= 0 hona chahiye';
+
+  @override
+  String get err_name_price => 'Kripya Naam aur Keemat bharein';
+
+  @override
+  String get select_shop_first =>
+      'Pehle gateway screen se apni dukan select karein.';
+
+  @override
+  String get shop_data_not_found => 'Dukan ka data nahi mila.';
+
+  @override
+  String get login_blocked_1_hour =>
+      '3 galat PIN! Admin login 1 ghante ke liye block hai.';
+
+  @override
+  String get err_product_name => 'Kripya product ka naam daalein';
+
+  @override
+  String get err_category => 'Kripya category chunein';
+
+  @override
+  String get err_image => 'Kripya product image upload karein';
+
+  @override
+  String get err_price_mrp => 'Kripya selling price aur MRP bharein';
+
+  @override
+  String get err_mrp_less => 'MRP selling price se kam nahi ho sakti';
+
+  @override
+  String get product_added => 'Product safaltapoorvak add hua!';
+
+  @override
+  String get product_updated => 'Product safaltapoorvak update hua!';
+
+  @override
+  String get transaction_deleted =>
+      'Transaction delete hui aur balance update ho gaya.';
+
+  @override
+  String get udhaar_added => 'Udhaar Joda Gaya';
+
+  @override
+  String get payment_received_short => 'Payment Prapt Hui';
+
+  @override
+  String get customer_unblocked => 'Grahak Unblock Kiya Gaya';
+
+  @override
+  String get customer_blocked => 'Grahak Block Kiya Gaya';
+
+  @override
+  String get err_negative_values => 'Rashi negative nahi ho sakti!';
+
+  @override
+  String get location_picked => 'Location safaltapoorvak chuni gayi!';
+
+  @override
+  String get err_no_location => 'Koi location nahi chuni gayi.';
+}

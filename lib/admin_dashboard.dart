@@ -12,9 +12,25 @@ import 'app_theme.dart';
 import 'package:provider/provider.dart';
 import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'admin_desktop_dashboard.dart';
+import 'admin_customers_screen.dart';
+import 'admin_settings_screen.dart';
+import 'admin_categories_screen.dart';
+import 'admin_shop_boys_screen.dart';
+import 'admin_discounts_screen.dart';
+import 'admin_analytics_screen.dart';
+import 'admin_user_profile_screen.dart';
+import 'admin_language_theme_screen.dart';
+import 'admin_orders_desktop_view.dart';
+import 'admin_customers_desktop_view.dart';
+import 'admin_khata_desktop_view.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
+
+  /// Static callback so child screens can trigger sidebar navigation
+  /// without requiring a direct reference to the state.
+  static Function(int)? navCallback;
 
   @override
   State<AdminDashboard> createState() => _AdminDashboardState();
@@ -38,6 +54,18 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   @override
+  void initState() {
+    super.initState();
+    AdminDashboard.navCallback = _onNavTap;
+  }
+
+  @override
+  void dispose() {
+    AdminDashboard.navCallback = null;
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final shopId = Provider.of<ShopProvider>(context).currentShopId;
     final ordersQuery = shopId == null || shopId.isEmpty
@@ -50,10 +78,76 @@ class _AdminDashboardState extends State<AdminDashboard>
                 whereIn: ['Pending', 'Packed', 'Ready', 'Out for Delivery'],
               );
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: IndexedStack(index: _selectedIndex, children: _tabs),
-      bottomNavigationBar: StreamBuilder<QuerySnapshot>(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth > 800;
+
+        if (isDesktop) {
+          // Map desktop 10-item index to our mobile tabs when needed
+          // 0: AdminHomeTab (but desktop has its own Home)
+          // 1: AdminOrdersTab
+          // 2: ShopStockScreen
+          // 3: Categories (mapped to 2 or 4)
+          // 4: Customers (mapped to 4)
+          // 5: KhataScreen (mapped to 3)
+          // 6: Shop Boys
+          // 7: Analytics
+          // 8: Discounts
+          // 9: AdminSettingsScreen (mapped to 4)
+          
+          int effectiveIndex = 0;
+          if (_selectedIndex == 0) effectiveIndex = 0;
+          else if (_selectedIndex == 1) effectiveIndex = 1;
+          else if (_selectedIndex == 2) effectiveIndex = 2; // Products
+          else if (_selectedIndex == 3) effectiveIndex = 2; // Categories -> Stock
+          else if (_selectedIndex == 4) effectiveIndex = 4; // Customers -> More
+          else if (_selectedIndex == 5) effectiveIndex = 3; // Khata
+          else if (_selectedIndex == 6) effectiveIndex = 4; // Shop Boys -> More
+          else if (_selectedIndex == 7) effectiveIndex = 0; // Analytics -> Home
+          else if (_selectedIndex == 8) effectiveIndex = 4; // Discounts -> More
+          else if (_selectedIndex == 9) effectiveIndex = 4; // Settings -> More
+          else if (_selectedIndex == 10) effectiveIndex = 0; // Profile -> Doesn't matter
+          else if (_selectedIndex == 11) effectiveIndex = 0; // Language & Theme -> Doesn't matter
+
+          print('AdminDashboard BUILD: _selectedIndex=$_selectedIndex, effectiveIndex=$effectiveIndex');
+
+          return AdminDesktopDashboard(
+            selectedIndex: _selectedIndex,
+            onNavTap: _onNavTap,
+            child: (_selectedIndex == 1 || _selectedIndex == 4 || _selectedIndex == 5 || effectiveIndex == 2 || _selectedIndex == 9 || _selectedIndex == 6 || _selectedIndex == 8 || _selectedIndex == 7 || _selectedIndex == 10 || _selectedIndex == 11)
+                ? _buildDesktopScreen(_selectedIndex)
+                : Scaffold(
+              backgroundColor: const Color(0xFFF0F2F5),
+              body: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 24, left: 24, right: 24),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 20,
+                        )
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      child: _buildDesktopScreen(_selectedIndex),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: AppColors.surface,
+          body: IndexedStack(index: _selectedIndex, children: _tabs),
+          bottomNavigationBar: StreamBuilder<QuerySnapshot>(
         stream: ordersQuery.snapshots(),
         builder: (context, snapshot) {
           int activeOrdersCount = 0;
@@ -214,7 +308,41 @@ class _AdminDashboardState extends State<AdminDashboard>
       );
         },
       ),
+        );
+      },
     );
+  }
+
+  Widget _buildDesktopScreen(int index) {
+    print('BUILDING DESKTOP SCREEN FOR INDEX: $index');
+    switch (index) {
+      case 0:
+        return const AdminHomeTab();
+      case 1:
+        return const AdminOrdersDesktopView();
+      case 2:
+        return const ShopStockScreen();
+      case 3:
+        return const AdminCategoriesScreen();
+      case 4:
+        return const AdminCustomersDesktopView();
+      case 5:
+        return const AdminKhataDesktopView();
+      case 6:
+        return const AdminShopBoysScreen();
+      case 7:
+        return const AdminAnalyticsScreen();
+      case 8:
+        return const AdminDiscountsScreen();
+      case 9:
+        return const AdminSettingsScreen();
+      case 10:
+        return const AdminUserProfileScreen();
+      case 11:
+        return const AdminLanguageThemeScreen();
+      default:
+        return const AdminMoreTab();
+    }
   }
 }
 

@@ -16,6 +16,7 @@ import 'sound_service.dart';
 import 'map_selection_screen.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
+import 'wishlist_provider.dart';
 import 'animation_helpers.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
@@ -73,17 +74,20 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
       List<String>? shopCategories;
 
       if (shopId.isNotEmpty) {
-        final shopDoc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
+        final shopDoc = await FirebaseUtils.firestore
+            .collection('shops')
+            .doc(shopId)
+            .get();
         if (shopDoc.exists) {
           final data = shopDoc.data()!;
           if (data.containsKey('categories') && data['categories'] != null) {
             shopCategories = List<String>.from(data['categories']);
             debugPrint('Loaded from shop: $shopCategories');
           } else {
-             debugPrint('No categories field in shop doc');
+            debugPrint('No categories field in shop doc');
           }
         } else {
-           debugPrint('Shop doc does not exist');
+          debugPrint('Shop doc does not exist');
         }
       }
 
@@ -102,14 +106,11 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
       if (shopCategories != null && shopCategories.isNotEmpty) {
         if (mounted) {
           setState(() {
-            _categories = [
-              'All',
-              ...shopCategories!,
-            ];
+            _categories = ['All', ...shopCategories!];
           });
           debugPrint('Updated _categories state: $_categories');
         } else {
-           debugPrint('Widget not mounted, skipping setState');
+          debugPrint('Widget not mounted, skipping setState');
         }
       }
     } catch (e, stack) {
@@ -227,42 +228,24 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
   Widget _buildDesktopHeader(LanguageProvider langProvider) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border(bottom: BorderSide(color: AppColors.bgTint, width: 1)),
-      ),
+      padding: const EdgeInsets.only(top: 32, left: 32, right: 32, bottom: 24),
+      color: Colors.transparent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Shop Fresh Products",
-            style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28),
-          ),
-          const SizedBox(height: 16),
-          // Search Bar
-          SizedBox(
-            height: 48,
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) {
-                if (_debounce?.isActive ?? false) _debounce!.cancel();
-                _debounce = Timer(const Duration(milliseconds: 300), () {
-                  setState(() => _searchQuery = val.trim().toLowerCase());
-                });
-              },
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)!.search_hint,
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryDark),
-                filled: true,
-                fillColor: AppColors.bgTint,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
+            "Browse Products",
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textDark,
+              letterSpacing: -0.5,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Fresh groceries and daily essentials from your neighborhood store",
+            style: TextStyle(fontSize: 16, color: AppColors.textMid),
           ),
         ],
       ),
@@ -310,10 +293,16 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                         child: Image.network(
                           shopProvider.shopBannerUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: AppColors.white.withValues(alpha: 0.2),
-                            child: const Center(child: Icon(Icons.image_not_supported_rounded, color: Colors.white)),
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                color: AppColors.white.withValues(alpha: 0.2),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.image_not_supported_rounded,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                         ),
                       ),
                     ),
@@ -324,7 +313,8 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        shopProvider.shopName ?? AppLocalizations.of(context)!.app_name,
+                        shopProvider.shopName ??
+                            AppLocalizations.of(context)!.app_name,
                         style: AppTextStyles.heading1(
                           color: AppColors.white,
                         ).copyWith(fontSize: 22),
@@ -352,7 +342,13 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                   await Geolocator.isLocationServiceEnabled();
                               if (!serviceEnabled && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.please_enable_gps),
+                                  SnackBar(
+                                    behavior: SnackBarBehavior.floating,
+                                    content: Text(
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.please_enable_gps,
+                                    ),
                                   ),
                                 );
                                 return;
@@ -497,7 +493,9 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                     if (_debounce?.isActive ?? false) _debounce!.cancel();
                     _debounce = Timer(const Duration(milliseconds: 500), () {
                       if (mounted) {
-                        setState(() => _searchQuery = value.trim().toLowerCase());
+                        setState(
+                          () => _searchQuery = value.trim().toLowerCase(),
+                        );
                       }
                     });
                   },
@@ -516,9 +514,10 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                               color: AppColors.textMid,
                               size: 20,
                             ),
-                        onPressed: () {
+                            onPressed: () {
                               _searchController.clear();
-                              if (_debounce?.isActive ?? false) _debounce!.cancel();
+                              if (_debounce?.isActive ?? false)
+                                _debounce!.cancel();
                               setState(() => _searchQuery = '');
                             },
                           )
@@ -541,70 +540,303 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
   }
 
   Widget _buildCategories(BuildContext context, LanguageProvider langProvider) {
-    return SizedBox(
-      height: 52,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: _categories.length,
-        itemBuilder: (context, index) {
-          final category = _categories[index];
-          final isSelected = category == _selectedCategory;
-          final l10n = AppLocalizations.of(context)!;
-          String displayName = category;
-          switch (category.toLowerCase()) {
-            case 'all': displayName = l10n.cat_all; break;
-            case 'dal': displayName = l10n.cat_dal; break;
-            case 'rice': displayName = l10n.cat_rice; break;
-            case 'spices': displayName = l10n.cat_spices; break;
-            case 'oil': displayName = l10n.cat_oil; break;
-            case 'snacks': displayName = l10n.cat_snacks; break;
-            case 'soap': displayName = l10n.cat_soap; break;
-            case 'loose': displayName = l10n.cat_loose; break;
-          }
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() => _selectedCategory = category);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primaryDark : AppColors.white,
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.primaryDark
-                        : AppColors.bgTint,
-                    width: 1.5,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppColors.primaryDark.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : [],
-                ),
-                child: Text(
-                  displayName,
-                  style: AppTextStyles.captionMedium(
-                    color: isSelected ? AppColors.white : AppColors.textMid,
-                  ),
-                ),
-              ),
+    final isDesktop = MediaQuery.of(context).size.width > 800;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: isDesktop ? 120 : 52,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? 32 : 16,
+              vertical: 8,
             ),
-          );
-        },
+            itemCount: _categories.length,
+            itemBuilder: (context, index) {
+              final category = _categories[index];
+              final isSelected = category == _selectedCategory;
+              final l10n = AppLocalizations.of(context)!;
+              String displayName = category;
+              IconData catIcon = Icons.category_rounded;
+              switch (category.toLowerCase()) {
+                case 'all':
+                  displayName = l10n.cat_all;
+                  catIcon = Icons.grid_view_rounded;
+                  break;
+                case 'dal':
+                  displayName = l10n.cat_dal;
+                  catIcon = Icons.eco_rounded;
+                  break;
+                case 'rice':
+                  displayName = l10n.cat_rice;
+                  catIcon = Icons.rice_bowl_rounded;
+                  break;
+                case 'spices':
+                  displayName = l10n.cat_spices;
+                  catIcon = Icons.spa_rounded;
+                  break;
+                case 'oil':
+                  displayName = l10n.cat_oil;
+                  catIcon = Icons.water_drop_rounded;
+                  break;
+                case 'snacks':
+                  displayName = l10n.cat_snacks;
+                  catIcon = Icons.fastfood_rounded;
+                  break;
+                case 'soap':
+                  displayName = l10n.cat_soap;
+                  catIcon = Icons.soap_rounded;
+                  break;
+                case 'loose':
+                  displayName = l10n.cat_loose;
+                  catIcon = Icons.shopping_bag_rounded;
+                  break;
+              }
+
+              if (isDesktop) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _selectedCategory = category);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 100,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFFE8F5E9)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primaryDark
+                              : Colors.grey.shade200,
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            catIcon,
+                            color: isSelected
+                                ? AppColors.primaryDark
+                                : AppColors.textMid,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            displayName,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isSelected
+                                  ? AppColors.primaryDark
+                                  : AppColors.textDark,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _selectedCategory = category);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primaryDark
+                          : AppColors.white,
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primaryDark
+                            : AppColors.bgTint,
+                        width: 1.5,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.primaryDark.withValues(
+                                  alpha: 0.2,
+                                ),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: Text(
+                      displayName,
+                      style:
+                          AppTextStyles.captionMedium(
+                            color: isSelected
+                                ? AppColors.white
+                                : AppColors.textDark,
+                          ).copyWith(
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                          ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        if (isDesktop) ...[
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (val) {
+                        if (_debounce?.isActive ?? false) _debounce!.cancel();
+                        _debounce = Timer(
+                          const Duration(milliseconds: 300),
+                          () {
+                            if (mounted)
+                              setState(
+                                () => _searchQuery = val.trim().toLowerCase(),
+                              );
+                          },
+                        );
+                      },
+                      decoration: InputDecoration(
+                        hintText: "Search products...",
+                        hintStyle: TextStyle(color: Colors.grey.shade500),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: Colors.grey.shade500,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                _buildDesktopFilterDropdown("Sort by", "Popular"),
+                const SizedBox(width: 16),
+                _buildDesktopFilterDropdown("Brand", "All Brands"),
+                const SizedBox(width: 16),
+                _buildDesktopFilterDropdown("Price", "All Prices"),
+                const Spacer(),
+                Container(
+                  height: 40,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryDark,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.grid_view_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        child: const Icon(
+                          Icons.view_list_rounded,
+                          color: Colors.grey,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDesktopFilterDropdown(String label, String value) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          if (label != "Brand" && label != "Price")
+            Text(
+              "$label: ",
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            ),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
+        ],
       ),
     );
   }
@@ -657,7 +889,8 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
           children: [
             // Image Section
             Expanded(
-              flex: 11, // Increased to give image more space and reduce empty text gap
+              flex:
+                  11, // Increased to give image more space and reduce empty text gap
               child: Stack(
                 children: [
                   Container(
@@ -717,32 +950,92 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                       ),
                     ),
 
-                  // Veg / Non-Veg Indicator
-                  if (hasVegStatus)
+                  // Offer Badge (if discount exists)
+                  if ((productData['discount'] ?? 0) > 0)
                     Positioned(
                       top: 8,
-                      right: 8,
+                      left: 8,
                       child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: isVegetarian
-                                ? AppColors.primaryDark
-                                : AppColors.error,
-                            width: 1,
-                          ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
                         ),
-                        child: Icon(
-                          Icons.circle,
-                          color: isVegetarian
-                              ? AppColors.primaryDark
-                              : AppColors.error,
-                          size: 8,
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${productData['discount']}% OFF',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
+
+                  // Veg / Non-Veg Indicator and Wishlist
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Column(
+                      children: [
+                        if (hasVegStatus)
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isVegetarian
+                                    ? AppColors.primaryDark
+                                    : AppColors.error,
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.circle,
+                              color: isVegetarian
+                                  ? AppColors.primaryDark
+                                  : AppColors.error,
+                              size: 8,
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        // Wishlist Icon (Integrated with WishlistProvider)
+                        Consumer<WishlistProvider>(
+                          builder: (context, wishlistProvider, child) {
+                            final isInWishlist = wishlistProvider.isInWishlist(id);
+                            return InkWell(
+                              onTap: () => wishlistProvider.toggleWishlist(id),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  isInWishlist
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: isInWishlist ? AppColors.error : Colors.grey,
+                                  size: 16,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -800,106 +1093,262 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                         // Cart Controls
                         Expanded(
                           child: Consumer<CartProvider>(
-                          builder: (context, cartProvider, child) {
-                            final cartItem = cartProvider.items[id];
-                            final bool isInCart = cartItem != null;
+                            builder: (context, cartProvider, child) {
+                              final cartItem = cartProvider.items[id];
+                              final bool isInCart = cartItem != null;
 
-                            if (isOutOfStock) {
+                              if (isOutOfStock) {
+                                return Container(
+                                  height: 32,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.bgTint,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'No Stock',
+                                    style: AppTextStyles.captionMedium(
+                                      color: AppColors.textMid,
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              if (!isInCart) {
+                                return SizedBox(
+                                  height: 32,
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      if (!isServiceable) {
+                                        HapticFeedback.heavyImpact();
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            behavior: SnackBarBehavior.floating,
+                                            content: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.error_cant_deliver,
+                                            ),
+                                            backgroundColor: AppColors.error,
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      bool added = cartProvider.addItem(
+                                        id,
+                                        name,
+                                        price,
+                                        isLoose,
+                                        stock,
+                                        imageUrl: imageUrl,
+                                      );
+                                      if (added) {
+                                        SoundService().addToCart();
+                                      } else {
+                                        HapticFeedback.heavyImpact();
+                                        SoundService().blocked();
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            behavior: SnackBarBehavior.floating,
+                                            content: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.qty_exceeds,
+                                            ),
+                                            backgroundColor: AppColors.error,
+                                            duration: const Duration(
+                                              seconds: 1,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isServiceable
+                                          ? AppColors.primaryLight.withValues(
+                                              alpha: 0.15,
+                                            )
+                                          : AppColors.textLight.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                      foregroundColor: isServiceable
+                                          ? AppColors.primaryDark
+                                          : AppColors.textMid,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        side: BorderSide(
+                                          color: isServiceable
+                                              ? AppColors.primaryLight
+                                              : AppColors.textLight,
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        AppLocalizations.of(context)!.add,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ).animate().scale(
+                                  begin: const Offset(0.95, 0.95),
+                                  end: const Offset(1, 1),
+                                  duration: 200.ms,
+                                  curve: Curves.easeOut,
+                                );
+                              }
+
+                              // Plus/Minus Controls
                               return Container(
                                 height: 32,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
-                                  color: AppColors.bgTint,
+                                  color: AppColors.primaryDark,
                                   borderRadius: BorderRadius.circular(8),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  'No Stock',
-                                  style: AppTextStyles.captionMedium(
-                                    color: AppColors.textMid,
-                                  ),
-                                ),
-                              );
-                            }
-
-                            if (!isInCart) {
-                              return SizedBox(
-                                height: 32,
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    if (!isServiceable) {
-                                      HapticFeedback.heavyImpact();
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                            AppLocalizations.of(context)!.error_cant_deliver,
-                                        ),
-                                          backgroundColor: AppColors.error,
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                    bool added = cartProvider.addItem(
-                                      id,
-                                      name,
-                                      price,
-                                      isLoose,
-                                      stock,
-                                    );
-                                    if (added) {
-                                      SoundService().addToCart();
-                                    } else {
-                                      HapticFeedback.heavyImpact();
-                                      SoundService().blocked();
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                            AppLocalizations.of(context)!.qty_exceeds,
-                                          ),
-                                          backgroundColor: AppColors.error,
-                                          duration: const Duration(seconds: 1),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: isServiceable
-                                        ? AppColors.primaryLight.withValues(
-                                            alpha: 0.15,
-                                          )
-                                        : AppColors.textLight.withValues(
-                                            alpha: 0.15,
-                                          ),
-                                    foregroundColor: isServiceable
-                                        ? AppColors.primaryDark
-                                        : AppColors.textMid,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryDark.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      side: BorderSide(
-                                        color: isServiceable
-                                            ? AppColors.primaryLight
-                                            : AppColors.textLight,
-                                        width: 1,
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          borderRadius:
+                                              const BorderRadius.horizontal(
+                                                left: Radius.circular(8),
+                                              ),
+                                          onTap: () {
+                                            HapticFeedback.lightImpact();
+                                            cartProvider.updateQuantity(
+                                              id,
+                                              isLoose ? -0.5 : -1.0,
+                                            );
+                                          },
+                                          child: const Center(
+                                            child: Icon(
+                                              Icons.remove_rounded,
+                                              color: AppColors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      AppLocalizations.of(context)!.add,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
+                                    Expanded(
+                                      flex: 2,
+                                      child: Container(
+                                        color: AppColors.white.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            isLoose
+                                                ? cartItem.quantity
+                                                      .toStringAsFixed(1)
+                                                : cartItem.quantity
+                                                      .toInt()
+                                                      .toString(),
+                                            style: AppTextStyles.bodySemiBold(
+                                              color: AppColors.white,
+                                            ).copyWith(fontSize: 13),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                    Expanded(
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          borderRadius:
+                                              const BorderRadius.horizontal(
+                                                right: Radius.circular(8),
+                                              ),
+                                          onTap: () {
+                                            if (!isServiceable) {
+                                              HapticFeedback.heavyImpact();
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  content: Text(
+                                                    AppLocalizations.of(
+                                                      context,
+                                                    )!.error_cant_deliver,
+                                                  ),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                              return;
+                                            }
+                                            HapticFeedback.lightImpact();
+                                            bool updated = cartProvider
+                                                .updateQuantity(
+                                                  id,
+                                                  isLoose ? 0.5 : 1.0,
+                                                );
+                                            if (!updated) {
+                                              SoundService().blocked();
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  content: Text(
+                                                    AppLocalizations.of(
+                                                      context,
+                                                    )!.max_stock,
+                                                  ),
+                                                  backgroundColor:
+                                                      AppColors.error,
+                                                  duration: const Duration(
+                                                    seconds: 1,
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          child: const Center(
+                                            child: Icon(
+                                              Icons.add_rounded,
+                                              color: AppColors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ).animate().scale(
                                 begin: const Offset(0.95, 0.95),
@@ -907,117 +1356,8 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                 duration: 200.ms,
                                 curve: Curves.easeOut,
                               );
-                            }
-
-                            // Plus/Minus Controls
-                            return Container(
-                              height: 32,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryDark,
-                                borderRadius: BorderRadius.circular(8),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primaryDark.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.max,
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
-                                        onTap: () {
-                                          HapticFeedback.lightImpact();
-                                          cartProvider.updateQuantity(
-                                            id,
-                                            isLoose ? -0.5 : -1.0,
-                                          );
-                                        },
-                                        child: const Center(
-                                          child: Icon(Icons.remove_rounded, color: AppColors.white, size: 16),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Container(
-                                      color: AppColors.white.withValues(
-                                        alpha: 0.15,
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          isLoose
-                                              ? cartItem.quantity.toStringAsFixed(1)
-                                              : cartItem.quantity
-                                                    .toInt()
-                                                    .toString(),
-                                          style: AppTextStyles.bodySemiBold(
-                                            color: AppColors.white,
-                                          ).copyWith(fontSize: 13),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
-                                        onTap: () {
-                                          if (!isServiceable) {
-                                            HapticFeedback.heavyImpact();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_cant_deliver),
-                                                backgroundColor: Colors.red,
-                                              ),
-                                            );
-                                            return;
-                                          }
-                                          HapticFeedback.lightImpact();
-                                          bool updated = cartProvider.updateQuantity(
-                                            id,
-                                            isLoose ? 0.5 : 1.0,
-                                          );
-                                          if (!updated) {
-                                            SoundService().blocked();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(behavior: SnackBarBehavior.floating, content: Text(
-                                                  AppLocalizations.of(context)!.max_stock,
-                                                ),
-                                                backgroundColor: AppColors.error,
-                                                duration: const Duration(seconds: 1),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        child: const Center(
-                                          child: Icon(Icons.add_rounded, color: AppColors.white, size: 16),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ).animate().scale(
-                              begin: const Offset(0.95, 0.95),
-                              end: const Offset(1, 1),
-                              duration: 200.ms,
-                              curve: Curves.easeOut,
-                            );
-                          },
-                        ),
+                            },
+                          ),
                         ),
                       ],
                     ),
@@ -1242,6 +1582,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             price,
                             isLoose,
                             stock,
+                            imageUrl: imageUrl,
                           );
                           if (added) {
                             SoundService().addToCart();
@@ -1249,7 +1590,9 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             HapticFeedback.heavyImpact();
                             SoundService().blocked();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(behavior: SnackBarBehavior.floating, content: Text(
+                              SnackBar(
+                                behavior: SnackBarBehavior.floating,
+                                content: Text(
                                   AppLocalizations.of(context)!.qty_exceeds,
                                 ),
                                 backgroundColor: AppColors.error,
@@ -1319,7 +1662,9 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                               if (!updated) {
                                 SoundService().blocked();
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(behavior: SnackBarBehavior.floating, content: Text(
+                                  SnackBar(
+                                    behavior: SnackBarBehavior.floating,
+                                    content: Text(
                                       AppLocalizations.of(context)!.max_stock,
                                     ),
                                     backgroundColor: AppColors.error,
@@ -1439,7 +1784,10 @@ class _ProductGridState extends State<ProductGrid> {
     });
 
     try {
-      final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+      final shopId = Provider.of<ShopProvider>(
+        context,
+        listen: false,
+      ).currentShopId;
 
       if (shopId == null || shopId.isEmpty) {
         if (mounted) {
@@ -1509,9 +1857,7 @@ class _ProductGridState extends State<ProductGrid> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading && _products.isEmpty) {
-      return const Center(
-        child: ModernLoader(color: Color(0xFF4CAF50)),
-      );
+      return const Center(child: ModernLoader(color: Color(0xFF4CAF50)));
     }
 
     final displayProducts = _products;
@@ -1545,39 +1891,54 @@ class _ProductGridState extends State<ProductGrid> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _refresh,
-      child: GridView.builder(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16.0,
-          mainAxisSpacing: 16.0,
-          mainAxisExtent:
-              280, // Fixed height for every card to prevent layout breaking
-        ),
-        itemCount: displayProducts.length + (_hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == displayProducts.length) {
-            return const Center(child: ModernLoader());
-          }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        int crossAxisCount = 2;
+        if (constraints.maxWidth > 1200) {
+          crossAxisCount = 5;
+        } else if (constraints.maxWidth > 900) {
+          crossAxisCount = 4;
+        } else if (constraints.maxWidth > 600) {
+          crossAxisCount = 3;
+        }
 
-          final product = displayProducts[index];
-          final productData = product.data() as Map<String, dynamic>;
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          child: GridView.builder(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 16.0,
+              mainAxisSpacing: 16.0,
+              mainAxisExtent:
+                  280, // Fixed height for every card to prevent layout breaking
+            ),
+            itemCount: displayProducts.length + (_hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == displayProducts.length) {
+                return const Center(child: ModernLoader());
+              }
 
-          return widget.buildProductCard(
-            context: context,
-            id: product.id,
-            name: productData['name'] ?? '',
-            price: (productData['price'] as num?)?.toDouble() ?? 0.0,
-            isLoose: productData['is_loose'] ?? false,
-            imageUrl: productData['image_url'],
-            productData: productData,
-            isServiceable: widget.userProvider.isServiceable,
-          ).fadeSlideUp(delay: (index % 10) * 50);
-        },
-      ),
+              final product = displayProducts[index];
+              final productData = product.data() as Map<String, dynamic>;
+
+              return widget
+                  .buildProductCard(
+                    context: context,
+                    id: product.id,
+                    name: productData['name'] ?? '',
+                    price: (productData['price'] as num?)?.toDouble() ?? 0.0,
+                    isLoose: productData['is_loose'] ?? false,
+                    imageUrl: productData['image_url'],
+                    productData: productData,
+                    isServiceable: widget.userProvider.isServiceable,
+                  )
+                  .fadeSlideUp(delay: (index % 10) * 50);
+            },
+          ),
+        );
+      },
     );
   }
 }

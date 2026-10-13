@@ -7,8 +7,6 @@ import 'package:near_kirana/firebase_utils.dart';
 import 'package:near_kirana/app_theme.dart';
 import 'shop_provider.dart';
 import 'modern_loader.dart';
-import 'customer_desktop_dashboard.dart';
-import 'home_screen.dart';
 import 'khata_statement_screen.dart';
 
 class ReceivePaymentScreen extends StatefulWidget {

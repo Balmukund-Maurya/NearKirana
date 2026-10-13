@@ -144,6 +144,7 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
           'credit_limit': creditLimit,
         });
         SoundService().success();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             behavior: SnackBarBehavior.floating,
@@ -188,6 +189,7 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
           });
         }
         SoundService().success();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             behavior: SnackBarBehavior.floating,
@@ -199,13 +201,15 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
 
       widget.onSaved();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -353,7 +357,7 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primaryDark.withOpacity(0.3), width: 1.5, style: BorderStyle.solid),
+                  border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.3), width: 1.5, style: BorderStyle.solid),
                   color: const Color(0xFFF0FDF4), // very light green
                 ),
                 child: const Column(
@@ -515,7 +519,7 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
                       Switch(
                         value: true, // Fixed visually to true for now since it's default
                         onChanged: (v) {},
-                        activeColor: Colors.white,
+                        activeThumbColor: Colors.white,
                         activeTrackColor: AppColors.primaryDark,
                       ),
                       const SizedBox(width: 8),

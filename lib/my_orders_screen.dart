@@ -17,9 +17,7 @@ import 'order_state_machine.dart';
 import 'my_orders_desktop_wrapper.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
-import 'package:near_kirana/substitution_model.dart';
 import 'package:near_kirana/widgets/rating_review_dialog.dart';
-import 'package:near_kirana/rating_review_service.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   final bool isTab;

@@ -9,8 +9,6 @@ import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'admin_order_card.dart';
 import 'widgets/admin_top_header.dart';
-import 'l10n/app_localizations.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 class AdminOrdersDesktopView extends StatefulWidget {
   const AdminOrdersDesktopView({super.key});

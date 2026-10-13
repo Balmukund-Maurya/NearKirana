@@ -207,11 +207,6 @@ class _AdminLanguageThemeScreenState extends State<AdminLanguageThemeScreen> {
   }
 
   Widget _buildLanguageSettingsCard() {
-    final currentLang = _languages.firstWhere(
-      (l) => l['code'] == _selectedLanguage,
-      orElse: () => _languages.first,
-    );
-
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -577,7 +577,7 @@ class _CustomerProfileDesktopWrapperState extends State<CustomerProfileDesktopWr
                         flex: 2,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
+                          decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -680,13 +680,23 @@ class _CustomerProfileDesktopWrapperState extends State<CustomerProfileDesktopWr
                   children: [
                     Expanded(
                       child: _buildMiniKhataCard(
-                        'Used Credit', '25% of your limit', '₹1,250', Colors.orange, Icons.shopping_bag_outlined, progress: 0.25
+                        'Used Credit',
+                        '${((_totalUdhaar > 0 ? _totalUdhaar : _currentBalance) / 5000 * 100).clamp(0, 100).toInt()}% of your limit',
+                        '₹${(_totalUdhaar > 0 ? _totalUdhaar : _currentBalance).toStringAsFixed(0)}',
+                        Colors.orange,
+                        Icons.shopping_bag_outlined,
+                        progress: ((_totalUdhaar > 0 ? _totalUdhaar : _currentBalance) / 5000).clamp(0.0, 1.0),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildMiniKhataCard(
-                        'Available Credit', '75% remaining', '₹3,750', Colors.purple, Icons.credit_card_outlined, progress: 0.75
+                        'Available Credit',
+                        '${(100 - ((_totalUdhaar > 0 ? _totalUdhaar : _currentBalance) / 5000 * 100).clamp(0, 100).toInt())}% remaining',
+                        '₹${(5000 - (_totalUdhaar > 0 ? _totalUdhaar : _currentBalance)).clamp(0, 5000).toStringAsFixed(0)}',
+                        Colors.purple,
+                        Icons.credit_card_outlined,
+                        progress: (1.0 - ((_totalUdhaar > 0 ? _totalUdhaar : _currentBalance) / 5000)).clamp(0.0, 1.0),
                       ),
                     ),
                   ],
@@ -981,8 +991,11 @@ class _CustomerProfileDesktopWrapperState extends State<CustomerProfileDesktopWr
                       final desc = data['description'] as String? ?? '';
                       // Attempt to guess method from desc, fallback to Unknown
                       String method = 'Cash';
-                      if (desc.toLowerCase().contains('upi')) method = 'UPI';
-                      else if (desc.toLowerCase().contains('card')) method = 'Card';
+                      if (desc.toLowerCase().contains('upi')) {
+                        method = 'UPI';
+                      } else if (desc.toLowerCase().contains('card')) {
+                        method = 'Card';
+                      }
                       
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16),

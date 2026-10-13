@@ -4,10 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:near_kirana/shop_provider.dart';
-import 'package:near_kirana/user_provider.dart';
 import 'package:near_kirana/utils/product_image_widget.dart';
 import 'package:provider/provider.dart';
-import 'package:near_kirana/l10n/app_localizations.dart';
 
 class DesktopOffersView extends StatefulWidget {
   final Function(int) onNavigate;
@@ -362,10 +360,11 @@ class _DesktopOffersViewState extends State<DesktopOffersView> {
         LayoutBuilder(
           builder: (context, constraints) {
             int crossAxisCount = 2;
-            if (constraints.maxWidth > 1200)
+            if (constraints.maxWidth > 1200) {
               crossAxisCount = 4;
-            else if (constraints.maxWidth > 800)
+            } else if (constraints.maxWidth > 800) {
               crossAxisCount = 3;
+            }
 
             return GridView.builder(
               shrinkWrap: true,

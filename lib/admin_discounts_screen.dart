@@ -294,7 +294,7 @@ class _AdminDiscountsScreenState extends State<AdminDiscountsScreen> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: _selectedType,
+            initialValue: _selectedType,
             items: ['All Types', 'Percentage', 'Fixed Amount', 'Free Shipping']
                 .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14))))
                 .toList(),
@@ -321,7 +321,7 @@ class _AdminDiscountsScreenState extends State<AdminDiscountsScreen> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: _selectedStatus,
+            initialValue: _selectedStatus,
             items: ['All Status', 'Active', 'Inactive', 'Scheduled', 'Expired']
                 .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14))))
                 .toList(),
@@ -348,7 +348,7 @@ class _AdminDiscountsScreenState extends State<AdminDiscountsScreen> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: _sortBy,
+            initialValue: _sortBy,
             items: ['Sort by: Latest', 'Oldest']
                 .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14))))
                 .toList(),

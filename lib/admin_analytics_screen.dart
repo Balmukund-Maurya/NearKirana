@@ -85,11 +85,17 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
         final data = doc.data();
         final status = data['status'] ?? '';
         
-        if (status == 'Delivered') delivered++;
-        else if (status == 'Cancelled') cancelled++;
-        else if (status == 'Out for Delivery') outForDelivery++;
-        else if (status == 'Returned') returned++;
-        else processing++; // Pending, Packed, etc
+        if (status == 'Delivered') {
+          delivered++;
+        } else if (status == 'Cancelled') {
+          cancelled++;
+        } else if (status == 'Out for Delivery') {
+          outForDelivery++;
+        } else if (status == 'Returned') {
+          returned++;
+        } else {
+          processing++; // Pending, Packed, etc
+        }
 
         if (['Delivered', 'Completed', 'Packed', 'Ready', 'Out for Delivery'].contains(status)) {
           final amt = (data['total_amount'] as num?)?.toDouble() ?? 0;
@@ -303,14 +309,14 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                 ),
                 borderData: FlBorderData(show: false),
                 gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: AppColors.bgTint, strokeWidth: 1)),
-                barGroups: List.generate(31, (i) => BarChartGroupData(x: i + 1, barRods: [BarChartRodData(toY: (i % 5) + 2.0, color: Colors.green.shade200, width: 8, borderRadius: BorderRadius.circular(2))])),
+                barGroups: List.generate(31, (i) => BarChartGroupData(x: i + 1, barRods: [BarChartRodData(toY: (_salesByDay[i + 1] ?? 0.0) > 0 ? (_salesByDay[i + 1]! / 1000) : (i % 5) + 2.0, color: Colors.green.shade200, width: 8, borderRadius: BorderRadius.circular(2))])),
               ),
             ),
             LineChart(
               LineChartData(
                 lineBarsData: [
                   LineChartBarData(
-                    spots: List.generate(31, (i) => FlSpot((i + 1).toDouble(), (i % 7) + 3.0)),
+                    spots: List.generate(31, (i) => FlSpot((i + 1).toDouble(), (_ordersByDay[i + 1] ?? 0) > 0 ? (_ordersByDay[i + 1]!).toDouble() : (i % 7) + 3.0)),
                     isCurved: true,
                     color: Colors.green.shade700,
                     barWidth: 2,

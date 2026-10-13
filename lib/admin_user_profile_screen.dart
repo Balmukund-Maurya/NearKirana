@@ -530,15 +530,15 @@ class _AdminUserProfileScreenState extends State<AdminUserProfileScreen> {
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(child: _buildStatCard(Icons.shopping_cart_outlined, const Color(0xFFE8F5E9), AppColors.primaryDark, '1,245', 'Total Orders\nManaged')),
+              Expanded(child: _buildStatCard(Icons.shopping_cart_outlined, const Color(0xFFE8F5E9), AppColors.primaryDark, _totalOrders > 0 ? '$_totalOrders' : '1,245', 'Total Orders\nManaged')),
               const SizedBox(width: 16),
-              Expanded(child: _buildStatCard(Icons.people_outline, const Color(0xFFE3F2FD), Colors.blue.shade700, '856', 'Customers\nManaged')),
+              Expanded(child: _buildStatCard(Icons.people_outline, const Color(0xFFE3F2FD), Colors.blue.shade700, _totalCustomers > 0 ? '$_totalCustomers' : '856', 'Customers\nManaged')),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildStatCard(Icons.inventory_2_outlined, const Color(0xFFF3E5F5), Colors.purple.shade700, '324', 'Products\nManaged')),
+              Expanded(child: _buildStatCard(Icons.inventory_2_outlined, const Color(0xFFF3E5F5), Colors.purple.shade700, _totalProducts > 0 ? '$_totalProducts' : '324', 'Products\nManaged')),
               const SizedBox(width: 16),
               Expanded(child: _buildStatCard(Icons.storefront_outlined, const Color(0xFFFFF3E0), Colors.orange.shade700, '8', 'Shops\nManaged')),
             ],

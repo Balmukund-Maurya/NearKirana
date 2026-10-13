@@ -2289,7 +2289,7 @@ class _CartScreenState extends State<CartScreen> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: cartItems.length,
-                              separatorBuilder: (_, __) => const Divider(
+                              separatorBuilder: (_, _) => const Divider(
                                 height: 32,
                                 color: Color(0xFFF3F4F6),
                               ),

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:near_kirana/app_theme.dart';
-import 'package:near_kirana/firebase_utils.dart';
-import 'package:near_kirana/shop_provider.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
-import 'package:provider/provider.dart';
 
 class AdminShopBoysScreen extends StatefulWidget {
   const AdminShopBoysScreen({super.key});
@@ -160,7 +157,7 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: 'All Status',
+            initialValue: 'All Status',
             items: ['All Status', 'Active', 'Inactive'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
             onChanged: (v) {},
             decoration: InputDecoration(
@@ -176,7 +173,7 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: 'All Shops',
+            initialValue: 'All Shops',
             items: ['All Shops'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
             onChanged: (v) {},
             decoration: InputDecoration(
@@ -192,7 +189,7 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: 'Sort by: Latest',
+            initialValue: 'Sort by: Latest',
             items: ['Sort by: Latest', 'Oldest'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
             onChanged: (v) {},
             icon: const Icon(Icons.keyboard_arrow_down),

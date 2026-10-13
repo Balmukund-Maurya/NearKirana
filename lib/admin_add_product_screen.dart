@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:near_kirana/admin_desktop_dashboard.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
@@ -7,7 +6,6 @@ import 'package:near_kirana/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:near_kirana/shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/firestore_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -46,7 +44,6 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
   
   List<String> _selectedCategories = [];
   List<String> _categories = [];
-  bool _isFetchingCategories = true;
 
   @override
   void initState() {
@@ -98,7 +95,6 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
     
     if (mounted) {
       setState(() {
-        _isFetchingCategories = false;
         _isLoading = false;
       });
     }
@@ -155,6 +151,7 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
         finalImageUrl = 'data:image/jpeg;base64,$base64String';
       }
       
+      if (!mounted) return;
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       final barcode = widget.barcode ?? _barcodeController.text.trim();
       
@@ -501,7 +498,7 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
                           Text('Category *', style: AppTextStyles.bodySemiBold(color: AppColors.textDark).copyWith(fontSize: 13)),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            value: _selectedCategories.isNotEmpty ? _selectedCategories.first : null,
+                            initialValue: _selectedCategories.isNotEmpty ? _selectedCategories.first : null,
                             hint: Text('Select Category', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
                             decoration: InputDecoration(
                               prefixIcon: const Icon(Icons.category_outlined, color: AppColors.textMid, size: 20),
@@ -541,7 +538,7 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            value: 'Aashirvaad',
+                            initialValue: 'Aashirvaad',
                             hint: Text('Select Brand', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
                             decoration: InputDecoration(
                               prefixIcon: const Icon(Icons.inventory_2_outlined, color: AppColors.textMid, size: 20),
@@ -636,7 +633,7 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
                   subtitle: const Text('Enable stock tracking for this product', style: TextStyle(fontSize: 11)),
                   value: true,
                   onChanged: (val) {},
-                  activeColor: AppColors.primaryDark,
+                  activeThumbColor: AppColors.primaryDark,
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -646,7 +643,7 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
                   subtitle: const Text('Get notified when stock is low', style: TextStyle(fontSize: 11)),
                   value: true,
                   onChanged: (val) {},
-                  activeColor: AppColors.primaryDark,
+                  activeThumbColor: AppColors.primaryDark,
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -683,14 +680,14 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
                       title: const Text('Khula Saman (Loose Item)'),
                       value: _isLoose,
                       onChanged: (val) => setState(() => _isLoose = val),
-                      activeColor: AppColors.primaryDark,
+                      activeThumbColor: AppColors.primaryDark,
                       contentPadding: EdgeInsets.zero,
                     ),
                     SwitchListTile(
                       title: const Text('Food Item'),
                       value: _isFoodItem,
                       onChanged: (val) => setState(() => _isFoodItem = val),
-                      activeColor: AppColors.primaryDark,
+                      activeThumbColor: AppColors.primaryDark,
                       contentPadding: EdgeInsets.zero,
                     ),
                     if (_isFoodItem)
@@ -698,7 +695,7 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
                         title: const Text('Vegetarian'),
                         value: _isVegetarian,
                         onChanged: (val) => setState(() => _isVegetarian = val),
-                        activeColor: Colors.green,
+                        activeThumbColor: Colors.green,
                         contentPadding: EdgeInsets.zero,
                       ),
                   ],
@@ -762,7 +759,7 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
           const SizedBox(height: 24),
           Text(_nameController.text.isNotEmpty ? _nameController.text : 'Product Name', style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 20)),
           const SizedBox(height: 4),
-          Text('${_selectedCategories.isNotEmpty ? _selectedCategories.first : "Category"}', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+          Text(_selectedCategories.isNotEmpty ? _selectedCategories.first : "Category", style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,

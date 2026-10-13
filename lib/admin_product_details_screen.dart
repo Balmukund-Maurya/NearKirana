@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
 import 'package:near_kirana/admin_product_forms.dart';
 import 'package:near_kirana/utils/product_image_widget.dart';
@@ -53,6 +52,7 @@ class _AdminProductDetailsScreenState extends State<AdminProductDetailsScreen> {
     FirebaseUtils.firestore.collection('products').doc(widget.barcode).update({
       'stock_quantity': 0,
     }).then((_) {
+      if (!mounted) return;
       _fetchProductDetails();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marked as out of stock')));
     });
@@ -681,7 +681,7 @@ class _AdminProductDetailsScreenState extends State<AdminProductDetailsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
-              if (action != null) action,
+              ?action,
             ],
           ),
           const SizedBox(height: 24),

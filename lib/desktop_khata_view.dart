@@ -18,7 +18,6 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
   bool _isLoading = false;
   Map<String, dynamic>? _customerData;
   List<DocumentSnapshot> _transactions = [];
-  String? _customerId;
 
   @override
   void initState() {
@@ -49,7 +48,6 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
 
       if (customerQuery.docs.isNotEmpty) {
         final doc = customerQuery.docs.first;
-        _customerId = doc.id;
         _customerData = doc.data();
 
         final txQuery = await doc.reference
@@ -148,7 +146,7 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryLight.withOpacity(0.2),
+                color: AppColors.primaryLight.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.receipt_long, color: AppColors.primaryDark, size: 32),
@@ -169,7 +167,7 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
           icon: const Icon(Icons.info_outline, color: AppColors.primaryDark, size: 18),
           label: const Text('How it works?', style: TextStyle(color: AppColors.primaryDark)),
           style: TextButton.styleFrom(
-            backgroundColor: AppColors.primaryLight.withOpacity(0.1),
+            backgroundColor: AppColors.primaryLight.withValues(alpha: 0.1),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
@@ -196,9 +194,9 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.1)),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +215,7 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
           const SizedBox(height: 12),
           Container(
             height: 6,
-            decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(3)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3)),
             alignment: Alignment.centerLeft,
             child: Container(
               width: 40,
@@ -507,7 +505,7 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(width: 12),
@@ -593,7 +591,7 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 
@@ -531,7 +530,7 @@ class _AdminCustomersDesktopViewState extends State<AdminCustomersDesktopView> {
                 children: [
                   Switch(
                     value: !isBanned,
-                    activeColor: const Color(0xFF10703B),
+                    activeThumbColor: const Color(0xFF10703B),
                     onChanged: (val) async {
                       await FirebaseUtils.firestore.collection('customers').doc(doc.id).update({'is_banned': !val});
                       _refresh();

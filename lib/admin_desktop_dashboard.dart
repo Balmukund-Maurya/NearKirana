@@ -5,7 +5,6 @@ import 'package:near_kirana/firebase_utils.dart';
 import 'package:near_kirana/shop_provider.dart';
 import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/widgets/weekly_sales_chart.dart';
-import 'package:near_kirana/widgets/admin_top_header.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:near_kirana/gateway_screen.dart';
 
@@ -54,19 +53,6 @@ class AdminDesktopDashboard extends StatelessWidget {
       {'icon': Icons.local_offer_rounded, 'label': 'Discounts'},
       {'icon': Icons.settings_rounded, 'label': 'Settings'},
     ];
-
-    // Map desktop indices to mobile tabs
-    // 0: Home, 1: Orders, 2: Inventory, 3: Khata, 4: More
-    int mapToMobileIndex(int desktopIndex) {
-      if (desktopIndex == 0) return 0; // Dashboard
-      if (desktopIndex == 1) return 1; // Orders
-      if (desktopIndex == 2) return 2; // Products
-      if (desktopIndex == 3) return 2; // Categories -> mapping to Products
-      if (desktopIndex == 4) return 4; // Customers -> mapping to More
-      if (desktopIndex == 5) return 3; // Khata
-      if (desktopIndex == 9) return 4; // Settings -> mapping to More
-      return 0; // default fallback
-    }
 
     return Container(
       width: 260,

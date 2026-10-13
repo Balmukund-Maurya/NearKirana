@@ -44,14 +44,15 @@ class _GatewayScreenState extends State<GatewayScreen> {
     if (!mounted) return;
 
     if (_globalPhone != null && _globalPhone!.isNotEmpty) {
-      final currentShopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+      final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+      final currentShopId = shopProvider.currentShopId;
       await AuthService().syncUserProfile(
         phone: _globalPhone!,
         role: role == 'admin' ? 'shop_owner' : 'customer',
         shopId: role == 'admin' ? currentShopId : null,
       );
+      if (!mounted) return;
       if (role == 'customer') {
-        final shopProvider = Provider.of<ShopProvider>(context, listen: false);
         if (shopProvider.currentShopId != null && shopProvider.currentShopId!.isNotEmpty) {
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
         } else {

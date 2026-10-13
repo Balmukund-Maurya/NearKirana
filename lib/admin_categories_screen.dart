@@ -289,7 +289,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: 'All Status',
+            initialValue: 'All Status',
             items: ['All Status', 'Active', 'Inactive'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
             onChanged: (v) {},
             decoration: InputDecoration(
@@ -305,7 +305,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: 'Sort by: Latest',
+            initialValue: 'Sort by: Latest',
             items: ['Sort by: Latest', 'Sort by: Oldest', 'Sort by: Name'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
             onChanged: (v) {},
             icon: const Icon(Icons.keyboard_arrow_down),

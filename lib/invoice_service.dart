@@ -12,8 +12,7 @@ import 'invoice_model.dart';
 class InvoiceService {
   final FirebaseFirestore? _firestore;
 
-  InvoiceService({FirebaseFirestore? firestore})
-      : _firestore = firestore;
+  InvoiceService({this._firestore});
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
 

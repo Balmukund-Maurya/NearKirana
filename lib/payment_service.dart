@@ -256,7 +256,7 @@ class PaymentService {
         'payment_session_id': sessionId,
         'payment_status': PaymentStatus.paymentPending,
         'payment_method': paymentMethod,
-        if (upiLink != null) 'upi_deep_link': upiLink,
+        'upi_deep_link': ?upiLink,
       });
     }
 

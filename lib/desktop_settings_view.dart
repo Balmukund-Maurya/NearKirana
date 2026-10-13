@@ -254,8 +254,9 @@ class _DesktopSettingsViewState extends State<DesktopSettingsView> {
                 houseNo: userProvider.customerHouseNo,
                 landmark: userProvider.customerLandmark,
               );
+              final navigator = Navigator.of(ctx);
               await userProvider.updateEmail(emailController.text.trim());
-              if (mounted) Navigator.pop(ctx);
+              if (mounted) navigator.pop();
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryDark, foregroundColor: Colors.white),
             child: const Text('Save'),
@@ -424,7 +425,7 @@ class _DesktopSettingsViewState extends State<DesktopSettingsView> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: AppColors.primaryDark,
+          activeThumbColor: AppColors.primaryDark,
         ),
       ],
     );
@@ -657,8 +658,9 @@ class _DesktopSettingsViewState extends State<DesktopSettingsView> {
                 'lat': userProvider.currentLat ?? 0.0,
                 'lng': userProvider.currentLng ?? 0.0,
               };
+              final navigator = Navigator.of(ctx);
               await userProvider.addSavedAddress(newAddress);
-              if (mounted) Navigator.pop(ctx);
+              if (mounted) navigator.pop();
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryDark, foregroundColor: Colors.white),
             child: const Text('Save'),

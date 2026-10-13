@@ -440,7 +440,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: cartItems.length,
-                              separatorBuilder: (_, __) => const Divider(
+                              separatorBuilder: (_, _) => const Divider(
                                 height: 32,
                                 color: Color(0xFFF3F4F6),
                               ),
@@ -1018,7 +1018,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             ],
           ),
         ),
-        if (trailing != null) trailing,
+        ?trailing,
       ],
     );
   }

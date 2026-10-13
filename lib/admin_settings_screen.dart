@@ -389,7 +389,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                   const SizedBox(width: 8),
                   Switch(
                     value: _isStoreOpen,
-                    activeColor: AppColors.primaryDark,
+                    activeThumbColor: AppColors.primaryDark,
                     onChanged: (val) {
                       setState(() => _isStoreOpen = val);
                       HapticFeedback.lightImpact();
@@ -594,7 +594,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => import_language_theme(context),
+            onPressed: () => _importLanguageTheme(context),
             icon: const Icon(Icons.language, size: 18),
             label: const Text('Language & Theme', style: TextStyle(fontSize: 14)),
             style: OutlinedButton.styleFrom(
@@ -609,7 +609,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  void import_language_theme(BuildContext context) {
+  void _importLanguageTheme(BuildContext context) {
     // Use the AdminDashboard static callback to navigate to index 11
     // This ensures the screen is rendered inside AdminDesktopDashboard (with sidebar).
     if (AdminDashboard.navCallback != null) {

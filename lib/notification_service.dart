@@ -448,8 +448,8 @@ class NotificationService {
     );
 
     final String jsonPayload = json.encode({
-      if (orderId != null) 'order_id': orderId,
-      if (payload != null) ...payload,
+      'order_id': ?orderId,
+      ...?payload,
     });
 
     try {
@@ -540,7 +540,7 @@ class NotificationService {
       'status': newStatus,
       'shop_id': shopId,
       'customer_phone': customerPhone,
-      if (deliveryBoyName != null) 'delivery_boy': deliveryBoyName,
+      'delivery_boy': ?deliveryBoyName,
       'timestamp': DateTime.now().toIso8601String(),
     };
 
@@ -571,7 +571,7 @@ class NotificationService {
       'order_id': orderId,
       'status': newStatus,
       'recipient_phone': customerPhone,
-      if (customerUid != null) 'recipient_uid': customerUid,
+      'recipient_uid': ?customerUid,
       'shop_id': shopId,
       'is_read': false,
       'created_at': FieldValue.serverTimestamp(),
@@ -586,7 +586,7 @@ class NotificationService {
       'title': title,
       'body': body,
       'target_phone': customerPhone,
-      if (customerUid != null) 'target_uid': customerUid,
+      'target_uid': ?customerUid,
       'target_topic': 'order_$orderId',
       'shop_id': shopId,
       'order_id': orderId,
@@ -638,7 +638,7 @@ class NotificationService {
       'title': title,
       'body': message,
       'customer_phone': customerPhone ?? '',
-      if (customerUid != null) 'customer_uid': customerUid,
+      'customer_uid': ?customerUid,
       'shop_id': shopId,
       'created_at': now,
       'is_read': false,

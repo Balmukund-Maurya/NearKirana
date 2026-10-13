@@ -16,7 +16,6 @@ import 'order_state_machine.dart';
 import 'notification_service.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
-import 'package:near_kirana/substitution_model.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;

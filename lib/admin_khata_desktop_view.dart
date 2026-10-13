@@ -116,15 +116,17 @@ class _AdminKhataDesktopViewState extends State<AdminKhataDesktopView> with Sing
                                 return;
                               }
 
+                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              final navigator = Navigator.of(dialogContext);
+                              final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+                              if (shopId == null) return;
+
                               setDialogState(() => isProcessing = true);
 
                               try {
                                 final customerQuery = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phone).limit(1).get();
                                 final batch = FirebaseUtils.firestore.batch();
                                 DocumentReference customerRef;
-
-                                final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
-                                if (shopId == null) return;
 
                                 if (customerQuery.docs.isNotEmpty) {
                                   customerRef = customerQuery.docs.first.reference;
@@ -136,7 +138,7 @@ class _AdminKhataDesktopViewState extends State<AdminKhataDesktopView> with Sing
                                 } else {
                                   if (name.isEmpty) {
                                     setDialogState(() => isProcessing = false);
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name required for new customer'), backgroundColor: Colors.red));
+                                    scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Name required for new customer'), backgroundColor: Colors.red));
                                     return;
                                   }
                                   customerRef = FirebaseUtils.firestore.collection('customers').doc();
@@ -165,13 +167,13 @@ class _AdminKhataDesktopViewState extends State<AdminKhataDesktopView> with Sing
                                 await batch.commit();
 
                                 if (mounted) {
-                                  Navigator.pop(dialogContext);
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Khata entry added successfully'), backgroundColor: Color(0xFF10703B)));
+                                  navigator.pop();
+                                  scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Khata entry added successfully'), backgroundColor: Color(0xFF10703B)));
                                   _refresh();
                                 }
                               } catch (e) {
                                 if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                                  scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
                                 }
                               } finally {
                                 if (mounted) setDialogState(() => isProcessing = false);
@@ -596,7 +598,7 @@ class _AdminKhataDesktopViewState extends State<AdminKhataDesktopView> with Sing
                     children: [
                       Switch(
                         value: !isBanned,
-                        activeColor: const Color(0xFF10703B),
+                        activeThumbColor: const Color(0xFF10703B),
                         onChanged: (val) async {
                           await FirebaseUtils.firestore.collection('customers').doc(doc.id).update({'is_banned': !val});
                           _refresh();

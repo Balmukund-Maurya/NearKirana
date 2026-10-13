@@ -13,7 +13,6 @@ import 'package:provider/provider.dart';
 import 'shop_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'admin_desktop_dashboard.dart';
-import 'admin_customers_screen.dart';
 import 'admin_settings_screen.dart';
 import 'admin_categories_screen.dart';
 import 'admin_shop_boys_screen.dart';
@@ -95,21 +94,16 @@ class _AdminDashboardState extends State<AdminDashboard>
           // 8: Discounts
           // 9: AdminSettingsScreen (mapped to 4)
           
-          int effectiveIndex = 0;
-          if (_selectedIndex == 0) effectiveIndex = 0;
-          else if (_selectedIndex == 1) effectiveIndex = 1;
-          else if (_selectedIndex == 2) effectiveIndex = 2; // Products
-          else if (_selectedIndex == 3) effectiveIndex = 2; // Categories -> Stock
-          else if (_selectedIndex == 4) effectiveIndex = 4; // Customers -> More
-          else if (_selectedIndex == 5) effectiveIndex = 3; // Khata
-          else if (_selectedIndex == 6) effectiveIndex = 4; // Shop Boys -> More
-          else if (_selectedIndex == 7) effectiveIndex = 0; // Analytics -> Home
-          else if (_selectedIndex == 8) effectiveIndex = 4; // Discounts -> More
-          else if (_selectedIndex == 9) effectiveIndex = 4; // Settings -> More
-          else if (_selectedIndex == 10) effectiveIndex = 0; // Profile -> Doesn't matter
-          else if (_selectedIndex == 11) effectiveIndex = 0; // Language & Theme -> Doesn't matter
+          int effectiveIndex = switch (_selectedIndex) {
+            1 => 1,
+            2 || 3 => 2, // Products / Categories
+            4 => 4, // Customers
+            5 => 3, // Khata
+            6 || 8 || 9 => 4, // Shop Boys, Discounts, Settings
+            _ => 0,
+          };
 
-          print('AdminDashboard BUILD: _selectedIndex=$_selectedIndex, effectiveIndex=$effectiveIndex');
+          debugPrint('AdminDashboard BUILD: _selectedIndex=$_selectedIndex, effectiveIndex=$effectiveIndex');
 
           return AdminDesktopDashboard(
             selectedIndex: _selectedIndex,
@@ -314,7 +308,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Widget _buildDesktopScreen(int index) {
-    print('BUILDING DESKTOP SCREEN FOR INDEX: $index');
+    debugPrint('BUILDING DESKTOP SCREEN FOR INDEX: $index');
     switch (index) {
       case 0:
         return const AdminHomeTab();

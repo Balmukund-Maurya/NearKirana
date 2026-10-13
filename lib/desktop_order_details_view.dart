@@ -439,7 +439,7 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                                                   border: Border.all(color: Colors.grey.shade200),
                                                 ),
                                                 child: image != null && image.toString().isNotEmpty
-                                                    ? ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.network(image, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.grey)))
+                                                    ? ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.network(image, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image, color: Colors.grey)))
                                                     : const Icon(Icons.image, color: Colors.grey),
                                               ),
                                               const SizedBox(width: 16),

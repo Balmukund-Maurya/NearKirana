@@ -516,8 +516,9 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             ),
                             onPressed: () {
                               _searchController.clear();
-                              if (_debounce?.isActive ?? false)
+                              if (_debounce?.isActive ?? false) {
                                 _debounce!.cancel();
+                              }
                               setState(() => _searchQuery = '');
                             },
                           )
@@ -736,10 +737,11 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                         _debounce = Timer(
                           const Duration(milliseconds: 300),
                           () {
-                            if (mounted)
+                            if (mounted) {
                               setState(
                                 () => _searchQuery = val.trim().toLowerCase(),
                               );
+                            }
                           },
                         );
                       },

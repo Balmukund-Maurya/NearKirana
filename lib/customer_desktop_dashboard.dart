@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'user_provider.dart';
-import 'shop_provider.dart';
 import 'cart_provider.dart';
-import 'language_provider.dart';
 import 'app_theme.dart';
-import 'firebase_utils.dart';
-import 'utils/product_image_widget.dart';
 
 class DesktopCustomerDashboard extends StatefulWidget {
   final int selectedIndex;
@@ -49,8 +43,9 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
 
   int _getDesktopIndex(int mobileIndex) {
     if (mobileIndex == 0) return 0; // Browse Products
-    if (mobileIndex == 1)
+    if (mobileIndex == 1) {
       return 0; // Cart (Shown on right side of Browse Products)
+    }
     if (mobileIndex == 2) return 1; // My Orders
     if (mobileIndex == 3) return 5; // My Profile
     if (mobileIndex == 4) return 2; // My Khata
@@ -105,8 +100,6 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
   }
 
   Widget _buildSidebar(BuildContext context) {
-    final cartCount = Provider.of<CartProvider>(context).itemCount;
-
     final navItems = [
       {'icon': Icons.storefront_rounded, 'label': 'Browse Products'},
       {'icon': Icons.receipt_long_outlined, 'label': 'My Orders'},
@@ -186,13 +179,13 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
                   return Padding(
                     padding: const EdgeInsets.only(top: 40),
                     child: _buildNavItem(item, false, () {
+                      final navigator = Navigator.of(context);
                       UserProvider userProvider = Provider.of<UserProvider>(
                         context,
                         listen: false,
                       );
                       userProvider.logout().then((_) {
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
+                        navigator.pushNamedAndRemoveUntil(
                           '/',
                           (route) => false,
                         );
@@ -305,6 +298,7 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildDashboardCenter(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
@@ -435,9 +429,9 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Rahul Kumar',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              Text(
+                customerName.isNotEmpty ? customerName : 'Rahul Kumar',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               const Icon(Icons.arrow_drop_down_rounded, color: Colors.grey),
             ],
@@ -909,7 +903,7 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
                     imageUrl,
                     width: 28,
                     height: 28,
-                    errorBuilder: (_, __, ___) => const Icon(
+                    errorBuilder: (_, _, _) => const Icon(
                       Icons.category_rounded,
                       color: AppColors.primaryDark,
                       size: 28,
@@ -1056,7 +1050,7 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
               child: Image.network(
                 data['image'],
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 50),
+                errorBuilder: (_, _, _) => const Icon(Icons.image, size: 50),
               ),
             ),
           ),

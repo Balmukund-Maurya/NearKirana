@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:near_kirana/shop_provider.dart';
-import 'package:near_kirana/user_provider.dart';
 import 'package:near_kirana/cart_provider.dart';
 import 'package:near_kirana/wishlist_provider.dart';
 import 'package:near_kirana/utils/product_image_widget.dart';
@@ -400,8 +399,11 @@ class _DesktopWishlistViewState extends State<DesktopWishlistView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         int crossAxisCount = 3;
-        if (constraints.maxWidth > 1200) crossAxisCount = 4;
-        else if (constraints.maxWidth < 900) crossAxisCount = 2;
+        if (constraints.maxWidth > 1200) {
+          crossAxisCount = 4;
+        } else if (constraints.maxWidth < 900) {
+          crossAxisCount = 2;
+        }
 
         return GridView.builder(
           shrinkWrap: true,

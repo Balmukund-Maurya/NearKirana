@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'app_theme.dart';
+import 'firebase_utils.dart';
 
 /// Standard Order Status constants for NearKirana
 class OrderStatus {
@@ -37,14 +39,95 @@ class OrderStatus {
     deliveryFailed,
   ];
 
-  static const List<String> terminalStatuses = [
-    delivered,
-    cancelled,
-    rejected,
-  ];
+  static const List<String> terminalStatuses = [delivered, cancelled, rejected];
+
+  static bool isTerminal(String? status) =>
+      status != null && terminalStatuses.contains(status);
+
+  static bool isActive(String? status) =>
+      status != null && activeStatuses.contains(status);
+
+  static double getProgressPercentage(String? status) {
+    switch (status) {
+      case pending:
+        return 0.10;
+      case accepted:
+        return 0.25;
+      case packing:
+      case packed:
+        return 0.50;
+      case ready:
+        return 0.70;
+      case outForDelivery:
+        return 0.85;
+      case delivered:
+        return 1.00;
+      default:
+        return 0.00;
+    }
+  }
+
+  static String getDescription(String? status) {
+    switch (status) {
+      case pending:
+        return 'Order placed. Awaiting shop confirmation.';
+      case accepted:
+        return 'Order accepted by store.';
+      case packing:
+      case packed:
+        return 'Items are being packed at the store.';
+      case ready:
+        return 'Order is packed and ready.';
+      case outForDelivery:
+        return 'Order is on the way to delivery address.';
+      case delivered:
+        return 'Order delivered successfully.';
+      case deliveryFailed:
+        return 'Delivery partner could not complete delivery.';
+      case rejected:
+        return 'Order was rejected by shop.';
+      case cancelled:
+        return 'Order was cancelled.';
+      default:
+        return 'Order status: $status';
+    }
+  }
+}
+
+/// Audit representation of an administrative order correction
+class OrderStateCorrectionResult {
+  final bool success;
+  final String orderId;
+  final String previousStatus;
+  final String newStatus;
+  final String authorizedBy;
+  final String reason;
+  final DateTime timestamp;
+
+  const OrderStateCorrectionResult({
+    required this.success,
+    required this.orderId,
+    required this.previousStatus,
+    required this.newStatus,
+    required this.authorizedBy,
+    required this.reason,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'success': success,
+    'order_id': orderId,
+    'previous_status': previousStatus,
+    'new_status': newStatus,
+    'authorized_by': authorizedBy,
+    'reason': reason,
+    'timestamp': Timestamp.fromDate(timestamp),
+  };
 }
 
 /// State Machine enforcing strict valid order state transitions and preventing illegal reversals.
+/// Lifecycle: Pending -> Accepted -> Packing -> Ready -> Out for Delivery -> Delivered
+/// Alternative outcomes: Rejected, Cancelled, Delivery_Failed
 class OrderStateMachine {
   /// Definitive transition graph
   static const Map<String, List<String>> _validTransitions = {
@@ -52,6 +135,7 @@ class OrderStateMachine {
       OrderStatus.accepted,
       OrderStatus.packing,
       OrderStatus.packed,
+      OrderStatus.ready,
       OrderStatus.rejected,
       OrderStatus.cancelled,
     ],
@@ -64,11 +148,13 @@ class OrderStateMachine {
     OrderStatus.packing: [
       OrderStatus.ready,
       OrderStatus.outForDelivery,
+      OrderStatus.delivered,
       OrderStatus.cancelled,
     ],
     OrderStatus.packed: [
       OrderStatus.ready,
       OrderStatus.outForDelivery,
+      OrderStatus.delivered,
       OrderStatus.cancelled,
     ],
     OrderStatus.ready: [
@@ -90,6 +176,19 @@ class OrderStateMachine {
     OrderStatus.cancelled: [],
     OrderStatus.rejected: [],
   };
+
+  /// Returns list of permitted next statuses from the given status
+  static List<String> getAllowedTransitions(
+    String currentStatus, {
+    bool isSuperAdmin = false,
+  }) {
+    if (isSuperAdmin) {
+      return OrderStatus.allStatuses
+          .where((status) => status != currentStatus)
+          .toList();
+    }
+    return _validTransitions[currentStatus] ?? [];
+  }
 
   /// Returns whether a transition from [from] to [to] is valid.
   static bool isValidTransition(
@@ -139,6 +238,144 @@ class OrderStateMachine {
     }
   }
 
+  /// Executes an authorized administrative correction on an order (e.g. reversing a mistake on a Delivered order)
+  /// Requires super admin authorization and writes persistent audit records.
+  static Future<OrderStateCorrectionResult> applyAuthorizedCorrection({
+    required String orderId,
+    required String targetStatus,
+    required String authorizedBy,
+    required String correctionReason,
+    bool isSuperAdmin = false,
+    FirebaseFirestore? firestore,
+  }) async {
+    if (!isSuperAdmin) {
+      throw StateError(
+        'Unauthorized: Administrative correction of order status requires authorized super admin permissions.',
+      );
+    }
+
+    if (!OrderStatus.allStatuses.contains(targetStatus)) {
+      throw ArgumentError(
+        'Invalid targetStatus "$targetStatus". Must be a known OrderStatus.',
+      );
+    }
+
+    final db = firestore ?? FirebaseUtils.firestore;
+    final orderRef = db.collection('orders').doc(orderId);
+    final orderSnap = await orderRef.get();
+    if (!orderSnap.exists) {
+      throw Exception('Order #$orderId not found.');
+    }
+
+    final currentStatus =
+        orderSnap.data()?['status']?.toString() ?? OrderStatus.pending;
+    final now = DateTime.now();
+
+    final correctionData = {
+      'from_status': currentStatus,
+      'to_status': targetStatus,
+      'authorized_by': authorizedBy,
+      'reason': correctionReason,
+      'corrected_at': Timestamp.fromDate(now),
+      'is_correction': true,
+    };
+
+    // Update main order document with new status and correction audit
+    await orderRef.update({
+      'status': targetStatus,
+      'last_correction': correctionData,
+      'status_audit_log': FieldValue.arrayUnion([correctionData]),
+    });
+
+    // Record immutable audit entry in status_history subcollection
+    await orderRef.collection('status_history').add({
+      ...correctionData,
+      'timestamp': Timestamp.fromDate(now),
+    });
+
+    return OrderStateCorrectionResult(
+      success: true,
+      orderId: orderId,
+      previousStatus: currentStatus,
+      newStatus: targetStatus,
+      authorizedBy: authorizedBy,
+      reason: correctionReason,
+      timestamp: now,
+    );
+  }
+
+  /// Performs a verified order status transition with audit history recording
+  static Future<bool> transitionOrder({
+    required String orderId,
+    required String targetStatus,
+    required String updatedBy,
+    String? note,
+    bool isSuperAdmin = false,
+    Map<String, dynamic>? extraUpdates,
+    FirebaseFirestore? firestore,
+  }) async {
+    final db = firestore ?? FirebaseUtils.firestore;
+    final orderRef = db.collection('orders').doc(orderId);
+    final orderSnap = await orderRef.get();
+    if (!orderSnap.exists) {
+      throw Exception('Order #$orderId not found.');
+    }
+
+    final currentStatus =
+        orderSnap.data()?['status']?.toString() ?? OrderStatus.pending;
+    assertValidTransition(
+      currentStatus,
+      targetStatus,
+      isSuperAdmin: isSuperAdmin,
+    );
+
+    final now = DateTime.now();
+    final bool isCorrection =
+        isSuperAdmin && OrderStatus.isTerminal(currentStatus);
+
+    final historyEntry = {
+      'from_status': currentStatus,
+      'to_status': targetStatus,
+      'updated_by': updatedBy,
+      'timestamp': Timestamp.fromDate(now),
+      'note': ?note,
+      'is_correction': isCorrection,
+    };
+
+    final updateData = <String, dynamic>{
+      'status': targetStatus,
+      'status_audit_log': FieldValue.arrayUnion([historyEntry]),
+      ...?extraUpdates,
+    };
+
+    if (targetStatus == OrderStatus.accepted) {
+      updateData['accepted_at'] = Timestamp.fromDate(now);
+    }
+    if (targetStatus == OrderStatus.packing) {
+      updateData['packing_started_at'] = Timestamp.fromDate(now);
+    }
+    if (targetStatus == OrderStatus.ready) {
+      updateData['ready_at'] = Timestamp.fromDate(now);
+    }
+    if (targetStatus == OrderStatus.outForDelivery) {
+      updateData['dispatched_at'] = Timestamp.fromDate(now);
+    }
+    if (targetStatus == OrderStatus.delivered) {
+      updateData['delivered_at'] = Timestamp.fromDate(now);
+    }
+    if (targetStatus == OrderStatus.deliveryFailed) {
+      updateData['delivery_failed_at'] = Timestamp.fromDate(now);
+    }
+    if (targetStatus == OrderStatus.cancelled) {
+      updateData['cancelled_at'] = Timestamp.fromDate(now);
+    }
+
+    await orderRef.update(updateData);
+    await orderRef.collection('status_history').add(historyEntry);
+
+    return true;
+  }
+
   /// Determines next standard progressive status for merchant flow
   static String? getNextProgressiveStatus(
     String currentStatus, {
@@ -181,7 +418,9 @@ class OrderStateMachine {
       case OrderStatus.packed:
         return 'Mark as Ready';
       case OrderStatus.ready:
-        return deliveryType == 'Delivery' ? 'Dispatch Order' : 'Deliver to Customer';
+        return deliveryType == 'Delivery'
+            ? 'Dispatch Order'
+            : 'Deliver to Customer';
       case OrderStatus.outForDelivery:
         return 'Verify Delivery';
       case OrderStatus.deliveryFailed:

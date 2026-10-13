@@ -3,6 +3,9 @@
 /// ensuring strict multi-tenant isolation between Customers, Shop Owners, and Super Admins.
 library;
 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'auth_service.dart';
+
 enum AppRole {
   customer,
   shopOwner,
@@ -56,6 +59,25 @@ class UserSession {
     final digits = phone.replaceAll(RegExp(r'\D'), '');
     return digits.length > 10 ? digits.substring(digits.length - 10) : digits;
   }
+
+  /// Factory to fetch current active UserSession from local preferences and auth
+  static Future<UserSession> current() async {
+    final prefs = await SharedPreferences.getInstance();
+    final roleStr = prefs.getString('app_role');
+    final phone = prefs.getString('global_phone') ??
+        prefs.getString('customerPhone') ??
+        '';
+    final shopId = prefs.getString('current_shop_id') ??
+        prefs.getString('last_selected_shop_id');
+    final uid = AuthService().currentUid ?? 'anonymous';
+
+    return UserSession(
+      uid: uid,
+      phone: phone,
+      role: AppRole.fromString(roleStr),
+      shopId: shopId,
+    );
+  }
 }
 
 class RolePermissions {
@@ -63,6 +85,12 @@ class RolePermissions {
   static String normalizePhone(String phone) {
     final digits = phone.replaceAll(RegExp(r'\D'), '');
     return digits.length > 10 ? digits.substring(digits.length - 10) : digits;
+  }
+
+  /// Whether user can browse catalog products
+  static bool canBrowseProducts(UserSession user) {
+    // Products are accessible to browse for all users (customers, owners, super admins)
+    return true;
   }
 
   /// Whether user can manage shop profile, settings, and catalog
@@ -77,6 +105,28 @@ class RolePermissions {
     return false;
   }
 
+  /// Whether user can view customer data / profiles.
+  /// Enforces multi-shop data isolation: Shop A owner CANNOT see Shop B's customers!
+  static bool canAccessCustomerData({
+    required UserSession user,
+    required String customerPhone,
+    required List<String> customerShopIds,
+  }) {
+    if (user.isSuperAdmin) return true;
+
+    // Customer can view their own profile data
+    if (user.isCustomer) {
+      return normalizePhone(user.phone) == normalizePhone(customerPhone);
+    }
+
+    // Shop Owner can ONLY view customers that belong to THEIR shop
+    if (user.isShopOwner && user.shopId != null) {
+      return customerShopIds.contains(user.shopId);
+    }
+
+    return false;
+  }
+
   /// Whether user can view a specific customer order
   static bool canViewOrder({
     required UserSession user,
@@ -87,7 +137,8 @@ class RolePermissions {
     // Shop owner can view orders belonging to their shop
     if (user.isShopOwner && user.shopId == orderShopId) return true;
     // Customer can only view orders associated with their phone number
-    if (user.isCustomer && normalizePhone(user.phone) == normalizePhone(customerPhone)) {
+    if (user.isCustomer &&
+        normalizePhone(user.phone) == normalizePhone(customerPhone)) {
       return true;
     }
     return false;
@@ -121,12 +172,24 @@ class RolePermissions {
       // Validate allowed transitions
       switch (currentStatus) {
         case 'Pending':
-          return {'Accepted', 'Packing', 'Packed', 'Ready', 'Rejected', 'Cancelled'}.contains(newStatus);
+          return {
+            'Accepted',
+            'Packing',
+            'Packed',
+            'Ready',
+            'Rejected',
+            'Cancelled',
+          }.contains(newStatus);
         case 'Accepted':
           return {'Packing', 'Packed', 'Ready', 'Cancelled'}.contains(newStatus);
         case 'Packing':
         case 'Packed':
-          return {'Ready', 'Out for Delivery', 'Delivered', 'Cancelled'}.contains(newStatus);
+          return {
+            'Ready',
+            'Out for Delivery',
+            'Delivered',
+            'Cancelled',
+          }.contains(newStatus);
         case 'Ready':
           return {'Out for Delivery', 'Delivered', 'Cancelled'}.contains(newStatus);
         case 'Out for Delivery':
@@ -141,7 +204,44 @@ class RolePermissions {
     return false;
   }
 
-  /// Whether user can modify shop inventory/stock
+  /// Whether user can place/create a new order
+  static bool canCreateOrder({
+    required UserSession user,
+    required String orderShopId,
+    required String customerPhone,
+  }) {
+    if (user.isSuperAdmin) return true;
+    if (user.isCustomer) {
+      return normalizePhone(user.phone) == normalizePhone(customerPhone);
+    }
+    // Shop owner can create in-store manual orders for their shop
+    if (user.isShopOwner) {
+      return user.shopId == orderShopId;
+    }
+    return false;
+  }
+
+  /// Whether user can mark order as Paid (Customer can NEVER self-mark as Paid)
+  static bool canMarkOrderPaid({
+    required UserSession user,
+    required String orderShopId,
+  }) {
+    if (user.isSuperAdmin) return true;
+    if (user.isShopOwner && user.shopId == orderShopId) return true;
+    return false; // Customer denied!
+  }
+
+  /// Whether user can mark order as Delivered (Customer can NEVER self-mark as Delivered)
+  static bool canMarkOrderDelivered({
+    required UserSession user,
+    required String orderShopId,
+  }) {
+    if (user.isSuperAdmin) return true;
+    if (user.isShopOwner && user.shopId == orderShopId) return true;
+    return false; // Customer denied!
+  }
+
+  /// Whether user can modify shop inventory/stock (products, prices, categories)
   static bool canModifyInventory({
     required UserSession user,
     required String targetShopId,
@@ -171,5 +271,15 @@ class RolePermissions {
     }
 
     return false;
+  }
+
+  /// Whether user can approve, reject, or suspend shops
+  static bool canApproveShop(UserSession user) {
+    return user.isSuperAdmin;
+  }
+
+  /// Whether user can perform platform-level operations
+  static bool canPerformPlatformOperations(UserSession user) {
+    return user.isSuperAdmin;
   }
 }

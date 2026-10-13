@@ -48,26 +48,30 @@ service cloud.firestore {
       );
     }
 
-    // Shop Owner: Strictly isolated to their specific shop
-    function isShopOwner(shopId) {
-      return isAuthenticated() && shopId is string && shopId.size() > 0 && (
-        isSuperAdmin() ||
-        (getUserRole() == 'shop_owner' && getUserShopId() == shopId) ||
-        (
-          exists(/databases/$(database)/documents/shops/$(shopId)) && (
-            (get(/databases/$(database)/documents/shops/$(shopId)).data.owner_uid == request.auth.uid) ||
-            (get(/databases/$(database)/documents/shops/$(shopId)).data.mobile == getUserPhone())
-          )
-        )
-      );
-    }
-
     // Phone normalizer helper for comparing 10-digit phone numbers
     function isMatchingPhone(phone) {
       return phone is string && (
         phone == getUserPhone() ||
         (getUserPhone().size() >= 10 && phone.size() >= 10 && 
          getUserPhone()[getUserPhone().size() - 10:] == phone[phone.size() - 10:])
+      );
+    }
+
+    // Shop Owner: Strictly isolated to their specific shop
+    // Validated against authoritative shops/{shopId} record to prevent spoofing
+    function isShopOwner(shopId) {
+      return isAuthenticated() && shopId is string && shopId.size() > 0 && (
+        isSuperAdmin() ||
+        (
+          exists(/databases/$(database)/documents/shops/$(shopId)) && (
+            (get(/databases/$(database)/documents/shops/$(shopId)).data.owner_uid == request.auth.uid) ||
+            isMatchingPhone(get(/databases/$(database)/documents/shops/$(shopId)).data.mobile) ||
+            (
+              'authorized_staff' in get(/databases/$(database)/documents/shops/$(shopId)).data &&
+              get(/databases/$(database)/documents/shops/$(shopId)).data.authorized_staff.hasAny([getUserPhone(), request.auth.uid])
+            )
+          )
+        )
       );
     }
 
@@ -98,13 +102,24 @@ service cloud.firestore {
                     && request.resource.data.role in ['customer', 'shop_owner']
                     && request.resource.data.phone is string
                     && request.resource.data.phone.size() >= 10
-                    && request.resource.data.phone.size() <= 15;
+                    && request.resource.data.phone.size() <= 15
+                    && (
+                      !('shop_id' in request.resource.data) ||
+                      request.resource.data.shop_id == '' ||
+                      isShopOwner(request.resource.data.shop_id)
+                    );
 
       // Users can update their profile; cannot change their role to super_admin or alter shop_id without authorization
       allow update: if isSuperAdmin() || (
         isAuthUid(userId)
         && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || (resource.data.role == 'customer' && request.resource.data.role == 'shop_owner'))
         && request.resource.data.role != 'super_admin'
+        && (
+          !('shop_id' in request.resource.data) ||
+          request.resource.data.shop_id == resource.data.shop_id ||
+          request.resource.data.shop_id == '' ||
+          isShopOwner(request.resource.data.shop_id)
+        )
       );
 
       allow delete: if isSuperAdmin();
@@ -299,27 +314,39 @@ service cloud.firestore {
     // 5. CUSTOMERS & KHATA TRANSACTIONS (Strict Financial Udhaar Isolation)
     // =========================================================================
     match /customers/{customerId} {
-      // READ:
-      // 1. Super Admin
-      // 2. Customer themselves (mobile == userPhone or document id == user UID)
-      // 3. Shop Owner if this customer has a balance/khata relationship with this shop (shop_ids contains shopId)
+      // READ PRIVILEGES:
+      // 1. Super Admin: Can view all customer profiles across platform
+      // 2. Customer: Can ONLY view their own customer record (mobile == userPhone or document id == user UID)
+      // 3. Shop Owner: Can ONLY view customers that have visited or have an account with THEIR shop
+      //    (shop_ids contains myShopId OR shop_id == myShopId)
+      //    STRICT ISOLATION: Shop A owner CANNOT see Shop B's customers!
       allow read: if isSuperAdmin() || (
         isAuthenticated() && (
           isMatchingPhone(resource.data.mobile) ||
           customerId == request.auth.uid ||
           (
             getUserShopId() != '' &&
-            ('shop_ids' in resource.data) &&
-            resource.data.shop_ids.hasAny([getUserShopId()])
+            isShopOwner(getUserShopId()) &&
+            (
+              (('shop_ids' in resource.data) && resource.data.shop_ids.hasAny([getUserShopId()])) ||
+              (('shop_id' in resource.data) && resource.data.shop_id == getUserShopId())
+            )
           )
         )
       );
 
-      // CREATE: Customer registering profile or Shop Owner adding walk-in khata customer
+      // CREATE: Customer registering profile or Shop Owner adding walk-in customer for THEIR shop
       allow create: if isAuthenticated() && (
         isSuperAdmin() ||
         isMatchingPhone(request.resource.data.mobile) ||
-        (getUserShopId() != '' && ('shop_ids' in request.resource.data) && request.resource.data.shop_ids.hasAny([getUserShopId()]))
+        (
+          getUserShopId() != '' &&
+          isShopOwner(getUserShopId()) &&
+          (
+            (('shop_ids' in request.resource.data) && request.resource.data.shop_ids.hasAny([getUserShopId()])) ||
+            (('shop_id' in request.resource.data) && request.resource.data.shop_id == getUserShopId())
+          )
+        )
       );
 
       // UPDATE:
@@ -334,7 +361,8 @@ service cloud.firestore {
             isShopOwner(getUserShopId()) &&
             (
               ('shop_ids' in resource.data && resource.data.shop_ids.hasAny([getUserShopId()])) ||
-              ('shop_ids' in request.resource.data && request.resource.data.shop_ids.hasAny([getUserShopId()]))
+              ('shop_ids' in request.resource.data && request.resource.data.shop_ids.hasAny([getUserShopId()])) ||
+              ('shop_id' in resource.data && resource.data.shop_id == getUserShopId())
             )
           )
         )

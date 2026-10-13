@@ -9,6 +9,7 @@ import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/sound_service.dart';
 import 'package:near_kirana/map_selection_screen.dart';
 import 'package:near_kirana/atomic_order_service.dart';
+import 'package:near_kirana/payment_service.dart';
 
 class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
@@ -1068,14 +1069,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
 
     return InkWell(
       onTap: () {
-        if (index == 0)
-          setState(() => _selectedPaymentIndex = index);
-        else
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Currently only Cash on Delivery is supported."),
-            ),
-          );
+        setState(() => _selectedPaymentIndex = index);
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
@@ -1209,6 +1203,19 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       final idempotencyKey =
           'desktop_${phone}_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}';
 
+      String paymentMethod = PaymentMethod.cod;
+      String paymentStatus = PaymentStatus.unpaid;
+      if (_selectedPaymentIndex == 1) {
+        paymentMethod = PaymentMethod.upi;
+        paymentStatus = PaymentStatus.paymentPending;
+      } else if (_selectedPaymentIndex == 2) {
+        paymentMethod = PaymentMethod.card;
+        paymentStatus = PaymentStatus.paymentPending;
+      } else if (_selectedPaymentIndex == 3) {
+        paymentMethod = PaymentMethod.netBanking;
+        paymentStatus = PaymentStatus.paymentPending;
+      }
+
       final result = await AtomicOrderService.instance.placeOrderAtomic(
         OrderPlacementParams(
           shopId: shopId,
@@ -1219,12 +1226,29 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           customerLng: userProvider.currentLng,
           deliveryType: 'Delivery',
           deliveryFee: deliveryFee,
-          paymentMethod: 'Cash on Delivery',
+          paymentMethod: paymentMethod,
+          paymentStatus: paymentStatus,
           instructions: _instructionsController.text.trim(),
           idempotencyKey: idempotencyKey,
           items: items,
         ),
       );
+
+      // If online payment is chosen, initiate gateway payment session
+      if (paymentMethod != PaymentMethod.cod) {
+        try {
+          await PaymentService().initiateOnlinePayment(
+            orderId: result.orderId,
+            shopId: shopId,
+            amount: result.totalAmount,
+            customerPhone: phone,
+            customerName: customerName,
+            paymentMethod: paymentMethod,
+          );
+        } catch (e) {
+          debugPrint('Online payment initiation warning: $e');
+        }
+      }
 
       cartProvider.clearCart();
       SoundService().orderSuccess();

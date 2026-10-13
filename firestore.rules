@@ -462,6 +462,37 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
+    // =========================================================================
+    // 8. PAYMENT TRANSACTIONS & RECONCILIATION LEDGER (Feature 42)
+    // =========================================================================
+    match /payment_transactions/{txnId} {
+      // Super admin can read & write any payment transaction
+      // Shop owner can read transactions for their shop
+      // Customer can read transactions for their phone / UID
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          isMatchingPhone(resource.data.customer_phone) ||
+          (('customer_uid' in resource.data) && resource.data.customer_uid == request.auth.uid)
+        )
+      );
+
+      // Authenticated checkout can create initial payment transactions
+      allow create: if isAuthenticated()
+                    && request.resource.data.amount is number
+                    && request.resource.data.amount >= 0
+                    && request.resource.data.order_id is string;
+
+      // Shop owners can verify or update payments for their shop; Super Admin can manage all
+      allow update: if isSuperAdmin() || (
+        isAuthenticated()
+        && resource.data.shop_id is string
+        && isShopOwner(resource.data.shop_id)
+      );
+
+      allow delete: if isSuperAdmin();
+    }
+
     // Fallback: Deny all unhandled paths
     match /{document=**} {
       allow read, write: if false;

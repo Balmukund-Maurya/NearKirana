@@ -1787,6 +1787,28 @@ class _CartScreenState extends State<CartScreen> {
                                       ),
                                     );
 
+                                if (selectedPaymentMethod == 'UPI') {
+                                  try {
+                                    await PaymentService()
+                                        .initiateOnlinePayment(
+                                          orderId: orderResult.orderId,
+                                          shopId: shopId ?? '',
+                                          amount: orderResult.totalAmount,
+                                          customerPhone: phoneController.text
+                                              .trim(),
+                                          customerName: nameController.text
+                                              .trim(),
+                                          paymentMethod: PaymentMethod.upi,
+                                          upiId: shopUpiId,
+                                          payeeName: shopName,
+                                        );
+                                  } catch (e) {
+                                    debugPrint(
+                                      'Payment session initiation error: $e',
+                                    );
+                                  }
+                                }
+
                                 final processedTotal = orderResult.totalAmount;
 
                                 if (context.mounted) {

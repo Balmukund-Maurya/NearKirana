@@ -8,17 +8,13 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lottie/lottie.dart';
 
-import 'map_selection_screen.dart';
 import 'cart_provider.dart';
 import 'user_provider.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
-import 'modern_loader.dart';
 import 'shop_provider.dart';
 
 import 'package:near_kirana/firebase_utils.dart';
@@ -28,6 +24,7 @@ import 'auth_service.dart';
 import 'payment_service.dart';
 import 'desktop_checkout_view.dart';
 import 'atomic_order_service.dart';
+import 'address_selection_bottom_sheet.dart';
 
 class CartScreen extends StatefulWidget {
   final bool isTab;
@@ -590,6 +587,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  // ignore: unused_element
   void _showCheckoutForm(
     BuildContext context,
     String deliveryType,
@@ -771,194 +769,218 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                     if (deliveryType == 'Delivery') ...[
                       const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey[200]!),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
+                      InkWell(
+                        onTap: () async {
+                          final selected =
+                              await AddressSelectionBottomSheet.show(
+                                context,
+                                isCheckoutMode: true,
+                              );
+                          if (selected != null && mounted) {
+                            setState(() {});
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: !userProvider.isServiceable &&
+                                      userProvider.currentLat != null
+                                  ? Colors.red.withValues(alpha: 0.5)
+                                  : Colors.grey[200]!,
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF4CAF50,
-                                ).withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
                               ),
-                              child: Icon(
-                                userProvider.addressLabel == 'Home'
-                                    ? Icons.home_rounded
-                                    : userProvider.addressLabel == 'Work'
-                                    ? Icons.work_rounded
-                                    : Icons.location_on_rounded,
-                                color: const Color(0xFF4CAF50),
+                            ],
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: (!userProvider.isServiceable &&
+                                          userProvider.currentLat != null)
+                                      ? Colors.red.withValues(alpha: 0.1)
+                                      : const Color(
+                                          0xFF4CAF50,
+                                        ).withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  userProvider.activeAddress?.icon ??
+                                      (userProvider.addressLabel == 'Home'
+                                          ? Icons.home_rounded
+                                          : userProvider.addressLabel ==
+                                                      'Work' ||
+                                                  userProvider.addressLabel ==
+                                                      'Office'
+                                              ? Icons.work_rounded
+                                              : Icons.location_on_rounded),
+                                  color: (!userProvider.isServiceable &&
+                                          userProvider.currentLat != null)
+                                      ? Colors.red
+                                      : const Color(0xFF4CAF50),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    userProvider.addressLabel.isNotEmpty
-                                        ? 'Delivering to ${userProvider.addressLabel}'
-                                        : 'Delivery Address',
-                                    style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    userProvider.currentLat != null
-                                        ? (userProvider
-                                                  .customerHouseNo
-                                                  .isNotEmpty
-                                              ? '${userProvider.customerHouseNo}, ${userProvider.autoLocality}'
-                                              : (userProvider
-                                                        .deliveryAddress
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            userProvider
+                                                        .activeAddress
+                                                        ?.label
+                                                        .isNotEmpty ==
+                                                    true
+                                                ? 'Delivering to ${userProvider.activeAddress!.label}'
+                                                : (userProvider
+                                                        .addressLabel
                                                         .isNotEmpty
-                                                    ? userProvider
-                                                          .deliveryAddress
-                                                    : userProvider
-                                                          .autoLocality))
-                                        : 'Please add your delivery address',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.grey[600],
-                                      fontSize: 13,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                double? initialLat = userProvider.currentLat;
-                                double? initialLng = userProvider.currentLng;
-
-                                if (initialLat == null || initialLng == null) {
-                                  bool serviceEnabled =
-                                      await Geolocator.isLocationServiceEnabled();
-                                  if (!serviceEnabled && context.mounted) {
-                                    showBottomSheetError(
-                                      context,
-                                      'Kripya apna GPS on karein aur try karein.',
-                                    );
-                                    return;
-                                  }
-
-                                  LocationPermission permission =
-                                      await Geolocator.checkPermission();
-                                  if (permission == LocationPermission.denied) {
-                                    permission =
-                                        await Geolocator.requestPermission();
-                                    if (permission ==
-                                            LocationPermission.denied &&
-                                        context.mounted) {
-                                      showBottomSheetError(
-                                        context,
-                                        'Location permission required to set address.',
-                                      );
-                                      return;
-                                    }
-                                  }
-
-                                  if (permission ==
-                                          LocationPermission.deniedForever &&
-                                      context.mounted) {
-                                    showBottomSheetError(
-                                      context,
-                                      'Location permission is permanently denied.',
-                                    );
-                                    return;
-                                  }
-
-                                  if (context.mounted) {
-                                    showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (ctx) =>
-                                          const Center(child: ModernLoader()),
-                                    );
-                                  }
-
-                                  try {
-                                    Position position =
-                                        await Geolocator.getCurrentPosition(
-                                          locationSettings:
-                                              const LocationSettings(
-                                                accuracy: LocationAccuracy.low,
-                                                timeLimit: Duration(
-                                                  seconds: 10,
+                                                    ? 'Delivering to ${userProvider.addressLabel}'
+                                                    : 'Delivery Address'),
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (userProvider
+                                                .activeAddress
+                                                ?.isDefault ==
+                                            true) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 1.5,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                0xFF4CAF50,
+                                              ).withValues(alpha: 0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              'DEFAULT',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                                color: const Color(
+                                                  0xFF2E7D32,
                                                 ),
                                               ),
-                                        );
-                                    initialLat = position.latitude;
-                                    initialLng = position.longitude;
-                                  } catch (e) {
-                                    // If it fails, fallback to store location
-                                    initialLat = userProvider.storeLat ?? 0.0;
-                                    initialLng = userProvider.storeLng ?? 0.0;
-                                  }
-
-                                  if (context.mounted) {
-                                    Navigator.pop(context); // close loader
-                                  }
-                                }
-
-                                if (!context.mounted) return;
-
-                                final LatLng? selectedLocation =
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            MapSelectionScreen(
-                                              initialLat: initialLat ?? 0.0,
-                                              initialLng: initialLng ?? 0.0,
                                             ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      userProvider.activeAddress != null
+                                          ? userProvider
+                                              .activeAddress!
+                                              .formattedAddress
+                                          : (userProvider.currentLat != null
+                                              ? (userProvider
+                                                      .customerHouseNo
+                                                      .isNotEmpty
+                                                  ? '${userProvider.customerHouseNo}, ${userProvider.autoLocality}'
+                                                  : (userProvider
+                                                          .deliveryAddress
+                                                          .isNotEmpty
+                                                      ? userProvider
+                                                          .deliveryAddress
+                                                      : userProvider
+                                                          .autoLocality))
+                                              : 'Please select delivery address'),
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.grey[600],
+                                        fontSize: 13,
                                       ),
-                                    );
-                                if (selectedLocation != null &&
-                                    context.mounted) {
-                                  setState(() {
-                                    // Just rebuild to show new address from userProvider
-                                  });
-                                }
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFF4CAF50),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    if (userProvider.currentLat != null &&
+                                        !userProvider.isServiceable) ...[
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding:
+                                            const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          userProvider
+                                                  .serviceabilityError ??
+                                              'Outside delivery zone',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            color: Colors.red[700],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
-                              child: Text(
-                                userProvider.currentLat != null
-                                    ? 'CHANGE'
-                                    : 'ADD',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                              TextButton(
+                                onPressed: () async {
+                                  final selected =
+                                      await AddressSelectionBottomSheet
+                                          .show(
+                                            context,
+                                            isCheckoutMode: true,
+                                          );
+                                  if (selected != null && mounted) {
+                                    setState(() {});
+                                  }
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFF4CAF50),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: Text(
+                                  userProvider.currentLat != null
+                                      ? 'CHANGE'
+                                      : 'ADD',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -2090,7 +2112,6 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildDesktopCart(BuildContext context, CartProvider cartProvider) {
     final cartItems = cartProvider.itemsList;
-    final userProvider = Provider.of<UserProvider>(context);
     final double subtotal = cartProvider.cartTotal;
     final double deliveryFee =
         (subtotal >= _minOrder && subtotal < _freeDeliveryThreshold)

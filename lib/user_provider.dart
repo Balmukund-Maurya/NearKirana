@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:near_kirana/firebase_utils.dart';
+import 'saved_address_model.dart';
 
 class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   String _customerName = '';
@@ -19,6 +20,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   double? _currentLng;
   double? _storeLat;
   double? _storeLng;
+  double? _deliveryRadiusKm;
   String _addressLabel = 'Home';
   String? _profileImageUrl;
   Map<String, bool> _preferences = {
@@ -28,6 +30,7 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     'new_products': true,
   };
   List<Map<String, dynamic>> _savedAddresses = [];
+  SavedAddress? _activeAddress;
 
   UserProvider() {
     WidgetsBinding.instance.addObserver(this);
@@ -60,10 +63,55 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   double? get currentLng => _currentLng;
   double? get storeLat => _storeLat;
   double? get storeLng => _storeLng;
+  double? get deliveryRadiusKm => _deliveryRadiusKm;
+
+  void setStoreLocation(double lat, double lng) {
+    _storeLat = lat;
+    _storeLng = lng;
+    notifyListeners();
+  }
+
+  void setDeliveryRadius(double radiusKm) {
+    _deliveryRadiusKm = radiusKm;
+    notifyListeners();
+  }
   String get addressLabel => _addressLabel;
   String? get profileImageUrl => _profileImageUrl;
   Map<String, bool> get preferences => _preferences;
   List<Map<String, dynamic>> get savedAddresses => _savedAddresses;
+
+  /// Typed list of customer saved addresses (Home, Office, Other)
+  List<SavedAddress> get savedAddressesList =>
+      _savedAddresses.map((m) => SavedAddress.fromMap(m)).toList();
+
+  /// The active address currently selected for the customer session/checkout
+  SavedAddress? get activeAddress {
+    if (_activeAddress != null) return _activeAddress;
+    if (_savedAddresses.isEmpty) {
+      if (_deliveryAddress.isNotEmpty) {
+        return SavedAddress(
+          address: _deliveryAddress,
+          houseNo: _customerHouseNo,
+          landmark: _customerLandmark,
+          label: _addressLabel,
+          lat: _currentLat,
+          lng: _currentLng,
+          isDefault: true,
+        );
+      }
+      return null;
+    }
+    final match = _savedAddresses.firstWhere(
+      (m) =>
+          m['address'] == _deliveryAddress &&
+          m['houseNo'] == _customerHouseNo,
+      orElse: () => _savedAddresses.firstWhere(
+        (m) => m['isDefault'] == true,
+        orElse: () => _savedAddresses.first,
+      ),
+    );
+    return SavedAddress.fromMap(match);
+  }
 
   bool get isLoggedIn => _phoneNumber.isNotEmpty;
 
@@ -109,22 +157,208 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     await prefs.setString('customerLandmark', landmark);
     await prefs.setString('addressLabel', label);
     
-    // Auto-add to saved addresses if not present
-    final existingIndex = _savedAddresses.indexWhere((a) => a['address'] == address);
+    // Auto-add or update in saved addresses
+    final existingIndex = _savedAddresses.indexWhere((a) => a['address'] == address && a['houseNo'] == houseNo);
     if (existingIndex == -1) {
+      final isFirst = _savedAddresses.isEmpty;
       _savedAddresses.add({
+        'id': 'addr_${DateTime.now().millisecondsSinceEpoch}',
         'address': address,
         'houseNo': houseNo,
         'landmark': landmark,
         'label': label,
         'lat': _currentLat,
         'lng': _currentLng,
+        'isDefault': isFirst,
+        'createdAt': DateTime.now().toIso8601String(),
       });
       await prefs.setString('savedAddresses', jsonEncode(_savedAddresses));
       _syncAddressesToFirebase();
     }
     
     notifyListeners();
+  }
+
+  /// Add or update a SavedAddress model, managing defaults and syncing
+  Future<void> saveAddressModel(SavedAddress address, {bool makeDefault = false}) async {
+    final shouldBeDefault = makeDefault || address.isDefault || _savedAddresses.isEmpty;
+    final map = address.copyWith(isDefault: shouldBeDefault).toMap();
+
+    if (shouldBeDefault) {
+      for (var a in _savedAddresses) {
+        a['isDefault'] = false;
+      }
+    }
+
+    final existingIndex = _savedAddresses.indexWhere(
+      (a) => a['id'] == address.id || (a['address'] == address.address && a['houseNo'] == address.houseNo),
+    );
+
+    if (existingIndex >= 0) {
+      _savedAddresses[existingIndex] = map;
+    } else {
+      _savedAddresses.add(map);
+    }
+
+    if (shouldBeDefault || _deliveryAddress.isEmpty || _deliveryAddress == address.address) {
+      _deliveryAddress = address.address;
+      _customerHouseNo = address.houseNo;
+      _customerLandmark = address.landmark;
+      _addressLabel = address.label;
+      if (address.lat != null) _currentLat = address.lat;
+      if (address.lng != null) _currentLng = address.lng;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('customerAddress', _deliveryAddress);
+      await prefs.setString('customerHouseNo', _customerHouseNo);
+      await prefs.setString('customerLandmark', _customerLandmark);
+      await prefs.setString('addressLabel', _addressLabel);
+      if (_currentLat != null) await prefs.setDouble('customerLat', _currentLat!);
+      if (_currentLng != null) await prefs.setDouble('customerLng', _currentLng!);
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('savedAddresses', jsonEncode(_savedAddresses));
+    _syncAddressesToFirebase();
+    if (_storeLat == null || _storeLng == null) {
+      await checkServiceability();
+    } else if (shouldBeDefault || _deliveryAddress.isEmpty || _deliveryAddress == address.address) {
+      final serv = evaluateAddressServiceability(address);
+      _isServiceable = serv.isServiceable;
+      _serviceabilityError = serv.errorMessage;
+    }
+    notifyListeners();
+  }
+
+  /// Select a saved address as the active delivery address for checkout
+  Future<void> selectAddressForCheckout(SavedAddress address) async {
+    _activeAddress = address;
+    _deliveryAddress = address.address;
+    _customerHouseNo = address.houseNo;
+    _customerLandmark = address.landmark;
+    _addressLabel = address.label;
+    if (address.lat != null) _currentLat = address.lat;
+    if (address.lng != null) _currentLng = address.lng;
+
+    final serv = evaluateAddressServiceability(address);
+    _isServiceable = serv.isServiceable;
+    _serviceabilityError = serv.errorMessage;
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('customerAddress', _deliveryAddress);
+      await prefs.setString('customerHouseNo', _customerHouseNo);
+      await prefs.setString('customerLandmark', _customerLandmark);
+      await prefs.setString('addressLabel', _addressLabel);
+      if (_currentLat != null) await prefs.setDouble('customerLat', _currentLat!);
+      if (_currentLng != null) await prefs.setDouble('customerLng', _currentLng!);
+    } catch (e) {
+      debugPrint('Error persisting checkout address: $e');
+    }
+
+    if (_storeLat == null || _storeLng == null) {
+      await checkServiceability();
+    }
+  }
+
+  /// Sets an address as default, unsetting default on others
+  Future<void> setDefaultAddress(String addressId) async {
+    int targetIdx = -1;
+    for (int i = 0; i < _savedAddresses.length; i++) {
+      if (_savedAddresses[i]['id'] == addressId) {
+        _savedAddresses[i]['isDefault'] = true;
+        targetIdx = i;
+      } else {
+        _savedAddresses[i]['isDefault'] = false;
+      }
+    }
+
+    if (targetIdx != -1) {
+      final target = SavedAddress.fromMap(_savedAddresses[targetIdx]);
+      await selectAddressForCheckout(target);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('savedAddresses', jsonEncode(_savedAddresses));
+      _syncAddressesToFirebase();
+    }
+    notifyListeners();
+  }
+
+  /// Delete saved address by its unique ID
+  Future<void> deleteAddressById(String addressId) async {
+    final idx = _savedAddresses.indexWhere((a) => a['id'] == addressId);
+    if (idx != -1) {
+      final wasDefault = _savedAddresses[idx]['isDefault'] == true;
+      final wasActive = _savedAddresses[idx]['address'] == _deliveryAddress &&
+          _savedAddresses[idx]['houseNo'] == _customerHouseNo;
+      _savedAddresses.removeAt(idx);
+      if (wasDefault && _savedAddresses.isNotEmpty) {
+        _savedAddresses.first['isDefault'] = true;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('savedAddresses', jsonEncode(_savedAddresses));
+
+      if ((wasActive || wasDefault) && _savedAddresses.isNotEmpty) {
+        final next = SavedAddress.fromMap(_savedAddresses.first);
+        await selectAddressForCheckout(next);
+      } else if (_savedAddresses.isEmpty) {
+        _deliveryAddress = '';
+        _customerHouseNo = '';
+        _customerLandmark = '';
+        _addressLabel = 'Home';
+        _currentLat = null;
+        _currentLng = null;
+        await prefs.remove('customerAddress');
+        await prefs.remove('customerHouseNo');
+        await prefs.remove('customerLandmark');
+        await prefs.remove('customerLat');
+        await prefs.remove('customerLng');
+      }
+
+      _syncAddressesToFirebase();
+      if (_storeLat == null || _storeLng == null) {
+        await checkServiceability();
+      }
+      notifyListeners();
+    }
+  }
+
+  /// Evaluates delivery serviceability for any given SavedAddress against current store location
+  AddressServiceabilityResult evaluateAddressServiceability(
+    SavedAddress address, {
+    double? storeLat,
+    double? storeLng,
+    double? maxRadiusKm,
+  }) {
+    final sLat = storeLat ?? _storeLat;
+    final sLng = storeLng ?? _storeLng;
+    final radius = maxRadiusKm ?? _deliveryRadiusKm ?? 5.0; // fallback default 5km
+
+    if (address.lat == null || address.lng == null || sLat == null || sLng == null) {
+      return AddressServiceabilityResult(
+        isServiceable: true,
+        distanceKm: 0.0,
+        maxRadiusKm: radius,
+      );
+    }
+
+    final distanceMeters = Geolocator.distanceBetween(
+      sLat,
+      sLng,
+      address.lat!,
+      address.lng!,
+    );
+    final distanceKm = distanceMeters / 1000;
+    final isServiceable = radius <= 0 || distanceKm <= radius;
+
+    return AddressServiceabilityResult(
+      isServiceable: isServiceable,
+      distanceKm: double.parse(distanceKm.toStringAsFixed(1)),
+      maxRadiusKm: radius,
+      errorMessage: isServiceable
+          ? null
+          : 'Outside delivery radius: Dukaan sirf ${radius.toStringAsFixed(1)} km tak deliver karti hai. Yeh address ${distanceKm.toStringAsFixed(1)} km door hai.',
+    );
   }
 
   Future<void> _syncAddressesToFirebase() async {
@@ -144,6 +378,9 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> addSavedAddress(Map<String, dynamic> addressData) async {
+    if (!addressData.containsKey('id')) {
+      addressData['id'] = 'addr_${DateTime.now().millisecondsSinceEpoch}';
+    }
     _savedAddresses.add(addressData);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('savedAddresses', jsonEncode(_savedAddresses));

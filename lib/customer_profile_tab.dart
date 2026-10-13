@@ -20,6 +20,7 @@ import 'utils/product_image_widget.dart';
 import 'modern_loader.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'customer_profile_desktop_wrapper.dart';
+import 'address_selection_bottom_sheet.dart';
 
 class CustomerProfileTab extends StatelessWidget {
   const CustomerProfileTab({super.key});
@@ -588,16 +589,50 @@ class CustomerProfileTab extends StatelessWidget {
     UserProvider userProvider,
     LanguageProvider langProvider,
   ) {
+    final addresses = userProvider.savedAddressesList;
+    final defaultAddr = addresses.where((a) => a.isDefault).firstOrNull ??
+        addresses.firstOrNull;
+
     if (userProvider.deliveryAddress.isEmpty &&
-        userProvider.customerHouseNo.isEmpty) {
+        userProvider.customerHouseNo.isEmpty &&
+        addresses.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(16),
-        child: Text(
-          AppLocalizations.of(context)!.no_address,
-          style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+        child: Column(
+          children: [
+            Text(
+              AppLocalizations.of(context)!.no_address,
+              style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => AddressSelectionBottomSheet.show(
+                context,
+                isCheckoutMode: false,
+              ),
+              icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+              label: const Text('Add Saved Address'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4CAF50),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
+
+    final displayLabel = defaultAddr?.label ?? userProvider.addressLabel;
+    final displayHouseNo =
+        defaultAddr?.houseNo ?? userProvider.customerHouseNo;
+    final displayAddress =
+        defaultAddr?.address ?? userProvider.deliveryAddress;
+    final displayLandmark =
+        defaultAddr?.landmark ?? userProvider.customerLandmark;
+    final iconData = defaultAddr?.icon ?? Icons.home_work_rounded;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -607,52 +642,133 @@ class CustomerProfileTab extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.home_work_rounded,
-                color: AppColors.textMid,
-                size: 20,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  iconData,
+                  color: const Color(0xFF4CAF50),
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${AppLocalizations.of(context)!.house_no} ${userProvider.customerHouseNo}',
-                    style: AppTextStyles.bodySemiBold(
-                      color: AppColors.textDark,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          displayLabel.isNotEmpty
+                              ? displayLabel
+                              : 'Primary Address',
+                          style: AppTextStyles.bodySemiBold(
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        if (defaultAddr?.isDefault == true) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF4CAF50,
+                              ).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'DEFAULT',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.5,
-                    child: Text(
-                      userProvider.deliveryAddress,
-                      style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                    if (displayHouseNo.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '${AppLocalizations.of(context)!.house_no} $displayHouseNo',
+                        style: AppTextStyles.captionMedium(
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 2),
+                    Text(
+                      displayAddress,
+                      style: AppTextStyles.bodyMedium(
+                        color: AppColors.textMid,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
-          if (userProvider.customerLandmark.isNotEmpty) ...[
-            const SizedBox(height: 12),
+          if (displayLandmark.isNotEmpty) ...[
+            const SizedBox(height: 10),
             Row(
               children: [
                 const Icon(
                   Icons.near_me_rounded,
                   color: AppColors.textLight,
-                  size: 20,
+                  size: 16,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Text(
-                  '${AppLocalizations.of(context)!.landmark_txt} ${userProvider.customerLandmark}',
-                  style: AppTextStyles.captionMedium(color: AppColors.textMid),
+                  '${AppLocalizations.of(context)!.landmark_txt} $displayLandmark',
+                  style: AppTextStyles.captionMedium(
+                    color: AppColors.textMid,
+                  ),
                 ),
               ],
             ),
           ],
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: AppColors.bgTint),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                addresses.length > 1
+                    ? '${addresses.length} saved addresses'
+                    : '1 saved address',
+                style: AppTextStyles.captionMedium(color: AppColors.textLight),
+              ),
+              TextButton.icon(
+                onPressed: () => AddressSelectionBottomSheet.show(
+                  context,
+                  isCheckoutMode: false,
+                ),
+                icon: const Icon(
+                  Icons.settings_outlined,
+                  size: 16,
+                  color: Color(0xFF4CAF50),
+                ),
+                label: const Text(
+                  'Manage Addresses',
+                  style: TextStyle(
+                    color: Color(0xFF4CAF50),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

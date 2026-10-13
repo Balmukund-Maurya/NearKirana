@@ -7,9 +7,9 @@ import 'package:near_kirana/user_provider.dart';
 import 'package:near_kirana/shop_provider.dart';
 import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/sound_service.dart';
-import 'package:near_kirana/map_selection_screen.dart';
 import 'package:near_kirana/atomic_order_service.dart';
 import 'package:near_kirana/payment_service.dart';
+import 'package:near_kirana/address_selection_bottom_sheet.dart';
 
 class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
@@ -162,16 +162,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                         "Delivery Address",
                         "Select a delivery address for your order",
                         trailing: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
+                          onPressed: () async {
+                            await AddressSelectionBottomSheet.show(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => MapSelectionScreen(
-                                  initialLat: userProvider.currentLat ?? 0.0,
-                                  initialLng: userProvider.currentLng ?? 0.0,
-                                ),
-                              ),
+                              isCheckoutMode: true,
                             );
+                            if (mounted) setState(() {});
                           },
                           icon: const Icon(
                             Icons.add,
@@ -179,7 +175,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             color: Color(0xFF047857),
                           ),
                           label: const Text(
-                            "Add New Address",
+                            "Manage / Add Address",
                             style: TextStyle(
                               color: Color(0xFF047857),
                               fontWeight: FontWeight.bold,
@@ -202,34 +198,65 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                         padding: const EdgeInsets.only(left: 48),
                         child: Column(
                           children: [
-                            _buildAddressCard(
-                              0,
-                              "Home",
-                              userProvider.currentLat != null
-                                  ? "${userProvider.customerHouseNo}, ${userProvider.autoLocality}"
-                                  : "Shivaji Nagar, Bhopal - 462001",
-                              userProvider.currentLat != null
-                                  ? userProvider.deliveryAddress
-                                  : "Near Shivaji Nagar Main Road, Bhopal, Madhya Pradesh",
-                              Icons.home_outlined,
-                              isDefault: true,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildAddressCard(
-                              1,
-                              "Work",
-                              "MP Nagar, Bhopal - 462011",
-                              "Zone 1, MP Nagar, Bhopal, Madhya Pradesh",
-                              Icons.business_outlined,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildAddressCard(
-                              2,
-                              "Other",
-                              "Arera Colony, Bhopal - 462016",
-                              "Near Arera Colony Square, Bhopal, Madhya Pradesh",
-                              Icons.location_on_outlined,
-                            ),
+                            if (userProvider.savedAddressesList.isNotEmpty)
+                              ...userProvider.savedAddressesList.asMap().entries.map((entry) {
+                                final idx = entry.key;
+                                final addr = entry.value;
+                                final serv = userProvider.evaluateAddressServiceability(addr);
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _buildAddressCard(
+                                    idx,
+                                    addr.label,
+                                    addr.formattedAddress,
+                                    serv.isServiceable
+                                        ? '${serv.distanceKm.toStringAsFixed(1)} km away • Deliverable'
+                                        : (serv.errorMessage ?? 'Outside delivery area'),
+                                    addr.icon,
+                                    isDefault: addr.isDefault,
+                                    isServiceable: serv.isServiceable,
+                                    onTap: () {
+                                      setState(() => _selectedAddressIndex = idx);
+                                      userProvider.selectAddressForCheckout(addr);
+                                    },
+                                    onEdit: () async {
+                                      await AddressSelectionBottomSheet.show(
+                                        context,
+                                        isCheckoutMode: true,
+                                      );
+                                      if (mounted) setState(() {});
+                                    },
+                                  ),
+                                );
+                              })
+                            else
+                              _buildAddressCard(
+                                0,
+                                userProvider.addressLabel.isNotEmpty ? userProvider.addressLabel : "Home",
+                                userProvider.currentLat != null
+                                    ? "${userProvider.customerHouseNo}, ${userProvider.autoLocality}"
+                                    : "No saved address",
+                                userProvider.currentLat != null
+                                    ? userProvider.deliveryAddress
+                                    : "Please tap 'Manage / Add Address' to set your delivery address",
+                                Icons.home_outlined,
+                                isDefault: true,
+                                isServiceable: userProvider.isServiceable,
+                                onTap: () async {
+                                  await AddressSelectionBottomSheet.show(
+                                    context,
+                                    isCheckoutMode: true,
+                                  );
+                                  if (mounted) setState(() {});
+                                },
+                                onEdit: () async {
+                                  await AddressSelectionBottomSheet.show(
+                                    context,
+                                    isCheckoutMode: true,
+                                  );
+                                  if (mounted) setState(() {});
+                                },
+                              ),
                           ],
                         ),
                       ),
@@ -428,20 +455,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       alignment: Alignment.center,
-                                      child: false
-                                          ? ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              child: Image.network(
-                                                "",
-                                                fit: BoxFit.cover,
-                                              ),
-                                            )
-                                          : const Icon(
-                                              Icons.image,
-                                              color: Colors.grey,
-                                              size: 20,
-                                            ),
+                                      child: const Icon(
+                                        Icons.image,
+                                        color: Colors.grey,
+                                        size: 20,
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -929,10 +947,13 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     String address,
     IconData icon, {
     bool isDefault = false,
+    bool isServiceable = true,
+    VoidCallback? onTap,
+    VoidCallback? onEdit,
   }) {
     final isSelected = _selectedAddressIndex == index;
     return InkWell(
-      onTap: () => setState(() => _selectedAddressIndex = index),
+      onTap: onTap ?? () => setState(() => _selectedAddressIndex = index),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -940,7 +961,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           color: isSelected ? activeLightGreen : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? activeBorderGreen : Colors.grey.shade200,
+            color: isSelected
+                ? activeBorderGreen
+                : (!isServiceable ? Colors.red.shade200 : Colors.grey.shade200),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -1018,6 +1041,27 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                           ),
                         ),
                       ],
+                      if (!isServiceable) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            "Not Serviceable",
+                            style: TextStyle(
+                              color: Color(0xFFB91C1C),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -1031,13 +1075,20 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   const SizedBox(height: 2),
                   Text(
                     address,
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    style: TextStyle(
+                      color: !isServiceable
+                          ? Colors.red.shade700
+                          : Colors.grey.shade500,
+                      fontSize: 13,
+                      fontWeight:
+                          !isServiceable ? FontWeight.w500 : FontWeight.normal,
+                    ),
                   ),
                 ],
               ),
             ),
             OutlinedButton.icon(
-              onPressed: () {},
+              onPressed: onEdit ?? () {},
               icon: const Icon(Icons.edit, size: 14, color: Color(0xFF374151)),
               label: const Text(
                 "Edit",

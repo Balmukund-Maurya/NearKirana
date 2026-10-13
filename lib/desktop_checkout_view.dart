@@ -393,12 +393,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  "Order Summary (${cartItems.length} items)",
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF111827),
+                                Expanded(
+                                  child: Text(
+                                    "Order Summary (${cartItems.length} items)",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF111827),
+                                    ),
                                   ),
                                 ),
                                 InkWell(
@@ -774,11 +776,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                   color: Color(0xFF047857),
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  "Your payment information is secure and encrypted",
-                                  style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 11,
+                                Flexible(
+                                  child: Text(
+                                    "Your payment information is secure and encrypted",
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 11,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ),
                               ],
@@ -789,43 +794,91 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
 
                       const SizedBox(height: 24),
                       // DELIVERY INFO BOX
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.local_shipping,
-                              color: Colors.blue,
-                              size: 28,
+                      Builder(
+                        builder: (context) {
+                          final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue.shade100),
                             ),
-                            const SizedBox(width: 16),
-                            Column(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "Estimated Delivery Time",
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    fontSize: 12,
-                                  ),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.local_shipping,
+                                      color: Colors.blue,
+                                      size: 26,
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            "Estimated Delivery Time",
+                                            style: TextStyle(
+                                              color: Colors.blue,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Wrap(
+                                            crossAxisAlignment: WrapCrossAlignment.center,
+                                            spacing: 8,
+                                            children: [
+                                              Text(
+                                                estimate.formattedWindow,
+                                                style: TextStyle(
+                                                  color: Colors.blue.shade800,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                              Text(
+                                                "(${estimate.formattedTimeRange})",
+                                                style: TextStyle(
+                                                  color: Colors.blue.shade600,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  "30 - 45 minutes",
-                                  style: TextStyle(
-                                    color: Colors.blue.shade700,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 13,
+                                      color: Colors.blue.shade600,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        estimate.disclaimer,
+                                        style: TextStyle(
+                                          color: Colors.blue.shade700,
+                                          fontSize: 10,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -894,46 +947,50 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: Color(0xFF047857),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                stepNum.toString(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF047857),
+                  shape: BoxShape.circle,
                 ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
+                alignment: Alignment.center,
+                child: Text(
+                  stepNum.toString(),
                   style: const TextStyle(
-                    fontSize: 20,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF111827),
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
         if (trailing != null) trailing,
       ],
@@ -1267,6 +1324,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         paymentStatus = PaymentStatus.paymentPending;
       }
 
+      final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
+
       final result = await AtomicOrderService.instance.placeOrderAtomic(
         OrderPlacementParams(
           shopId: shopId,
@@ -1282,6 +1341,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           instructions: _instructionsController.text.trim(),
           idempotencyKey: idempotencyKey,
           items: items,
+          extraData: {
+            'estimated_delivery_window': estimate.formattedWindow,
+            'estimated_delivery_min_minutes': estimate.minMinutes,
+            'estimated_delivery_max_minutes': estimate.maxMinutes,
+            'estimated_delivery_arrival_range': estimate.formattedTimeRange,
+            'estimated_delivery_disclaimer': estimate.disclaimer,
+            'estimated_delivery_details': estimate.toMap(),
+          },
         ),
       );
 

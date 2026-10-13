@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/sound_service.dart';
 import 'package:near_kirana/modern_loader.dart';
 import 'package:near_kirana/shop_provider.dart';
-import 'package:near_kirana/map_selection_screen.dart';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:near_kirana/utils/product_image_widget.dart';
 import 'package:near_kirana/firebase_utils.dart';
-import 'package:near_kirana/admin_desktop_dashboard.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
 import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:near_kirana/admin_language_theme_screen.dart';
@@ -38,6 +35,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   final _deliveryRadiusController = TextEditingController();
   final _storeLatController = TextEditingController();
   final _storeLngController = TextEditingController();
+  final _basePrepTimeController = TextEditingController(text: '15');
   final _upiIdController = TextEditingController();
   final _supportPhoneController = TextEditingController();
   final _whatsappMessageController = TextEditingController();
@@ -57,6 +55,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     _deliveryRadiusController.dispose();
     _storeLatController.dispose();
     _storeLngController.dispose();
+    _basePrepTimeController.dispose();
     _supportPhoneController.dispose();
     _whatsappMessageController.dispose();
     super.dispose();
@@ -88,6 +87,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         _deliveryRadiusController.text = (data['delivery_radius_km'] ?? 5.0).toString();
         _storeLatController.text = (data['store_latitude'] ?? '').toString();
         _storeLngController.text = (data['store_longitude'] ?? '').toString();
+        _basePrepTimeController.text = (data['base_prep_time_minutes'] ?? data['prep_time_minutes'] ?? 15).toString();
         _upiIdController.text = data['upi_id'] ?? data['vpa'] ?? '';
         _supportPhoneController.text = data['support_phone'] ?? '';
         _whatsappMessageController.text = data['whatsapp_message_template'] ?? "नमस्ते {shopName}, मेरा नाम {name} है और मेरा मोबाइल नंबर {phone} है। मुझे अपने ऑर्डर / अकाउंट के बारे में कुछ मदद चाहिए।";
@@ -145,6 +145,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         'delivery_radius_km': deliveryRadius,
         'store_latitude': double.tryParse(_storeLatController.text),
         'store_longitude': double.tryParse(_storeLngController.text),
+        'base_prep_time_minutes': int.tryParse(_basePrepTimeController.text) ?? 15,
         'support_phone': _supportPhoneController.text.trim(),
         'whatsapp_message_template': _whatsappMessageController.text.trim(),
         'upi_id': _upiIdController.text.trim(),
@@ -457,6 +458,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             children: [
               Expanded(child: _buildHDField('Delivery Radius (km)', _deliveryRadiusController, Icons.map_outlined, '5')),
               const SizedBox(width: 16),
+              Expanded(child: _buildHDField('Order Prep Time (mins)', _basePrepTimeController, Icons.timer_outlined, '15')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
               Expanded(child: _buildHDField('Pickup Radius (km)', _pickupRadiusController, Icons.storefront_outlined, '25')),
             ],
           ),

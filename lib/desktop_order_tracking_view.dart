@@ -216,7 +216,21 @@ class DesktopOrderTrackingView extends StatelessWidget {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           const Text('Estimated Delivery Time', style: TextStyle(color: Color(0xFF166534), fontSize: 11)),
-                                          const Text('30 - 45 minutes', style: TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.bold, fontSize: 14)),
+                                          Text(
+                                            data['estimated_delivery_window']?.toString() ?? '35–50 mins',
+                                            style: const TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.bold, fontSize: 14),
+                                          ),
+                                          if (data['estimated_delivery_arrival_range'] != null)
+                                            Text(
+                                              '(${data['estimated_delivery_arrival_range']})',
+                                              style: const TextStyle(color: Color(0xFF166534), fontSize: 10),
+                                            ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            data['estimated_delivery_disclaimer']?.toString() ??
+                                                'Approximate window • Not a guarantee',
+                                            style: const TextStyle(color: Color(0xFF166534), fontSize: 9, fontStyle: FontStyle.italic),
+                                          ),
                                         ],
                                       ),
                                     ],

@@ -280,7 +280,21 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text('Estimated Delivery Time', style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
-                                              const Text('30 - 45 minutes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF065F46))),
+                                              Text(
+                                                data['estimated_delivery_window']?.toString() ?? '35–50 mins',
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF065F46)),
+                                              ),
+                                              if (data['estimated_delivery_arrival_range'] != null)
+                                                Text(
+                                                  '(${data['estimated_delivery_arrival_range']})',
+                                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+                                                ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                data['estimated_delivery_disclaimer']?.toString() ??
+                                                    'Approximate window • Not a guarantee',
+                                                style: TextStyle(color: Colors.grey.shade500, fontSize: 9, fontStyle: FontStyle.italic),
+                                              ),
                                             ],
                                           )
                                         ],

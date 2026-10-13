@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:near_kirana/firebase_utils.dart';
 import 'saved_address_model.dart';
+import 'delivery_estimate_model.dart';
+import 'delivery_estimation_service.dart';
 
 class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   String _customerName = '';
@@ -358,6 +360,29 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
       errorMessage: isServiceable
           ? null
           : 'Outside delivery radius: Dukaan sirf ${radius.toStringAsFixed(1)} km tak deliver karti hai. Yeh address ${distanceKm.toStringAsFixed(1)} km door hai.',
+    );
+  }
+
+  /// Computes estimated delivery time window considering distance, base prep time, and queue
+  DeliveryEstimate getEstimatedDeliveryTime({
+    String deliveryType = 'Delivery',
+    int basePrepMinutes = 15,
+    int pendingOrdersCount = 0,
+    bool isStoreOpen = true,
+    DateTime? currentTime,
+  }) {
+    final custLat = activeAddress?.lat ?? _currentLat;
+    final custLng = activeAddress?.lng ?? _currentLng;
+    return DeliveryEstimationService.instance.calculateEstimate(
+      storeLat: _storeLat,
+      storeLng: _storeLng,
+      customerLat: custLat,
+      customerLng: custLng,
+      deliveryType: deliveryType,
+      basePrepMinutes: basePrepMinutes,
+      pendingOrdersCount: pendingOrdersCount,
+      isStoreOpen: isStoreOpen,
+      currentTime: currentTime,
     );
   }
 

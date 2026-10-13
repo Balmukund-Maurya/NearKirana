@@ -454,6 +454,52 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ).animate().fadeIn(),
 
+            if (canDeliver && isWithinRadius) ...[
+              Builder(
+                builder: (context) {
+                  final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.blue.shade100),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule_rounded, size: 16, color: Colors.blue.shade700),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Est. Delivery: ${estimate.formattedWindow} (${estimate.formattedTimeRange})',
+                                style: TextStyle(
+                                  color: Colors.blue.shade900,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                estimate.disclaimer,
+                                style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontSize: 10,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+
             // Delivery Option 1: Ghar Tak Delivery
             Stack(
               clipBehavior: Clip.none,
@@ -2112,6 +2158,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildDesktopCart(BuildContext context, CartProvider cartProvider) {
     final cartItems = cartProvider.itemsList;
+    final userProvider = Provider.of<UserProvider>(context);
     final double subtotal = cartProvider.cartTotal;
     final double deliveryFee =
         (subtotal >= _minOrder && subtotal < _freeDeliveryThreshold)
@@ -2750,42 +2797,76 @@ class _CartScreenState extends State<CartScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.local_shipping,
-                                  color: Colors.blue,
-                                  size: 20,
+                          Builder(
+                            builder: (context) {
+                              final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
+                              return Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.blue.shade100),
                                 ),
-                                const SizedBox(width: 12),
-                                Column(
+                                child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Estimated Delivery Time',
-                                      style: TextStyle(
-                                        color: Colors.blue,
-                                        fontSize: 11,
-                                      ),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.local_shipping,
+                                          color: Colors.blue,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'Estimated Delivery Time',
+                                                style: TextStyle(
+                                                  color: Colors.blue,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    estimate.formattedWindow,
+                                                    style: TextStyle(
+                                                      color: Colors.blue.shade700,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    '(${estimate.formattedTimeRange})',
+                                                    style: TextStyle(
+                                                      color: Colors.blue.shade600,
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                    const SizedBox(height: 6),
                                     Text(
-                                      '30 - 45 minutes',
+                                      estimate.disclaimer,
                                       style: TextStyle(
                                         color: Colors.blue.shade700,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
+                                        fontSize: 10,
+                                        fontStyle: FontStyle.italic,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
                         ],
                       ),

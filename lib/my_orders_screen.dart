@@ -485,6 +485,50 @@ class MyOrdersScreen extends StatelessWidget {
                   ),
                 ),
               ],
+              if (status != OrderStatus.delivered &&
+                  status != OrderStatus.cancelled &&
+                  status != OrderStatus.rejected) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade100),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.schedule_rounded, color: Colors.blue.shade700, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Estimated Delivery: ${data['estimated_delivery_window'] ?? '35–50 mins'}${data['estimated_delivery_arrival_range'] != null ? ' (${data['estimated_delivery_arrival_range']})' : ''}',
+                              style: TextStyle(
+                                color: Colors.blue.shade900,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              data['estimated_delivery_disclaimer'] ??
+                                  'Approximate delivery window. Variations may occur based on rush & traffic.',
+                              style: TextStyle(
+                                color: Colors.blue.shade700,
+                                fontSize: 10,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               _buildTimeline(status),
               if (status == OrderStatus.pending) ...[
                 const SizedBox(height: 16),

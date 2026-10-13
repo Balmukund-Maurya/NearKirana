@@ -223,6 +223,48 @@ class AdminOrderCard extends StatelessWidget {
                   ],
                 ),
 
+                if (data['is_reviewed'] == true) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Customer Rating: ${(data['shop_rating'] as num?)?.toDouble() ?? 5.0} / 5.0',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                        if (data['review_comment'] != null &&
+                            data['review_comment'].toString().trim().isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '"${data['review_comment']}"',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontStyle: FontStyle.italic,
+                                color: Colors.amber.shade900,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+
                 if (type == 'Delivery' &&
                     deliveryAddress != null &&
                     deliveryAddress.isNotEmpty) ...[

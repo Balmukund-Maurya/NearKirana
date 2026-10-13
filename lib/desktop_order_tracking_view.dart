@@ -5,6 +5,8 @@ import 'package:near_kirana/user_provider.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
 import 'package:near_kirana/substitution_model.dart';
+import 'package:near_kirana/widgets/rating_review_dialog.dart';
+import 'package:near_kirana/rating_review_service.dart';
 
 class DesktopOrderTrackingView extends StatelessWidget {
   final QueryDocumentSnapshot order;
@@ -112,6 +114,48 @@ class DesktopOrderTrackingView extends StatelessWidget {
               proposals: pendingProposals,
             ),
             const SizedBox(height: 24),
+          ],
+
+          if (status == 'Delivered') ...[
+            if (data['is_reviewed'] == true) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 24),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'You rated this store ${(data['shop_rating'] as num?)?.toDouble() ?? 5.0} / 5.0 ⭐',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF92400E)),
+                        ),
+                        const Text(
+                          'Verified customer feedback recorded.',
+                          style: TextStyle(fontSize: 12, color: Color(0xFFB45309)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              OrderReviewPromptBanner(
+                orderId: order.id,
+                shopId: data['shop_id']?.toString() ?? '',
+                items: items,
+                customerName: data['customer_name']?.toString(),
+                customerPhone: data['phone_number']?.toString(),
+              ),
+              const SizedBox(height: 24),
+            ],
           ],
           
           Row(

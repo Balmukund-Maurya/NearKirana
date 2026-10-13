@@ -18,6 +18,8 @@ import 'my_orders_desktop_wrapper.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
 import 'package:near_kirana/substitution_model.dart';
+import 'package:near_kirana/widgets/rating_review_dialog.dart';
+import 'package:near_kirana/rating_review_service.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   final bool isTab;
@@ -861,6 +863,33 @@ class MyOrdersScreen extends StatelessWidget {
                 orderId: doc.id,
                 proposals: pendingProposals,
               ),
+            ],
+
+            if (status == OrderStatus.delivered) ...[
+              if (data['is_reviewed'] == true) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    RatingDisplayPill(
+                      rating: (data['shop_rating'] as num?)?.toDouble() ?? 5.0,
+                      label: 'Reviewed',
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Thank you for your feedback!',
+                      style: AppTextStyles.captionMedium(color: AppColors.textMid),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                OrderReviewPromptBanner(
+                  orderId: doc.id,
+                  shopId: data['shop_id']?.toString() ?? '',
+                  items: items,
+                  customerName: data['customer_name']?.toString(),
+                  customerPhone: data['phone_number']?.toString(),
+                ),
+              ],
             ],
 
             const SizedBox(height: 16),

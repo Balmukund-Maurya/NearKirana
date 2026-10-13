@@ -1069,6 +1069,56 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             ),
                           ),
                         ],
+                        if (productData['average_rating'] != null &&
+                            ((productData['rating_count'] as num?)?.toInt() ?? 0) > 0) ...[
+                          const SizedBox(height: 3),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFBEB),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: const Color(0xFFFDE68A),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.star_rounded,
+                                      size: 11,
+                                      color: Color(0xFFF59E0B),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      ((productData['average_rating'] as num).toDouble()).toStringAsFixed(1),
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF92400E),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '(${productData['rating_count']})',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
 

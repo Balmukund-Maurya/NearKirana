@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
 import 'package:near_kirana/substitution_model.dart';
+import 'package:near_kirana/widgets/rating_review_dialog.dart';
+import 'package:near_kirana/rating_review_service.dart';
 
 class DesktopOrderDetailsView extends StatefulWidget {
   final QueryDocumentSnapshot order;
@@ -260,6 +262,49 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                                   onResolved: () => setState(() {}),
                                 ),
                                 const SizedBox(height: 16),
+                              ],
+
+                              if (status == 'Delivered') ...[
+                                if (data['is_reviewed'] == true) ...[
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFFBEB),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFFFDE68A)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 24),
+                                        const SizedBox(width: 12),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Your Review: ${(data['shop_rating'] as num?)?.toDouble() ?? 5.0} / 5.0 ⭐',
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF92400E)),
+                                            ),
+                                            const Text(
+                                              'Verified feedback recorded for this order.',
+                                              style: TextStyle(fontSize: 12, color: Color(0xFFB45309)),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ] else ...[
+                                  OrderReviewPromptBanner(
+                                    orderId: widget.order.id,
+                                    shopId: data['shop_id']?.toString() ?? '',
+                                    items: items,
+                                    customerName: data['customer_name']?.toString(),
+                                    customerPhone: data['phone_number']?.toString(),
+                                    onReviewed: () => setState(() {}),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
                               ],
                               
                               // Delivery Banner

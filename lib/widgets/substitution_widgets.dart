@@ -122,10 +122,11 @@ class _ProposeSubstitutionDialogState extends State<ProposeSubstitutionDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
             child: Column(
@@ -369,32 +370,98 @@ class _ProposeSubstitutionDialogState extends State<ProposeSubstitutionDialog> {
                 const SizedBox(height: 24),
 
                 // Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      icon: _isSubmitting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.send_rounded, size: 18),
-                      label: Text(_isSubmitting ? 'Sending...' : 'Send Substitution Proposal'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF047857),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: _isSubmitting ? null : _submitProposal,
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 360;
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: _isSubmitting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.send_rounded, size: 18),
+                            label: Text(
+                              _isSubmitting
+                                  ? 'Sending...'
+                                  : 'Send Substitution Proposal',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF047857),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: _isSubmitting ? null : _submitProposal,
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: _isSubmitting
+                              ? null
+                              : () => Navigator.of(context).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: ElevatedButton.icon(
+                            icon: _isSubmitting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.send_rounded, size: 18),
+                            label: Text(
+                              _isSubmitting
+                                  ? 'Sending...'
+                                  : 'Send Substitution Proposal',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF047857),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: _isSubmitting ? null : _submitProposal,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -693,8 +760,11 @@ class _SubstitutionApprovalBannerState extends State<SubstitutionApprovalBanner>
                 const SizedBox(height: 16),
 
                 // Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 10,
+                  runSpacing: 8,
                   children: [
                     OutlinedButton.icon(
                       icon: const Icon(Icons.close, size: 16, color: Colors.red),
@@ -712,7 +782,6 @@ class _SubstitutionApprovalBannerState extends State<SubstitutionApprovalBanner>
                                 rejectionAction: SubstitutionRejectionAction.removeItem,
                               ),
                     ),
-                    const SizedBox(width: 10),
                     ElevatedButton.icon(
                       icon: isBusy
                           ? const SizedBox(

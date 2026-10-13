@@ -221,48 +221,50 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
     final isDesktop = MediaQuery.of(context).size.width > 800;
 
     return Scaffold(
-      backgroundColor: Colors.transparent, // Background provided by parent
-      body: Column(
-        children: [
-          // Header
-          _buildHeader(isEdit),
-          
-          Expanded(
-            child: Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: isDesktop 
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 7, child: _buildLeftColumn()),
-                          const SizedBox(width: 24),
-                          Expanded(flex: 3, child: _buildRightColumn()),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLeftColumn(),
-                          const SizedBox(height: 24),
-                          _buildRightColumn(),
-                        ],
-                      ),
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            _buildHeader(isEdit, isDesktop),
+
+            Expanded(
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isDesktop ? 24 : 16),
+                  child: isDesktop
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 7, child: _buildLeftColumn(isDesktop)),
+                            const SizedBox(width: 24),
+                            Expanded(flex: 3, child: _buildRightColumn()),
+                          ],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLeftColumn(isDesktop),
+                            const SizedBox(height: 24),
+                            _buildRightColumn(),
+                          ],
+                        ),
+                ),
               ),
             ),
-          ),
-          
-          // Bottom Actions
-          _buildBottomActions(isEdit),
-        ],
+
+            // Bottom Actions
+            _buildBottomActions(isEdit, isDesktop),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader(bool isEdit) {
+  Widget _buildHeader(bool isEdit, bool isDesktop) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24 : 16, vertical: 14),
       decoration: const BoxDecoration(
         color: AppColors.white,
         border: Border(bottom: BorderSide(color: AppColors.bgTint)),
@@ -273,74 +275,90 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
             onTap: widget.onBack,
             borderRadius: BorderRadius.circular(8),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: isDesktop ? 12 : 8, vertical: 8),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.arrow_back, size: 16, color: AppColors.textDark),
-                  SizedBox(width: 6),
-                  Text('Back', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w500)),
+                  const Icon(Icons.arrow_back, size: 16, color: AppColors.textDark),
+                  if (isDesktop) ...[
+                    const SizedBox(width: 6),
+                    const Text('Back', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w500)),
+                  ],
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   isEdit ? 'Edit Customer' : 'Add Customer',
-                  style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 24),
+                  style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(
+                    fontSize: isDesktop ? 22 : 18,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  'Create a new customer or update existing customer information',
-                  style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                  isEdit ? 'Update existing customer info' : 'Create a new customer',
+                  style: AppTextStyles.bodyMedium(color: AppColors.textMid).copyWith(
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          if (isEdit)
-             Container(
-               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-               decoration: BoxDecoration(
-                 color: Colors.white,
-                 border: Border.all(color: Colors.grey.shade300),
-                 borderRadius: BorderRadius.circular(8),
-               ),
-               child: const Row(
-                 children: [
-                   Icon(Icons.edit_outlined, size: 16, color: AppColors.textDark),
-                   SizedBox(width: 8),
-                   Text('Edit Customer', style: TextStyle(fontWeight: FontWeight.bold)),
-                 ],
-               ),
-             )
-          else
-            Container(
-               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-               decoration: BoxDecoration(
-                 color: const Color(0xFFE8F5E9),
-                 border: Border.all(color: const Color(0xFFA5D6A7)),
-                 borderRadius: BorderRadius.circular(8),
-               ),
-               child: const Row(
-                 children: [
-                   Icon(Icons.person_add_alt_1_outlined, size: 16, color: AppColors.primaryDark),
-                   SizedBox(width: 8),
-                   Text('Add Customer', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-                 ],
-               ),
-             ),
+          if (isDesktop) ...[
+            const SizedBox(width: 16),
+            if (isEdit)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 16, color: AppColors.textDark),
+                    SizedBox(width: 8),
+                    Text('Edit Customer', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  border: Border.all(color: const Color(0xFFA5D6A7)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.person_add_alt_1_outlined, size: 16, color: AppColors.primaryDark),
+                    SizedBox(width: 8),
+                    Text('Add Customer', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+                  ],
+                ),
+              ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildLeftColumn() {
+  Widget _buildLeftColumn(bool isDesktop) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -348,82 +366,103 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
         _buildSectionCard(
           title: 'Basic Information',
           subtitle: 'Enter the customer\'s basic details',
-          content: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Photo Upload Visual
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.3), width: 1.5, style: BorderStyle.solid),
-                  color: const Color(0xFFF0FDF4), // very light green
-                ),
-                child: const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+          padding: EdgeInsets.all(isDesktop ? 24 : 16),
+          content: isDesktop
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.camera_alt_outlined, color: AppColors.primaryDark, size: 28),
-                    SizedBox(height: 4),
-                    Text('Add Photo', style: TextStyle(color: AppColors.primaryDark, fontSize: 11, fontWeight: FontWeight.w600)),
+                    _buildPhotoAvatar(),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: _nameController,
+                                  label: 'Full Name *',
+                                  icon: Icons.person_outline,
+                                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: _phoneController,
+                                  label: 'Phone Number *',
+                                  icon: Icons.phone_outlined,
+                                  keyboardType: TextInputType.phone,
+                                  prefix: const Text('+91  ', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+                                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: _emailController,
+                                  label: 'Email Address',
+                                  icon: Icons.email_outlined,
+                                  hint: 'customer@example.com',
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: TextEditingController(),
+                                  label: 'Date of Birth (Optional)',
+                                  icon: Icons.calendar_today_outlined,
+                                  hint: 'Select date',
+                                  enabled: false,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Column(
+                )
+              : Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            controller: _nameController,
-                            label: 'Full Name *',
-                            icon: Icons.person_outline,
-                            validator: (v) => v!.isEmpty ? 'Required' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildTextField(
-                            controller: _phoneController,
-                            label: 'Phone Number *',
-                            icon: Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
-                            prefix: const Text('+91  ', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
-                            validator: (v) => v!.isEmpty ? 'Required' : null,
-                          ),
-                        ),
-                      ],
+                    Center(child: _buildPhotoAvatar()),
+                    const SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _nameController,
+                      label: 'Full Name *',
+                      icon: Icons.person_outline,
+                      validator: (v) => v!.isEmpty ? 'Required' : null,
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            controller: _emailController,
-                            label: 'Email Address',
-                            icon: Icons.email_outlined,
-                            hint: 'customer@example.com',
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildTextField(
-                            controller: TextEditingController(),
-                            label: 'Date of Birth (Optional)',
-                            icon: Icons.calendar_today_outlined,
-                            hint: 'Select date',
-                            enabled: false,
-                          ),
-                        ),
-                      ],
+                    _buildTextField(
+                      controller: _phoneController,
+                      label: 'Phone Number *',
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      prefix: const Text('+91  ', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+                      validator: (v) => v!.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _emailController,
+                      label: 'Email Address',
+                      icon: Icons.email_outlined,
+                      hint: 'customer@example.com',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: TextEditingController(),
+                      label: 'Date of Birth (Optional)',
+                      icon: Icons.calendar_today_outlined,
+                      hint: 'Select date',
+                      enabled: false,
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
         ),
         
         const SizedBox(height: 24),
@@ -432,6 +471,7 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
         _buildSectionCard(
           title: 'Address Information',
           subtitle: 'Enter the customer\'s delivery address',
+          padding: EdgeInsets.all(isDesktop ? 24 : 16),
           content: Column(
             children: [
               _buildTextField(
@@ -449,37 +489,69 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
                 hint: 'Street, Sector, Area',
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _cityController,
-                      label: 'City *',
-                      icon: Icons.location_city_outlined,
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
+              if (isDesktop)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _cityController,
+                        label: 'City *',
+                        icon: Icons.location_city_outlined,
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _stateController,
-                      label: 'State *',
-                      icon: Icons.map_outlined,
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _stateController,
+                        label: 'State *',
+                        icon: Icons.map_outlined,
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _zipController,
-                      label: 'Postal Code *',
-                      icon: Icons.pin_drop_outlined,
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _zipController,
+                        label: 'Postal Code *',
+                        icon: Icons.pin_drop_outlined,
+                        keyboardType: TextInputType.number,
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                )
+              else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _cityController,
+                        label: 'City *',
+                        icon: Icons.location_city_outlined,
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _stateController,
+                        label: 'State *',
+                        icon: Icons.map_outlined,
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildTextField(
+                  controller: _zipController,
+                  label: 'Postal Code *',
+                  icon: Icons.pin_drop_outlined,
+                  keyboardType: TextInputType.number,
+                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                ),
+              ],
             ],
           ),
         ),
@@ -490,54 +562,111 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
         _buildSectionCard(
           title: 'Khata / Credit Information',
           subtitle: 'Set credit limit and khata preferences for this customer',
-          content: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  controller: _creditLimitController,
-                  label: 'Credit Limit (₹)',
-                  icon: Icons.account_balance_wallet_outlined,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTextField(
-                  controller: TextEditingController(text: '30'),
-                  label: 'Payment Due Days',
-                  icon: Icons.calendar_month_outlined,
-                  enabled: false,
-                ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Row(
-                    children: [
-                      Switch(
-                        value: true, // Fixed visually to true for now since it's default
-                        onChanged: (v) {},
-                        activeThumbColor: Colors.white,
-                        activeTrackColor: AppColors.primaryDark,
+          padding: EdgeInsets.all(isDesktop ? 24 : 16),
+          content: isDesktop
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _creditLimitController,
+                        label: 'Credit Limit (₹)',
+                        icon: Icons.account_balance_wallet_outlined,
+                        keyboardType: TextInputType.number,
                       ),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTextField(
+                        controller: TextEditingController(text: '30'),
+                        label: 'Payment Due Days',
+                        icon: Icons.calendar_month_outlined,
+                        enabled: false,
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Row(
                           children: [
-                            Text('Allow Khata (Credit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            Text('Enable credit purchases for this customer', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                            Switch(
+                              value: true, // Fixed visually to true for now since it's default
+                              onChanged: (v) {},
+                              activeThumbColor: Colors.white,
+                              activeTrackColor: AppColors.primaryDark,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Allow Khata (Credit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  Text('Enable credit purchases for this customer', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            controller: _creditLimitController,
+                            label: 'Credit Limit (₹)',
+                            icon: Icons.account_balance_wallet_outlined,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField(
+                            controller: TextEditingController(text: '30'),
+                            label: 'Payment Due Days',
+                            icon: Icons.calendar_month_outlined,
+                            enabled: false,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Switch(
+                            value: true,
+                            onChanged: (v) {},
+                            activeThumbColor: Colors.white,
+                            activeTrackColor: AppColors.primaryDark,
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Allow Khata (Credit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Enable credit purchases for this customer', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
         
         const SizedBox(height: 24),
@@ -546,6 +675,7 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
         _buildSectionCard(
           title: 'Additional Information',
           subtitle: 'Add any extra notes about this customer',
+          padding: EdgeInsets.all(isDesktop ? 24 : 16),
           content: _buildTextField(
             controller: TextEditingController(),
             label: 'Customer Notes (Optional)',
@@ -556,6 +686,26 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPhotoAvatar() {
+    return Container(
+      width: 90,
+      height: 90,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.3), width: 1.5, style: BorderStyle.solid),
+        color: const Color(0xFFF0FDF4),
+      ),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.camera_alt_outlined, color: AppColors.primaryDark, size: 28),
+          SizedBox(height: 4),
+          Text('Add Photo', style: TextStyle(color: AppColors.primaryDark, fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 
@@ -767,12 +917,19 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
     );
   }
 
-  Widget _buildBottomActions(bool isEdit) {
+  Widget _buildBottomActions(bool isEdit, bool isDesktop) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24 : 16, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -780,7 +937,7 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
           TextButton(
             onPressed: widget.onBack,
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24 : 16, vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
                 side: BorderSide(color: Colors.grey.shade300),
@@ -788,14 +945,14 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
             ),
             child: const Text('Cancel', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w600)),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton.icon(
               onPressed: _isProcessing ? null : _saveCustomer,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryDark,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               icon: _isProcessing 
@@ -812,9 +969,14 @@ class _AdminAddEditCustomerScreenState extends State<AdminAddEditCustomerScreen>
     );
   }
 
-  Widget _buildSectionCard({required String title, required String subtitle, required Widget content}) {
+  Widget _buildSectionCard({
+    required String title,
+    required String subtitle,
+    required Widget content,
+    EdgeInsetsGeometry? padding,
+  }) {
     return _buildCard(
-      padding: const EdgeInsets.all(24),
+      padding: padding ?? const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

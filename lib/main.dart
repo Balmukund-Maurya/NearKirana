@@ -460,7 +460,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -545,7 +547,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final langProvider = Provider.of<LanguageProvider>(context);
     final shopProvider = Provider.of<ShopProvider>(context);
     final size = MediaQuery.of(context).size;
-    final shopName = shopProvider.shopName ?? AppLocalizations.of(context)!.app_name;
+    final shopName =
+        shopProvider.shopName ?? AppLocalizations.of(context)!.app_name;
     final isDesktop = size.width >= 900;
 
     return Scaffold(
@@ -578,14 +581,19 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             )
           : SafeArea(
-              child: isDesktop 
-                  ? _buildDesktopLayout(context, size, langProvider, shopName) 
+              child: isDesktop
+                  ? _buildDesktopLayout(context, size, langProvider, shopName)
                   : _buildMobileLayout(context, size, langProvider, shopName),
             ),
     );
   }
 
-  Widget _buildDesktopLayout(BuildContext context, Size size, LanguageProvider langProvider, String shopName) {
+  Widget _buildDesktopLayout(
+    BuildContext context,
+    Size size,
+    LanguageProvider langProvider,
+    String shopName,
+  ) {
     return Row(
       children: [
         // LEFT SIDE: 3D Illustration
@@ -598,21 +606,31 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 // Main Illustration
                 Image.asset(
-                  'assets/images/kirana_web_hero.jpg',
-                  fit: BoxFit.cover,
-                ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(1.05, 1.05), end: const Offset(1, 1), duration: 800.ms),
-                
+                      'assets/images/kirana_web_hero.jpg',
+                      fit: BoxFit.cover,
+                    )
+                    .animate()
+                    .fadeIn(duration: 800.ms)
+                    .scale(
+                      begin: const Offset(1.05, 1.05),
+                      end: const Offset(1, 1),
+                      duration: 800.ms,
+                    ),
+
                 // Overlay for better text readability
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.black.withValues(alpha: 0.4), Colors.transparent],
+                      colors: [
+                        Colors.black.withValues(alpha: 0.4),
+                        Colors.transparent,
+                      ],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
                   ),
                 ),
-                
+
                 // Feature Cards
                 Positioned(
                   left: 40,
@@ -622,9 +640,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       _buildFeatureCard(Icons.eco_rounded, 'Fresh Products'),
                       const SizedBox(height: 16),
-                      _buildFeatureCard(Icons.local_shipping_rounded, 'Fast Delivery'),
+                      _buildFeatureCard(
+                        Icons.local_shipping_rounded,
+                        'Fast Delivery',
+                      ),
                       const SizedBox(height: 16),
-                      _buildFeatureCard(Icons.verified_rounded, 'Trusted Quality'),
+                      _buildFeatureCard(
+                        Icons.verified_rounded,
+                        'Trusted Quality',
+                      ),
                     ],
                   ),
                 ),
@@ -632,7 +656,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-        
+
         // RIGHT SIDE: Glassmorphic Auth Card
         Expanded(
           flex: 4,
@@ -641,10 +665,18 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Center(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 24,
+                  ),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 480),
-                    child: _buildAuthCard(context, langProvider, shopName, true),
+                    child: _buildAuthCard(
+                      context,
+                      langProvider,
+                      shopName,
+                      true,
+                    ),
                   ),
                 ),
               ),
@@ -655,7 +687,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context, Size size, LanguageProvider langProvider, String shopName) {
+  Widget _buildMobileLayout(
+    BuildContext context,
+    Size size,
+    LanguageProvider langProvider,
+    String shopName,
+  ) {
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -674,7 +711,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [AppColors.surface, Colors.transparent, Colors.black.withValues(alpha: 0.3)],
+                      colors: [
+                        AppColors.surface,
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.3),
+                      ],
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                     ),
@@ -683,7 +724,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
-          
+
           // Auth Half
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -696,46 +737,58 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildFeatureCard(IconData icon, String title) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: AppColors.primaryDark, size: 24),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-    ).animate().slideX(begin: -0.2, end: 0, duration: 600.ms).fadeIn(duration: 600.ms);
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AppColors.primaryDark, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
+              ),
+            ],
+          ),
+        )
+        .animate()
+        .slideX(begin: -0.2, end: 0, duration: 600.ms)
+        .fadeIn(duration: 600.ms);
   }
 
-  Widget _buildAuthCard(BuildContext context, LanguageProvider langProvider, String shopName, bool isDesktop) {
+  Widget _buildAuthCard(
+    BuildContext context,
+    LanguageProvider langProvider,
+    String shopName,
+    bool isDesktop,
+  ) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: isDesktop ? 0.9 : 1.0),
         borderRadius: BorderRadius.circular(32),
-        border: isDesktop ? Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5) : null,
-        boxShadow: isDesktop ? [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          )
-        ] : [],
+        border: isDesktop
+            ? Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5)
+            : null,
+        boxShadow: isDesktop
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : [],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -750,6 +803,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   horizontal: 14,
                   vertical: 8,
                 ),
+
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   borderRadius: BorderRadius.circular(100),
@@ -770,8 +824,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       langProvider.currentLanguage == 'hi'
                           ? 'हिं'
                           : langProvider.currentLanguage == 'en'
-                              ? 'EN'
-                              : 'Hi',
+                          ? 'EN'
+                          : 'Hi',
                       style: AppTextStyles.captionMedium(
                         color: AppColors.primaryDark,
                       ),
@@ -801,24 +855,31 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: AppColors.white,
                   size: 32,
                 ),
-              ).animate().scale(begin: const Offset(0,0), end: const Offset(1,1), duration: 600.ms, curve: Curves.elasticOut),
+              ).animate().scale(
+                begin: const Offset(0, 0),
+                end: const Offset(1, 1),
+                duration: 600.ms,
+                curve: Curves.elasticOut,
+              ),
               const SizedBox(width: 16),
               Text(
                 'NearKirana',
-                style: AppTextStyles.display(color: AppColors.primaryDark).copyWith(fontSize: 32),
+                style: AppTextStyles.display(
+                  color: AppColors.primaryDark,
+                ).copyWith(fontSize: 32),
               ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
             ],
           ),
           const SizedBox(height: 16),
-          
+
           Text(
             'Fresh Groceries\nAt Your Doorstep',
             textAlign: TextAlign.center,
             style: AppTextStyles.heading2(color: AppColors.textDark),
           ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
-          
+
           const SizedBox(height: 48),
-          
+
           // Input Field
           Align(
             alignment: Alignment.centerLeft,
@@ -828,7 +889,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ).animate().fadeIn(delay: 400.ms),
           const SizedBox(height: 12),
-          
+
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
@@ -838,36 +899,61 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Row(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.phone_android_rounded, size: 20, color: AppColors.textMid),
+                      const Icon(
+                        Icons.phone_android_rounded,
+                        size: 20,
+                        color: AppColors.textMid,
+                      ),
                       const SizedBox(width: 8),
-                      Text('+91', style: AppTextStyles.bodySemiBold(color: AppColors.textDark)),
+                      Text(
+                        '+91',
+                        style: AppTextStyles.bodySemiBold(
+                          color: AppColors.textDark,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3)),
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: Colors.grey.withValues(alpha: 0.3),
+                ),
                 Expanded(
                   child: TextField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
-                    style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    style: AppTextStyles.bodySemiBold(
+                      color: AppColors.textDark,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Enter mobile number',
-                      hintStyle: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                      hintStyle: AppTextStyles.bodyMedium(
+                        color: AppColors.textMid,
+                      ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.1, end: 0),
-          
+
           const SizedBox(height: 24),
-          
+
           // Continue Button
           SizedBox(
             width: double.infinity,
@@ -876,11 +962,15 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: () {
                 if (_phoneController.text.length != 10) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a valid 10-digit mobile number')),
+                    const SnackBar(
+                      content: Text(
+                        'Please enter a valid 10-digit mobile number',
+                      ),
+                    ),
                   );
                   return;
                 }
-                
+
                 // Call existing auth
                 if (kIsWeb) {
                   _handleWebLoginFallback(_phoneController.text.trim());
@@ -892,29 +982,43 @@ class _LoginScreenState extends State<LoginScreen> {
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Continue', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                  Text(
+                    'Continue',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   SizedBox(width: 8),
-                  Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ],
               ),
             ),
           ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.1, end: 0),
-          
+
           const SizedBox(height: 32),
-          
+
           Row(
             children: [
               Expanded(child: Divider(color: AppColors.bgTint, thickness: 1.5)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(AppLocalizations.of(context)!.or_divider, style: AppTextStyles.caption()),
+                child: Text(
+                  AppLocalizations.of(context)!.or_divider,
+                  style: AppTextStyles.caption(),
+                ),
               ),
               Expanded(child: Divider(color: AppColors.bgTint, thickness: 1.5)),
             ],
           ).animate().fadeIn(delay: 650.ms),
-          
+
           const SizedBox(height: 24),
-          
+
           // Admin/Owner login
           TextButton.icon(
             onPressed: () => Navigator.push(
@@ -925,7 +1029,7 @@ class _LoginScreenState extends State<LoginScreen> {
             label: Text(AppLocalizations.of(context)!.owner_login),
             style: TextButton.styleFrom(foregroundColor: AppColors.textMid),
           ).animate().fadeIn(delay: 700.ms),
-          
+
           const SizedBox(height: 16),
           TextButton.icon(
             onPressed: () async {
@@ -933,12 +1037,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Change Shop?'),
-                  content: const Text('Do you want to leave this shop and choose another? Your cart will be cleared.'),
+                  content: const Text(
+                    'Do you want to leave this shop and choose another? Your cart will be cleared.',
+                  ),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryDark),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryDark,
+                      ),
                       child: const Text('Yes, Change Shop'),
                     ),
                   ],
@@ -946,14 +1057,19 @@ class _LoginScreenState extends State<LoginScreen> {
               );
 
               if (confirm == true && context.mounted) {
-                await Provider.of<ShopProvider>(context, listen: false).clearShop();
+                await Provider.of<ShopProvider>(
+                  context,
+                  listen: false,
+                ).clearShop();
                 if (context.mounted) {
                   Provider.of<CartProvider>(context, listen: false).clearCart();
                 }
                 if (context.mounted) {
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => const ShopSelectorScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const ShopSelectorScreen(),
+                    ),
                     (route) => false,
                   );
                 }
@@ -963,7 +1079,6 @@ class _LoginScreenState extends State<LoginScreen> {
             label: const Text('Change Shop'),
             style: TextButton.styleFrom(foregroundColor: AppColors.primaryDark),
           ).animate().fadeIn(delay: 750.ms),
-          
         ],
       ),
     );

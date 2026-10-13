@@ -72,10 +72,16 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     final double finalTotal =
         max(0.0, subtotal + (canDeliver ? deliveryFee : 0) - discount);
 
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width >= 900;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+        padding: EdgeInsets.symmetric(
+          horizontal: isDesktop ? 40 : 16,
+          vertical: isDesktop ? 32 : 16,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -89,9 +95,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     size: 16,
                     color: Color(0xFF4B5563),
                   ),
-                  label: const Text(
-                    "Back to Cart",
-                    style: TextStyle(
+                  label: Text(
+                    isDesktop ? "Back to Cart" : "Back",
+                    style: const TextStyle(
                       color: Color(0xFF4B5563),
                       fontWeight: FontWeight.w600,
                     ),
@@ -102,67 +108,67 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 16 : 12,
+                      vertical: isDesktop ? 16 : 12,
                     ),
                   ),
                 ),
-                const SizedBox(width: 24),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Checkout",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF111827),
+                SizedBox(width: isDesktop ? 24 : 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Checkout",
+                        style: TextStyle(
+                          fontSize: isDesktop ? 28 : 22,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF111827),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Complete your order in a few simple steps",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
+                      const SizedBox(height: 2),
+                      Text(
+                        "Complete your order in a few simple steps",
+                        style: TextStyle(
+                          fontSize: isDesktop ? 14 : 12,
+                          color: Colors.grey.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: isDesktop ? 40 : 20),
 
             // PROGRESS TRACKER
             Center(
-              child: SizedBox(
-                width: 600,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
                 child: Row(
                   children: [
-                    _buildStep(1, "Delivery\nAddress", isActive: true),
+                    _buildStep(1, isDesktop ? "Delivery\nAddress" : "Address", isActive: true),
                     _buildLine(isActive: true),
-                    _buildStep(2, "Order\nReview", isActive: false),
+                    _buildStep(2, isDesktop ? "Order\nReview" : "Review", isActive: false),
                     _buildLine(isActive: false),
-                    _buildStep(3, "Payment\nMethod", isActive: false),
+                    _buildStep(3, isDesktop ? "Payment\nMethod" : "Payment", isActive: false),
                     _buildLine(isActive: false),
-                    _buildStep(4, "Place\nOrder", isActive: false),
+                    _buildStep(4, isDesktop ? "Place\nOrder" : "Done", isActive: false),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: isDesktop ? 40 : 24),
 
             // MAIN CONTENT
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // LEFT COLUMN
-                Expanded(
-                  flex: 7,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+            Builder(
+              builder: (context) {
+                final leftColumn = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                       // SECTION 1: Delivery Address
                       _buildSectionHeader(
                         1,
@@ -202,7 +208,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       ),
                       const SizedBox(height: 16),
                       Padding(
-                        padding: const EdgeInsets.only(left: 48),
+                        padding: EdgeInsets.only(left: isDesktop ? 48 : 0),
                         child: Column(
                           children: [
                             if (userProvider.savedAddressesList.isNotEmpty)
@@ -278,7 +284,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       ),
                       const SizedBox(height: 16),
                       Padding(
-                        padding: const EdgeInsets.only(left: 48),
+                        padding: EdgeInsets.only(left: isDesktop ? 48 : 0),
                         child: TextField(
                           controller: _instructionsController,
                           maxLines: 3,
@@ -324,61 +330,112 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       ),
                       const SizedBox(height: 16),
                       Padding(
-                        padding: const EdgeInsets.only(left: 48),
-                        child: IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: _buildPaymentCard(
-                                  0,
-                                  Icons.payments_outlined,
-                                  "Cash on Delivery",
-                                  "Pay when you receive\nyour order",
+                        padding: EdgeInsets.only(left: isDesktop ? 48 : 0),
+                        child: isDesktop
+                            ? IntrinsicHeight(
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      child: _buildPaymentCard(
+                                        0,
+                                        Icons.payments_outlined,
+                                        "Cash on Delivery",
+                                        "Pay when you receive\nyour order",
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildPaymentCard(
+                                        1,
+                                        Icons.qr_code_2,
+                                        "UPI",
+                                        "Pay using UPI apps\n(GPay, PhonePe, etc.)",
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildPaymentCard(
+                                        2,
+                                        Icons.credit_card,
+                                        "Credit / Debit Card",
+                                        "Pay using your card\n",
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildPaymentCard(
+                                        3,
+                                        Icons.account_balance,
+                                        "Net Banking",
+                                        "Pay using net banking\n",
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              )
+                            : Column(
+                                children: [
+                                  IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(
+                                          child: _buildPaymentCard(
+                                            0,
+                                            Icons.payments_outlined,
+                                            "Cash on Delivery",
+                                            "Pay when you receive order",
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: _buildPaymentCard(
+                                            1,
+                                            Icons.qr_code_2,
+                                            "UPI",
+                                            "GPay, PhonePe, Paytm",
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(
+                                          child: _buildPaymentCard(
+                                            2,
+                                            Icons.credit_card,
+                                            "Card",
+                                            "Credit / Debit Card",
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: _buildPaymentCard(
+                                            3,
+                                            Icons.account_balance,
+                                            "Net Banking",
+                                            "All Indian Banks",
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildPaymentCard(
-                                  1,
-                                  Icons.qr_code_2,
-                                  "UPI",
-                                  "Pay using UPI apps\n(GPay, PhonePe, etc.)",
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildPaymentCard(
-                                  2,
-                                  Icons.credit_card,
-                                  "Credit / Debit Card",
-                                  "Pay using your card\n",
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildPaymentCard(
-                                  3,
-                                  Icons.account_balance,
-                                  "Net Banking",
-                                  "Pay using net banking\n",
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ],
-                  ),
-                ),
+                  );
 
-                const SizedBox(width: 32),
-
-                // RIGHT COLUMN
-                SizedBox(
-                  width: 380,
-                  child: Column(
-                    children: [
+                  // RIGHT COLUMN
+                  final rightColumn = SizedBox(
+                    width: isDesktop ? 380 : double.infinity,
+                    child: Column(
+                      children: [
                       // ORDER SUMMARY CARD
                       Container(
                         padding: const EdgeInsets.all(24),
@@ -908,8 +965,31 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       ),
                     ],
                   ),
-                ),
-              ],
+                );
+
+                if (isDesktop) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 7,
+                        child: leftColumn,
+                      ),
+                      const SizedBox(width: 32),
+                      rightColumn,
+                    ],
+                  );
+                } else {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      leftColumn,
+                      const SizedBox(height: 32),
+                      rightColumn,
+                    ],
+                  );
+                }
+              },
             ),
           ],
         ),
@@ -969,57 +1049,78 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     String subtitle, {
     Widget? trailing,
   }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 500;
+        final headerContent = Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: Color(0xFF047857),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                stepNum.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+        if (trailing == null) {
+          return headerContent;
+        }
+
+        if (isNarrow) {
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF047857),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  stepNum.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
+              headerContent,
+              const SizedBox(height: 12),
+              trailing,
             ],
-          ),
-        ),
-        ?trailing,
-      ],
+          );
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: headerContent),
+            const SizedBox(width: 16),
+            trailing,
+          ],
+        );
+      },
     );
   }
 
@@ -1093,7 +1194,10 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       Text(
                         type,
@@ -1103,8 +1207,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                           color: Color(0xFF111827),
                         ),
                       ),
-                      if (isDefault) ...[
-                        const SizedBox(width: 12),
+                      if (isDefault)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -1123,9 +1226,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             ),
                           ),
                         ),
-                      ],
-                      if (!isServiceable) ...[
-                        const SizedBox(width: 8),
+                      if (!isServiceable)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -1144,7 +1245,6 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -1170,19 +1270,29 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 ],
               ),
             ),
-            OutlinedButton.icon(
+            const SizedBox(width: 8),
+            OutlinedButton(
               onPressed: onEdit ?? () {},
-              icon: const Icon(Icons.edit, size: 14, color: Color(0xFF374151)),
-              label: const Text(
-                "Edit",
-                style: TextStyle(color: Color(0xFF374151)),
-              ),
               style: OutlinedButton.styleFrom(
                 backgroundColor: Colors.white,
                 side: const BorderSide(color: Color(0xFFE5E7EB)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.edit, size: 14, color: Color(0xFF374151)),
+                  SizedBox(width: 4),
+                  Text(
+                    "Edit",
+                    style: TextStyle(color: Color(0xFF374151), fontSize: 13),
+                  ),
+                ],
               ),
             ),
           ],

@@ -192,12 +192,44 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FA),
-          appBar: AppBar(title: Text(AppLocalizations.of(context)!.store_settings)),
+          appBar: AppBar(
+            title: Text(AppLocalizations.of(context)!.store_settings),
+            backgroundColor: AppColors.primaryDark,
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
           body: _isLoading 
               ? const Center(child: ModernLoader(color: AppColors.primaryDark))
-              : _buildDesktopLayout(), // Reusing for mobile for now with SingleChildScrollView
+              : _buildMobileLayout(),
         );
       },
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildPageHeader(isMobile: true),
+          const SizedBox(height: 16),
+          _buildTabs(),
+          const SizedBox(height: 20),
+          _buildQuickActionsCard(isMobile: true),
+          const SizedBox(height: 16),
+          _buildAccountInfoCard(isMobile: true),
+          const SizedBox(height: 16),
+          _buildShopBusinessCard(isMobile: true),
+          const SizedBox(height: 16),
+          _buildFinancialRulesCard(isMobile: true),
+          const SizedBox(height: 16),
+          _buildCategoriesCard(isMobile: true),
+          const SizedBox(height: 16),
+          _buildAppInfoCard(isMobile: true),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
@@ -250,11 +282,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildPageHeader() {
+  Widget _buildPageHeader({bool isMobile = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Settings', style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28)),
+        Text('Settings', style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: isMobile ? 24 : 28)),
         const SizedBox(height: 4),
         Text('Manage your store, account, and application preferences', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
       ],
@@ -319,9 +351,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildAccountInfoCard() {
+  Widget _buildAccountInfoCard({bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -331,38 +363,48 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Account Information', style: AppTextStyles.heading2(color: AppColors.textDark)),
+          Text('Account Information', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
           const SizedBox(height: 4),
           Text('Update your admin account details', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
           const SizedBox(height: 24),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
-              const SizedBox(width: 32),
-              Expanded(
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: _buildHDField('Full Name *', _ownerNameController, Icons.person_outline, 'Admin User')),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildHDField('Phone Number', TextEditingController(text: ''), Icons.phone_outlined, 'N/A', readOnly: true)),
-                      ],
-                    ),
-                  ],
+          if (isMobile) ...[
+            Center(
+              child: _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
+            ),
+            const SizedBox(height: 20),
+            _buildHDField('Full Name *', _ownerNameController, Icons.person_outline, 'Admin User'),
+            const SizedBox(height: 16),
+            _buildHDField('Phone Number', TextEditingController(text: ''), Icons.phone_outlined, 'N/A', readOnly: true),
+          ] else ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
+                const SizedBox(width: 32),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: _buildHDField('Full Name *', _ownerNameController, Icons.person_outline, 'Admin User')),
+                          const SizedBox(width: 16),
+                          Expanded(child: _buildHDField('Phone Number', TextEditingController(text: ''), Icons.phone_outlined, 'N/A', readOnly: true)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildShopBusinessCard() {
+  Widget _buildShopBusinessCard({bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -372,24 +414,44 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Shop & Business Settings', style: AppTextStyles.heading2(color: AppColors.textDark)),
-                  const SizedBox(height: 4),
-                  Text('Manage your shop and business information', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
-                ],
+          if (isMobile) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Shop & Business Settings', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: 18)),
+                      const SizedBox(height: 4),
+                      Text('Manage your shop and business information', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: _isStoreOpen ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _isStoreOpen ? const Color(0xFFA5D6A7) : const Color(0xFFFECACA)),
               ),
-              Row(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_isStoreOpen ? 'Store Open' : 'Store Closed', style: TextStyle(color: _isStoreOpen ? AppColors.primaryDark : AppColors.error, fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 8),
+                  Text(
+                    _isStoreOpen ? 'Store Open' : 'Store Closed',
+                    style: TextStyle(
+                      color: _isStoreOpen ? AppColors.primaryDark : AppColors.error,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                   Switch(
                     value: _isStoreOpen,
-                    activeThumbColor: AppColors.primaryDark,
+                    activeThumbColor: Colors.white,
+                    activeTrackColor: AppColors.primaryDark,
                     onChanged: (val) {
                       setState(() => _isStoreOpen = val);
                       HapticFeedback.lightImpact();
@@ -397,16 +459,54 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ] else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Shop & Business Settings', style: AppTextStyles.heading2(color: AppColors.textDark)),
+                      const SizedBox(height: 4),
+                      Text('Manage your shop and business information', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_isStoreOpen ? 'Store Open' : 'Store Closed', style: TextStyle(color: _isStoreOpen ? AppColors.primaryDark : AppColors.error, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 8),
+                    Switch(
+                      value: _isStoreOpen,
+                      activeThumbColor: AppColors.primaryDark,
+                      onChanged: (val) {
+                        setState(() => _isStoreOpen = val);
+                        HapticFeedback.lightImpact();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: _buildHDField('Shop Name *', _shopNameController, Icons.storefront_outlined, 'NearKirana General Store')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildHDField('Contact Number *', _supportPhoneController, Icons.phone_outlined, '98765 43210', prefixText: '+91 ')),
-            ],
-          ),
+          if (isMobile) ...[
+            _buildHDField('Shop Name *', _shopNameController, Icons.storefront_outlined, 'NearKirana General Store'),
+            const SizedBox(height: 16),
+            _buildHDField('Contact Number *', _supportPhoneController, Icons.phone_outlined, '98765 43210', prefixText: '+91 '),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: _buildHDField('Shop Name *', _shopNameController, Icons.storefront_outlined, 'NearKirana General Store')),
+                const SizedBox(width: 16),
+                Expanded(child: _buildHDField('Contact Number *', _supportPhoneController, Icons.phone_outlined, '98765 43210', prefixText: '+91 ')),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -422,9 +522,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildFinancialRulesCard() {
+  Widget _buildFinancialRulesCard({bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -434,7 +534,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Financial & Delivery Rules', style: AppTextStyles.heading2(color: AppColors.textDark)),
+          Text('Financial & Delivery Rules', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
           const SizedBox(height: 4),
           Text('Configure delivery fees, minimum order limits, and radius', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
           const SizedBox(height: 24),
@@ -446,13 +546,19 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _buildHDField('Free Delivery Threshold (₹)', _freeDeliveryThresholdController, Icons.card_giftcard_outlined, '500')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildHDField('Max Udhaar Limit (₹)', _maxUdhaarController, Icons.account_balance_wallet_outlined, '2000')),
-            ],
-          ),
+          if (isMobile) ...[
+            _buildHDField('Free Delivery Threshold (₹)', _freeDeliveryThresholdController, Icons.card_giftcard_outlined, '500'),
+            const SizedBox(height: 16),
+            _buildHDField('Max Udhaar Limit (₹)', _maxUdhaarController, Icons.account_balance_wallet_outlined, '2000'),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: _buildHDField('Free Delivery Threshold (₹)', _freeDeliveryThresholdController, Icons.card_giftcard_outlined, '500')),
+                const SizedBox(width: 16),
+                Expanded(child: _buildHDField('Max Udhaar Limit (₹)', _maxUdhaarController, Icons.account_balance_wallet_outlined, '2000')),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -462,11 +568,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _buildHDField('Pickup Radius (km)', _pickupRadiusController, Icons.storefront_outlined, '25')),
-            ],
-          ),
+          _buildHDField('Pickup Radius (km)', _pickupRadiusController, Icons.storefront_outlined, '25'),
           const SizedBox(height: 16),
           _buildHDField('Store UPI ID / VPA', _upiIdController, Icons.payment_outlined, 'merchant@upi'),
         ],
@@ -474,9 +576,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildCategoriesCard() {
+  Widget _buildCategoriesCard({bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -486,7 +588,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Product Categories', style: AppTextStyles.heading2(color: AppColors.textDark)),
+          Text('Product Categories', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
           const SizedBox(height: 4),
           Text('Manage categories shown to customers', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
           const SizedBox(height: 16),
@@ -515,9 +617,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildAppInfoCard() {
+  Widget _buildAppInfoCard({bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -531,18 +633,20 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             children: [
               Icon(Icons.widgets_outlined, size: 20, color: AppColors.textDark),
               const SizedBox(width: 8),
-              Text('App Information', style: AppTextStyles.heading2(color: AppColors.textDark)),
+              Expanded(
+                child: Text('App Information', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
+              ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           _buildInfoRow('App Version', 'v1.0.0'),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _buildInfoRow('Last Updated', '15 Aug 2024'),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Environment', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+              Expanded(child: Text('Environment', style: AppTextStyles.bodyMedium(color: AppColors.textMid))),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -553,16 +657,16 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _buildInfoRow('Platform', 'Web Admin Panel'),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActionsCard() {
+  Widget _buildQuickActionsCard({bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -576,7 +680,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             children: [
               Icon(Icons.bolt_outlined, size: 20, color: AppColors.textDark),
               const SizedBox(width: 8),
-              Text('Quick Actions', style: AppTextStyles.heading2(color: AppColors.textDark)),
+              Expanded(
+                child: Text('Quick Actions', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -627,7 +733,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
+        Expanded(child: Text(label, style: AppTextStyles.bodyMedium(color: AppColors.textMid))),
+        const SizedBox(width: 8),
         Text(value, style: AppTextStyles.bodySemiBold(color: AppColors.textDark)),
       ],
     );
@@ -660,7 +767,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.bodySemiBold(color: AppColors.textDark).copyWith(fontSize: 13)),
+        Text(
+          label,
+          style: AppTextStyles.bodySemiBold(color: AppColors.textDark).copyWith(fontSize: 13),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,

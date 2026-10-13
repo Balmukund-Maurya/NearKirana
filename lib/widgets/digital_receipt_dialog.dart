@@ -220,23 +220,30 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    inv.invoiceNumber,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: Color(0xFF1F2937),
+                              Expanded(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        inv.invoiceNumber,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: Color(0xFF1F2937),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  InkWell(
-                                    onTap: _copyInvoiceNumber,
-                                    child: Icon(Icons.copy, size: 14, color: Colors.grey.shade600),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    InkWell(
+                                      onTap: _copyInvoiceNumber,
+                                      child: Icon(Icons.copy, size: 14, color: Colors.grey.shade600),
+                                    ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
@@ -262,10 +269,15 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Order: #${inv.orderId}',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                              Expanded(
+                                child: Text(
+                                  'Order: #${inv.orderId}',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               Text(
                                 inv.formattedDate,
                                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
@@ -610,14 +622,17 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade700,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade700,
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             Text(
               value,
               style: TextStyle(

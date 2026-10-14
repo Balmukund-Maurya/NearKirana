@@ -689,6 +689,60 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
+    // =========================================================================
+    // 14. EXPIRY & BATCH TRACKING (Feature 55)
+    // =========================================================================
+    match /product_batches/{batchId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.resource.data.shop_id is string &&
+          isShopOwner(request.resource.data.shop_id) &&
+          request.resource.data.batch_number is string &&
+          request.resource.data.quantity is number
+        )
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id) &&
+          request.resource.data.shop_id == resource.data.shop_id
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    match /batch_disposals/{disposalId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.resource.data.shop_id is string &&
+          isShopOwner(request.resource.data.shop_id) &&
+          request.resource.data.quantity_disposed is number &&
+          request.resource.data.quantity_disposed > 0
+        )
+      );
+
+      allow update, delete: if isSuperAdmin();
+    }
+
     // Fallback: Deny all unhandled paths
     match /{document=**} {
       allow read, write: if false;

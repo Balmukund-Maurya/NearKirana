@@ -11,6 +11,7 @@ import 'admin_customers_screen.dart';
 import 'admin_complaints_screen.dart';
 import 'admin_analytics_screen.dart';
 import 'admin_suppliers_screen.dart';
+import 'admin_batch_expiry_screen.dart';
 import 'shop_qr_screen.dart';
 import 'gateway_screen.dart';
 import 'app_theme.dart';
@@ -225,6 +226,21 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AdminSuppliersScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuTile(
+                  icon: Icons.event_busy_rounded,
+                  color: Colors.deepOrange,
+                  title: 'Expiry & Batch Tracking',
+                  subtitle: 'Near-expiry alerts, batch codes & waste log',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminBatchExpiryScreen(),
                       ),
                     );
                   },

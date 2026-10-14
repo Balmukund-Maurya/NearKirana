@@ -15,6 +15,7 @@ import 'package:near_kirana/firebase_utils.dart';
 import 'widgets/admin_top_header.dart';
 import 'admin_add_product_screen.dart';
 import 'admin_suppliers_screen.dart';
+import 'admin_batch_expiry_screen.dart';
 
 class ShopStockScreen extends StatefulWidget {
   const ShopStockScreen({super.key});
@@ -151,6 +152,16 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
         automaticallyImplyLeading: false,
         title: Text(AppLocalizations.of(context)!.shop_stock),
         actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminBatchExpiryScreen()),
+              ).then((_) => _refresh());
+            },
+            icon: const Icon(Icons.event_busy_rounded, size: 18),
+            label: const Text('Expiry', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
           TextButton.icon(
             onPressed: () {
               Navigator.push(

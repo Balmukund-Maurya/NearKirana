@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app_theme.dart';
 import 'loyalty_referral_models.dart';
 import 'loyalty_referral_service.dart';
+import 'l10n/app_localizations.dart';
 
 /// Admin control hub for managing loyalty points rules, viewing customer point passbooks,
 /// auditing referral conversions, and adjusting customer point balances with reason notes.
@@ -115,9 +116,10 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
     await _service.updateProgramConfig(config);
 
     if (mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('लॉयल्टी व रेफरल सेटिंग्स सुरक्षित कर दी गई हैं (Settings Saved)'),
+        SnackBar(
+          content: Text(l10n?.settings_saved_snack ?? 'Loyalty & referral settings saved'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
         ),
@@ -126,6 +128,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
   }
 
   void _showAdjustPointsDialog(CustomerLoyaltyAccount account) {
+    final l10n = AppLocalizations.of(context);
     final pointsController = TextEditingController();
     final reasonController = TextEditingController();
     bool isCredit = true;
@@ -138,7 +141,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: Text(
-                'अंक समायोजित करें (Adjust Points)\n${account.customerName}',
+                '${l10n?.adjust_points_title ?? "Adjust Points"}\n${account.customerName}',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               content: SingleChildScrollView(
@@ -149,7 +152,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                       children: [
                         Expanded(
                           child: ChoiceChip(
-                            label: const Text('+ जोड़ें (Add)'),
+                            label: Text(l10n?.add_points_chip ?? '+ Add'),
                             selected: isCredit,
                             selectedColor: Colors.green.shade100,
                             onSelected: (val) => setModalState(() => isCredit = true),
@@ -158,7 +161,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: ChoiceChip(
-                            label: const Text('- घटाएं (Deduct)'),
+                            label: Text(l10n?.deduct_points_chip ?? '- Deduct'),
                             selected: !isCredit,
                             selectedColor: Colors.red.shade100,
                             onSelected: (val) => setModalState(() => isCredit = false),
@@ -171,7 +174,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                       controller: pointsController,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        labelText: 'अंकों की संख्या (Points amount)',
+                        labelText: l10n?.points_amount_label ?? 'Points amount',
                         prefixIcon: const Icon(Icons.stars_rounded),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -180,8 +183,8 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                     TextField(
                       controller: reasonController,
                       decoration: InputDecoration(
-                        labelText: 'कारण (Reason / Note)',
-                        hintText: 'e.g. Birthday gift, Goodwill credit',
+                        labelText: l10n?.adjust_reason_label ?? 'Reason / Note',
+                        hintText: l10n?.adjust_reason_hint ?? 'e.g. Birthday gift, Goodwill credit',
                         prefixIcon: const Icon(Icons.edit_note_rounded),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -192,7 +195,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogCtx),
-                  child: const Text('रद्द करें (Cancel)'),
+                  child: Text(l10n?.cancel ?? 'Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -216,7 +219,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                     if (mounted) {
                       messenger.showSnackBar(
                         SnackBar(
-                          content: Text('${account.customerName} के खाते में $delta अंक अपडेट किए गए'),
+                          content: Text('${account.customerName}: $delta pts ($reason)'),
                           backgroundColor: AppColors.primaryDark,
                           behavior: SnackBarBehavior.floating,
                         ),
@@ -228,7 +231,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('सुरक्षित करें (Apply)'),
+                  child: Text(l10n?.apply_btn ?? 'Apply'),
                 ),
               ],
             );
@@ -246,11 +249,13 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
       );
     }
 
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(
-          'लॉयल्टी व रेफरल प्रोग्राम (Loyalty & Referrals)',
+          l10n?.admin_loyalty_title ?? 'Loyalty & Referrals',
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         backgroundColor: Colors.white,
@@ -261,10 +266,10 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
           indicatorColor: AppColors.primaryDark,
           labelColor: AppColors.primaryDark,
           unselectedLabelColor: AppColors.textMid,
-          tabs: const [
-            Tab(text: 'ग्राहक खाते (Customers)'),
-            Tab(text: 'रेफरल ऑडिट (Referrals)'),
-            Tab(text: 'सेटिंग्स (Settings)'),
+          tabs: [
+            Tab(text: l10n?.admin_tab_customers ?? 'Customers'),
+            Tab(text: l10n?.admin_tab_referrals ?? 'Referrals'),
+            Tab(text: l10n?.admin_tab_settings ?? 'Settings'),
           ],
         ),
       ),
@@ -287,6 +292,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
   }
 
   Widget _buildKpiSummaryBar() {
+    final l10n = AppLocalizations.of(context);
     return FutureBuilder(
       future: _service.getShopAnalytics(_effectiveShopId),
       builder: (context, snap) {
@@ -306,10 +312,10 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
           ),
           child: Row(
             children: [
-              _buildMiniKpi('कुल जारी अंक', '$issued', Icons.stars_rounded, Colors.amber.shade700),
-              _buildMiniKpi('कुल भुनाए', '$redeemed', Icons.redeem_rounded, Colors.purple),
-              _buildMiniKpi('सफल रेफरल', '$referrals', Icons.people_rounded, Colors.blue),
-              _buildMiniKpi('दी गई छूट', '₹${discountGiven.toStringAsFixed(0)}', Icons.savings_rounded, Colors.green),
+              _buildMiniKpi(l10n?.kpi_total_issued ?? 'Total Issued', '$issued', Icons.stars_rounded, Colors.amber.shade700),
+              _buildMiniKpi(l10n?.kpi_total_redeemed ?? 'Total Redeemed', '$redeemed', Icons.redeem_rounded, Colors.purple),
+              _buildMiniKpi(l10n?.kpi_successful_referrals ?? 'Successful Referrals', '$referrals', Icons.people_rounded, Colors.blue),
+              _buildMiniKpi(l10n?.kpi_total_discount_given ?? 'Discounts Given', '₹${discountGiven.toStringAsFixed(0)}', Icons.savings_rounded, Colors.green),
             ],
           ),
         );
@@ -338,6 +344,8 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
   }
 
   Widget _buildCustomersTab() {
+    final l10n = AppLocalizations.of(context);
+    final isHindi = l10n?.localeName.startsWith('hi') ?? false;
     return Column(
       children: [
         Padding(
@@ -346,7 +354,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
             controller: _searchController,
             onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
             decoration: InputDecoration(
-              hintText: 'ग्राहक का नाम या फोन नंबर खोजें...',
+              hintText: l10n?.search_customer_hint ?? 'Search customer name or phone...',
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -389,9 +397,9 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                     children: [
                       Icon(Icons.person_off_rounded, size: 48, color: Colors.grey.shade400),
                       const SizedBox(height: 12),
-                      const Text(
-                        'कोई ग्राहक खाता नहीं मिला',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
+                      Text(
+                        l10n?.no_customers_found ?? 'No customer accounts found',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
                       ),
                     ],
                   ),
@@ -427,12 +435,14 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                               ),
                               Text(
-                                '${acc.customerPhone} • कोड: ${acc.referralCode}',
+                                isHindi
+                                    ? '${acc.customerPhone} • कोड: ${acc.referralCode}'
+                                    : '${acc.customerPhone} • Code: ${acc.referralCode}',
                                 style: const TextStyle(fontSize: 12, color: AppColors.textMid),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'टियर: ${acc.tier.simpleName} • कुल अर्जित: ${acc.lifetimeEarnedPoints} pts',
+                                '${acc.tier.localizedLabel(context)} • ${l10n?.total_earned_label ?? "Total Earned"}: ${acc.lifetimeEarnedPoints} pts',
                                 style: const TextStyle(fontSize: 11, color: AppColors.textLight),
                               ),
                             ],
@@ -452,7 +462,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                             TextButton.icon(
                               onPressed: () => _showAdjustPointsDialog(acc),
                               icon: const Icon(Icons.tune_rounded, size: 14),
-                              label: const Text('बदलें', style: TextStyle(fontSize: 12)),
+                              label: Text(l10n?.modify_btn ?? 'Modify', style: const TextStyle(fontSize: 12)),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 minimumSize: Size.zero,
@@ -474,6 +484,9 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
   }
 
   Widget _buildReferralsTab() {
+    final l10n = AppLocalizations.of(context);
+    final isHindi = l10n?.localeName.startsWith('hi') ?? false;
+
     return StreamBuilder<List<ReferralRecord>>(
       stream: _service.streamShopReferrals(_effectiveShopId),
       builder: (context, snap) {
@@ -489,9 +502,9 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
               children: [
                 Icon(Icons.share_outlined, size: 48, color: Colors.grey.shade400),
                 const SizedBox(height: 12),
-                const Text(
-                  'कोई रेफरल रिकॉर्ड नहीं मिला',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
+                Text(
+                  isHindi ? 'कोई रेफरल रिकॉर्ड नहीं मिला' : 'No referral records found',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
                 ),
               ],
             ),
@@ -520,7 +533,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'रेफरल कोड: ${ref.referralCode}',
+                        isHindi ? 'रेफरल कोड: ${ref.referralCode}' : 'Code: ${ref.referralCode}',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       Container(
@@ -531,7 +544,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                           border: Border.all(color: isCompleted ? Colors.green : Colors.amber),
                         ),
                         child: Text(
-                          ref.status.label,
+                          ref.status.localizedLabel(context),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -546,14 +559,14 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                     children: [
                       Expanded(
                         child: Text(
-                          'रेफरर: ${ref.referrerName} (${ref.referrerPhone})',
+                          isHindi ? 'रेफरर: ${ref.referrerName} (${ref.referrerPhone})' : 'Referrer: ${ref.referrerName} (${ref.referrerPhone})',
                           style: const TextStyle(fontSize: 12, color: AppColors.textDark),
                         ),
                       ),
                       const Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.textMid),
                       Expanded(
                         child: Text(
-                          'मित्र: ${ref.refereeName} (${ref.refereePhone})',
+                          isHindi ? 'मित्र: ${ref.refereeName} (${ref.refereePhone})' : 'Friend: ${ref.refereeName} (${ref.refereePhone})',
                           style: const TextStyle(fontSize: 12, color: AppColors.textDark),
                           textAlign: TextAlign.end,
                         ),
@@ -572,11 +585,15 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'पात्र ऑर्डर: ₹${ref.qualifyingOrderAmount!.toStringAsFixed(0)} (#${ref.qualifyingOrderId})',
+                            isHindi
+                                ? 'पात्र ऑर्डर: ₹${ref.qualifyingOrderAmount!.toStringAsFixed(0)} (#${ref.qualifyingOrderId})'
+                                : 'Qualifying Order: ₹${ref.qualifyingOrderAmount!.toStringAsFixed(0)} (#${ref.qualifyingOrderId})',
                             style: TextStyle(fontSize: 11, color: Colors.green.shade800),
                           ),
                           Text(
-                            '+${ref.referrerPointsAwarded} pts (रेफरर) • +${ref.refereePointsAwarded} pts (मित्र)',
+                            isHindi
+                                ? '+${ref.referrerPointsAwarded} pts (रेफरर) • +${ref.refereePointsAwarded} pts (मित्र)'
+                                : '+${ref.referrerPointsAwarded} pts (Referrer) • +${ref.refereePointsAwarded} pts (Friend)',
                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green.shade800),
                           ),
                         ],
@@ -593,6 +610,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
   }
 
   Widget _buildSettingsTab() {
+    final l10n = AppLocalizations.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -612,25 +630,25 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                   color: Colors.transparent,
                   child: SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('लॉयल्टी प्रोग्राम सक्रिय करें (Enable Loyalty)', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('ग्राहक खरीदारी पर अंक अर्जित कर सकते हैं'),
+                    title: Text(l10n?.enable_loyalty_switch ?? 'Enable Loyalty Program', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(l10n?.loyalty_program_desc ?? 'Customers earn reward points on purchases'),
                     value: _programEnabled,
                     activeThumbColor: AppColors.primaryDark,
                     onChanged: (val) => setState(() => _programEnabled = val),
                   ),
                 ),
                 const Divider(),
-                _buildTextField('हर ₹100 की खरीदारी पर अंक (Points per ₹100 spend)', _pointsPerHundredController),
+                _buildTextField(l10n?.points_per_hundred_spend_label ?? 'Points per ₹100 spend', _pointsPerHundredController),
                 const SizedBox(height: 12),
-                _buildTextField('1 अंक का रुपया मूल्य (1 Point value in ₹)', _pointValueController),
+                _buildTextField(l10n?.point_rupee_value_label ?? '1 Point value in ₹', _pointValueController),
                 const SizedBox(height: 12),
-                _buildTextField('न्यूनतम भुनाने योग्य अंक (Min points to redeem)', _minPointsRedeemController),
+                _buildTextField(l10n?.min_points_redeem_label ?? 'Min points to redeem', _minPointsRedeemController),
                 const SizedBox(height: 12),
-                _buildTextField('अधिकतम छूट प्रतिशत (Max % discount on order subtotal)', _maxRedeemPercentController),
+                _buildTextField(l10n?.max_discount_percent_label ?? 'Max discount % on order', _maxRedeemPercentController),
                 const SizedBox(height: 12),
-                _buildTextField('अंक कमाने हेतु न्यूनतम ऑर्डर राशि ₹ (Min order for points)', _minOrderPointsController),
+                _buildTextField(l10n?.min_order_points_label ?? 'Min order for points (₹)', _minOrderPointsController),
                 const SizedBox(height: 12),
-                _buildTextField('खाता खोलने पर स्वागत बोनस अंक (Welcome Bonus Points)', _welcomeBonusController),
+                _buildTextField(l10n?.welcome_bonus_label ?? 'Welcome Bonus Points', _welcomeBonusController),
               ],
             ),
           ),
@@ -650,19 +668,19 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                   color: Colors.transparent,
                   child: SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('रेफरल प्रोग्राम सक्रिय करें (Enable Refer & Earn)', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('सफल पहली खरीदारी पर दोस्त व रेफरर को इनाम'),
+                    title: Text(l10n?.enable_referral_switch ?? 'Enable Refer & Earn Program', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(l10n?.referral_program_desc ?? 'Rewards for friend & referrer on first order'),
                     value: _referralEnabled,
                     activeThumbColor: AppColors.primaryDark,
                     onChanged: (val) => setState(() => _referralEnabled = val),
                   ),
                 ),
                 const Divider(),
-                _buildTextField('रेफरर इनाम अंक (Referrer Reward Points)', _referrerRewardController),
+                _buildTextField(l10n?.referrer_reward_label ?? 'Referrer Reward Points', _referrerRewardController),
                 const SizedBox(height: 12),
-                _buildTextField('मित्र स्वागत इनाम अंक (Friend Welcome Points)', _refereeRewardController),
+                _buildTextField(l10n?.referee_reward_label ?? 'Friend Welcome Points', _refereeRewardController),
                 const SizedBox(height: 12),
-                _buildTextField('रेफरल पूर्ण होने हेतु न्यूनतम खरीदारी ₹ (Min qualifying order)', _minOrderReferralController),
+                _buildTextField(l10n?.min_order_referral_label ?? 'Min qualifying order (₹)', _minOrderReferralController),
               ],
             ),
           ),
@@ -674,7 +692,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
             child: ElevatedButton.icon(
               onPressed: _saveSettings,
               icon: const Icon(Icons.check_circle_rounded),
-              label: const Text('सेटिंग्स सुरक्षित करें (Save Settings)', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(l10n?.save_settings_btn ?? 'Save Settings', style: const TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryDark,
                 foregroundColor: Colors.white,

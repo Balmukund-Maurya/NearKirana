@@ -76,13 +76,22 @@ class _CustomerProfileDesktopWrapperState extends State<CustomerProfileDesktopWr
             final paymentsQuery = await doc.reference
                 .collection('khata_transactions')
                 .where('shop_id', isEqualTo: shopId)
-                .where('type', isEqualTo: 'credit')
-                .orderBy('timestamp', descending: true)
-                .limit(10)
+                .where('type', whereIn: ['jama', 'credit', 'payment'])
+                .limit(20)
                 .get();
             _payments = paymentsQuery.docs;
           }
-          _totalUdhaar = (_customerData!['total_udhaar'] as num?)?.toDouble() ?? 0;
+          if (shopId != null &&
+              _customerData!['shop_balances'] is Map &&
+              (_customerData!['shop_balances'] as Map).containsKey(shopId)) {
+            _totalUdhaar =
+                ((_customerData!['shop_balances'] as Map)[shopId] as num?)
+                        ?.toDouble() ??
+                    0;
+          } else {
+            _totalUdhaar =
+                (_customerData!['total_udhaar'] as num?)?.toDouble() ?? 0;
+          }
         }
 
         // Fetch Orders
@@ -90,12 +99,21 @@ class _CustomerProfileDesktopWrapperState extends State<CustomerProfileDesktopWr
           final ordersQuery = await FirebaseUtils.firestore
               .collection('orders')
               .where('shop_id', isEqualTo: shopId)
-              .where('user_phone', isEqualTo: phone)
-              .orderBy('timestamp', descending: true)
+              .where('phone_number', isEqualTo: phone)
               .limit(50)
               .get();
 
           _orders = ordersQuery.docs;
+          _orders.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aTime = aData['created_at'] as Timestamp?;
+            final bTime = bData['created_at'] as Timestamp?;
+            if (aTime == null && bTime == null) return 0;
+            if (aTime == null) return 1;
+            if (bTime == null) return -1;
+            return bTime.compareTo(aTime);
+          });
           _totalOrders = _orders.length;
 
           for (var doc in _orders) {

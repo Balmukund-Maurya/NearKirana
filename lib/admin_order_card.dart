@@ -1948,9 +1948,13 @@ class AdminOrderCard extends StatelessWidget {
         }
 
         // --- 2. PERFORM ALL WRITES ---
-        if (currentStatus == OrderStatus.delivered && customerRef != null) {
+        final isKhataPayment = (data['payment_method'] as String?) == 'Khata';
+        if (currentStatus == OrderStatus.delivered && customerRef != null && isKhataPayment) {
           transaction.update(customerRef, {
             'shop_balances.${data['shop_id']}': FieldValue.increment(
+              -finalTotal,
+            ),
+            'total_udhaar': FieldValue.increment(
               -finalTotal,
             ),
           });

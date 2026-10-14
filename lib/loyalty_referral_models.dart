@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'l10n/app_localizations.dart';
 
 /// Customer membership tiers for loyalty rewards
 enum LoyaltyTier {
@@ -7,17 +8,25 @@ enum LoyaltyTier {
   gold,
   platinum;
 
-  String get label {
-    switch (this) {
-      case LoyaltyTier.bronze:
-        return 'Bronze (कांस्य)';
-      case LoyaltyTier.silver:
-        return 'Silver (रजत)';
-      case LoyaltyTier.gold:
-        return 'Gold (स्वर्ण)';
-      case LoyaltyTier.platinum:
-        return 'Platinum (प्लैटिनम)';
+  String get label => simpleName;
+
+  String localizedLabel([BuildContext? context]) {
+    if (context != null) {
+      final l10n = AppLocalizations.of(context);
+      if (l10n != null) {
+        switch (this) {
+          case LoyaltyTier.bronze:
+            return l10n.tier_bronze;
+          case LoyaltyTier.silver:
+            return l10n.tier_silver;
+          case LoyaltyTier.gold:
+            return l10n.tier_gold;
+          case LoyaltyTier.platinum:
+            return l10n.tier_platinum;
+        }
+      }
     }
+    return simpleName;
   }
 
   String get simpleName {
@@ -110,22 +119,47 @@ enum LoyaltyTransactionType {
   String get label {
     switch (this) {
       case LoyaltyTransactionType.earnedPurchase:
-        return 'खरीदारी पर अंक (Purchase Reward)';
+        return 'Purchase Reward';
       case LoyaltyTransactionType.referralReferrer:
-        return 'रेफरल बोनस - मित्र रेफर किया (Referral Bonus)';
+        return 'Referral Bonus';
       case LoyaltyTransactionType.referralReferee:
-        return 'रेफरल स्वागत बोनस (Friend Welcome Reward)';
+        return 'Friend Welcome Reward';
       case LoyaltyTransactionType.redeemedPurchase:
-        return 'ऑर्डर पर अंक भुनाए (Points Redeemed)';
+        return 'Points Redeemed';
       case LoyaltyTransactionType.welcomeBonus:
-        return 'स्वागत अंक (Welcome Bonus)';
+        return 'Welcome Bonus';
       case LoyaltyTransactionType.adminAdjustment:
-        return 'दुकानदार समायोजन (Store Adjustment)';
+        return 'Store Adjustment';
       case LoyaltyTransactionType.refundRestored:
-        return 'वापसी अंक बहाल (Points Restored)';
+        return 'Points Restored';
       case LoyaltyTransactionType.expired:
-        return 'अंक समाप्त (Points Expired)';
+        return 'Points Expired';
     }
+  }
+
+  String localizedLabel([BuildContext? context]) {
+    final isHindi = context != null && (AppLocalizations.of(context)?.localeName.startsWith('hi') ?? false);
+    if (isHindi) {
+      switch (this) {
+        case LoyaltyTransactionType.earnedPurchase:
+          return 'खरीदारी पर अंक';
+        case LoyaltyTransactionType.referralReferrer:
+          return 'रेफरल बोनस';
+        case LoyaltyTransactionType.referralReferee:
+          return 'रेफरल स्वागत बोनस';
+        case LoyaltyTransactionType.redeemedPurchase:
+          return 'ऑर्डर पर अंक भुनाए';
+        case LoyaltyTransactionType.welcomeBonus:
+          return 'स्वागत अंक';
+        case LoyaltyTransactionType.adminAdjustment:
+          return 'दुकानदार समायोजन';
+        case LoyaltyTransactionType.refundRestored:
+          return 'वापसी अंक बहाल';
+        case LoyaltyTransactionType.expired:
+          return 'अंक समाप्त';
+      }
+    }
+    return label;
   }
 
   bool get isCredit {
@@ -413,14 +447,31 @@ enum ReferralStatus {
   String get label {
     switch (this) {
       case ReferralStatus.pending:
-        return 'प्रतीक्षारत (Pending 1st Purchase)';
+        return 'Pending 1st Purchase';
       case ReferralStatus.completed:
-        return 'सफल - इनाम क्रेडिट (Reward Unlocked)';
+        return 'Reward Unlocked';
       case ReferralStatus.expired:
-        return 'समाप्त (Expired)';
+        return 'Expired';
       case ReferralStatus.cancelled:
-        return 'रद्द (Cancelled)';
+        return 'Cancelled';
     }
+  }
+
+  String localizedLabel([BuildContext? context]) {
+    final isHindi = context != null && (AppLocalizations.of(context)?.localeName.startsWith('hi') ?? false);
+    if (isHindi) {
+      switch (this) {
+        case ReferralStatus.pending:
+          return 'प्रतीक्षारत';
+        case ReferralStatus.completed:
+          return 'सफल - इनाम क्रेडिट';
+        case ReferralStatus.expired:
+          return 'समाप्त';
+        case ReferralStatus.cancelled:
+          return 'रद्द';
+      }
+    }
+    return label;
   }
 
   static ReferralStatus fromString(String? value) {

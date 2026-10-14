@@ -316,7 +316,14 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
 
   // DESKTOP WIDGETS
   Widget _buildDesktopContent(BuildContext context) {
-    double currentBalance = _customerData?['total_udhaar']?.toDouble() ?? 0.0;
+    final shopId =
+        Provider.of<ShopProvider>(context, listen: false).currentShopId;
+    double currentBalance =
+        (shopId != null &&
+                _customerData?['shop_balances'] is Map &&
+                _customerData!['shop_balances'][shopId] != null)
+            ? (_customerData!['shop_balances'][shopId] as num).toDouble()
+            : (_customerData?['total_udhaar']?.toDouble() ?? 0.0);
     double creditLimit = _customerData?['credit_limit']?.toDouble() ?? 5000.0;
     double availableCredit = creditLimit - currentBalance;
     if (availableCredit < 0) availableCredit = 0;

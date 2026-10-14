@@ -185,7 +185,7 @@ class _CartScreenState extends State<CartScreen> {
                             },
                             icon: const Icon(Icons.mic_rounded, color: Colors.white, size: 20),
                             label: Text(
-                              '${AppLocalizations.of(context)?.order_by_voice_btn ?? "Order by Voice"} (बोलकर सामान मंगाएं)',
+                              AppLocalizations.of(context)?.order_by_voice_btn ?? "Order by Voice",
                               style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(

@@ -1838,6 +1838,474 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stock updated successfully'**
   String get stock_updated_snack;
+
+  /// No description provided for @loyalty_rewards_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards & Referrals'**
+  String get loyalty_rewards_title;
+
+  /// No description provided for @loyalty_how_it_works.
+  ///
+  /// In en, this message translates to:
+  /// **'How it Works'**
+  String get loyalty_how_it_works;
+
+  /// No description provided for @tab_refer_earn.
+  ///
+  /// In en, this message translates to:
+  /// **'Refer & Earn'**
+  String get tab_refer_earn;
+
+  /// No description provided for @tab_points_passbook.
+  ///
+  /// In en, this message translates to:
+  /// **'Passbook'**
+  String get tab_points_passbook;
+
+  /// No description provided for @tier_bronze.
+  ///
+  /// In en, this message translates to:
+  /// **'Bronze'**
+  String get tier_bronze;
+
+  /// No description provided for @tier_silver.
+  ///
+  /// In en, this message translates to:
+  /// **'Silver'**
+  String get tier_silver;
+
+  /// No description provided for @tier_gold.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold'**
+  String get tier_gold;
+
+  /// No description provided for @tier_platinum.
+  ///
+  /// In en, this message translates to:
+  /// **'Platinum'**
+  String get tier_platinum;
+
+  /// No description provided for @points_multiplier_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Points Multiplier'**
+  String get points_multiplier_label;
+
+  /// No description provided for @points_available_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Points Available'**
+  String get points_available_label;
+
+  /// No description provided for @savings_value_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Savings Value'**
+  String get savings_value_label;
+
+  /// No description provided for @points_needed_for_next.
+  ///
+  /// In en, this message translates to:
+  /// **'points needed for'**
+  String get points_needed_for_next;
+
+  /// No description provided for @top_tier_unlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Tier Unlocked! 🏆'**
+  String get top_tier_unlocked;
+
+  /// No description provided for @total_earned_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Earned'**
+  String get total_earned_label;
+
+  /// No description provided for @your_referral_code_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Exclusive Referral Code'**
+  String get your_referral_code_title;
+
+  /// No description provided for @share_code_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share with friends & get 100 points'**
+  String get share_code_subtitle;
+
+  /// No description provided for @copy_code_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy_code_btn;
+
+  /// No description provided for @code_copied_snack.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral code copied'**
+  String get code_copied_snack;
+
+  /// No description provided for @share_whatsapp_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Share on WhatsApp'**
+  String get share_whatsapp_btn;
+
+  /// No description provided for @have_referral_code_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Have a friend\'\'s referral code?'**
+  String get have_referral_code_title;
+
+  /// No description provided for @have_referral_code_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter code & get extra bonus on your first order'**
+  String get have_referral_code_subtitle;
+
+  /// No description provided for @enter_code_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter'**
+  String get enter_code_btn;
+
+  /// No description provided for @referred_by_code_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral code applied'**
+  String get referred_by_code_label;
+
+  /// No description provided for @referred_friends_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Referred Friends'**
+  String get referred_friends_title;
+
+  /// No description provided for @no_referrals_yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No referrals yet'**
+  String get no_referrals_yet;
+
+  /// No description provided for @share_code_prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your code on WhatsApp to start earning points!'**
+  String get share_code_prompt;
+
+  /// No description provided for @pending_order_status.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Order'**
+  String get pending_order_status;
+
+  /// No description provided for @no_transactions_title.
+  ///
+  /// In en, this message translates to:
+  /// **'No Points History'**
+  String get no_transactions_title;
+
+  /// No description provided for @no_transactions_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your points will appear here when you place grocery orders.'**
+  String get no_transactions_subtitle;
+
+  /// No description provided for @balance_pts_prefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get balance_pts_prefix;
+
+  /// No description provided for @how_it_works_title.
+  ///
+  /// In en, this message translates to:
+  /// **'How Loyalty & Referrals Work'**
+  String get how_it_works_title;
+
+  /// No description provided for @how_step_1.
+  ///
+  /// In en, this message translates to:
+  /// **'Earn 10 points for every ₹100 spent.'**
+  String get how_step_1;
+
+  /// No description provided for @how_step_2.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Silver, Gold, Platinum tiers to earn up to 2x points.'**
+  String get how_step_2;
+
+  /// No description provided for @how_step_3.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite friends using your code to earn mutual bonus points on their first order.'**
+  String get how_step_3;
+
+  /// No description provided for @how_step_4.
+  ///
+  /// In en, this message translates to:
+  /// **'Redeem your points instantly at checkout for direct rupee discounts!'**
+  String get how_step_4;
+
+  /// No description provided for @got_it_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get got_it_btn;
+
+  /// No description provided for @apply_referral_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Referral Code'**
+  String get apply_referral_title;
+
+  /// No description provided for @apply_referral_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your friend\'\'s code to claim bonus points on your first purchase.'**
+  String get apply_referral_subtitle;
+
+  /// No description provided for @referral_code_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral Code (e.g. KIR8392)'**
+  String get referral_code_hint;
+
+  /// No description provided for @apply_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply_btn;
+
+  /// No description provided for @admin_loyalty_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty & Referrals'**
+  String get admin_loyalty_title;
+
+  /// No description provided for @admin_tab_customers.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get admin_tab_customers;
+
+  /// No description provided for @admin_tab_referrals.
+  ///
+  /// In en, this message translates to:
+  /// **'Referrals'**
+  String get admin_tab_referrals;
+
+  /// No description provided for @admin_tab_settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get admin_tab_settings;
+
+  /// No description provided for @adjust_points_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust Points'**
+  String get adjust_points_title;
+
+  /// No description provided for @add_points_chip.
+  ///
+  /// In en, this message translates to:
+  /// **'+ Add'**
+  String get add_points_chip;
+
+  /// No description provided for @deduct_points_chip.
+  ///
+  /// In en, this message translates to:
+  /// **'- Deduct'**
+  String get deduct_points_chip;
+
+  /// No description provided for @points_amount_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Points Amount'**
+  String get points_amount_label;
+
+  /// No description provided for @settings_saved_snack.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty & referral settings saved'**
+  String get settings_saved_snack;
+
+  /// No description provided for @enable_loyalty_switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Loyalty Program'**
+  String get enable_loyalty_switch;
+
+  /// No description provided for @enable_referral_switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Refer & Earn Program'**
+  String get enable_referral_switch;
+
+  /// No description provided for @min_points_redeem_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Min points to redeem'**
+  String get min_points_redeem_label;
+
+  /// No description provided for @min_order_points_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Min order for points (₹)'**
+  String get min_order_points_label;
+
+  /// No description provided for @welcome_bonus_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome Bonus Points'**
+  String get welcome_bonus_label;
+
+  /// No description provided for @referrer_reward_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Referrer Reward Points'**
+  String get referrer_reward_label;
+
+  /// No description provided for @referee_reward_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Friend Welcome Points'**
+  String get referee_reward_label;
+
+  /// No description provided for @min_order_referral_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Min qualifying order (₹)'**
+  String get min_order_referral_label;
+
+  /// No description provided for @save_settings_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Settings'**
+  String get save_settings_btn;
+
+  /// No description provided for @points_per_hundred_spend_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Points per ₹100 spend'**
+  String get points_per_hundred_spend_label;
+
+  /// No description provided for @point_rupee_value_label.
+  ///
+  /// In en, this message translates to:
+  /// **'1 Point value in ₹'**
+  String get point_rupee_value_label;
+
+  /// No description provided for @max_discount_percent_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Max discount % on order'**
+  String get max_discount_percent_label;
+
+  /// No description provided for @adjust_reason_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason / Note'**
+  String get adjust_reason_label;
+
+  /// No description provided for @adjust_reason_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Birthday gift, Goodwill credit'**
+  String get adjust_reason_hint;
+
+  /// No description provided for @loyalty_program_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers earn reward points on purchases'**
+  String get loyalty_program_desc;
+
+  /// No description provided for @referral_program_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards for friend & referrer on first order'**
+  String get referral_program_desc;
+
+  /// No description provided for @kpi_total_issued.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Issued'**
+  String get kpi_total_issued;
+
+  /// No description provided for @kpi_total_redeemed.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Redeemed'**
+  String get kpi_total_redeemed;
+
+  /// No description provided for @kpi_successful_referrals.
+  ///
+  /// In en, this message translates to:
+  /// **'Successful Referrals'**
+  String get kpi_successful_referrals;
+
+  /// No description provided for @kpi_total_discount_given.
+  ///
+  /// In en, this message translates to:
+  /// **'Discounts Given'**
+  String get kpi_total_discount_given;
+
+  /// No description provided for @search_customer_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search customer name or phone...'**
+  String get search_customer_hint;
+
+  /// No description provided for @no_customers_found.
+  ///
+  /// In en, this message translates to:
+  /// **'No customer accounts found'**
+  String get no_customers_found;
+
+  /// No description provided for @modify_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Modify'**
+  String get modify_btn;
+
+  /// No description provided for @loyalty_rewards_section.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty Rewards'**
+  String get loyalty_rewards_section;
+
+  /// No description provided for @available_points_prefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get available_points_prefix;
+
+  /// No description provided for @max_redeem_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Redeem up to'**
+  String get max_redeem_label;
+
+  /// No description provided for @points_redeemed_label.
+  ///
+  /// In en, this message translates to:
+  /// **'points redeemed'**
+  String get points_redeemed_label;
+
+  /// No description provided for @savings_prefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Savings'**
+  String get savings_prefix;
+
+  /// No description provided for @discount_label.
+  ///
+  /// In en, this message translates to:
+  /// **'discount'**
+  String get discount_label;
 }
 
 class _AppLocalizationsDelegate

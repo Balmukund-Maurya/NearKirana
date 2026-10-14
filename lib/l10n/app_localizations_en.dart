@@ -902,4 +902,247 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stock_updated_snack => 'Stock updated successfully';
+
+  @override
+  String get loyalty_rewards_title => 'Rewards & Referrals';
+
+  @override
+  String get loyalty_how_it_works => 'How it Works';
+
+  @override
+  String get tab_refer_earn => 'Refer & Earn';
+
+  @override
+  String get tab_points_passbook => 'Passbook';
+
+  @override
+  String get tier_bronze => 'Bronze';
+
+  @override
+  String get tier_silver => 'Silver';
+
+  @override
+  String get tier_gold => 'Gold';
+
+  @override
+  String get tier_platinum => 'Platinum';
+
+  @override
+  String get points_multiplier_label => 'Points Multiplier';
+
+  @override
+  String get points_available_label => 'Points Available';
+
+  @override
+  String get savings_value_label => 'Savings Value';
+
+  @override
+  String get points_needed_for_next => 'points needed for';
+
+  @override
+  String get top_tier_unlocked => 'Top Tier Unlocked! 🏆';
+
+  @override
+  String get total_earned_label => 'Total Earned';
+
+  @override
+  String get your_referral_code_title => 'Your Exclusive Referral Code';
+
+  @override
+  String get share_code_subtitle => 'Share with friends & get 100 points';
+
+  @override
+  String get copy_code_btn => 'Copy';
+
+  @override
+  String get code_copied_snack => 'Referral code copied';
+
+  @override
+  String get share_whatsapp_btn => 'Share on WhatsApp';
+
+  @override
+  String get have_referral_code_title => 'Have a friend\'s referral code?';
+
+  @override
+  String get have_referral_code_subtitle =>
+      'Enter code & get extra bonus on your first order';
+
+  @override
+  String get enter_code_btn => 'Enter';
+
+  @override
+  String get referred_by_code_label => 'Referral code applied';
+
+  @override
+  String get referred_friends_title => 'Referred Friends';
+
+  @override
+  String get no_referrals_yet => 'No referrals yet';
+
+  @override
+  String get share_code_prompt =>
+      'Share your code on WhatsApp to start earning points!';
+
+  @override
+  String get pending_order_status => 'Pending Order';
+
+  @override
+  String get no_transactions_title => 'No Points History';
+
+  @override
+  String get no_transactions_subtitle =>
+      'Your points will appear here when you place grocery orders.';
+
+  @override
+  String get balance_pts_prefix => 'Balance';
+
+  @override
+  String get how_it_works_title => 'How Loyalty & Referrals Work';
+
+  @override
+  String get how_step_1 => 'Earn 10 points for every ₹100 spent.';
+
+  @override
+  String get how_step_2 =>
+      'Unlock Silver, Gold, Platinum tiers to earn up to 2x points.';
+
+  @override
+  String get how_step_3 =>
+      'Invite friends using your code to earn mutual bonus points on their first order.';
+
+  @override
+  String get how_step_4 =>
+      'Redeem your points instantly at checkout for direct rupee discounts!';
+
+  @override
+  String get got_it_btn => 'Got it';
+
+  @override
+  String get apply_referral_title => 'Enter Referral Code';
+
+  @override
+  String get apply_referral_subtitle =>
+      'Enter your friend\'s code to claim bonus points on your first purchase.';
+
+  @override
+  String get referral_code_hint => 'Referral Code (e.g. KIR8392)';
+
+  @override
+  String get apply_btn => 'Apply';
+
+  @override
+  String get admin_loyalty_title => 'Loyalty & Referrals';
+
+  @override
+  String get admin_tab_customers => 'Customers';
+
+  @override
+  String get admin_tab_referrals => 'Referrals';
+
+  @override
+  String get admin_tab_settings => 'Settings';
+
+  @override
+  String get adjust_points_title => 'Adjust Points';
+
+  @override
+  String get add_points_chip => '+ Add';
+
+  @override
+  String get deduct_points_chip => '- Deduct';
+
+  @override
+  String get points_amount_label => 'Points Amount';
+
+  @override
+  String get settings_saved_snack => 'Loyalty & referral settings saved';
+
+  @override
+  String get enable_loyalty_switch => 'Enable Loyalty Program';
+
+  @override
+  String get enable_referral_switch => 'Enable Refer & Earn Program';
+
+  @override
+  String get min_points_redeem_label => 'Min points to redeem';
+
+  @override
+  String get min_order_points_label => 'Min order for points (₹)';
+
+  @override
+  String get welcome_bonus_label => 'Welcome Bonus Points';
+
+  @override
+  String get referrer_reward_label => 'Referrer Reward Points';
+
+  @override
+  String get referee_reward_label => 'Friend Welcome Points';
+
+  @override
+  String get min_order_referral_label => 'Min qualifying order (₹)';
+
+  @override
+  String get save_settings_btn => 'Save Settings';
+
+  @override
+  String get points_per_hundred_spend_label => 'Points per ₹100 spend';
+
+  @override
+  String get point_rupee_value_label => '1 Point value in ₹';
+
+  @override
+  String get max_discount_percent_label => 'Max discount % on order';
+
+  @override
+  String get adjust_reason_label => 'Reason / Note';
+
+  @override
+  String get adjust_reason_hint => 'e.g. Birthday gift, Goodwill credit';
+
+  @override
+  String get loyalty_program_desc =>
+      'Customers earn reward points on purchases';
+
+  @override
+  String get referral_program_desc =>
+      'Rewards for friend & referrer on first order';
+
+  @override
+  String get kpi_total_issued => 'Total Issued';
+
+  @override
+  String get kpi_total_redeemed => 'Total Redeemed';
+
+  @override
+  String get kpi_successful_referrals => 'Successful Referrals';
+
+  @override
+  String get kpi_total_discount_given => 'Discounts Given';
+
+  @override
+  String get search_customer_hint => 'Search customer name or phone...';
+
+  @override
+  String get no_customers_found => 'No customer accounts found';
+
+  @override
+  String get modify_btn => 'Modify';
+
+  @override
+  String get loyalty_rewards_section => 'Loyalty Rewards';
+
+  @override
+  String get available_points_prefix => 'Available';
+
+  @override
+  String get max_redeem_label => 'Redeem up to';
+
+  @override
+  String get points_redeemed_label => 'points redeemed';
+
+  @override
+  String get savings_prefix => 'Savings';
+
+  @override
+  String get discount_label => 'discount';
 }

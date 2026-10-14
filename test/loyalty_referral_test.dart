@@ -1,6 +1,7 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:near_kirana/loyalty_referral_models.dart';
 import 'package:near_kirana/loyalty_referral_service.dart';
 import 'package:near_kirana/customer_loyalty_screen.dart';
@@ -344,6 +345,9 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
           home: CustomerLoyaltyScreen(
             shopId: testShopId,
             customerPhone: '9888811111',
@@ -361,13 +365,13 @@ void main() {
       expect(find.textContaining('Silver'), findsWidgets);
       expect(find.text('₹24.0'), findsOneWidget); // 240 * 0.10
 
-      // Referral tab verifies code and buttons
+      // Referral tab verifies code and buttons (clean English, no dual language brackets)
       expect(find.text('MEE7744'), findsOneWidget);
-      expect(find.text('कॉपी (Copy)'), findsOneWidget);
-      expect(find.text('व्हाट्सएप पर शेयर करें (Share on WhatsApp)'), findsOneWidget);
+      expect(find.text('Copy'), findsOneWidget);
+      expect(find.text('Share on WhatsApp'), findsOneWidget);
 
       // Switch to Passbook Tab
-      await tester.tap(find.text('अंक पासबुक (Passbook)'));
+      await tester.tap(find.text('Passbook'));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('No Points History'), findsOneWidget);
@@ -391,6 +395,9 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
           home: Scaffold(
             body: LoyaltyRedemptionCard(
               shopId: testShopId,
@@ -408,8 +415,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('लॉयल्टी रिवार्ड्स (Loyalty Points)'), findsOneWidget);
-      expect(find.text('उपलब्ध: 100 pts (Bronze Member)'), findsOneWidget);
+      expect(find.text('Loyalty Rewards'), findsOneWidget);
+      expect(find.textContaining('Available: 100 pts'), findsOneWidget);
       expect(find.byType(Switch), findsOneWidget);
 
       // Toggle switch to redeem points
@@ -419,8 +426,8 @@ void main() {
       expect(selectedRedemption, isNotNull);
       expect(selectedRedemption?.points, 100);
       expect(selectedRedemption?.discountRupees, 10.0);
-      expect(find.text('100 अंक भुनाए गए'), findsOneWidget);
-      expect(find.text('-₹10.0 छूट'), findsOneWidget);
+      expect(find.text('100 points redeemed'), findsOneWidget);
+      expect(find.text('-₹10.0 off'), findsOneWidget);
     });
 
     testWidgets('AdminLoyaltyScreen renders KPI metrics, customer passbooks, and settings', (tester) async {
@@ -440,6 +447,9 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
           home: AdminLoyaltyScreen(
             shopId: testShopId,
             service: service,
@@ -449,23 +459,66 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Header and KPI checks
-      expect(find.text('लॉयल्टी व रेफरल प्रोग्राम (Loyalty & Referrals)'), findsOneWidget);
-      expect(find.text('कुल जारी अंक'), findsOneWidget);
-      expect(find.text('कुल भुनाए'), findsOneWidget);
+      // Header and KPI checks (clean English)
+      expect(find.text('Loyalty & Referrals'), findsOneWidget);
+      expect(find.text('Total Issued'), findsOneWidget);
+      expect(find.text('Total Redeemed'), findsOneWidget);
 
       // Customer listed in Customer Passbooks tab
       expect(find.text('Kishore Kumar'), findsOneWidget);
       expect(find.text('300 pts'), findsOneWidget);
-      expect(find.text('बदलें'), findsOneWidget);
+      expect(find.text('Modify'), findsOneWidget);
 
       // Switch to Settings tab
-      await tester.tap(find.text('सेटिंग्स (Settings)'));
+      await tester.tap(find.text('Settings'));
       await tester.pumpAndSettle();
 
-      expect(find.text('लॉयल्टी प्रोग्राम सक्रिय करें (Enable Loyalty)'), findsOneWidget);
-      expect(find.text('रेफरल प्रोग्राम सक्रिय करें (Enable Refer & Earn)'), findsOneWidget);
-      expect(find.text('सेटिंग्स सुरक्षित करें (Save Settings)'), findsOneWidget);
+      expect(find.text('Enable Loyalty Program'), findsOneWidget);
+      expect(find.text('Enable Refer & Earn Program'), findsOneWidget);
+      expect(find.text('Save Settings'), findsOneWidget);
+    });
+
+    testWidgets('CustomerLoyaltyScreen renders clean Hindi without dual-language parentheses', (tester) async {
+      await fakeFirestore.collection('loyalty_accounts').doc('${testShopId}_9888822222').set({
+        'shop_id': testShopId,
+        'customer_phone': '9888822222',
+        'customer_name': 'पूजा वर्मा',
+        'current_points': 150,
+        'lifetime_earned_points': 150,
+        'lifetime_redeemed_points': 0,
+        'referral_code': 'POO1234',
+        'tier': 'bronze',
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('hi'),
+          home: CustomerLoyaltyScreen(
+            shopId: testShopId,
+            customerPhone: '9888822222',
+            customerName: 'पूजा वर्मा',
+            service: service,
+            enableAnimations: false,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Ensure no dual language parentheses on buttons/tabs
+      expect(find.text('कॉपी (Copy)'), findsNothing);
+      expect(find.text('व्हाट्सएप पर शेयर करें (Share on WhatsApp)'), findsNothing);
+      expect(find.text('अंक पासबुक (Passbook)'), findsNothing);
+
+      // Verify clean single language Hindi
+      expect(find.text('कॉपी करें'), findsOneWidget);
+      expect(find.text('व्हाट्सएप पर शेयर करें'), findsOneWidget);
+      expect(find.text('पासबुक'), findsOneWidget);
+      expect(find.text('कांस्य'), findsWidgets); // Clean Bronze in Hindi without (कांस्य)
     });
   });
 }

@@ -906,6 +906,251 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get stock_updated_snack => 'स्टॉक सफलतापूर्वक अपडेट हुआ';
+
+  @override
+  String get loyalty_rewards_title => 'लॉयल्टी रिवार्ड्स';
+
+  @override
+  String get loyalty_how_it_works => 'नियम व शर्तें';
+
+  @override
+  String get tab_refer_earn => 'रेफर और कमाएं';
+
+  @override
+  String get tab_points_passbook => 'पासबुक';
+
+  @override
+  String get tier_bronze => 'कांस्य';
+
+  @override
+  String get tier_silver => 'रजत';
+
+  @override
+  String get tier_gold => 'स्वर्ण';
+
+  @override
+  String get tier_platinum => 'प्लैटिनम';
+
+  @override
+  String get points_multiplier_label => 'अंक गुणक';
+
+  @override
+  String get points_available_label => 'उपलब्ध अंक';
+
+  @override
+  String get savings_value_label => 'बचत मूल्य';
+
+  @override
+  String get points_needed_for_next => 'अंक और चाहिए';
+
+  @override
+  String get top_tier_unlocked => 'सर्वोच्च टियर प्राप्त 🏆';
+
+  @override
+  String get total_earned_label => 'कुल अर्जित';
+
+  @override
+  String get your_referral_code_title => 'आपका विशेष रेफरल कोड';
+
+  @override
+  String get share_code_subtitle => 'दोस्त को शेयर करें और 100 अंक पाएं';
+
+  @override
+  String get copy_code_btn => 'कॉपी करें';
+
+  @override
+  String get code_copied_snack => 'रेफरल कोड कॉपी किया गया';
+
+  @override
+  String get share_whatsapp_btn => 'व्हाट्सएप पर शेयर करें';
+
+  @override
+  String get have_referral_code_title =>
+      'क्या आपके पास किसी मित्र का रेफरल कोड है?';
+
+  @override
+  String get have_referral_code_subtitle =>
+      'कोड दर्ज करें और अपनी पहली खरीदारी पर अतिरिक्त बोनस पाएं';
+
+  @override
+  String get enter_code_btn => 'दर्ज करें';
+
+  @override
+  String get referred_by_code_label => 'रेफरल कोड प्रयुक्त';
+
+  @override
+  String get referred_friends_title => 'रेफर किए गए मित्र';
+
+  @override
+  String get no_referrals_yet => 'अभी तक कोई रेफरल नहीं मिला';
+
+  @override
+  String get share_code_prompt =>
+      'ऊपर दिए गए कोड को व्हाट्सएप पर दोस्तों को भेजें और अंक कमाएं!';
+
+  @override
+  String get pending_order_status => 'ऑर्डर लंबित';
+
+  @override
+  String get no_transactions_title => 'कोई लेन-देन नहीं मिला';
+
+  @override
+  String get no_transactions_subtitle =>
+      'किराना ऑर्डर करने पर आपके अंक यहां दर्ज होंगे।';
+
+  @override
+  String get balance_pts_prefix => 'बैलेंस';
+
+  @override
+  String get how_it_works_title => 'लॉयल्टी और रेफरल कैसे काम करता है?';
+
+  @override
+  String get how_step_1 => 'हर ₹100 की खरीदारी पर 10 अंक अर्जित करें।';
+
+  @override
+  String get how_step_2 =>
+      'ज्यादा खरीदारी करके Silver, Gold, Platinum टियर अनलॉक करें और 2x अंक कमाएं।';
+
+  @override
+  String get how_step_3 =>
+      'मित्र को अपना रेफरल कोड भेजें। जब मित्र पहली खरीदारी करेगा, दोनों को बोनस अंक मिलेंगे।';
+
+  @override
+  String get how_step_4 =>
+      'चेकआउट पर अंकों को तुरंत रुपये की छूट के रूप में भुनाएं!';
+
+  @override
+  String get got_it_btn => 'समझ गया';
+
+  @override
+  String get apply_referral_title => 'रेफरल कोड दर्ज करें';
+
+  @override
+  String get apply_referral_subtitle =>
+      'अपने मित्र द्वारा दिया गया रेफरल कोड दर्ज करें और पहली सफल खरीदारी पर बोनस अंक प्राप्त करें।';
+
+  @override
+  String get referral_code_hint => 'रेफरल कोड (उदा. KIR8392)';
+
+  @override
+  String get apply_btn => 'लागू करें';
+
+  @override
+  String get admin_loyalty_title => 'लॉयल्टी व रेफरल प्रोग्राम';
+
+  @override
+  String get admin_tab_customers => 'ग्राहक खाते';
+
+  @override
+  String get admin_tab_referrals => 'रेफरल ऑडिट';
+
+  @override
+  String get admin_tab_settings => 'सेटिंग्स';
+
+  @override
+  String get adjust_points_title => 'अंक समायोजित करें';
+
+  @override
+  String get add_points_chip => '+ जोड़ें';
+
+  @override
+  String get deduct_points_chip => '- घटाएं';
+
+  @override
+  String get points_amount_label => 'अंकों की संख्या';
+
+  @override
+  String get settings_saved_snack =>
+      'लॉयल्टी व रेफरल सेटिंग्स सुरक्षित कर दी गई हैं';
+
+  @override
+  String get enable_loyalty_switch => 'लॉयल्टी प्रोग्राम सक्रिय करें';
+
+  @override
+  String get enable_referral_switch => 'रेफरल प्रोग्राम सक्रिय करें';
+
+  @override
+  String get min_points_redeem_label => 'न्यूनतम भुनाने योग्य अंक';
+
+  @override
+  String get min_order_points_label => 'अंक कमाने हेतु न्यूनतम ऑर्डर राशि (₹)';
+
+  @override
+  String get welcome_bonus_label => 'खाता खोलने पर स्वागत बोनस अंक';
+
+  @override
+  String get referrer_reward_label => 'रेफरर इनाम अंक';
+
+  @override
+  String get referee_reward_label => 'मित्र स्वागत इनाम अंक';
+
+  @override
+  String get min_order_referral_label =>
+      'रेफरल पूर्ण होने हेतु न्यूनतम खरीदारी (₹)';
+
+  @override
+  String get save_settings_btn => 'सेटिंग्स सुरक्षित करें';
+
+  @override
+  String get points_per_hundred_spend_label => 'हर ₹100 की खरीदारी पर अंक';
+
+  @override
+  String get point_rupee_value_label => '1 अंक का रुपया मूल्य';
+
+  @override
+  String get max_discount_percent_label => 'अधिकतम छूट प्रतिशत (%)';
+
+  @override
+  String get adjust_reason_label => 'कारण / टिप्पणी';
+
+  @override
+  String get adjust_reason_hint => 'उदा. जन्मदिन उपहार, सद्भावना क्रेडिट';
+
+  @override
+  String get loyalty_program_desc => 'ग्राहक खरीदारी पर अंक अर्जित कर सकते हैं';
+
+  @override
+  String get referral_program_desc =>
+      'सफल पहली खरीदारी पर दोस्त व रेफरर को इनाम';
+
+  @override
+  String get kpi_total_issued => 'कुल जारी अंक';
+
+  @override
+  String get kpi_total_redeemed => 'कुल भुनाए';
+
+  @override
+  String get kpi_successful_referrals => 'सफल रेफरल';
+
+  @override
+  String get kpi_total_discount_given => 'दी गई छूट';
+
+  @override
+  String get search_customer_hint => 'ग्राहक का नाम या फोन नंबर खोजें...';
+
+  @override
+  String get no_customers_found => 'कोई ग्राहक खाता नहीं मिला';
+
+  @override
+  String get modify_btn => 'बदलें';
+
+  @override
+  String get loyalty_rewards_section => 'लॉयल्टी रिवार्ड्स';
+
+  @override
+  String get available_points_prefix => 'उपलब्ध';
+
+  @override
+  String get max_redeem_label => 'अधिकतम';
+
+  @override
+  String get points_redeemed_label => 'अंक भुनाए गए';
+
+  @override
+  String get savings_prefix => 'बचत';
+
+  @override
+  String get discount_label => 'छूट';
 }
 
 /// The translations for Hindi, using the Latin script (`hi_Latn`).
@@ -1814,4 +2059,249 @@ class AppLocalizationsHiLatn extends AppLocalizationsHi {
 
   @override
   String get stock_updated_snack => 'Stock successfully update ho gaya';
+
+  @override
+  String get loyalty_rewards_title => 'Loyalty Rewards';
+
+  @override
+  String get loyalty_how_it_works => 'How it Works';
+
+  @override
+  String get tab_refer_earn => 'Refer & Earn';
+
+  @override
+  String get tab_points_passbook => 'Passbook';
+
+  @override
+  String get tier_bronze => 'Bronze';
+
+  @override
+  String get tier_silver => 'Silver';
+
+  @override
+  String get tier_gold => 'Gold';
+
+  @override
+  String get tier_platinum => 'Platinum';
+
+  @override
+  String get points_multiplier_label => 'Points Multiplier';
+
+  @override
+  String get points_available_label => 'Available Points';
+
+  @override
+  String get savings_value_label => 'Bachat Value';
+
+  @override
+  String get points_needed_for_next => 'points aur chahiye';
+
+  @override
+  String get top_tier_unlocked => 'Top Tier Unlocked! 🏆';
+
+  @override
+  String get total_earned_label => 'Kul Earned';
+
+  @override
+  String get your_referral_code_title => 'Aapka Special Referral Code';
+
+  @override
+  String get share_code_subtitle =>
+      'Dost ko share karein aur 100 points payein';
+
+  @override
+  String get copy_code_btn => 'Copy Karein';
+
+  @override
+  String get code_copied_snack => 'Referral code copy ho gaya';
+
+  @override
+  String get share_whatsapp_btn => 'WhatsApp Par Share Karein';
+
+  @override
+  String get have_referral_code_title =>
+      'Kya aapke paas dost ka referral code hai?';
+
+  @override
+  String get have_referral_code_subtitle =>
+      'Code daalein aur pehli shopping par bonus payein';
+
+  @override
+  String get enter_code_btn => 'Enter Karein';
+
+  @override
+  String get referred_by_code_label => 'Referral code use hua';
+
+  @override
+  String get referred_friends_title => 'Referred Friends';
+
+  @override
+  String get no_referrals_yet => 'Abhi tak koi referral nahi mila';
+
+  @override
+  String get share_code_prompt =>
+      'Code ko WhatsApp par share karke points kamayein!';
+
+  @override
+  String get pending_order_status => 'Order Pending';
+
+  @override
+  String get no_transactions_title => 'Koi Points History Nahi';
+
+  @override
+  String get no_transactions_subtitle =>
+      'Kirana order karne par aapke points yahan dikhenge.';
+
+  @override
+  String get balance_pts_prefix => 'Balance';
+
+  @override
+  String get how_it_works_title => 'Loyalty & Referral Kaise Kaam Karta Hai';
+
+  @override
+  String get how_step_1 => 'Har ₹100 ki shopping par 10 points earn karein.';
+
+  @override
+  String get how_step_2 =>
+      'Zyada shopping karke Silver, Gold, Platinum tiers unlock karein.';
+
+  @override
+  String get how_step_3 =>
+      'Friends ko code share karein aur pehle order par bonus payein.';
+
+  @override
+  String get how_step_4 =>
+      'Checkout par points ko turant discount ke roop mein redeem karein!';
+
+  @override
+  String get got_it_btn => 'Samajh Gaya';
+
+  @override
+  String get apply_referral_title => 'Referral Code Daalein';
+
+  @override
+  String get apply_referral_subtitle =>
+      'Dost ka referral code daalein aur pehli purchase par bonus points payein.';
+
+  @override
+  String get referral_code_hint => 'Referral Code (jaise KIR8392)';
+
+  @override
+  String get apply_btn => 'Apply Karein';
+
+  @override
+  String get admin_loyalty_title => 'Loyalty & Referrals';
+
+  @override
+  String get admin_tab_customers => 'Customer Khate';
+
+  @override
+  String get admin_tab_referrals => 'Referral Audit';
+
+  @override
+  String get admin_tab_settings => 'Settings';
+
+  @override
+  String get adjust_points_title => 'Points Adjust Karein';
+
+  @override
+  String get add_points_chip => '+ Add Karein';
+
+  @override
+  String get deduct_points_chip => '- Ghatayein';
+
+  @override
+  String get points_amount_label => 'Points Amount';
+
+  @override
+  String get settings_saved_snack => 'Loyalty settings save ho gayi hain';
+
+  @override
+  String get enable_loyalty_switch => 'Loyalty Program Enable Karein';
+
+  @override
+  String get enable_referral_switch => 'Refer & Earn Program Enable Karein';
+
+  @override
+  String get min_points_redeem_label => 'Min points redeem karne ke liye';
+
+  @override
+  String get min_order_points_label => 'Points ke liye minimum order (₹)';
+
+  @override
+  String get welcome_bonus_label => 'Welcome Bonus Points';
+
+  @override
+  String get referrer_reward_label => 'Referrer Reward Points';
+
+  @override
+  String get referee_reward_label => 'Friend Welcome Points';
+
+  @override
+  String get min_order_referral_label => 'Min qualifying order (₹)';
+
+  @override
+  String get save_settings_btn => 'Settings Save Karein';
+
+  @override
+  String get points_per_hundred_spend_label => 'Har ₹100 shopping par points';
+
+  @override
+  String get point_rupee_value_label => '1 Point ka rupee value';
+
+  @override
+  String get max_discount_percent_label => 'Order par maximum discount %';
+
+  @override
+  String get adjust_reason_label => 'Wajah / Reason';
+
+  @override
+  String get adjust_reason_hint => 'Jaise Birthday gift, Goodwill credit';
+
+  @override
+  String get loyalty_program_desc => 'Shopping par reward points milenge';
+
+  @override
+  String get referral_program_desc =>
+      'First order complete hone par dono ko points';
+
+  @override
+  String get kpi_total_issued => 'Kul Issued Points';
+
+  @override
+  String get kpi_total_redeemed => 'Kul Redeemed Points';
+
+  @override
+  String get kpi_successful_referrals => 'Successful Referrals';
+
+  @override
+  String get kpi_total_discount_given => 'Di Gayi Discount';
+
+  @override
+  String get search_customer_hint =>
+      'Customer ka naam ya phone search karein...';
+
+  @override
+  String get no_customers_found => 'Koi customer account nahi mila';
+
+  @override
+  String get modify_btn => 'Badlein';
+
+  @override
+  String get loyalty_rewards_section => 'Loyalty Rewards';
+
+  @override
+  String get available_points_prefix => 'Available';
+
+  @override
+  String get max_redeem_label => 'Maximum';
+
+  @override
+  String get points_redeemed_label => 'points redeem hue';
+
+  @override
+  String get savings_prefix => 'Bachat';
+
+  @override
+  String get discount_label => 'discount';
 }

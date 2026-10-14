@@ -14,6 +14,7 @@ import 'package:near_kirana/coupon_model.dart';
 import 'package:near_kirana/widgets/coupon_widgets.dart';
 import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 import 'package:near_kirana/l10n/app_localizations.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
@@ -1423,11 +1424,50 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       String customerName = userProvider.customerName.isEmpty
           ? "Customer"
           : userProvider.customerName;
-      String phone = userProvider.phoneNumber.isEmpty
-          ? "0000000000"
-          : userProvider.phoneNumber;
+      String phone = userProvider.phoneNumber.trim();
+      if (phone.isEmpty || phone == "0000000000" || phone.length != 10) {
+        setState(() => _isProcessingCheckout = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please login with a valid 10-digit phone number"),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
       String shopId =
           Provider.of<ShopProvider>(context, listen: false).currentShopId ?? '';
+
+      // Check if user is banned by merchant
+      try {
+        final customerQuery = await FirebaseUtils.firestore
+            .collection('customers')
+            .where('mobile', isEqualTo: phone)
+            .where('shop_ids', arrayContains: shopId)
+            .limit(1)
+            .get();
+
+        if (customerQuery.docs.isNotEmpty) {
+          final customerData = customerQuery.docs.first.data();
+          if (customerData['is_banned'] == true) {
+            setState(() => _isProcessingCheckout = false);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Aapka account block kar diya gaya hai. Kripya dukan par sampark karein.',
+                  ),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error checking banned status: $e');
+      }
 
       String finalDeliveryAddress = 'House: ${userProvider.customerHouseNo}';
       if (userProvider.customerLandmark.isNotEmpty) {

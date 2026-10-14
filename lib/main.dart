@@ -61,9 +61,10 @@ void main() async {
           });
         }
       }
-      await prefs.setBool('hasMigratedSearchKeywordsV2', true);
     } catch (e) {
-      debugPrint('Migration failed: $e');
+      debugPrint('SearchKeywords migration skipped/failed: $e');
+    } finally {
+      await prefs.setBool('hasMigratedSearchKeywordsV2', true);
     }
   }
 
@@ -93,9 +94,10 @@ void main() async {
           'Successfully migrated $migratedCount products to new categories array.',
         );
       }
-      await prefs.setBool('hasMigratedCategoriesV1', true);
     } catch (e) {
-      debugPrint('Category Migration failed: $e');
+      debugPrint('Category Migration skipped/failed: $e');
+    } finally {
+      await prefs.setBool('hasMigratedCategoriesV1', true);
     }
   }
 

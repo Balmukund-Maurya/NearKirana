@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'app_theme.dart';
 import 'loyalty_referral_models.dart';
 import 'loyalty_referral_service.dart';
+import 'l10n/app_localizations.dart';
 
 /// Full customer rewards hub displaying live points balance, membership tier progress,
 /// referral code sharing via WhatsApp, list of referred friends, and passbook history.
@@ -81,9 +82,10 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
   void _copyToClipboard(String code) {
     Clipboard.setData(ClipboardData(text: code));
     HapticFeedback.mediumImpact();
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('रेफरल कोड कॉपी किया: $code (Code Copied)'),
+        content: Text('${l10n?.code_copied_snack ?? "Referral code copied"}: $code'),
         backgroundColor: AppColors.primaryDark,
         behavior: SnackBarBehavior.floating,
       ),
@@ -91,6 +93,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
   }
 
   Future<void> _showApplyReferralDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (dialogCtx) {
@@ -109,10 +112,10 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                     child: Icon(Icons.card_giftcard_rounded, color: Colors.amber.shade800),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'रेफरल कोड दर्ज करें\n(Apply Referral Code)',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      l10n?.apply_referral_title ?? 'Enter Referral Code',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -121,16 +124,17 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'अपने मित्र द्वारा दिया गया रेफरल कोड दर्ज करें और पहली सफल खरीदारी पर बोनस अंक प्राप्त करें।',
-                    style: TextStyle(fontSize: 13, color: AppColors.textMid),
+                  Text(
+                    l10n?.apply_referral_subtitle ??
+                        'Enter your friend\'s code to claim bonus points on your first purchase.',
+                    style: const TextStyle(fontSize: 13, color: AppColors.textMid),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _referralCodeController,
                     textCapitalization: TextCapitalization.characters,
                     decoration: InputDecoration(
-                      labelText: 'रेफरल कोड (e.g. KIR8392)',
+                      labelText: l10n?.referral_code_hint ?? 'Referral Code (e.g. KIR8392)',
                       prefixIcon: const Icon(Icons.tag_rounded),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -140,7 +144,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogCtx),
-                  child: const Text('रद्द करें (Cancel)'),
+                  child: Text(l10n?.cancel ?? 'Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: _isApplyingCode
@@ -183,7 +187,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text('लागू करें (Apply)'),
+                      : Text(l10n?.apply_btn ?? 'Apply'),
                 ),
               ],
             );
@@ -195,6 +199,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FutureBuilder<CustomerLoyaltyAccount>(
       future: _service.getOrCreateAccount(
         shopId: widget.shopId,
@@ -212,7 +217,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
         final initialAccount = snapshot.data;
         if (initialAccount == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Loyalty & Rewards')),
+            appBar: AppBar(title: Text(l10n?.loyalty_rewards_title ?? 'Rewards & Referrals')),
             body: const Center(child: Text('Unable to load rewards account')),
           );
         }
@@ -226,7 +231,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               backgroundColor: AppColors.surface,
               appBar: AppBar(
                 title: Text(
-                  'लॉयल्टी रिवार्ड्स (Rewards & Referrals)',
+                  l10n?.loyalty_rewards_title ?? 'Rewards & Referrals',
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 17),
                 ),
                 backgroundColor: Colors.white,
@@ -235,7 +240,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.info_outline_rounded),
-                    tooltip: 'नियम व शर्तें (How it Works)',
+                    tooltip: l10n?.loyalty_how_it_works ?? 'How it Works',
                     onPressed: () => _showHowItWorksBottomSheet(context),
                   ),
                 ],
@@ -270,23 +275,23 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       unselectedLabelColor: AppColors.textMid,
                       labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-                      tabs: const [
+                      tabs: [
                         Tab(
-                          icon: Icon(Icons.people_outline_rounded, size: 18),
+                          icon: const Icon(Icons.people_outline_rounded, size: 18),
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              'रेफर और कमाएं (Refer & Earn)',
+                              l10n?.tab_refer_earn ?? 'Refer & Earn',
                               maxLines: 1,
                             ),
                           ),
                         ),
                         Tab(
-                          icon: Icon(Icons.receipt_long_rounded, size: 18),
+                          icon: const Icon(Icons.receipt_long_rounded, size: 18),
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              'अंक पासबुक (Passbook)',
+                              l10n?.tab_points_passbook ?? 'Passbook',
                               maxLines: 1,
                             ),
                           ),
@@ -313,8 +318,10 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
   }
 
   Widget _buildHeroPointsCard(CustomerLoyaltyAccount account) {
+    final l10n = AppLocalizations.of(context);
     final rupeeSavings = account.rupeeValue();
     final tier = account.tier;
+    final isHindi = l10n?.localeName.startsWith('hi') ?? false;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -357,7 +364,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                     Icon(Icons.stars_rounded, color: tier.color, size: 18),
                     const SizedBox(width: 6),
                     Text(
-                      tier.label,
+                      tier.localizedLabel(context),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -368,7 +375,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 ),
               ),
               Text(
-                '${tier.pointsMultiplier}x Points Multiplier',
+                '${tier.pointsMultiplier}x ${l10n?.points_multiplier_label ?? "Points Multiplier"}',
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 12,
@@ -391,11 +398,11 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 ),
               ),
               const SizedBox(width: 8),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
-                  'अंक (Points Available)',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                  l10n?.points_available_label ?? 'Points Available',
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ),
               const Spacer(),
@@ -407,9 +414,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      'बचत मूल्य',
-                      style: TextStyle(fontSize: 10, color: AppColors.textMid, fontWeight: FontWeight.bold),
+                    Text(
+                      l10n?.savings_value_label ?? 'Savings Value',
+                      style: const TextStyle(fontSize: 10, color: AppColors.textMid, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       '₹${rupeeSavings.toStringAsFixed(1)}',
@@ -441,12 +448,14 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             children: [
               Text(
                 account.tier == LoyaltyTier.platinum
-                    ? 'सर्वोच्च टियर प्राप्त (Top Platinum Tier) 🏆'
-                    : '${account.nextTier.simpleName} हेतु ${account.pointsNeededForNextTier} अंक और चाहिए',
+                    ? (l10n?.top_tier_unlocked ?? 'Top Tier Unlocked! 🏆')
+                    : (isHindi
+                        ? '${account.nextTier.localizedLabel(context)} हेतु ${account.pointsNeededForNextTier} ${l10n?.points_needed_for_next ?? "अंक और चाहिए"}'
+                        : '${account.pointsNeededForNextTier} ${l10n?.points_needed_for_next ?? "points needed for"} ${account.nextTier.localizedLabel(context)}'),
                 style: const TextStyle(color: Colors.white70, fontSize: 11),
               ),
               Text(
-                'कुल अर्जित: ${account.lifetimeEarnedPoints} pts',
+                '${l10n?.total_earned_label ?? "Total Earned"}: ${account.lifetimeEarnedPoints} pts',
                 style: const TextStyle(color: Colors.white70, fontSize: 11),
               ),
             ],
@@ -457,6 +466,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
   }
 
   Widget _buildReferralTab(CustomerLoyaltyAccount account) {
+    final l10n = AppLocalizations.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -491,17 +501,17 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       child: const Icon(Icons.share_rounded, color: AppColors.primaryDark, size: 22),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'आपका विशेष रेफरल कोड',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            l10n?.your_referral_code_title ?? 'Your Exclusive Referral Code',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                           Text(
-                            'दोस्त को शेयर करें और 100 अंक पाएं',
-                            style: TextStyle(fontSize: 12, color: AppColors.textMid),
+                            l10n?.share_code_subtitle ?? 'Share with friends & get 100 points',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMid),
                           ),
                         ],
                       ),
@@ -537,7 +547,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       ElevatedButton.icon(
                         onPressed: () => _copyToClipboard(account.referralCode),
                         icon: const Icon(Icons.copy_rounded, size: 15),
-                        label: const Text('कॉपी (Copy)'),
+                        label: Text(l10n?.copy_code_btn ?? 'Copy'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppColors.primaryDark,
@@ -557,11 +567,11 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                   child: ElevatedButton.icon(
                     onPressed: () => _shareOnWhatsApp(account.referralCode, 'हमारा किराना'),
                     icon: const Icon(Icons.send_rounded, size: 18),
-                    label: const FittedBox(
+                    label: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        'व्हाट्सएप पर शेयर करें (Share on WhatsApp)',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        l10n?.share_whatsapp_btn ?? 'Share on WhatsApp',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                         maxLines: 1,
                       ),
                     ),
@@ -606,13 +616,13 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                   ),
                   child: const Icon(Icons.card_giftcard_rounded, color: Colors.amber),
                 ),
-                title: const Text(
-                  'क्या आपके पास किसी मित्र का रेफरल कोड है?',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                title: Text(
+                  l10n?.have_referral_code_title ?? 'Have a friend\'s referral code?',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
-                subtitle: const Text(
-                  'कोड दर्ज करें और अपनी पहली खरीदारी पर अतिरिक्त बोनस पाएं',
-                  style: TextStyle(fontSize: 11, color: AppColors.textMid),
+                subtitle: Text(
+                  l10n?.have_referral_code_subtitle ?? 'Enter code & get extra bonus on your first order',
+                  style: const TextStyle(fontSize: 11, color: AppColors.textMid),
                 ),
                 trailing: ElevatedButton(
                   onPressed: () => _showApplyReferralDialog(context),
@@ -621,7 +631,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('दर्ज करें', style: TextStyle(fontSize: 12)),
+                  child: Text(l10n?.enter_code_btn ?? 'Enter', style: const TextStyle(fontSize: 12)),
                 ),
               ),
             ),
@@ -640,7 +650,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'रेफरल कोड प्रयुक्त: ${account.referredByCode} (Referred by friend)',
+                      '${l10n?.referred_by_code_label ?? "Referral code applied"}: ${account.referredByCode}',
                       style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                   ),
@@ -655,7 +665,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'रेफर किए गए मित्र (Referred Friends)',
+                l10n?.referred_friends_title ?? 'Referred Friends',
                 style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
@@ -679,15 +689,15 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                     children: [
                       Icon(Icons.group_add_outlined, size: 44, color: Colors.grey.shade400),
                       const SizedBox(height: 10),
-                      const Text(
-                        'अभी तक कोई रेफरल नहीं मिला',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
+                      Text(
+                        l10n?.no_referrals_yet ?? 'No referrals yet',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'ऊपर दिए गए कोड को व्हाट्सएप पर दोस्तों को भेजें और अंक कमाएं!',
+                      Text(
+                        l10n?.share_code_prompt ?? 'Share your code on WhatsApp to start earning points!',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12, color: AppColors.textMid),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMid),
                       ),
                     ],
                   ),
@@ -749,7 +759,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                             ),
                           ),
                           child: Text(
-                            isCompleted ? '+${ref.referrerPointsAwarded} pts' : 'Pending Order',
+                            isCompleted ? '+${ref.referrerPointsAwarded} pts' : (l10n?.pending_order_status ?? 'Pending Order'),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -770,6 +780,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
   }
 
   Widget _buildPassbookTab(CustomerLoyaltyAccount account) {
+    final l10n = AppLocalizations.of(context);
     return StreamBuilder<List<LoyaltyTransaction>>(
       stream: _service.streamCustomerTransactions(widget.shopId, widget.customerPhone),
       builder: (context, snap) {
@@ -785,14 +796,14 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               children: [
                 Icon(Icons.history_toggle_off_rounded, size: 54, color: Colors.grey.shade400),
                 const SizedBox(height: 12),
-                const Text(
-                  'कोई लेन-देन नहीं मिला (No Points History)',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
+                Text(
+                  l10n?.no_transactions_title ?? 'No Points History',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'किराना ऑर्डर करने पर आपके अंक यहां दर्ज होंगे।',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMid),
+                Text(
+                  l10n?.no_transactions_subtitle ?? 'Your points will appear here when you place grocery orders.',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMid),
                 ),
               ],
             ),
@@ -839,7 +850,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          '${tx.createdAt.day}/${tx.createdAt.month}/${tx.createdAt.year} • बैलेंस: ${tx.balanceAfter} pts',
+                          '${tx.createdAt.day}/${tx.createdAt.month}/${tx.createdAt.year} • ${l10n?.balance_pts_prefix ?? "Balance"}: ${tx.balanceAfter} pts',
                           style: const TextStyle(fontSize: 11, color: AppColors.textMid),
                         ),
                       ],
@@ -863,6 +874,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
   }
 
   void _showHowItWorksBottomSheet(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -876,14 +888,14 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'लॉयल्टी और रेफरल कैसे काम करता है?',
+                l10n?.how_it_works_title ?? 'How Loyalty & Referrals Work',
                 style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              _buildStepRow('1', 'हर ₹100 की खरीदारी पर 10 अंक अर्जित करें।'),
-              _buildStepRow('2', 'ज्यादा खरीदारी करके Silver, Gold, Platinum टियर अनलॉक करें और 2x अंक कमाएं।'),
-              _buildStepRow('3', 'मित्र को अपना रेफरल कोड भेजें। जब मित्र पहली खरीदारी करेगा, दोनों को बोनस अंक मिलेंगे।'),
-              _buildStepRow('4', 'चेकआउट पर अंकों को तुरंत रुपये की छूट के रूप में भुनाएं!'),
+              _buildStepRow('1', l10n?.how_step_1 ?? 'Earn 10 points for every ₹100 spent.'),
+              _buildStepRow('2', l10n?.how_step_2 ?? 'Unlock Silver, Gold, Platinum tiers to earn up to 2x points.'),
+              _buildStepRow('3', l10n?.how_step_3 ?? 'Invite friends using your code to earn mutual bonus points on their first order.'),
+              _buildStepRow('4', l10n?.how_step_4 ?? 'Redeem your points instantly at checkout for direct rupee discounts!'),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -894,7 +906,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('समझ गया (Got it)'),
+                  child: Text(l10n?.got_it_btn ?? 'Got it'),
                 ),
               ),
             ],

@@ -150,7 +150,7 @@ class LoyaltyReferralService {
     final upperCode = referralCode.trim().toUpperCase();
 
     if (upperCode.isEmpty) {
-      return (success: false, message: 'कृपया रेफरल कोड दर्ज करें (Enter code)', referral: null);
+      return (success: false, message: 'कृपया रेफरल कोड दर्ज करें', referral: null);
     }
 
     final config = await getProgramConfig(shopId);
@@ -175,7 +175,7 @@ class LoyaltyReferralService {
         .get();
 
     if (referrerQuery.docs.isEmpty) {
-      return (success: false, message: 'अमान्य रेफरल कोड (Invalid referral code)', referral: null);
+      return (success: false, message: 'अमान्य रेफरल कोड', referral: null);
     }
 
     final referrerData = referrerQuery.docs.first.data() as Map<String, dynamic>;
@@ -184,7 +184,7 @@ class LoyaltyReferralService {
 
     // Anti-fraud check: Prevent self-referral
     if (referrerPhone == cleanRefereePhone) {
-      return (success: false, message: 'आप स्वयं का रेफरल कोड इस्तेमाल नहीं कर सकते (Self-referral not allowed)', referral: null);
+      return (success: false, message: 'आप स्वयं का रेफरल कोड इस्तेमाल नहीं कर सकते', referral: null);
     }
 
     // Ensure referee account exists
@@ -422,20 +422,20 @@ class LoyaltyReferralService {
     if (pointsToRedeem < config.minPointsToRedeem) {
       return (
         success: false,
-        message: 'न्यूनतम ${config.minPointsToRedeem} अंक आवश्यक हैं (Min points required)',
+        message: 'न्यूनतम ${config.minPointsToRedeem} अंक आवश्यक हैं',
         discountRupees: 0.0,
       );
     }
 
     final accountDoc = await _accountsRef.doc(_accountId(shopId, cleanPhone)).get();
     if (!accountDoc.exists || accountDoc.data() == null) {
-      return (success: false, message: 'खाता नहीं मिला (Account not found)', discountRupees: 0.0);
+      return (success: false, message: 'खाता नहीं मिला', discountRupees: 0.0);
     }
 
     final account = CustomerLoyaltyAccount.fromMap(accountDoc.data() as Map<String, dynamic>, accountDoc.id);
 
     if (account.currentPoints < pointsToRedeem) {
-      return (success: false, message: 'अपर्याप्त अंक (Insufficient points balance)', discountRupees: 0.0);
+      return (success: false, message: 'अपर्याप्त अंक', discountRupees: 0.0);
     }
 
     // Cap check: discount cannot exceed max allowed percentage of subtotal

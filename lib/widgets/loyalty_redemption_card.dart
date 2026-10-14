@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../app_theme.dart';
 import '../loyalty_referral_models.dart';
 import '../loyalty_referral_service.dart';
+import '../l10n/app_localizations.dart';
 
 /// Interactive checkout widget allowing customers to redeem accumulated loyalty points
 /// for instant rupee discounts on their cart order.
@@ -99,6 +100,9 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isHindi = l10n?.localeName.startsWith('hi') ?? false;
+
     return FutureBuilder<LoyaltyProgramConfig>(
       future: _service.getProgramConfig(widget.shopId),
       builder: (context, configSnap) {
@@ -157,7 +161,7 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'लॉयल्टी रिवार्ड्स (Loyalty Points)',
+                              l10n?.loyalty_rewards_section ?? 'Loyalty Rewards',
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -165,7 +169,9 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
                               ),
                             ),
                             Text(
-                              'उपलब्ध: $currentPoints pts (${account.tier.simpleName} Member)',
+                              isHindi
+                                  ? 'उपलब्ध: $currentPoints pts • ${account.tier.localizedLabel(context)}'
+                                  : 'Available: $currentPoints pts • ${account.tier.localizedLabel(context)}',
                               style: const TextStyle(fontSize: 11, color: AppColors.textMid),
                             ),
                           ],
@@ -186,8 +192,8 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
                       children: [
                         Text(
                           _isRedemptionApplied
-                              ? '$_appliedPoints अंक भुनाए गए'
-                              : 'अधिकतम $maxRedeemable अंक भुनाएं',
+                              ? (isHindi ? '$_appliedPoints अंक भुनाए गए' : '$_appliedPoints points redeemed')
+                              : (isHindi ? 'अधिकतम $maxRedeemable अंक भुनाएं' : 'Redeem up to $maxRedeemable pts'),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -196,8 +202,8 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
                         ),
                         Text(
                           _isRedemptionApplied
-                              ? '-₹${_appliedDiscount.toStringAsFixed(1)} छूट'
-                              : 'बचत: ₹${potentialSavings.toStringAsFixed(1)}',
+                              ? (isHindi ? '-₹${_appliedDiscount.toStringAsFixed(1)} छूट' : '-₹${_appliedDiscount.toStringAsFixed(1)} off')
+                              : (isHindi ? 'बचत: ₹${potentialSavings.toStringAsFixed(1)}' : 'Savings: ₹${potentialSavings.toStringAsFixed(1)}'),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
@@ -210,8 +216,12 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
                     const SizedBox(height: 8),
                     Text(
                       currentPoints < config.minPointsToRedeem
-                          ? 'छूट हेतु न्यूनतम ${config.minPointsToRedeem} अंक आवश्यक हैं (कम से कम ${config.minPointsToRedeem - currentPoints} अंक और चाहिए)'
-                          : 'इस ऑर्डर मूल्य पर रिडेम्पशन सीमा पूरी हो चुकी है',
+                          ? (isHindi
+                              ? 'छूट हेतु कम से कम ${config.minPointsToRedeem} अंक आवश्यक हैं'
+                              : 'Minimum ${config.minPointsToRedeem} points required for discount')
+                          : (isHindi
+                              ? 'इस ऑर्डर मूल्य पर रिडेम्पशन सीमा पूरी हो चुकी है'
+                              : 'Maximum redemption limit reached for this order'),
                       style: const TextStyle(fontSize: 11, color: AppColors.textMid),
                     ),
                   ],

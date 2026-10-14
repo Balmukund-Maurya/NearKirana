@@ -532,7 +532,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             color: AppColors.primaryDark,
                             size: 22,
                           ),
-                          tooltip: 'Voice Order (बोलकर सामान मंगाएं)',
+                          tooltip: AppLocalizations.of(context)?.order_by_voice_btn ?? 'Order by Voice',
                           onPressed: () {
                             VoiceOrderSheet.show(
                               context,
@@ -777,7 +777,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             color: AppColors.primaryDark,
                             size: 22,
                           ),
-                          tooltip: 'Voice Order (बोलकर सामान मंगाएं)',
+                          tooltip: AppLocalizations.of(context)?.order_by_voice_btn ?? 'Order by Voice',
                           onPressed: () {
                             final shopProvider = Provider.of<ShopProvider>(context, listen: false);
                             VoiceOrderSheet.show(

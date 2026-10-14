@@ -36,7 +36,17 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
   String _selectedPaymentMethod = 'Cash';
   final DateTime _selectedDate = DateTime.now();
 
-  double get _currentBalance => _customerData?['total_udhaar']?.toDouble() ?? 0.0;
+  double get _currentBalance {
+    final shopId =
+        Provider.of<ShopProvider>(context, listen: false).currentShopId;
+    if (shopId != null && _customerData?['shop_balances'] is Map) {
+      final balance = _customerData!['shop_balances'][shopId];
+      if (balance != null) {
+        return (balance as num).toDouble();
+      }
+    }
+    return _customerData?['total_udhaar']?.toDouble() ?? 0.0;
+  }
   double get _creditLimit => _customerData?['credit_limit']?.toDouble() ?? 5000.0;
 
   @override

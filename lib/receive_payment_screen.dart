@@ -108,10 +108,13 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
       final customerRef = FirebaseUtils.firestore.collection('customers').doc(widget.customerId);
       final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
 
-      batch.update(customerRef, {
-        'shop_balances.$shopId': FieldValue.increment(-amount),
+      final Map<String, dynamic> updateData = {
         'total_udhaar': FieldValue.increment(-amount),
-      });
+      };
+      if (shopId != null && shopId.isNotEmpty) {
+        updateData['shop_balances.$shopId'] = FieldValue.increment(-amount);
+      }
+      batch.update(customerRef, updateData);
 
       batch.set(customerRef.collection('khata_transactions').doc(), {
         'amount': amount,

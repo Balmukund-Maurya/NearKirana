@@ -62,14 +62,20 @@ class _AdminWhatsappReminderScreenState extends State<AdminWhatsappReminderScree
     
     final data = _selectedCustomer!.data() as Map<String, dynamic>;
     final name = data['name'] ?? 'Customer';
-    final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+    final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+    final shopId = shopProvider.currentShopId;
+    final shopName = shopProvider.shopName?.trim().isNotEmpty == true
+        ? shopProvider.shopName!.trim()
+        : 'NearKirana';
     final balances = data['shop_balances'] as Map<String, dynamic>? ?? {};
-    final balance = (balances[shopId] ?? 0.0).toDouble();
+    final double balance = shopId != null && balances.containsKey(shopId)
+        ? (balances[shopId] as num).toDouble()
+        : (data['total_udhaar'] as num?)?.toDouble() ?? 0.0;
     
     if (_reminderType == 'Payment Reminder') {
-      _messageController.text = 'Namaste $name,\n\nAapka NearKirana par ₹${balance.toStringAsFixed(0)} ka outstanding balance hai.\nKripya convenient time par payment kar dein.\n\nThank you,\nNearKirana';
+      _messageController.text = 'Namaste $name,\n\nAapka $shopName par ₹${balance.toStringAsFixed(0)} ka outstanding balance hai.\nKripya convenient time par payment kar dein.\n\nThank you,\n$shopName';
     } else if (_reminderType == 'Overdue Payment') {
-      _messageController.text = 'URGENT: Namaste $name,\n\nAapka ₹${balance.toStringAsFixed(0)} ka payment overdue hai.\nKripya jald se jald payment clear karein.\n\nThank you,\nNearKirana';
+      _messageController.text = 'URGENT: Namaste $name,\n\nAapka ₹${balance.toStringAsFixed(0)} ka payment overdue hai.\nKripya jald se jald payment clear karein.\n\nThank you,\n$shopName';
     } else {
       // Custom message stays as is unless empty
       if (_messageController.text.isEmpty) {

@@ -599,6 +599,17 @@ class AdminProductForms {
                                 return;
                               }
 
+                              final mrp = (extraData['mrp'] as num?)?.toDouble() ?? 0.0;
+                              if (mrp > 0 && price > mrp) {
+                                SnackbarHelper.showSnackBar(
+                                  context,
+                                  'Selling price (₹${price.toStringAsFixed(2)}) cannot exceed MRP (₹${mrp.toStringAsFixed(2)})',
+                                  isError: true,
+                                );
+                                setState(() => isUploading = false);
+                                return;
+                              }
+
                               final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
                               await FirestoreService().updateProduct(
                                 barcode,

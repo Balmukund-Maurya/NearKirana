@@ -329,13 +329,47 @@ class AtomicOrderService {
 
       // 1.2 Store open verification if enforced
       if (params.enforceStoreOpen) {
-        final settingsRef = _firestore.collection('settings').doc('app_config');
-        final settingsSnap = await transaction.get(settingsRef);
-        if (settingsSnap.exists) {
-          final sData = settingsSnap.data() as Map<String, dynamic>;
-          if (sData['is_store_open'] == false) {
-            throw StoreClosedException();
+        bool isStoreOpen = true;
+
+        if (params.shopId.trim().isNotEmpty) {
+          final shopRef =
+              _firestore.collection('shops').doc(params.shopId.trim());
+          final shopSnap = await transaction.get(shopRef);
+          if (shopSnap.exists && shopSnap.data() != null) {
+            final sData = shopSnap.data() as Map<String, dynamic>;
+            if (sData.containsKey('is_store_open')) {
+              isStoreOpen = sData['is_store_open'] == true;
+            } else {
+              // Fallback to app_config if shop doesn't specify is_store_open
+              final settingsRef =
+                  _firestore.collection('settings').doc('app_config');
+              final settingsSnap = await transaction.get(settingsRef);
+              if (settingsSnap.exists && settingsSnap.data() != null) {
+                final cData = settingsSnap.data() as Map<String, dynamic>;
+                isStoreOpen = cData['is_store_open'] != false;
+              }
+            }
+          } else {
+            final settingsRef =
+                _firestore.collection('settings').doc('app_config');
+            final settingsSnap = await transaction.get(settingsRef);
+            if (settingsSnap.exists && settingsSnap.data() != null) {
+              final cData = settingsSnap.data() as Map<String, dynamic>;
+              isStoreOpen = cData['is_store_open'] != false;
+            }
           }
+        } else {
+          final settingsRef =
+              _firestore.collection('settings').doc('app_config');
+          final settingsSnap = await transaction.get(settingsRef);
+          if (settingsSnap.exists && settingsSnap.data() != null) {
+            final cData = settingsSnap.data() as Map<String, dynamic>;
+            isStoreOpen = cData['is_store_open'] != false;
+          }
+        }
+
+        if (!isStoreOpen) {
+          throw StoreClosedException();
         }
       }
 

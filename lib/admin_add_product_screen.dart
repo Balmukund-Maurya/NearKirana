@@ -154,6 +154,15 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
       SnackbarHelper.showSnackBar(context, AppLocalizations.of(context)!.err_price_stock, isError: true);
       return;
     }
+
+    if (mrp > 0 && price > mrp) {
+      SnackbarHelper.showSnackBar(
+        context,
+        'Selling price (₹${price.toStringAsFixed(2)}) cannot exceed MRP (₹${mrp.toStringAsFixed(2)})',
+        isError: true,
+      );
+      return;
+    }
     
     setState(() => _isUploading = true);
     

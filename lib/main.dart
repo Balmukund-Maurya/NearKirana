@@ -823,11 +823,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text('🌐', style: TextStyle(fontSize: 16)),
                     const SizedBox(width: 6),
                     Text(
-                      langProvider.currentLanguage == 'hi'
+                      langProvider.isHindi
                           ? 'हिं'
-                          : langProvider.currentLanguage == 'en'
-                          ? 'EN'
-                          : 'Hi',
+                          : langProvider.isHinglish
+                              ? 'Hing'
+                              : 'EN',
                       style: AppTextStyles.captionMedium(
                         color: AppColors.primaryDark,
                       ),

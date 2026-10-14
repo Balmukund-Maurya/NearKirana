@@ -68,7 +68,7 @@ class _MyOrdersDesktopWrapperState extends State<MyOrdersDesktopWrapper> {
       final status = data['status'] ?? 'Pending';
       if (status == 'Delivered') {
         deliveredCount++;
-      } else if (status == 'Cancelled') {
+      } else if (status == 'Cancelled' || status == 'Rejected') {
         cancelledCount++;
       } else {
         inProgressCount++;
@@ -83,8 +83,13 @@ class _MyOrdersDesktopWrapperState extends State<MyOrdersDesktopWrapper> {
       // Status filter
       if (_statusFilter != 'All Orders') {
         if (_statusFilter == 'Delivered' && status != 'Delivered') return false;
-        if (_statusFilter == 'Cancelled' && status != 'Cancelled') return false;
-        if (_statusFilter == 'In Progress' && (status == 'Delivered' || status == 'Cancelled')) return false;
+        if (_statusFilter == 'Cancelled' && status != 'Cancelled' && status != 'Rejected') return false;
+        if (_statusFilter == 'In Progress' &&
+            (status == 'Delivered' ||
+                status == 'Cancelled' ||
+                status == 'Rejected')) {
+          return false;
+        }
       }
       
       // Search filter

@@ -76,7 +76,7 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
       statusBgColor = const Color(0xFFDCFCE7);
       statusTextColor = const Color(0xFF166534);
       statusIcon = Icons.check_circle;
-    } else if (status == 'Cancelled') {
+    } else if (status == 'Cancelled' || status == 'Rejected') {
       statusBgColor = const Color(0xFFFEE2E2);
       statusTextColor = const Color(0xFFB91C1C);
       statusIcon = Icons.cancel;

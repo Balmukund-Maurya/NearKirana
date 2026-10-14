@@ -246,67 +246,7 @@ class DesktopOrderTrackingView extends StatelessWidget {
                           const SizedBox(height: 32),
                           
                           // CURRENT STATUS BANNER
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDF4),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: const BoxDecoration(color: Color(0xFF047857), shape: BoxShape.circle),
-                                  child: const Icon(Icons.local_shipping, color: Colors.white, size: 28),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Your order is ${status.toLowerCase()}!', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF111827))),
-                                      const SizedBox(height: 4),
-                                      Text('Our delivery partner is on the way to your location.', style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFDCFCE7),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.access_time_filled, color: Color(0xFF047857), size: 20),
-                                      const SizedBox(width: 12),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text('Estimated Delivery Time', style: TextStyle(color: Color(0xFF166534), fontSize: 11)),
-                                          Text(
-                                            data['estimated_delivery_window']?.toString() ?? '35–50 mins',
-                                            style: const TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.bold, fontSize: 14),
-                                          ),
-                                          if (data['estimated_delivery_arrival_range'] != null)
-                                            Text(
-                                              '(${data['estimated_delivery_arrival_range']})',
-                                              style: const TextStyle(color: Color(0xFF166534), fontSize: 10),
-                                            ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            data['estimated_delivery_disclaimer']?.toString() ??
-                                                'Approximate window • Not a guarantee',
-                                            style: const TextStyle(color: Color(0xFF166534), fontSize: 9, fontStyle: FontStyle.italic),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
+                          _buildStatusBanner(status, data),
                         ],
                       ),
                     ),
@@ -677,12 +617,176 @@ class DesktopOrderTrackingView extends StatelessWidget {
     );
   }
 
+  Widget _buildStatusBanner(String status, Map<String, dynamic> data) {
+    final bool isTerminalFailed = status == 'Cancelled' || status == 'Rejected';
+    final bool isDelivered = status == 'Delivered';
+
+    final Color bannerBgColor =
+        isTerminalFailed ? const Color(0xFFFEF2F2) : const Color(0xFFF0FDF4);
+    final Color iconBgColor =
+        isTerminalFailed ? const Color(0xFFDC2626) : const Color(0xFF047857);
+    final IconData bannerIcon = isTerminalFailed
+        ? Icons.cancel
+        : (isDelivered ? Icons.check_circle : Icons.local_shipping);
+    final String bannerTitle = isTerminalFailed
+        ? 'Order $status'
+        : (isDelivered
+            ? 'Your order was delivered!'
+            : 'Your order is ${status.toLowerCase()}!');
+    final String bannerSubtitle = isTerminalFailed
+        ? (data['cancellation_reason']?.toString() ??
+            data['rejection_reason']?.toString() ??
+            'This order was cancelled.')
+        : (isDelivered
+            ? 'Your package has been delivered successfully.'
+            : 'Our delivery partner is on the way to your location.');
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: bannerBgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration:
+                BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+            child: Icon(bannerIcon, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  bannerTitle,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Color(0xFF111827)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  bannerSubtitle,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isTerminalFailed
+                  ? const Color(0xFFFEE2E2)
+                  : const Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isTerminalFailed
+                      ? Icons.info_outline
+                      : Icons.access_time_filled,
+                  color: isTerminalFailed
+                      ? const Color(0xFFDC2626)
+                      : const Color(0xFF047857),
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isTerminalFailed ? 'Status' : 'Estimated Delivery Time',
+                      style: TextStyle(
+                        color: isTerminalFailed
+                            ? const Color(0xFF991B1B)
+                            : const Color(0xFF166534),
+                        fontSize: 11,
+                      ),
+                    ),
+                    Text(
+                      isTerminalFailed
+                          ? status
+                          : (data['estimated_delivery_window']?.toString() ??
+                              '35–50 mins'),
+                      style: TextStyle(
+                        color: isTerminalFailed
+                            ? const Color(0xFFDC2626)
+                            : const Color(0xFF047857),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (!isTerminalFailed &&
+                        data['estimated_delivery_arrival_range'] != null)
+                      Text(
+                        '(${data['estimated_delivery_arrival_range']})',
+                        style: const TextStyle(
+                            color: Color(0xFF166534), fontSize: 10),
+                      ),
+                    if (!isTerminalFailed) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        data['estimated_delivery_disclaimer']?.toString() ??
+                            'Approximate window • Not a guarantee',
+                        style: const TextStyle(
+                            color: Color(0xFF166534),
+                            fontSize: 9,
+                            fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
   Widget _buildHorizontalTimeline(String currentStatus) {
+    if (currentStatus == 'Cancelled' || currentStatus == 'Rejected') {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFECACA)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.cancel, color: Color(0xFFDC2626), size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'This order was $currentStatus and will not proceed further.',
+                style: const TextStyle(
+                  color: Color(0xFFB91C1C),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     // 0: Placed, 1: Confirmed, 2: Preparing, 3: Out for Delivery, 4: Delivered
-    final statuses = ['Pending', 'Confirmed', 'Preparing', 'Out for Delivery', 'Delivered'];
+    final statuses = [
+      'Pending',
+      'Confirmed',
+      'Preparing',
+      'Out for Delivery',
+      'Delivered'
+    ];
     int currentIndex = statuses.indexOf(currentStatus);
-    if (currentIndex == -1) currentIndex = 0; // Default to first if unknown (like Cancelled)
-    
+    if (currentIndex == -1) currentIndex = 0;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

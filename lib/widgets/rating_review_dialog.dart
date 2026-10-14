@@ -14,7 +14,7 @@ class StarRatingSelector extends StatelessWidget {
     super.key,
     required this.rating,
     required this.onRatingChanged,
-    this.size = 32,
+    this.size = 28,
     this.activeColor = const Color(0xFFF59E0B), // Warm amber
   });
 
@@ -27,8 +27,9 @@ class StarRatingSelector extends StatelessWidget {
         final isFilled = rating >= starValue;
 
         return IconButton(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 1),
           constraints: const BoxConstraints(),
+          visualDensity: VisualDensity.compact,
           iconSize: size,
           icon: Icon(
             isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
@@ -161,52 +162,55 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     final shortId = widget.orderId.length >= 8 ? widget.orderId.substring(0, 8).toUpperCase() : widget.orderId;
 
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 540),
+        constraints: const BoxConstraints(maxWidth: 500),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          shape: BoxShape.circle,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.star_rounded,
+                      color: Color(0xFFF59E0B),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Rate & Review Order',
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        child: const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFF59E0B),
-                          size: 26,
+                        Text(
+                          'Order #$shortId',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Rate & Review Order',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
-                          ),
-                          Text(
-                            'Order #$shortId',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded, size: 22, color: Colors.grey),
                     onPressed: () => Navigator.of(context).pop(false),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
                 ],
               ),
@@ -214,7 +218,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
 
               // Verified Buyer Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFECFDF5),
                   borderRadius: BorderRadius.circular(8),
@@ -223,7 +227,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.verified_rounded, size: 16, color: Color(0xFF047857)),
+                    Icon(Icons.verified_rounded, size: 15, color: Color(0xFF047857)),
                     SizedBox(width: 6),
                     Text(
                       'Verified Purchase Review',
@@ -232,7 +236,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
               // 1. Store / Shop Experience
               const Text(
@@ -245,15 +249,16 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 children: [
                   StarRatingSelector(
                     rating: _shopRating,
+                    size: 24,
                     onRatingChanged: (r) => setState(() => _shopRating = r),
                   ),
                   Text(
                     '${_shopRating.toStringAsFixed(0)} / 5 Stars',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700, fontSize: 13),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700, fontSize: 12),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // 2. Delivery Experience
               const Text(
@@ -266,15 +271,16 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 children: [
                   StarRatingSelector(
                     rating: _deliveryRating,
+                    size: 24,
                     onRatingChanged: (r) => setState(() => _deliveryRating = r),
                   ),
                   Text(
                     '${_deliveryRating.toStringAsFixed(0)} / 5 Stars',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700, fontSize: 13),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700, fontSize: 12),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // 3. Optional Product Ratings
               if (widget.items.isNotEmpty) ...[
@@ -299,7 +305,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
                               child: Text(
@@ -309,9 +314,10 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            const SizedBox(width: 8),
                             StarRatingSelector(
                               rating: currentRating,
-                              size: 20,
+                              size: 18,
                               onRatingChanged: (r) => setState(() => _productRatings[pid] = r),
                             ),
                           ],
@@ -320,7 +326,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     }).toList(),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
               ],
 
               // 4. Detailed Comment
@@ -351,7 +357,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                   contentPadding: const EdgeInsets.all(12),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
               // Action Buttons
               Row(
@@ -361,7 +367,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(false),
                     child: const Text('Cancel'),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   ElevatedButton.icon(
                     icon: _isSubmitting
                         ? const SizedBox(
@@ -374,7 +380,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF047857),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: _isSubmitting ? null : _handleSubmit,

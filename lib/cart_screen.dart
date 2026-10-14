@@ -159,10 +159,20 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            AppLocalizations.of(context)!.cart_empty,
+                            AppLocalizations.of(context)?.empty_cart_title ??
+                                AppLocalizations.of(context)!.cart_empty,
                             style: AppTextStyles.heading2(
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            AppLocalizations.of(context)?.empty_cart_subtitle ??
+                                "Looks like you haven't added anything to your cart yet.",
+                            style: AppTextStyles.bodyMedium(
                               color: AppColors.textMid,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
@@ -174,9 +184,9 @@ class _CartScreenState extends State<CartScreen> {
                               );
                             },
                             icon: const Icon(Icons.mic_rounded, color: Colors.white, size: 20),
-                            label: const Text(
-                              'Order by Voice (बोलकर सामान मंगाएं)',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                            label: Text(
+                              '${AppLocalizations.of(context)?.order_by_voice_btn ?? "Order by Voice"} (बोलकर सामान मंगाएं)',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryDark,

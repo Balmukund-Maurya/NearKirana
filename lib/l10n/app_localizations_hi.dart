@@ -637,6 +637,275 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get err_no_location => 'कोई स्थान नहीं चुना गया था।';
+
+  @override
+  String get bill_details => 'बिल विवरण';
+
+  @override
+  String get item_total => 'आइटम का कुल';
+
+  @override
+  String get delivery_charges => 'डिलीवरी शुल्क';
+
+  @override
+  String get free_delivery_label => 'मुफ़्त';
+
+  @override
+  String get platform_fee => 'प्लेटफ़ॉर्म शुल्क';
+
+  @override
+  String get handling_fee => 'हैंडलिंग शुल्क';
+
+  @override
+  String get coupon_discount => 'कूपन छूट';
+
+  @override
+  String get total_savings => 'आपकी कुल बचत';
+
+  @override
+  String get to_pay => 'कुल भुगतान';
+
+  @override
+  String get payment_method => 'भुगतान का तरीका';
+
+  @override
+  String get cash_on_delivery => 'कैश ऑन डिलीवरी (नकद)';
+
+  @override
+  String get pay_online_upi => 'ऑनलाइन / यूपीआई से भुगतान करें';
+
+  @override
+  String get khata_pay => 'खाता (उधार) से भुगतान करें';
+
+  @override
+  String get deliver_to => 'डिलीवरी का पता';
+
+  @override
+  String get change_address_btn => 'बदलें';
+
+  @override
+  String get add_address_btn => 'पता जोड़ें';
+
+  @override
+  String get est_delivery_time => 'अनुमानित डिलीवरी 15-30 मिनट में';
+
+  @override
+  String get delivery_instructions_hint =>
+      'डिलीवरी के निर्देश जोड़ें (वैकल्पिक)';
+
+  @override
+  String get apply_coupon => 'कूपन लागू करें';
+
+  @override
+  String get coupon_applied => 'कूपन सफलतापूर्वक लागू हुआ!';
+
+  @override
+  String get remove_coupon => 'हटाएं';
+
+  @override
+  String get enter_coupon_code => 'कूपन कोड दर्ज करें';
+
+  @override
+  String get order_processing => 'आपका ऑर्डर प्रोसेस हो रहा है...';
+
+  @override
+  String get back_to_cart => 'कार्ट पर वापस जाएं';
+
+  @override
+  String get order_confirmed => 'ऑर्डर कन्फर्म हुआ!';
+
+  @override
+  String get err_invalid_phone =>
+      'कृपया एक मान्य 10-अंकीय मोबाइल नंबर दर्ज करें';
+
+  @override
+  String get err_name_required => 'नाम अनिवार्य है';
+
+  @override
+  String get err_enter_address => 'कृपया पूरा पता दर्ज करें';
+
+  @override
+  String get err_invalid_pin => 'कृपया एक मान्य पिन दर्ज करें';
+
+  @override
+  String get err_min_amount => 'न्यूनतम ऑर्डर राशि आवश्यक है';
+
+  @override
+  String get err_stock_negative => 'स्टॉक नकारात्मक नहीं हो सकता';
+
+  @override
+  String get err_price_zero => 'कीमत शून्य से अधिक होनी चाहिए';
+
+  @override
+  String get err_enter_quantity => 'कृपया मान्य मात्रा दर्ज करें';
+
+  @override
+  String get err_select_payment => 'कृपया भुगतान का तरीका चुनें';
+
+  @override
+  String get err_empty_cart_checkout =>
+      'खाली कार्ट के साथ चेकआउट नहीं किया जा सकता';
+
+  @override
+  String get order_status_pending => 'लंबित';
+
+  @override
+  String get order_status_accepted => 'स्वीकृत';
+
+  @override
+  String get order_status_packing => 'पैकिंग जारी';
+
+  @override
+  String get order_status_ready => 'तैयार';
+
+  @override
+  String get order_status_out => 'रास्ते में';
+
+  @override
+  String get order_status_delivered => 'डिलीवर हो गया';
+
+  @override
+  String get order_status_cancelled => 'रद्द किया गया';
+
+  @override
+  String get order_status_rejected => 'अस्वीकृत';
+
+  @override
+  String get notif_order_placed_title => 'ऑर्डर दर्ज हुआ!';
+
+  @override
+  String get notif_order_placed_body =>
+      'आपका ऑर्डर सफलतापूर्वक दर्ज हो गया है।';
+
+  @override
+  String get notif_out_for_delivery_body => 'आपका ऑर्डर रास्ते में है!';
+
+  @override
+  String get notif_delivered_body => 'आपका ऑर्डर डिलीवर हो चुका है। धन्यवाद!';
+
+  @override
+  String get item_added_snack => 'आइटम कार्ट में जोड़ा गया';
+
+  @override
+  String get item_removed_snack => 'आइटम कार्ट से हटाया गया';
+
+  @override
+  String get cart_cleared_snack => 'कार्ट खाली कर दिया गया';
+
+  @override
+  String get tax_invoice_title => 'टैक्स इनवॉइस / बिल';
+
+  @override
+  String get invoice_no_lbl => 'इनवॉइस संख्या';
+
+  @override
+  String get invoice_date_lbl => 'इनवॉइस दिनांक';
+
+  @override
+  String get billed_to_lbl => 'ग्राहक विवरण';
+
+  @override
+  String get item_col => 'वस्तु';
+
+  @override
+  String get qty_col => 'मात्रा';
+
+  @override
+  String get rate_col => 'दर';
+
+  @override
+  String get amt_col => 'रकम';
+
+  @override
+  String get grand_total_lbl => 'कुल योग';
+
+  @override
+  String get thank_you_shopping => 'हमारे साथ खरीदारी करने के लिए धन्यवाद!';
+
+  @override
+  String get download_pdf_btn => 'इनवॉइस PDF डाउनलोड करें';
+
+  @override
+  String get print_receipt_btn => 'रसीद प्रिंट करें';
+
+  @override
+  String get share_invoice_btn => 'इनवॉइस साझा करें';
+
+  @override
+  String get order_summary => 'ऑर्डर सारांश';
+
+  @override
+  String get taxes_included => 'कर शामिल';
+
+  @override
+  String get empty_cart_title => 'आपकी कार्ट खाली है';
+
+  @override
+  String get empty_cart_subtitle =>
+      'ऐसा लगता है कि आपने अभी तक कुछ नहीं जोड़ा है।';
+
+  @override
+  String get start_shopping_btn => 'खरीदारी शुरू करें';
+
+  @override
+  String get order_by_voice_btn => 'बोलकर सामान मंगाएं';
+
+  @override
+  String get no_orders_title => 'अभी तक कोई ऑर्डर नहीं दिया गया';
+
+  @override
+  String get no_orders_subtitle =>
+      'आपके पिछले ऑर्डर और लाइव ट्रैकिंग यहाँ दिखाई देंगे।';
+
+  @override
+  String get no_products_found_title => 'कोई उत्पाद नहीं मिला';
+
+  @override
+  String get no_products_found_subtitle =>
+      'कृपया किसी अन्य नाम या श्रेणी से खोजें।';
+
+  @override
+  String get no_notifications_title => 'कोई सूचना नहीं';
+
+  @override
+  String get no_notifications_subtitle =>
+      'आपके ऑर्डर से जुड़े अपडेट यहाँ दिखाई देंगे।';
+
+  @override
+  String get admin_overview => 'दुकान अवलोकन';
+
+  @override
+  String get admin_inventory => 'इन्वेंट्री और स्टॉक';
+
+  @override
+  String get admin_orders => 'ऑर्डर और बिलिंग';
+
+  @override
+  String get admin_khata => 'ग्राहक खाता';
+
+  @override
+  String get admin_analytics => 'बिक्री और विश्लेषण';
+
+  @override
+  String get admin_settings => 'दुकान सेटिंग्स';
+
+  @override
+  String get mark_as_packed => 'पैक के रूप में चिह्नित करें';
+
+  @override
+  String get mark_as_delivered => 'डिलीवर के रूप में चिह्नित करें';
+
+  @override
+  String get assign_delivery_boy => 'डिलीवरी बॉय असाइन करें';
+
+  @override
+  String get out_for_delivery_btn => 'डिलीवरी के लिए भेजें';
+
+  @override
+  String get confirm_payment_btn => 'भुगतान की पुष्टि करें';
+
+  @override
+  String get stock_updated_snack => 'स्टॉक सफलतापूर्वक अपडेट हुआ';
 }
 
 /// The translations for Hindi, using the Latin script (`hi_Latn`).
@@ -1275,4 +1544,274 @@ class AppLocalizationsHiLatn extends AppLocalizationsHi {
 
   @override
   String get err_no_location => 'Koi location nahi chuni gayi.';
+
+  @override
+  String get bill_details => 'Bill Details';
+
+  @override
+  String get item_total => 'Items Ka Total';
+
+  @override
+  String get delivery_charges => 'Delivery Charges';
+
+  @override
+  String get free_delivery_label => 'FREE';
+
+  @override
+  String get platform_fee => 'Platform Fee';
+
+  @override
+  String get handling_fee => 'Handling Fee';
+
+  @override
+  String get coupon_discount => 'Coupon Discount';
+
+  @override
+  String get total_savings => 'Aapki Total Bachat';
+
+  @override
+  String get to_pay => 'Kul Bhugtan';
+
+  @override
+  String get payment_method => 'Payment Ka Tarika';
+
+  @override
+  String get cash_on_delivery => 'Cash on Delivery (COD)';
+
+  @override
+  String get pay_online_upi => 'Online / UPI se Pay Karein';
+
+  @override
+  String get khata_pay => 'Khata (Udhaar) se Pay Karein';
+
+  @override
+  String get deliver_to => 'Deliver To';
+
+  @override
+  String get change_address_btn => 'Badlein';
+
+  @override
+  String get add_address_btn => 'Address Jodein';
+
+  @override
+  String get est_delivery_time => '15-30 Minute mein delivery';
+
+  @override
+  String get delivery_instructions_hint =>
+      'Delivery instructions daalein (optional)';
+
+  @override
+  String get apply_coupon => 'Coupon Apply Karein';
+
+  @override
+  String get coupon_applied => 'Coupon successfully apply ho gaya!';
+
+  @override
+  String get remove_coupon => 'Hatayein';
+
+  @override
+  String get enter_coupon_code => 'Coupon code daalein';
+
+  @override
+  String get order_processing => 'Aapka order process ho raha hai...';
+
+  @override
+  String get back_to_cart => 'Cart Par Wapas Jayein';
+
+  @override
+  String get order_confirmed => 'Order Confirm Ho Gaya!';
+
+  @override
+  String get err_invalid_phone =>
+      'Kripya 10-digit ka valid mobile number daalein';
+
+  @override
+  String get err_name_required => 'Naam likhna zaroori hai';
+
+  @override
+  String get err_enter_address => 'Kripya pura address daalein';
+
+  @override
+  String get err_invalid_pin => 'Kripya valid PIN daalein';
+
+  @override
+  String get err_min_amount => 'Minimum order amount zaroori hai';
+
+  @override
+  String get err_stock_negative => 'Stock negative nahi ho sakta';
+
+  @override
+  String get err_price_zero => 'Price 0 se zyada honi chahiye';
+
+  @override
+  String get err_enter_quantity => 'Kripya sahi quantity daalein';
+
+  @override
+  String get err_select_payment => 'Kripya payment method chunein';
+
+  @override
+  String get err_empty_cart_checkout =>
+      'Khali cart ke saath checkout nahi kar sakte';
+
+  @override
+  String get order_status_pending => 'Pending';
+
+  @override
+  String get order_status_accepted => 'Accepted';
+
+  @override
+  String get order_status_packing => 'Packing Chalu';
+
+  @override
+  String get order_status_ready => 'Ready';
+
+  @override
+  String get order_status_out => 'Raste Mein';
+
+  @override
+  String get order_status_delivered => 'Deliver Ho Gaya';
+
+  @override
+  String get order_status_cancelled => 'Cancel Ho Gaya';
+
+  @override
+  String get order_status_rejected => 'Reject Ho Gaya';
+
+  @override
+  String get notif_order_placed_title => 'Order Place Ho Gaya!';
+
+  @override
+  String get notif_order_placed_body =>
+      'Aapka order successfully place ho gaya hai.';
+
+  @override
+  String get notif_out_for_delivery_body => 'Aapka order raste mein hai!';
+
+  @override
+  String get notif_delivered_body =>
+      'Aapka order deliver ho gaya hai. Shukriya!';
+
+  @override
+  String get item_added_snack => 'Item cart mein add ho gaya';
+
+  @override
+  String get item_removed_snack => 'Item cart se hata diya gaya';
+
+  @override
+  String get cart_cleared_snack => 'Cart khali kar diya gaya';
+
+  @override
+  String get tax_invoice_title => 'Tax Invoice / Bill';
+
+  @override
+  String get invoice_no_lbl => 'Invoice No';
+
+  @override
+  String get invoice_date_lbl => 'Invoice Date';
+
+  @override
+  String get billed_to_lbl => 'Billed To';
+
+  @override
+  String get item_col => 'Item';
+
+  @override
+  String get qty_col => 'Qty';
+
+  @override
+  String get rate_col => 'Rate';
+
+  @override
+  String get amt_col => 'Amount';
+
+  @override
+  String get grand_total_lbl => 'Grand Total';
+
+  @override
+  String get thank_you_shopping =>
+      'Hamare saath shopping karne ke liye shukriya!';
+
+  @override
+  String get download_pdf_btn => 'Invoice PDF Download Karein';
+
+  @override
+  String get print_receipt_btn => 'Receipt Print Karein';
+
+  @override
+  String get share_invoice_btn => 'Invoice Share Karein';
+
+  @override
+  String get order_summary => 'Order Summary';
+
+  @override
+  String get taxes_included => 'Taxes included';
+
+  @override
+  String get empty_cart_title => 'Aapki Cart Khali Hai';
+
+  @override
+  String get empty_cart_subtitle => 'Aapne abhi tak kuch add nahi kiya hai.';
+
+  @override
+  String get start_shopping_btn => 'Shopping Shuru Karein';
+
+  @override
+  String get order_by_voice_btn => 'Bolkar Order Karein';
+
+  @override
+  String get no_orders_title => 'Abhi tak koi order nahi kiya gaya';
+
+  @override
+  String get no_orders_subtitle =>
+      'Aapke purane orders aur live tracking yahan dikhenge.';
+
+  @override
+  String get no_products_found_title => 'Koi product nahi mila';
+
+  @override
+  String get no_products_found_subtitle =>
+      'Kisi doosre naam ya category se search karein.';
+
+  @override
+  String get no_notifications_title => 'Koi notifications nahi hain';
+
+  @override
+  String get no_notifications_subtitle =>
+      'Aapke orders ke updates yahan dikhenge.';
+
+  @override
+  String get admin_overview => 'Store Overview';
+
+  @override
+  String get admin_inventory => 'Inventory & Stock';
+
+  @override
+  String get admin_orders => 'Orders & Billing';
+
+  @override
+  String get admin_khata => 'Customer Khata';
+
+  @override
+  String get admin_analytics => 'Sales & Analytics';
+
+  @override
+  String get admin_settings => 'Store Settings';
+
+  @override
+  String get mark_as_packed => 'Packed Mark Karein';
+
+  @override
+  String get mark_as_delivered => 'Delivered Mark Karein';
+
+  @override
+  String get assign_delivery_boy => 'Delivery Boy Assign Karein';
+
+  @override
+  String get out_for_delivery_btn => 'Delivery ke liye Bhejein';
+
+  @override
+  String get confirm_payment_btn => 'Payment Confirm Karein';
+
+  @override
+  String get stock_updated_snack => 'Stock successfully update ho gaya';
 }

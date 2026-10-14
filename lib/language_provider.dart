@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:near_kirana/l10n/app_localizations.dart';
 
 class LanguageProvider extends ChangeNotifier {
+  static const List<String> supportedLanguages = ['en', 'hi', 'hinglish', 'hi_Latn'];
+
   String _currentLanguage = 'en'; // 'hi', 'en', 'hinglish'
   bool _isLoaded = false;
 
@@ -36,24 +39,33 @@ class LanguageProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedLang = prefs.getString('app_language');
-      if (savedLang != null) {
+      if (savedLang != null && supportedLanguages.contains(savedLang)) {
         _currentLanguage = savedLang;
+      } else {
+        _currentLanguage = 'en';
       }
     } catch (e) {
       debugPrint('Error loading language: $e');
+      _currentLanguage = 'en';
     }
     _isLoaded = true;
     notifyListeners();
   }
 
   Future<void> setLanguage(String lang) async {
-    _currentLanguage = lang;
+    final effectiveLang = supportedLanguages.contains(lang) ? lang : 'en';
+    _currentLanguage = effectiveLang;
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('app_language', lang);
+      await prefs.setString('app_language', effectiveLang);
     } catch (e) {
       debugPrint('Error saving language: $e');
     }
   }
 }
+
+extension LocalizationExtension on BuildContext {
+  AppLocalizations get l10n => AppLocalizations.of(this)!;
+}
+

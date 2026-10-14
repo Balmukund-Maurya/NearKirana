@@ -244,21 +244,52 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 children: [
                   _buildHeroPointsCard(account),
                   Container(
-                    color: Colors.white,
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
                     child: TabBar(
                       controller: _tabController,
-                      indicatorColor: AppColors.primaryDark,
+                      indicator: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      dividerColor: Colors.transparent,
                       labelColor: AppColors.primaryDark,
                       unselectedLabelColor: AppColors.textMid,
-                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                       tabs: const [
                         Tab(
-                          icon: Icon(Icons.people_outline_rounded, size: 20),
-                          text: 'रेफर और कमाएं (Refer & Earn)',
+                          icon: Icon(Icons.people_outline_rounded, size: 18),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'रेफर और कमाएं (Refer & Earn)',
+                              maxLines: 1,
+                            ),
+                          ),
                         ),
                         Tab(
-                          icon: Icon(Icons.receipt_long_rounded, size: 20),
-                          text: 'अंक पासबुक (Passbook)',
+                          icon: Icon(Icons.receipt_long_rounded, size: 18),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'अंक पासबुक (Passbook)',
+                              maxLines: 1,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -289,10 +320,11 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
-            tier.color.withValues(alpha: 0.9),
+            Color(0xFF1E5128),
             AppColors.primaryDark,
+            Color(0xFF388E3C),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -300,8 +332,8 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: tier.color.withValues(alpha: 0.3),
-            blurRadius: 16,
+            color: AppColors.primaryDark.withValues(alpha: 0.35),
+            blurRadius: 18,
             offset: const Offset(0, 6),
           ),
         ],
@@ -315,14 +347,14 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withValues(alpha: 0.22),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white38),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.stars_rounded, color: Colors.white, size: 18),
+                    Icon(Icons.stars_rounded, color: tier.color, size: 18),
                     const SizedBox(width: 6),
                     Text(
                       tier.label,
@@ -436,7 +468,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColors.bgTint, width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
@@ -480,31 +512,38 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.primaryLight, width: 1.5),
+                    color: const Color(0xFFF1F8EE),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.bgTint, width: 1.5),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        account.referralCode,
-                        style: GoogleFonts.poppins(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                          color: AppColors.primaryDark,
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: SelectableText(
+                            account.referralCode,
+                            style: GoogleFonts.poppins(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 2,
+                              color: AppColors.primaryDark,
+                            ),
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 10),
                       ElevatedButton.icon(
                         onPressed: () => _copyToClipboard(account.referralCode),
-                        icon: const Icon(Icons.copy_rounded, size: 16),
+                        icon: const Icon(Icons.copy_rounded, size: 15),
                         label: const Text('कॉपी (Copy)'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppColors.primaryDark,
                           elevation: 0,
-                          side: const BorderSide(color: AppColors.primaryDark),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          side: const BorderSide(color: AppColors.primaryDark, width: 1.2),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
@@ -517,15 +556,20 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                   height: 48,
                   child: ElevatedButton.icon(
                     onPressed: () => _shareOnWhatsApp(account.referralCode, 'हमारा किराना'),
-                    icon: const Icon(Icons.send_rounded, size: 20),
-                    label: const Text(
-                      'व्हाट्सएप पर शेयर करें (Share on WhatsApp)',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    icon: const Icon(Icons.send_rounded, size: 18),
+                    label: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'व्हाट्सएप पर शेयर करें (Share on WhatsApp)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        maxLines: 1,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF25D366),
                       foregroundColor: Colors.white,
                       elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -542,7 +586,14 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.amber.shade200),
+                border: Border.all(color: AppColors.bgTint, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Material(
                 color: Colors.transparent,

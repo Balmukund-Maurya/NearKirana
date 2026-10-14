@@ -13,6 +13,7 @@ import 'package:near_kirana/address_selection_bottom_sheet.dart';
 import 'package:near_kirana/coupon_model.dart';
 import 'package:near_kirana/widgets/coupon_widgets.dart';
 import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
+import 'package:near_kirana/l10n/app_localizations.dart';
 
 class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
@@ -49,6 +50,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final cartProvider = Provider.of<CartProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final shopProvider = Provider.of<ShopProvider>(context);
@@ -96,7 +98,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     color: Color(0xFF4B5563),
                   ),
                   label: Text(
-                    isDesktop ? "Back to Cart" : "Back",
+                    isDesktop ? (l10n?.back_to_cart ?? "Back to Cart") : (l10n?.cancel ?? "Back"),
                     style: const TextStyle(
                       color: Color(0xFF4B5563),
                       fontWeight: FontWeight.w600,
@@ -120,7 +122,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Checkout",
+                        l10n?.checkout ?? "Checkout",
                         style: TextStyle(
                           fontSize: isDesktop ? 28 : 22,
                           fontWeight: FontWeight.bold,
@@ -150,13 +152,13 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: Row(
                   children: [
-                    _buildStep(1, isDesktop ? "Delivery\nAddress" : "Address", isActive: true),
+                    _buildStep(1, isDesktop ? (l10n?.delivery_address ?? 'Delivery Address') : (l10n?.address_lbl ?? 'Address'), isActive: true),
                     _buildLine(isActive: true),
-                    _buildStep(2, isDesktop ? "Order\nReview" : "Review", isActive: false),
+                    _buildStep(2, isDesktop ? (l10n?.order_summary ?? 'Order Review') : "Review", isActive: false),
                     _buildLine(isActive: false),
-                    _buildStep(3, isDesktop ? "Payment\nMethod" : "Payment", isActive: false),
+                    _buildStep(3, isDesktop ? (l10n?.payment_method ?? 'Payment Method') : "Payment", isActive: false),
                     _buildLine(isActive: false),
-                    _buildStep(4, isDesktop ? "Place\nOrder" : "Done", isActive: false),
+                    _buildStep(4, isDesktop ? (l10n?.place_order ?? 'Place Order') : "Done", isActive: false),
                   ],
                 ),
               ),
@@ -172,7 +174,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       // SECTION 1: Delivery Address
                       _buildSectionHeader(
                         1,
-                        "Delivery Address",
+                        l10n?.delivery_address ?? "Delivery Address",
                         "Select a delivery address for your order",
                         trailing: OutlinedButton.icon(
                           onPressed: () async {
@@ -187,9 +189,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             size: 16,
                             color: Color(0xFF047857),
                           ),
-                          label: const Text(
-                            "Manage / Add Address",
-                            style: TextStyle(
+                          label: Text(
+                            l10n?.add_address_btn ?? "Manage / Add Address",
+                            style: const TextStyle(
                               color: Color(0xFF047857),
                               fontWeight: FontWeight.bold,
                             ),
@@ -325,7 +327,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       // SECTION 3: Payment Method
                       _buildSectionHeader(
                         3,
-                        "Payment Method",
+                        l10n?.payment_method ?? "Payment Method",
                         "Choose your preferred payment method",
                       ),
                       const SizedBox(height: 16),
@@ -340,7 +342,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                       child: _buildPaymentCard(
                                         0,
                                         Icons.payments_outlined,
-                                        "Cash on Delivery",
+                                        l10n?.cash_on_delivery ?? "Cash on Delivery",
                                         "Pay when you receive\nyour order",
                                       ),
                                     ),
@@ -349,7 +351,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                       child: _buildPaymentCard(
                                         1,
                                         Icons.qr_code_2,
-                                        "UPI",
+                                        l10n?.pay_online_upi ?? "UPI",
                                         "Pay using UPI apps\n(GPay, PhonePe, etc.)",
                                       ),
                                     ),
@@ -384,7 +386,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                           child: _buildPaymentCard(
                                             0,
                                             Icons.payments_outlined,
-                                            "Cash on Delivery",
+                                            l10n?.cash_on_delivery ?? "Cash on Delivery",
                                             "Pay when you receive order",
                                           ),
                                         ),
@@ -393,7 +395,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                           child: _buildPaymentCard(
                                             1,
                                             Icons.qr_code_2,
-                                            "UPI",
+                                            l10n?.pay_online_upi ?? "UPI",
                                             "GPay, PhonePe, Paytm",
                                           ),
                                         ),
@@ -459,7 +461,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    "Order Summary (${cartItems.length} items)",
+                                    "${l10n?.order_summary ?? 'Order Summary'} (${cartItems.length} ${l10n?.items ?? 'items'})",
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -649,9 +651,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             const SizedBox(height: 16),
 
                             // PRICE DETAILS
-                            const Text(
-                              "Price Details",
-                              style: TextStyle(
+                            Text(
+                              l10n?.bill_details ?? "Price Details",
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF111827),
@@ -662,7 +664,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  "Subtotal (${cartItems.length} items)",
+                                  "${l10n?.subtotal ?? 'Subtotal'} (${cartItems.length} ${l10n?.items ?? 'items'})",
                                   style: TextStyle(
                                     color: Colors.grey.shade600,
                                     fontSize: 14,
@@ -684,7 +686,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                 Row(
                                   children: [
                                     Text(
-                                      "Delivery Charges ",
+                                      "${l10n?.delivery_charges ?? 'Delivery Charges'} ",
                                       style: TextStyle(
                                         color: Colors.grey.shade600,
                                         fontSize: 14,
@@ -698,10 +700,10 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                   ],
                                 ),
                                 Text(
-                                  "₹${deliveryFee.toStringAsFixed(0)}",
-                                  style: const TextStyle(
+                                  deliveryFee == 0 ? (l10n?.free_delivery_label ?? "FREE") : "₹${deliveryFee.toStringAsFixed(0)}",
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF111827),
+                                    color: deliveryFee == 0 ? const Color(0xFF166534) : const Color(0xFF111827),
                                   ),
                                 ),
                               ],
@@ -713,7 +715,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    "Discount",
+                                    l10n?.coupon_discount ?? "Discount",
                                     style: TextStyle(
                                       color: Colors.grey.shade600,
                                       fontSize: 14,
@@ -745,9 +747,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
-                                    "Total Amount",
-                                    style: TextStyle(
+                                  Text(
+                                    l10n?.total_amount ?? "Total Amount",
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                       color: Color(0xFF111827),
@@ -830,17 +832,17 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                     : Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
-                                        children: const [
+                                        children: [
                                           Text(
-                                            "Place Order",
-                                            style: TextStyle(
+                                            l10n?.place_order ?? "Place Order",
+                                            style: const TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
                                             ),
                                           ),
-                                          SizedBox(width: 8),
-                                          Icon(
+                                          const SizedBox(width: 8),
+                                          const Icon(
                                             Icons.arrow_forward,
                                             color: Colors.white,
                                             size: 18,
@@ -1020,13 +1022,18 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isActive ? const Color(0xFF111827) : Colors.grey.shade400,
-            fontSize: 12,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+        SizedBox(
+          width: 75,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isActive ? const Color(0xFF111827) : Colors.grey.shade400,
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -1548,8 +1555,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               const SizedBox(height: 16),
               Text(
                 result.isDuplicate
-                    ? "Order Already Received!"
-                    : "Order Placed Successfully!",
+                    ? (AppLocalizations.of(context)?.thank_you_order ?? "Order Already Received!")
+                    : (AppLocalizations.of(context)?.order_placed ?? "Order Placed Successfully!"),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -1557,7 +1564,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               ),
               const SizedBox(height: 8),
               Text(
-                "Your order will be delivered soon.\nPIN: ${result.deliveryPin}",
+                "${AppLocalizations.of(context)?.notif_out_for_delivery_body ?? 'Your order will be delivered soon.'}\nPIN: ${result.deliveryPin}",
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -1570,7 +1577,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   );
                 },
                 icon: const Icon(Icons.receipt_long, size: 18),
-                label: const Text("View Digital Receipt"),
+                label: Text(AppLocalizations.of(context)?.tax_invoice_title ?? "View Digital Receipt"),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -1578,7 +1585,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   Navigator.pop(ctx);
                   widget.onOrderPlaced(); // Return to shop/dashboard
                 },
-                child: const Text("Continue Shopping"),
+                child: Text(AppLocalizations.of(context)?.start_shopping_btn ?? "Continue Shopping"),
               ),
             ],
           ),

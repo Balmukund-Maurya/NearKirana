@@ -852,52 +852,55 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
             ),
           ],
 
-          // Controls Row: Quantity stepper, price, status badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Controls: Quantity stepper, price, status badge
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              // Quantity Stepper
-              if (effectiveProd != null && status != VoiceItemStatus.outOfStock) ...[
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_rounded, size: 16),
-                        onPressed: () => _onQuantityChanged(index, -1.0),
-                        padding: const EdgeInsets.all(4),
-                        constraints: const BoxConstraints(),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          '${item.finalQuantity % 1 == 0 ? item.finalQuantity.toInt() : item.finalQuantity.toStringAsFixed(2)} ${item.unit ?? (effectiveProd.isLoose ? "kg" : "pkt")}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add_rounded, size: 16),
-                        onPressed: () => _onQuantityChanged(index, 1.0),
-                        padding: const EdgeInsets.all(4),
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                ),
-              ] else
-                const SizedBox(),
-
-              // Price & Status Badge
+              // Left: Quantity Stepper & Price
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (effectiveProd != null) ...[
+                  if (effectiveProd != null && status != VoiceItemStatus.outOfStock) ...[
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_rounded, size: 16),
+                            onPressed: () => _onQuantityChanged(index, -1.0),
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Text(
+                              '${item.finalQuantity % 1 == 0 ? item.finalQuantity.toInt() : item.finalQuantity.toStringAsFixed(2)} ${item.unit ?? (effectiveProd.isLoose ? "kg" : "pkt")}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_rounded, size: 16),
+                            onPressed: () => _onQuantityChanged(index, 1.0),
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  if (effectiveProd != null)
                     Text(
                       '₹${item.effectivePrice.toStringAsFixed(0)}',
                       style: GoogleFonts.poppins(
@@ -906,32 +909,35 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                         color: AppColors.primaryDark,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                  ],
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(statusIcon, color: statusColor, size: 12),
-                        const SizedBox(width: 4),
-                        Text(
-                          item.status == VoiceItemStatus.ambiguous && item.selectedProduct != null
-                              ? 'Choice Selected'
-                              : item.status.label,
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: statusColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
+              ),
+
+              // Right: Status Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(statusIcon, color: statusColor, size: 12),
+                    const SizedBox(width: 4),
+                    Text(
+                      item.status == VoiceItemStatus.ambiguous && item.selectedProduct != null
+                          ? 'Choice Selected'
+                          : item.status.label,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

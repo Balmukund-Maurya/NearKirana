@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../invoice_model.dart';
 import '../invoice_service.dart';
+import 'package:near_kirana/l10n/app_localizations.dart';
 
 /// Digital Receipt & Invoice Modal Dialog (Feature 50).
 /// Provides an interactive, beautiful receipt card with itemized breakdown,
@@ -135,6 +136,7 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
   Widget build(BuildContext context) {
     final inv = widget.invoice;
     final primaryColor = const Color(0xFF047857);
+    final l10n = AppLocalizations.of(context);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -351,9 +353,9 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                     const SizedBox(height: 20),
 
                     // Items Table Title
-                    const Text(
-                      'Items Purchased',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
+                    Text(
+                      l10n?.order_summary ?? 'Items Purchased',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
                     ),
                     const SizedBox(height: 8),
 
@@ -372,23 +374,23 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                               color: Colors.grey.shade100,
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
                                 Expanded(
                                   flex: 5,
-                                  child: Text('Item', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  child: Text(l10n?.item_col ?? 'Item', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                                 Expanded(
                                   flex: 2,
-                                  child: Text('Qty', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  child: Text(l10n?.qty_col ?? 'Qty', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                                 Expanded(
                                   flex: 2,
-                                  child: Text('Rate', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  child: Text(l10n?.rate_col ?? 'Rate', textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                                 Expanded(
                                   flex: 2,
-                                  child: Text('Amount', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  child: Text(l10n?.amt_col ?? 'Amount', textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),
@@ -462,11 +464,11 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                       ),
                       child: Column(
                         children: [
-                          _buildCostRow('Subtotal', '₹${inv.subtotal.toStringAsFixed(2)}'),
+                          _buildCostRow(l10n?.subtotal ?? 'Subtotal', '₹${inv.subtotal.toStringAsFixed(2)}'),
                           if (inv.discount > 0) ...[
                             const SizedBox(height: 6),
                             _buildCostRow(
-                              'Discount (${inv.couponCode ?? "Offer"})',
+                              '${l10n?.coupon_discount ?? "Discount"} (${inv.couponCode ?? "Offer"})',
                               '-₹${inv.discount.toStringAsFixed(2)}',
                               textColor: const Color(0xFF16A34A),
                               isBold: true,
@@ -474,8 +476,8 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                           ],
                           const SizedBox(height: 6),
                           _buildCostRow(
-                            'Delivery Fee',
-                            inv.deliveryFee == 0 ? 'FREE' : '₹${inv.deliveryFee.toStringAsFixed(2)}',
+                            l10n?.delivery_fee ?? 'Delivery Fee',
+                            inv.deliveryFee == 0 ? (l10n?.free_delivery_label ?? 'FREE') : '₹${inv.deliveryFee.toStringAsFixed(2)}',
                             textColor: inv.deliveryFee == 0 ? const Color(0xFF16A34A) : null,
                           ),
                           const SizedBox(height: 6),
@@ -491,9 +493,9 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'Grand Total',
-                                style: TextStyle(
+                              Text(
+                                l10n?.grand_total_lbl ?? 'Grand Total',
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF111827),
@@ -571,7 +573,7 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                         OutlinedButton.icon(
                           onPressed: _handlePrint,
                           icon: const Icon(Icons.print_outlined, size: 16),
-                          label: const Text('Print'),
+                          label: Text(l10n?.print_receipt_btn ?? 'Print'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFF374151),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -582,7 +584,7 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                         ElevatedButton.icon(
                           onPressed: _handleShareWhatsApp,
                           icon: const Icon(Icons.share, size: 16, color: Colors.white),
-                          label: const Text('Share WhatsApp', style: TextStyle(color: Colors.white)),
+                          label: Text(l10n?.share_invoice_btn ?? 'Share WhatsApp', style: const TextStyle(color: Colors.white)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF25D366),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -593,7 +595,7 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                         ElevatedButton.icon(
                           onPressed: _handleDownloadPdf,
                           icon: const Icon(Icons.picture_as_pdf, size: 16, color: Colors.white),
-                          label: const Text('Download PDF', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          label: Text(l10n?.download_pdf_btn ?? 'Download PDF', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

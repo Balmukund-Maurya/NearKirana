@@ -634,4 +634,272 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get err_no_location => 'No location was selected.';
+
+  @override
+  String get bill_details => 'Bill Details';
+
+  @override
+  String get item_total => 'Item Total';
+
+  @override
+  String get delivery_charges => 'Delivery Charges';
+
+  @override
+  String get free_delivery_label => 'FREE';
+
+  @override
+  String get platform_fee => 'Platform Fee';
+
+  @override
+  String get handling_fee => 'Handling Fee';
+
+  @override
+  String get coupon_discount => 'Coupon Discount';
+
+  @override
+  String get total_savings => 'Your Total Savings';
+
+  @override
+  String get to_pay => 'To Pay';
+
+  @override
+  String get payment_method => 'Payment Method';
+
+  @override
+  String get cash_on_delivery => 'Cash on Delivery (COD)';
+
+  @override
+  String get pay_online_upi => 'Pay Online / UPI';
+
+  @override
+  String get khata_pay => 'Pay with Khata (Udhaar)';
+
+  @override
+  String get deliver_to => 'Deliver To';
+
+  @override
+  String get change_address_btn => 'Change';
+
+  @override
+  String get add_address_btn => 'Add Address';
+
+  @override
+  String get est_delivery_time => 'Estimated Delivery in 15-30 Mins';
+
+  @override
+  String get delivery_instructions_hint =>
+      'Add delivery instructions (optional)';
+
+  @override
+  String get apply_coupon => 'Apply Coupon';
+
+  @override
+  String get coupon_applied => 'Coupon applied successfully!';
+
+  @override
+  String get remove_coupon => 'Remove';
+
+  @override
+  String get enter_coupon_code => 'Enter coupon code';
+
+  @override
+  String get order_processing => 'Processing your order...';
+
+  @override
+  String get back_to_cart => 'Back to Cart';
+
+  @override
+  String get order_confirmed => 'Order Confirmed!';
+
+  @override
+  String get err_invalid_phone => 'Please enter a valid 10-digit mobile number';
+
+  @override
+  String get err_name_required => 'Name is required';
+
+  @override
+  String get err_enter_address => 'Please enter complete address';
+
+  @override
+  String get err_invalid_pin => 'Please enter a valid PIN';
+
+  @override
+  String get err_min_amount => 'Minimum order amount is required';
+
+  @override
+  String get err_stock_negative => 'Stock cannot be negative';
+
+  @override
+  String get err_price_zero => 'Price must be greater than zero';
+
+  @override
+  String get err_enter_quantity => 'Please enter valid quantity';
+
+  @override
+  String get err_select_payment => 'Please select a payment method';
+
+  @override
+  String get err_empty_cart_checkout => 'Cannot checkout with an empty cart';
+
+  @override
+  String get order_status_pending => 'Pending';
+
+  @override
+  String get order_status_accepted => 'Accepted';
+
+  @override
+  String get order_status_packing => 'Packing';
+
+  @override
+  String get order_status_ready => 'Ready';
+
+  @override
+  String get order_status_out => 'Out for Delivery';
+
+  @override
+  String get order_status_delivered => 'Delivered';
+
+  @override
+  String get order_status_cancelled => 'Cancelled';
+
+  @override
+  String get order_status_rejected => 'Rejected';
+
+  @override
+  String get notif_order_placed_title => 'Order Placed!';
+
+  @override
+  String get notif_order_placed_body =>
+      'Your order has been placed successfully.';
+
+  @override
+  String get notif_out_for_delivery_body => 'Your order is on the way!';
+
+  @override
+  String get notif_delivered_body =>
+      'Your order has been delivered. Thank you!';
+
+  @override
+  String get item_added_snack => 'Item added to cart';
+
+  @override
+  String get item_removed_snack => 'Item removed from cart';
+
+  @override
+  String get cart_cleared_snack => 'Cart cleared';
+
+  @override
+  String get tax_invoice_title => 'Tax Invoice / Bill';
+
+  @override
+  String get invoice_no_lbl => 'Invoice No';
+
+  @override
+  String get invoice_date_lbl => 'Invoice Date';
+
+  @override
+  String get billed_to_lbl => 'Billed To';
+
+  @override
+  String get item_col => 'Item';
+
+  @override
+  String get qty_col => 'Qty';
+
+  @override
+  String get rate_col => 'Rate';
+
+  @override
+  String get amt_col => 'Amount';
+
+  @override
+  String get grand_total_lbl => 'Grand Total';
+
+  @override
+  String get thank_you_shopping => 'Thank you for shopping with us!';
+
+  @override
+  String get download_pdf_btn => 'Download Invoice PDF';
+
+  @override
+  String get print_receipt_btn => 'Print Receipt';
+
+  @override
+  String get share_invoice_btn => 'Share Invoice';
+
+  @override
+  String get order_summary => 'Order Summary';
+
+  @override
+  String get taxes_included => 'Taxes included';
+
+  @override
+  String get empty_cart_title => 'Your Cart is Empty';
+
+  @override
+  String get empty_cart_subtitle =>
+      'Looks like you haven\'t added anything yet.';
+
+  @override
+  String get start_shopping_btn => 'Start Shopping';
+
+  @override
+  String get order_by_voice_btn => 'Order by Voice';
+
+  @override
+  String get no_orders_title => 'No Orders Placed Yet';
+
+  @override
+  String get no_orders_subtitle =>
+      'Your past orders and live tracking will appear here.';
+
+  @override
+  String get no_products_found_title => 'No Products Found';
+
+  @override
+  String get no_products_found_subtitle =>
+      'Try searching with a different name or category.';
+
+  @override
+  String get no_notifications_title => 'No Notifications';
+
+  @override
+  String get no_notifications_subtitle =>
+      'Updates about your orders will show up here.';
+
+  @override
+  String get admin_overview => 'Store Overview';
+
+  @override
+  String get admin_inventory => 'Inventory & Stock';
+
+  @override
+  String get admin_orders => 'Orders & Billing';
+
+  @override
+  String get admin_khata => 'Customer Khata';
+
+  @override
+  String get admin_analytics => 'Sales & Analytics';
+
+  @override
+  String get admin_settings => 'Store Settings';
+
+  @override
+  String get mark_as_packed => 'Mark as Packed';
+
+  @override
+  String get mark_as_delivered => 'Mark as Delivered';
+
+  @override
+  String get assign_delivery_boy => 'Assign Delivery Boy';
+
+  @override
+  String get out_for_delivery_btn => 'Send Out for Delivery';
+
+  @override
+  String get confirm_payment_btn => 'Confirm Payment';
+
+  @override
+  String get stock_updated_snack => 'Stock updated successfully';
 }

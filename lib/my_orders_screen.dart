@@ -117,10 +117,20 @@ class MyOrdersScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          AppLocalizations.of(context)!.no_orders,
+                          AppLocalizations.of(context)?.no_orders_title ??
+                              AppLocalizations.of(context)!.no_orders,
+                          style: AppTextStyles.heading2(
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          AppLocalizations.of(context)?.no_orders_subtitle ??
+                              'Your past orders and live tracking will appear here.',
                           style: AppTextStyles.bodyMedium(
                             color: AppColors.textMid,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -538,7 +548,7 @@ class MyOrdersScreen extends StatelessWidget {
                   ),
                 ),
               ],
-              _buildTimeline(status),
+              _buildTimeline(status, context),
               if (status == OrderStatus.pending) ...[
                 const SizedBox(height: 16),
                 Align(
@@ -1101,7 +1111,8 @@ class MyOrdersScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeline(String currentStatus) {
+  Widget _buildTimeline(String currentStatus, BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final currentIndex = OrderStateMachine.getTimelineStepIndex(currentStatus);
 
     return Padding(
@@ -1109,17 +1120,17 @@ class MyOrdersScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildTimelineStep('Pending', 0, currentIndex),
+          _buildTimelineStep(l10n?.order_status_pending ?? 'Pending', 0, currentIndex),
           _buildTimelineLine(currentIndex > 0),
-          _buildTimelineStep('Accepted', 1, currentIndex),
+          _buildTimelineStep(l10n?.order_status_accepted ?? 'Accepted', 1, currentIndex),
           _buildTimelineLine(currentIndex > 1),
-          _buildTimelineStep('Packing', 2, currentIndex),
+          _buildTimelineStep(l10n?.order_status_packing ?? 'Packing', 2, currentIndex),
           _buildTimelineLine(currentIndex > 2),
-          _buildTimelineStep('Ready', 3, currentIndex),
+          _buildTimelineStep(l10n?.order_status_ready ?? 'Ready', 3, currentIndex),
           _buildTimelineLine(currentIndex > 3),
-          _buildTimelineStep('Out', 4, currentIndex),
+          _buildTimelineStep(l10n?.order_status_out ?? 'Out', 4, currentIndex),
           _buildTimelineLine(currentIndex > 4),
-          _buildTimelineStep('Delivered', 5, currentIndex),
+          _buildTimelineStep(l10n?.order_status_delivered ?? 'Delivered', 5, currentIndex),
         ],
       ),
     );

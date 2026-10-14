@@ -1316,6 +1316,528 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No location was selected.'**
   String get err_no_location;
+
+  /// No description provided for @bill_details.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill Details'**
+  String get bill_details;
+
+  /// No description provided for @item_total.
+  ///
+  /// In en, this message translates to:
+  /// **'Item Total'**
+  String get item_total;
+
+  /// No description provided for @delivery_charges.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery Charges'**
+  String get delivery_charges;
+
+  /// No description provided for @free_delivery_label.
+  ///
+  /// In en, this message translates to:
+  /// **'FREE'**
+  String get free_delivery_label;
+
+  /// No description provided for @platform_fee.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform Fee'**
+  String get platform_fee;
+
+  /// No description provided for @handling_fee.
+  ///
+  /// In en, this message translates to:
+  /// **'Handling Fee'**
+  String get handling_fee;
+
+  /// No description provided for @coupon_discount.
+  ///
+  /// In en, this message translates to:
+  /// **'Coupon Discount'**
+  String get coupon_discount;
+
+  /// No description provided for @total_savings.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Total Savings'**
+  String get total_savings;
+
+  /// No description provided for @to_pay.
+  ///
+  /// In en, this message translates to:
+  /// **'To Pay'**
+  String get to_pay;
+
+  /// No description provided for @payment_method.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Method'**
+  String get payment_method;
+
+  /// No description provided for @cash_on_delivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash on Delivery (COD)'**
+  String get cash_on_delivery;
+
+  /// No description provided for @pay_online_upi.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay Online / UPI'**
+  String get pay_online_upi;
+
+  /// No description provided for @khata_pay.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with Khata (Udhaar)'**
+  String get khata_pay;
+
+  /// No description provided for @deliver_to.
+  ///
+  /// In en, this message translates to:
+  /// **'Deliver To'**
+  String get deliver_to;
+
+  /// No description provided for @change_address_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get change_address_btn;
+
+  /// No description provided for @add_address_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Address'**
+  String get add_address_btn;
+
+  /// No description provided for @est_delivery_time.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated Delivery in 15-30 Mins'**
+  String get est_delivery_time;
+
+  /// No description provided for @delivery_instructions_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add delivery instructions (optional)'**
+  String get delivery_instructions_hint;
+
+  /// No description provided for @apply_coupon.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Coupon'**
+  String get apply_coupon;
+
+  /// No description provided for @coupon_applied.
+  ///
+  /// In en, this message translates to:
+  /// **'Coupon applied successfully!'**
+  String get coupon_applied;
+
+  /// No description provided for @remove_coupon.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove_coupon;
+
+  /// No description provided for @enter_coupon_code.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter coupon code'**
+  String get enter_coupon_code;
+
+  /// No description provided for @order_processing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing your order...'**
+  String get order_processing;
+
+  /// No description provided for @back_to_cart.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Cart'**
+  String get back_to_cart;
+
+  /// No description provided for @order_confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Order Confirmed!'**
+  String get order_confirmed;
+
+  /// No description provided for @err_invalid_phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid 10-digit mobile number'**
+  String get err_invalid_phone;
+
+  /// No description provided for @err_name_required.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get err_name_required;
+
+  /// No description provided for @err_enter_address.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter complete address'**
+  String get err_enter_address;
+
+  /// No description provided for @err_invalid_pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid PIN'**
+  String get err_invalid_pin;
+
+  /// No description provided for @err_min_amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum order amount is required'**
+  String get err_min_amount;
+
+  /// No description provided for @err_stock_negative.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock cannot be negative'**
+  String get err_stock_negative;
+
+  /// No description provided for @err_price_zero.
+  ///
+  /// In en, this message translates to:
+  /// **'Price must be greater than zero'**
+  String get err_price_zero;
+
+  /// No description provided for @err_enter_quantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter valid quantity'**
+  String get err_enter_quantity;
+
+  /// No description provided for @err_select_payment.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a payment method'**
+  String get err_select_payment;
+
+  /// No description provided for @err_empty_cart_checkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot checkout with an empty cart'**
+  String get err_empty_cart_checkout;
+
+  /// No description provided for @order_status_pending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get order_status_pending;
+
+  /// No description provided for @order_status_accepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepted'**
+  String get order_status_accepted;
+
+  /// No description provided for @order_status_packing.
+  ///
+  /// In en, this message translates to:
+  /// **'Packing'**
+  String get order_status_packing;
+
+  /// No description provided for @order_status_ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get order_status_ready;
+
+  /// No description provided for @order_status_out.
+  ///
+  /// In en, this message translates to:
+  /// **'Out for Delivery'**
+  String get order_status_out;
+
+  /// No description provided for @order_status_delivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get order_status_delivered;
+
+  /// No description provided for @order_status_cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get order_status_cancelled;
+
+  /// No description provided for @order_status_rejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get order_status_rejected;
+
+  /// No description provided for @notif_order_placed_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Order Placed!'**
+  String get notif_order_placed_title;
+
+  /// No description provided for @notif_order_placed_body.
+  ///
+  /// In en, this message translates to:
+  /// **'Your order has been placed successfully.'**
+  String get notif_order_placed_body;
+
+  /// No description provided for @notif_out_for_delivery_body.
+  ///
+  /// In en, this message translates to:
+  /// **'Your order is on the way!'**
+  String get notif_out_for_delivery_body;
+
+  /// No description provided for @notif_delivered_body.
+  ///
+  /// In en, this message translates to:
+  /// **'Your order has been delivered. Thank you!'**
+  String get notif_delivered_body;
+
+  /// No description provided for @item_added_snack.
+  ///
+  /// In en, this message translates to:
+  /// **'Item added to cart'**
+  String get item_added_snack;
+
+  /// No description provided for @item_removed_snack.
+  ///
+  /// In en, this message translates to:
+  /// **'Item removed from cart'**
+  String get item_removed_snack;
+
+  /// No description provided for @cart_cleared_snack.
+  ///
+  /// In en, this message translates to:
+  /// **'Cart cleared'**
+  String get cart_cleared_snack;
+
+  /// No description provided for @tax_invoice_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax Invoice / Bill'**
+  String get tax_invoice_title;
+
+  /// No description provided for @invoice_no_lbl.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice No'**
+  String get invoice_no_lbl;
+
+  /// No description provided for @invoice_date_lbl.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice Date'**
+  String get invoice_date_lbl;
+
+  /// No description provided for @billed_to_lbl.
+  ///
+  /// In en, this message translates to:
+  /// **'Billed To'**
+  String get billed_to_lbl;
+
+  /// No description provided for @item_col.
+  ///
+  /// In en, this message translates to:
+  /// **'Item'**
+  String get item_col;
+
+  /// No description provided for @qty_col.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get qty_col;
+
+  /// No description provided for @rate_col.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate'**
+  String get rate_col;
+
+  /// No description provided for @amt_col.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amt_col;
+
+  /// No description provided for @grand_total_lbl.
+  ///
+  /// In en, this message translates to:
+  /// **'Grand Total'**
+  String get grand_total_lbl;
+
+  /// No description provided for @thank_you_shopping.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you for shopping with us!'**
+  String get thank_you_shopping;
+
+  /// No description provided for @download_pdf_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Invoice PDF'**
+  String get download_pdf_btn;
+
+  /// No description provided for @print_receipt_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Print Receipt'**
+  String get print_receipt_btn;
+
+  /// No description provided for @share_invoice_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Invoice'**
+  String get share_invoice_btn;
+
+  /// No description provided for @order_summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Order Summary'**
+  String get order_summary;
+
+  /// No description provided for @taxes_included.
+  ///
+  /// In en, this message translates to:
+  /// **'Taxes included'**
+  String get taxes_included;
+
+  /// No description provided for @empty_cart_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Cart is Empty'**
+  String get empty_cart_title;
+
+  /// No description provided for @empty_cart_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Looks like you haven\'\'t added anything yet.'**
+  String get empty_cart_subtitle;
+
+  /// No description provided for @start_shopping_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Shopping'**
+  String get start_shopping_btn;
+
+  /// No description provided for @order_by_voice_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Order by Voice'**
+  String get order_by_voice_btn;
+
+  /// No description provided for @no_orders_title.
+  ///
+  /// In en, this message translates to:
+  /// **'No Orders Placed Yet'**
+  String get no_orders_title;
+
+  /// No description provided for @no_orders_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your past orders and live tracking will appear here.'**
+  String get no_orders_subtitle;
+
+  /// No description provided for @no_products_found_title.
+  ///
+  /// In en, this message translates to:
+  /// **'No Products Found'**
+  String get no_products_found_title;
+
+  /// No description provided for @no_products_found_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Try searching with a different name or category.'**
+  String get no_products_found_subtitle;
+
+  /// No description provided for @no_notifications_title.
+  ///
+  /// In en, this message translates to:
+  /// **'No Notifications'**
+  String get no_notifications_title;
+
+  /// No description provided for @no_notifications_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates about your orders will show up here.'**
+  String get no_notifications_subtitle;
+
+  /// No description provided for @admin_overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Store Overview'**
+  String get admin_overview;
+
+  /// No description provided for @admin_inventory.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory & Stock'**
+  String get admin_inventory;
+
+  /// No description provided for @admin_orders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders & Billing'**
+  String get admin_orders;
+
+  /// No description provided for @admin_khata.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer Khata'**
+  String get admin_khata;
+
+  /// No description provided for @admin_analytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales & Analytics'**
+  String get admin_analytics;
+
+  /// No description provided for @admin_settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Store Settings'**
+  String get admin_settings;
+
+  /// No description provided for @mark_as_packed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as Packed'**
+  String get mark_as_packed;
+
+  /// No description provided for @mark_as_delivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as Delivered'**
+  String get mark_as_delivered;
+
+  /// No description provided for @assign_delivery_boy.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign Delivery Boy'**
+  String get assign_delivery_boy;
+
+  /// No description provided for @out_for_delivery_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Out for Delivery'**
+  String get out_for_delivery_btn;
+
+  /// No description provided for @confirm_payment_btn.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Payment'**
+  String get confirm_payment_btn;
+
+  /// No description provided for @stock_updated_snack.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock updated successfully'**
+  String get stock_updated_snack;
 }
 
 class _AppLocalizationsDelegate

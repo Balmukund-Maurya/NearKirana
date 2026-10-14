@@ -19,6 +19,7 @@ import 'shop_provider.dart';
 import 'wishlist_provider.dart';
 import 'animation_helpers.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'widgets/voice_order_sheet.dart';
 
 class CustomerShopTab extends StatefulWidget {
   const CustomerShopTab({super.key});
@@ -507,8 +508,11 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                       color: AppColors.primaryDark,
                       size: 22,
                     ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_searchQuery.isNotEmpty)
+                          IconButton(
                             icon: const Icon(
                               Icons.close_rounded,
                               color: AppColors.textMid,
@@ -521,8 +525,23 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                               }
                               setState(() => _searchQuery = '');
                             },
-                          )
-                        : null,
+                          ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.mic_rounded,
+                            color: AppColors.primaryDark,
+                            size: 22,
+                          ),
+                          tooltip: 'Voice Order (बोलकर सामान मंगाएं)',
+                          onPressed: () {
+                            VoiceOrderSheet.show(
+                              context,
+                              shopId: shopProvider.currentShopId ?? '',
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       vertical: 14,
@@ -751,6 +770,21 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                         prefixIcon: Icon(
                           Icons.search_rounded,
                           color: Colors.grey.shade500,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(
+                            Icons.mic_rounded,
+                            color: AppColors.primaryDark,
+                            size: 22,
+                          ),
+                          tooltip: 'Voice Order (बोलकर सामान मंगाएं)',
+                          onPressed: () {
+                            final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+                            VoiceOrderSheet.show(
+                              context,
+                              shopId: shopProvider.currentShopId ?? '',
+                            );
+                          },
                         ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(

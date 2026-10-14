@@ -9,7 +9,7 @@ class SoundService {
   factory SoundService() => _instance;
   SoundService._internal();
 
-  final AudioPlayer _player = AudioPlayer();
+  AudioPlayer? _player;
   bool _enabled = true;
   bool _hapticsEnabled = true;
 
@@ -20,8 +20,9 @@ class SoundService {
   Future<void> play(String file) async {
     if (!_enabled) return;
     try {
-      await _player.stop();
-      await _player.play(AssetSource('sounds/$file'));
+      _player ??= AudioPlayer();
+      await _player!.stop();
+      await _player!.play(AssetSource('sounds/$file'));
     } catch (e) {
       debugPrint('Sound error: $e');
     }
@@ -104,6 +105,6 @@ class SoundService {
   Future<void> productSaved() => play('save.wav');
 
   void dispose() {
-    _player.dispose();
+    _player?.dispose();
   }
 }

@@ -238,7 +238,9 @@ service cloud.firestore {
         isAuthenticated() && (
           (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
           isMatchingPhone(resource.data.phone_number) ||
-          (('customer_uid' in resource.data) && resource.data.customer_uid == request.auth.uid)
+          (('customer_uid' in resource.data) && resource.data.customer_uid == request.auth.uid) ||
+          (('delivery_boy_id' in resource.data) && resource.data.delivery_boy_id == request.auth.uid) ||
+          (('delivery_boy_phone' in resource.data) && isMatchingPhone(resource.data.delivery_boy_phone))
         )
       );
 
@@ -307,6 +309,15 @@ service cloud.firestore {
                 && request.resource.data.payment_status in ['Pending_Verification', 'Payment_Pending']
               )
             )
+          ) ||
+          (
+            // Option C: Assigned Delivery Partner updating order status (Accept -> Pickup -> Delivered)
+            (
+              (('delivery_boy_id' in resource.data) && resource.data.delivery_boy_id == request.auth.uid) ||
+              (('delivery_boy_phone' in resource.data) && isMatchingPhone(resource.data.delivery_boy_phone))
+            )
+            && request.resource.data.shop_id == resource.data.shop_id
+            && isValidOrderTransition(resource.data.status, request.resource.data.status)
           )
         )
       );
@@ -741,6 +752,282 @@ service cloud.firestore {
       );
 
       allow update, delete: if isSuperAdmin();
+    }
+
+    // =========================================================================
+    // 15. STAFF ACCOUNTS & AUDIT LOGS (Controlled Delegation & Immutable Audit)
+    // =========================================================================
+    match /staff_members/{staffId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (resource.data.phone is string && isMatchingPhone(resource.data.phone))
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.resource.data.shop_id is string &&
+          isShopOwner(request.resource.data.shop_id) &&
+          request.resource.data.name is string &&
+          request.resource.data.phone is string
+        )
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id) &&
+          request.resource.data.shop_id == resource.data.shop_id
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.resource.data.shop_id is string &&
+          request.resource.data.action_type is string
+        )
+      );
+
+      // Audit logs are strictly immutable: cannot be modified or deleted by normal users!
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // =========================================================================
+    // 16. DATA EXPORTS & CLOUD BACKUPS (Feature 57: Snapshots & Disaster Recovery)
+    // Multi-tenant isolation: Only shop owners or super admins can read, create,
+    // update (for restore test results), or delete backups for their own shop_id.
+    // =========================================================================
+    match /backups/{backupId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.resource.data.shop_id is string && isShopOwner(request.resource.data.shop_id)
+        )
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    // =========================================================================
+    // 17. DELIVERY PARTNER MODE (Feature 58: Dedicated Dispatch Workflow)
+    // Multi-tenant isolation: Shop owners can manage delivery partners for their shop.
+    // Delivery partners can view and update their own status/profile.
+    // =========================================================================
+    match /delivery_partners/{partnerId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (resource.data.phone is string && isMatchingPhone(resource.data.phone)) ||
+          (partnerId == request.auth.uid)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (request.resource.data.shop_id is string && isShopOwner(request.resource.data.shop_id)) ||
+          (request.resource.data.phone is string && isMatchingPhone(request.resource.data.phone)) ||
+          (partnerId == request.auth.uid)
+        )
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (resource.data.phone is string && isMatchingPhone(resource.data.phone)) ||
+          (partnerId == request.auth.uid)
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    // =========================================================================
+    // 18. LIVE DELIVERY TRACKING (Feature 59: Real-time GPS Location)
+    // - Read: Allowed for shop owners, assigned delivery partner, or the customer
+    //   matching the order (by customer_phone or auth uid).
+    // - Create/Update: Allowed for shop owners and assigned delivery partner.
+    // - Delete: Super admin or shop owner.
+    // =========================================================================
+    match /delivery_tracking/{orderId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (resource.data.partner_phone is string && isMatchingPhone(resource.data.partner_phone)) ||
+          (resource.data.customer_phone is string && isMatchingPhone(resource.data.customer_phone)) ||
+          (resource.data.partner_id == request.auth.uid) ||
+          (resource.data.customer_uid == request.auth.uid)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (request.resource.data.shop_id is string && isShopOwner(request.resource.data.shop_id)) ||
+          (request.resource.data.partner_phone is string && isMatchingPhone(request.resource.data.partner_phone)) ||
+          (request.resource.data.partner_id == request.auth.uid)
+        )
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (resource.data.partner_phone is string && isMatchingPhone(resource.data.partner_phone)) ||
+          (resource.data.partner_id == request.auth.uid)
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    // =========================================================================
+    // 19. LOYALTY & REFERRAL PROGRAM (Feature 60)
+    // - Configs (/loyalty_configs/{shopId}):
+    //   Read allowed for authenticated users; write restricted to shop owner or super admin.
+    // - Accounts (/loyalty_accounts/{accountId}):
+    //   Read allowed for customer matching phone/uid or shop owner.
+    //   Create/Update allowed for shop owner or authenticated customer.
+    // - Transactions (/loyalty_transactions/{txId}):
+    //   Read allowed for customer or shop owner.
+    // - Referrals (/referrals/{referralId}):
+    //   Read allowed for referrer, referee, or shop owner.
+    // =========================================================================
+    match /loyalty_configs/{shopId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin() || isShopOwner(shopId);
+    }
+
+    match /loyalty_accounts/{accountId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (resource.data.customer_phone is string && isMatchingPhone(resource.data.customer_phone)) ||
+          (resource.data.customer_uid == request.auth.uid)
+        )
+      );
+
+      allow create, update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (request.resource.data.shop_id is string && isShopOwner(request.resource.data.shop_id)) ||
+          (request.resource.data.customer_phone is string && isMatchingPhone(request.resource.data.customer_phone)) ||
+          (request.resource.data.customer_uid == request.auth.uid)
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    match /loyalty_transactions/{txId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (resource.data.customer_phone is string && isMatchingPhone(resource.data.customer_phone)) ||
+          (resource.data.customer_uid == request.auth.uid)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (request.resource.data.shop_id is string && isShopOwner(request.resource.data.shop_id)) ||
+          (request.resource.data.customer_phone is string && isMatchingPhone(request.resource.data.customer_phone)) ||
+          (request.resource.data.customer_uid == request.auth.uid)
+        )
+      );
+
+      allow update, delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    match /referrals/{referralId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (resource.data.referrer_phone is string && isMatchingPhone(resource.data.referrer_phone)) ||
+          (resource.data.referee_phone is string && isMatchingPhone(resource.data.referee_phone))
+        )
+      );
+
+      allow create, update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (request.resource.data.shop_id is string && isShopOwner(request.resource.data.shop_id)) ||
+          (request.resource.data.referrer_phone is string && isMatchingPhone(request.resource.data.referrer_phone)) ||
+          (request.resource.data.referee_phone is string && isMatchingPhone(request.resource.data.referee_phone))
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    // =========================================================================
+    // 20. VOICE-BASED GROCERY ORDERING (Feature 61)
+    // - Logs (/voice_order_logs/{logId}):
+    //   Read allowed for customer matching phone, shop owner, or super admin.
+    //   Create allowed for authenticated users.
+    //   Update/Delete restricted to shop owner or super admin.
+    // =========================================================================
+    match /voice_order_logs/{logId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          (resource.data.shop_id is string && isShopOwner(resource.data.shop_id)) ||
+          (resource.data.customer_phone is string && isMatchingPhone(resource.data.customer_phone))
+        )
+      );
+
+      allow create: if isSuperAdmin() || isAuthenticated();
+
+      allow update, delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
     }
 
     // Fallback: Deny all unhandled paths

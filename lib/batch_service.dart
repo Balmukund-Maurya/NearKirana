@@ -153,13 +153,13 @@ class BatchService {
       'updated_at': Timestamp.fromDate(DateTime.now()),
       'status': newStatus.key,
       if (batchNumber != null) 'batch_number': batchNumber.trim().toUpperCase(),
-      if (quantity != null) 'quantity': quantity,
+      'quantity': ?quantity,
       if (expiryDate != null) 'expiry_date': Timestamp.fromDate(expiryDate),
       if (mfgDate != null) 'mfg_date': Timestamp.fromDate(mfgDate),
-      if (costPrice != null) 'cost_price': costPrice,
-      if (sellingPrice != null) 'selling_price': sellingPrice,
-      if (notes != null) 'notes': notes,
-      if (storageLocation != null) 'storage_location': storageLocation,
+      'cost_price': ?costPrice,
+      'selling_price': ?sellingPrice,
+      'notes': ?notes,
+      'storage_location': ?storageLocation,
     };
 
     await _batchesRef.doc(batchId).update(updates);

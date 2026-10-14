@@ -4,6 +4,7 @@ import 'firebase_utils.dart';
 import 'payment_service.dart';
 import 'notification_service.dart';
 import 'coupon_model.dart';
+import 'loyalty_referral_service.dart';
 
 /// Request model representing an individual cart item in an atomic order placement
 class OrderItemRequest {
@@ -604,6 +605,20 @@ class AtomicOrderService {
         );
       } catch (e) {
         // Notification failure should never block or fail order placement
+      }
+
+      // Feature 60: Automatically calculate and credit loyalty points and complete qualifying referrals
+      try {
+        await LoyaltyReferralService(firestore: _firestore).processOrderPointsAndReferrals(
+          shopId: params.shopId,
+          customerPhone: params.customerPhone,
+          customerName: params.customerName,
+          orderId: result.orderId,
+          orderSubtotal: result.subtotal,
+          customerUid: params.customerUid,
+        );
+      } catch (e) {
+        // Loyalty failure should never block or fail order placement
       }
     }
 

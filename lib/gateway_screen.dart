@@ -17,6 +17,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'main.dart' show LoginScreen;
 import 'user_provider.dart';
 import 'auth_service.dart';
+import 'delivery_partner_screen.dart';
 
 class GatewayScreen extends StatefulWidget {
   const GatewayScreen({super.key});
@@ -60,6 +61,8 @@ class _GatewayScreenState extends State<GatewayScreen> {
         }
       } else if (role == 'admin') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
+      } else if (role == 'delivery_partner') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => DeliveryPartnerScreen(initialPhone: _globalPhone)));
       } else {
         setState(() => _isLoading = false);
       }
@@ -484,6 +487,21 @@ class _GatewayScreenState extends State<GatewayScreen> {
     }
   }
 
+  Future<void> _selectDeliveryPartnerRole() async {
+    HapticFeedback.lightImpact();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_role', 'delivery_partner');
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DeliveryPartnerScreen(
+          initialPhone: _globalPhone,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -849,6 +867,28 @@ class _GatewayScreenState extends State<GatewayScreen> {
               ),
             ),
           ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.1, end: 0),
+          
+          const SizedBox(height: 20),
+          
+          TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DeliveryPartnerScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.two_wheeler_rounded, size: 20, color: Colors.deepOrange),
+            label: const Text(
+              'Delivery Partner Mode (डिलीवरी पार्टनर मोड)',
+              style: TextStyle(
+                color: Colors.deepOrange,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ).animate().fadeIn(delay: 600.ms),
         ],
       ),
     );
@@ -1005,6 +1045,18 @@ class _GatewayScreenState extends State<GatewayScreen> {
             backgroundColor: AppColors.accentPink.withValues(alpha: 0.05),
             onTap: _selectAdminRole,
             delay: 500.ms,
+          ),
+          
+          const SizedBox(height: 24),
+          
+          _buildRoleCard(
+            title: 'I am a Delivery Partner',
+            subtitle: 'Deliver orders for local shops & track dispatches',
+            icon: Icons.two_wheeler_rounded,
+            color: Colors.deepOrange,
+            backgroundColor: Colors.deepOrange.withValues(alpha: 0.05),
+            onTap: _selectDeliveryPartnerRole,
+            delay: 600.ms,
           ),
         ],
       ),

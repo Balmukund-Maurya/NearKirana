@@ -16,6 +16,8 @@ import 'order_state_machine.dart';
 import 'notification_service.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
+import 'package:near_kirana/widgets/assign_delivery_partner_dialog.dart';
+import 'package:near_kirana/customer_live_tracking_screen.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;
@@ -752,6 +754,50 @@ class AdminOrderCard extends StatelessWidget {
                               },
                             ),
                           ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Delivery Partner Assignment Banner
+                if (data['delivery_boy_name'] != null && data['delivery_boy_name'].toString().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.two_wheeler_rounded, size: 16, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Delivery Partner: ${data['delivery_boy_name']} (${data['delivery_status'] ?? 'assigned'})${data['delivery_boy_phone'] != null && data['delivery_boy_phone'].toString().isNotEmpty ? ' • ${data['delivery_boy_phone']}' : ''}',
+                            style: AppTextStyles.captionMedium(color: Colors.blue.shade900),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        TextButton.icon(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            CustomerLiveTrackingScreen.open(
+                              context,
+                              orderId: orderDoc.id,
+                              orderData: data,
+                            );
+                          },
+                          icon: const Icon(Icons.location_on_rounded, size: 14),
+                          label: const Text('Track Live'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.blue.shade900,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                         ),
                       ],
                     ),
@@ -1619,6 +1665,16 @@ class AdminOrderCard extends StatelessWidget {
     Map<String, dynamic> data,
     String nextStatus,
   ) async {
+    final assigned = await AssignDeliveryPartnerDialog.show(
+      context: context,
+      orderId: orderId,
+      shopId: data['shop_id']?.toString() ?? '',
+      orderData: data,
+      nextStatus: nextStatus,
+    );
+
+    if (assigned == true) return;
+
     final prefs = await SharedPreferences.getInstance();
     final boyNameController = TextEditingController(
       text: prefs.getString('last_delivery_boy_name') ?? '',

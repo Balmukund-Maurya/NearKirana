@@ -22,6 +22,7 @@ import 'package:near_kirana/firebase_utils.dart';
 import 'customer_profile_desktop_wrapper.dart';
 import 'address_selection_bottom_sheet.dart';
 import 'shopping_lists_screen.dart';
+import 'customer_loyalty_screen.dart';
 
 class CustomerProfileTab extends StatelessWidget {
   const CustomerProfileTab({super.key});
@@ -228,6 +229,64 @@ class CustomerProfileTab extends StatelessWidget {
                 ),
               ),
             ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.1, end: 0),
+
+            // Loyalty Rewards & Referrals Card
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.amber.shade400, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.amber.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.stars_rounded, color: Colors.amber.shade800, size: 24),
+                  ),
+                  title: const Text(
+                    'Rewards & Referrals (रिवार्ड्स और रेफरल)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  subtitle: const Text(
+                    'Earn points on groceries, share code & get free discounts',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMid),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.textMid),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+                    final effectiveShopId = shopProvider.currentShopId ?? 'primary_shop';
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CustomerLoyaltyScreen(
+                          shopId: effectiveShopId,
+                          customerPhone: userProvider.phoneNumber,
+                          customerName: userProvider.customerName.isNotEmpty
+                              ? userProvider.customerName
+                              : 'Customer',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ).animate().fadeIn(delay: 480.ms).slideY(begin: 0.1, end: 0),
 
             // Main Options
             _buildInfoCard(

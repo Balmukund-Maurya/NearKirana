@@ -5,6 +5,7 @@ library;
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_service.dart';
+import 'staff_audit_models.dart';
 
 enum AppRole {
   customer,
@@ -281,5 +282,17 @@ class RolePermissions {
   /// Whether user can perform platform-level operations
   static bool canPerformPlatformOperations(UserSession user) {
     return user.isSuperAdmin;
+  }
+
+  /// Whether an active staff member can execute a protected action in their shop
+  static bool canStaffPerform({
+    required StaffMember? staff,
+    required String targetShopId,
+    required StaffPermission requiredPermission,
+  }) {
+    if (staff == null) return false;
+    if (!staff.isActive) return false;
+    if (staff.shopId != targetShopId) return false;
+    return staff.hasPermission(requiredPermission);
   }
 }

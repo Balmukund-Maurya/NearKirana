@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
+import 'package:near_kirana/shop_provider.dart';
+import 'package:near_kirana/delivery_partner_models.dart';
+import 'package:near_kirana/delivery_partner_service.dart';
+import 'package:near_kirana/delivery_partner_screen.dart';
 
 class AdminShopBoysScreen extends StatefulWidget {
   const AdminShopBoysScreen({super.key});
@@ -11,6 +16,7 @@ class AdminShopBoysScreen extends StatefulWidget {
 }
 
 class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
+  final DeliveryPartnerService _service = DeliveryPartnerService();
   List<Map<String, dynamic>> _shopBoys = [];
   bool _isLoading = true;
   String _searchQuery = '';
@@ -23,25 +29,145 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
 
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 300));
     
-    // Injecting exact mock data from the reference image for visual matching
+    // Default reference data
+    final defaultBoys = [
+      {'id': 'SB001', 'name': 'Ramesh Kumar', 'phone': '+91 98765 43210', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 124, 'status': 'Active'},
+      {'id': 'SB002', 'name': 'Suresh Patel', 'phone': '+91 98765 43211', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 98, 'status': 'Active'},
+      {'id': 'SB003', 'name': 'Amit Yadav', 'phone': '+91 98765 43212', 'assigned_shop': 'Branch Store', 'assigned_shop_location': 'MP Nagar', 'total_orders': 76, 'status': 'Active'},
+      {'id': 'SB004', 'name': 'Vikash Singh', 'phone': '+91 98765 43213', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 65, 'status': 'Active'},
+      {'id': 'SB005', 'name': 'Imran Khan', 'phone': '+91 98765 43214', 'assigned_shop': 'Branch Store', 'assigned_shop_location': 'MP Nagar', 'total_orders': 52, 'status': 'Active'},
+      {'id': 'SB006', 'name': 'Rohit Sharma', 'phone': '+91 98765 43215', 'assigned_shop': 'Sector Store', 'assigned_shop_location': 'New Market', 'total_orders': 48, 'status': 'Inactive'},
+      {'id': 'SB007', 'name': 'Manoj Gupta', 'phone': '+91 98765 43216', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 41, 'status': 'Active'},
+      {'id': 'SB008', 'name': 'Deepak Verma', 'phone': '+91 98765 43217', 'assigned_shop': 'Branch Store', 'assigned_shop_location': 'MP Nagar', 'total_orders': 36, 'status': 'Active'},
+    ];
+
+    try {
+      final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+      final shopId = shopProvider.currentShopId ?? '';
+      if (shopId.isNotEmpty) {
+        final partners = await _service.streamShopPartners(shopId).first;
+        final liveBoys = partners.map((p) => {
+          'id': p.id.length > 6 ? p.id.substring(p.id.length - 6).toUpperCase() : p.id,
+          'name': p.name,
+          'phone': p.phone,
+          'assigned_shop': p.vehicleNumber.isNotEmpty ? p.vehicleNumber : 'Kirana Express',
+          'assigned_shop_location': 'Store Delivery',
+          'total_orders': p.totalDeliveredCount,
+          'status': p.isOnline ? 'Active' : 'Inactive',
+        }).toList();
+
+        if (mounted) {
+          setState(() {
+            _shopBoys = [...liveBoys, ...defaultBoys];
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+    } catch (_) {}
+
     if (mounted) {
       setState(() {
-        _shopBoys = [
-          {'id': 'SB001', 'name': 'Ramesh Kumar', 'phone': '+91 98765 43210', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 124, 'status': 'Active'},
-          {'id': 'SB002', 'name': 'Suresh Patel', 'phone': '+91 98765 43211', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 98, 'status': 'Active'},
-          {'id': 'SB003', 'name': 'Amit Yadav', 'phone': '+91 98765 43212', 'assigned_shop': 'Branch Store', 'assigned_shop_location': 'MP Nagar', 'total_orders': 76, 'status': 'Active'},
-          {'id': 'SB004', 'name': 'Vikash Singh', 'phone': '+91 98765 43213', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 65, 'status': 'Active'},
-          {'id': 'SB005', 'name': 'Imran Khan', 'phone': '+91 98765 43214', 'assigned_shop': 'Branch Store', 'assigned_shop_location': 'MP Nagar', 'total_orders': 52, 'status': 'Active'},
-          {'id': 'SB006', 'name': 'Rohit Sharma', 'phone': '+91 98765 43215', 'assigned_shop': 'Sector Store', 'assigned_shop_location': 'New Market', 'total_orders': 48, 'status': 'Inactive'},
-          {'id': 'SB007', 'name': 'Manoj Gupta', 'phone': '+91 98765 43216', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 41, 'status': 'Active'},
-          {'id': 'SB008', 'name': 'Deepak Verma', 'phone': '+91 98765 43217', 'assigned_shop': 'Branch Store', 'assigned_shop_location': 'MP Nagar', 'total_orders': 36, 'status': 'Active'},
-        ];
+        _shopBoys = defaultBoys;
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _showAddShopBoyDialog() async {
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final vehicleCtrl = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.person_add_alt_1_rounded, color: AppColors.primaryDark),
+            const SizedBox(width: 10),
+            Text('Add Delivery Partner', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Partner Name (e.g. Rahul Sharma)',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone Number (10 digits)',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: vehicleCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Vehicle Number (e.g. MP04 AB 1234)',
+                prefixIcon: Icon(Icons.two_wheeler_outlined),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              final phone = phoneCtrl.text.trim();
+              if (name.isEmpty || phone.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter name and phone number')),
+                );
+                return;
+              }
+
+              final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId ?? '';
+              final partner = DeliveryPartner(
+                id: '',
+                shopId: shopId,
+                name: name,
+                phone: phone,
+                vehicleNumber: vehicleCtrl.text.trim(),
+                status: DeliveryPartnerStatus.available,
+                createdAt: DateTime.now(),
+              );
+
+              final messenger = ScaffoldMessenger.of(context);
+              await _service.registerOrUpdatePartner(partner);
+              if (dialogCtx.mounted) {
+                Navigator.pop(dialogCtx);
+              }
+              _fetchData();
+              if (mounted) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Delivery partner $name added successfully!')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save Partner'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _notImplementedMessage(String feature) {
@@ -118,17 +244,38 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
             Text('Manage your delivery partners and track their performance', style: AppTextStyles.bodyMedium(color: AppColors.textMid).copyWith(fontSize: 15)),
           ],
         ),
-        ElevatedButton.icon(
-          onPressed: () => _notImplementedMessage('Add Shop Boy'),
-          icon: const Icon(Icons.add_circle_outline, size: 18),
-          label: const Text('Add Shop Boy', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryDark,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            elevation: 0,
-          ),
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DeliveryPartnerScreen()),
+                );
+              },
+              icon: const Icon(Icons.two_wheeler_rounded, size: 18),
+              label: const Text('Open Partner Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primaryDark,
+                side: const BorderSide(color: AppColors.primaryDark),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: _showAddShopBoyDialog,
+              icon: const Icon(Icons.add_circle_outline, size: 18),
+              label: const Text('Add Shop Boy', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDark,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -638,11 +785,17 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          _buildQuickActionRow(Icons.person_add_alt_1, Colors.green.shade700, 'Add Shop Boy', 'Register a new delivery partner', onTap: () => _notImplementedMessage('Add Shop Boy')),
+          _buildQuickActionRow(Icons.person_add_alt_1, Colors.green.shade700, 'Add Shop Boy', 'Register a new delivery partner', onTap: _showAddShopBoyDialog),
           const SizedBox(height: 16),
-          _buildQuickActionRow(Icons.assignment_outlined, AppColors.textDark, 'Assign Orders', 'Assign orders to shop boys', onTap: () => _notImplementedMessage('Assign Orders')),
+          _buildQuickActionRow(Icons.electric_moped_rounded, Colors.deepOrange, 'Open Delivery Partner Mode', 'Dedicated workflow for delivery boys', onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const DeliveryPartnerScreen()));
+          }),
           const SizedBox(height: 16),
-          _buildQuickActionRow(Icons.bar_chart, AppColors.textDark, 'View Performance', 'See detailed performance report', onTap: () => _notImplementedMessage('View Performance')),
+          _buildQuickActionRow(Icons.assignment_outlined, AppColors.textDark, 'Assign Orders', 'Assign orders directly from Order card', onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('To assign orders, tap "Dispatch Order" on any packed order in Orders tab.')),
+            );
+          }),
         ],
       ),
     );

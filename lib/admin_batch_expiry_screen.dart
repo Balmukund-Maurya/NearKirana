@@ -77,7 +77,7 @@ class _AdminBatchExpiryScreenState extends State<AdminBatchExpiryScreen>
     final shopId = _getShopId();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,8 +531,7 @@ class _AdminBatchExpiryScreenState extends State<AdminBatchExpiryScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                'Expiry Date: ${dateFormat.format(batch.expiryDate)}' +
-                    (batch.storageLocation != null ? ' • ${batch.storageLocation}' : ''),
+                'Expiry Date: ${dateFormat.format(batch.expiryDate)}${batch.storageLocation != null ? ' • ${batch.storageLocation}' : ''}',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
 

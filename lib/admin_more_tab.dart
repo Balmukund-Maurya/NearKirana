@@ -12,6 +12,10 @@ import 'admin_complaints_screen.dart';
 import 'admin_analytics_screen.dart';
 import 'admin_suppliers_screen.dart';
 import 'admin_batch_expiry_screen.dart';
+import 'admin_staff_audit_screen.dart';
+import 'admin_data_export_backup_screen.dart';
+import 'admin_shop_boys_screen.dart';
+import 'admin_loyalty_screen.dart';
 import 'shop_qr_screen.dart';
 import 'gateway_screen.dart';
 import 'app_theme.dart';
@@ -241,6 +245,66 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AdminBatchExpiryScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuTile(
+                  icon: Icons.badge_rounded,
+                  color: Colors.indigo,
+                  title: 'Staff Accounts & Audit Logs',
+                  subtitle: 'Employee roles, permissions & immutable activity trail',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminStaffAuditScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuTile(
+                  icon: Icons.cloud_sync_rounded,
+                  color: Colors.teal,
+                  title: 'Data Export & Cloud Backup',
+                  subtitle: 'CSV/PDF reports for accountants, snapshots & restore testing',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminDataExportBackupScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuTile(
+                  icon: Icons.two_wheeler_rounded,
+                  color: Colors.deepOrange,
+                  title: 'Delivery Partners & Dispatches',
+                  subtitle: 'Dedicated dispatch workflow, pickup & delivery tracking',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminShopBoysScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuTile(
+                  icon: Icons.stars_rounded,
+                  color: Colors.amber.shade800,
+                  title: 'Loyalty & Referral Program',
+                  subtitle: 'Customer points passbook, referral bonuses & membership tiers',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminLoyaltyScreen(),
                       ),
                     );
                   },

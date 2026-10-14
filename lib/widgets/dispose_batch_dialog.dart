@@ -158,26 +158,30 @@ class _DisposeBatchDialogState extends State<DisposeBatchDialog> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade100,
-                              borderRadius: BorderRadius.circular(10),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(Icons.delete_sweep_rounded, color: Colors.red.shade800, size: 22),
                             ),
-                            child: Icon(Icons.delete_sweep_rounded, color: Colors.red.shade800, size: 22),
-                          ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'Write-off / Dispose Stock\n(नुकसान दर्ज करें)',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                'Write-off / Dispose Stock\n(नुकसान दर्ज करें)',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded, color: AppColors.textLight),
@@ -206,10 +210,14 @@ class _DisposeBatchDialogState extends State<DisposeBatchDialog> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Batch: ${b.batchNumber}',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                            Expanded(
+                              child: Text(
+                                'Batch: ${b.batchNumber}',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Text(
                               'Available: ${b.quantity} ${b.unit}',
                               style: TextStyle(
@@ -224,10 +232,14 @@ class _DisposeBatchDialogState extends State<DisposeBatchDialog> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Cost Rate: ₹${b.costPrice.toStringAsFixed(2)} / ${b.unit}',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                            Expanded(
+                              child: Text(
+                                'Cost Rate: ₹${b.costPrice.toStringAsFixed(2)} / ${b.unit}',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Text(
                               b.isExpired()
                                   ? 'Status: Expired'
@@ -334,24 +346,27 @@ class _DisposeBatchDialogState extends State<DisposeBatchDialog> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Calculated Financial Loss (नुकसान)',
-                              style: TextStyle(fontSize: 12, color: Colors.red.shade900),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '₹${(double.tryParse(_lossAmountController.text) ?? 0).toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red.shade900,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Calculated Financial Loss (नुकसान)',
+                                style: TextStyle(fontSize: 12, color: Colors.red.shade900),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 2),
+                              Text(
+                                '₹${(double.tryParse(_lossAmountController.text) ?? 0).toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Icon(Icons.trending_down_rounded, color: Colors.red.shade700, size: 28),
                       ],
                     ),

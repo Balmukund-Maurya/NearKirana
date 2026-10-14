@@ -277,20 +277,26 @@ class _BatchDetailsDialogState extends State<BatchDetailsDialog> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.access_time_filled_rounded, color: statusBadgeColor, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Best Before / Expiry',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: statusBadgeColor,
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.access_time_filled_rounded, color: statusBadgeColor, size: 20),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          'Best Before / Expiry',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: statusBadgeColor,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(

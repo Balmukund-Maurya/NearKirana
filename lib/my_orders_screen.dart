@@ -21,6 +21,7 @@ import 'package:near_kirana/widgets/rating_review_dialog.dart';
 import 'package:near_kirana/widgets/order_complaint_section.dart';
 import 'package:near_kirana/widgets/reorder_summary_dialog.dart';
 import 'package:near_kirana/shopping_list_service.dart';
+import 'package:near_kirana/customer_live_tracking_screen.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   final bool isTab;
@@ -746,61 +747,91 @@ class MyOrdersScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                 ),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.moped_rounded,
-                        color: Colors.blue,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.out_for_delivery,
-                            style: AppTextStyles.captionMedium(
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.moped_rounded,
+                            color: Colors.blue,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                AppLocalizations.of(context)!.out_for_delivery,
+                                style: AppTextStyles.captionMedium(
+                                  color: Colors.blue,
+                                ),
+                              ),
+                              Text(
+                                data['delivery_boy_name'],
+                                style: AppTextStyles.bodySemiBold(
+                                  color: Colors.blue.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (data['delivery_boy_phone'] != null &&
+                            data['delivery_boy_phone'].toString().isNotEmpty)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.call_rounded,
                               color: Colors.blue,
                             ),
-                          ),
-                          Text(
-                            data['delivery_boy_name'],
-                            style: AppTextStyles.bodySemiBold(
-                              color: Colors.blue.shade800,
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.blue.withValues(alpha: 0.2),
                             ),
+                            onPressed: () async {
+                              HapticFeedback.lightImpact();
+                              final Uri launchUri = Uri(
+                                scheme: 'tel',
+                                path: data['delivery_boy_phone'].toString(),
+                              );
+                              if (await canLaunchUrl(launchUri)) {
+                                await launchUrl(launchUri);
+                              }
+                            },
                           ),
-                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          CustomerLiveTrackingScreen.open(
+                            context,
+                            orderId: doc.id,
+                            orderData: data,
+                          );
+                        },
+                        icon: const Icon(Icons.location_on_rounded, size: 16),
+                        label: const Text('Live Track on Map (लाइव ट्रैक करें)'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryDark,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
                       ),
                     ),
-                    if (data['delivery_boy_phone'] != null &&
-                        data['delivery_boy_phone'].toString().isNotEmpty)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.call_rounded,
-                          color: Colors.blue,
-                        ),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.blue.withValues(alpha: 0.2),
-                        ),
-                        onPressed: () async {
-                          HapticFeedback.lightImpact();
-                          final Uri launchUri = Uri(
-                            scheme: 'tel',
-                            path: data['delivery_boy_phone'].toString(),
-                          );
-                          if (await canLaunchUrl(launchUri)) {
-                            await launchUrl(launchUri);
-                          }
-                        },
-                      ),
                   ],
                 ),
               ),

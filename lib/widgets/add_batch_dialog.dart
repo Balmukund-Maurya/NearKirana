@@ -308,30 +308,35 @@ class _AddBatchDialogState extends State<AddBatchDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryDark.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryDark.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.calendar_month_rounded,
+                              color: AppColors.primaryDark,
+                              size: 22,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.calendar_month_rounded,
-                            color: AppColors.primaryDark,
-                            size: 22,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              isEdit ? 'Edit Batch' : 'Add Batch (नया बैच जोड़ें)',
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          isEdit ? 'Edit Batch (बैच संपादित करें)' : 'Add Batch (नया बैच जोड़ें)',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close_rounded, color: AppColors.textLight),
@@ -487,16 +492,22 @@ class _AddBatchDialogState extends State<AddBatchDialog> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Icon(Icons.event_busy_rounded, color: urgencyColor, size: 20),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        'Expiry Date (एक्सपायरी डेट) *',
-                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                      ),
-                                    ],
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.event_busy_rounded, color: urgencyColor, size: 20),
+                                        const SizedBox(width: 8),
+                                        const Flexible(
+                                          child: Text(
+                                            'Expiry Date *',
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(

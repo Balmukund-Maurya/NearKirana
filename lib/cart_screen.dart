@@ -26,6 +26,7 @@ import 'desktop_checkout_view.dart';
 import 'atomic_order_service.dart';
 import 'address_selection_bottom_sheet.dart';
 import 'shopping_list_service.dart';
+import 'widgets/voice_order_sheet.dart';
 
 class CartScreen extends StatefulWidget {
   final bool isTab;
@@ -161,6 +162,27 @@ class _CartScreenState extends State<CartScreen> {
                             AppLocalizations.of(context)!.cart_empty,
                             style: AppTextStyles.heading2(
                               color: AppColors.textMid,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+                              VoiceOrderSheet.show(
+                                context,
+                                shopId: shopProvider.currentShopId ?? '',
+                              );
+                            },
+                            icon: const Icon(Icons.mic_rounded, color: Colors.white, size: 20),
+                            label: const Text(
+                              'Order by Voice (बोलकर सामान मंगाएं)',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryDark,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ],

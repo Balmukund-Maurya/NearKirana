@@ -40,4 +40,12 @@ class SnackbarHelper {
       ),
     );
   }
+
+  static void showSuccessSnackBar(BuildContext context, String message) {
+    showSnackBar(context, message, isError: false);
+  }
+
+  static void showErrorSnackBar(BuildContext context, String message) {
+    showSnackBar(context, message, isError: true);
+  }
 }

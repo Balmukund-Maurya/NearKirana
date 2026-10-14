@@ -600,6 +600,95 @@ service cloud.firestore {
       );
     }
 
+    // =========================================================================
+    // 13. SUPPLIER & PURCHASE MANAGEMENT (Feature 54)
+    // =========================================================================
+    match /suppliers/{supplierId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.resource.data.shop_id is string &&
+          isShopOwner(request.resource.data.shop_id) &&
+          request.resource.data.name is string &&
+          request.resource.data.name.size() > 0 &&
+          request.resource.data.phone is string
+        )
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id) &&
+          request.resource.data.shop_id == resource.data.shop_id
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    match /purchase_orders/{purchaseId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.resource.data.shop_id is string &&
+          isShopOwner(request.resource.data.shop_id) &&
+          request.resource.data.supplier_id is string &&
+          request.resource.data.total_amount is number &&
+          request.resource.data.total_amount >= 0
+        )
+      );
+
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id) &&
+          request.resource.data.shop_id == resource.data.shop_id
+        )
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string &&
+          isShopOwner(resource.data.shop_id)
+        )
+      );
+    }
+
+    match /supplier_payments/{paymentId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          resource.data.shop_id is string && isShopOwner(resource.data.shop_id)
+        )
+      );
+
+      allow create: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.resource.data.shop_id is string &&
+          isShopOwner(request.resource.data.shop_id) &&
+          request.resource.data.supplier_id is string &&
+          request.resource.data.amount is number &&
+          request.resource.data.amount > 0
+        )
+      );
+
+      allow update, delete: if isSuperAdmin();
+    }
+
     // Fallback: Deny all unhandled paths
     match /{document=**} {
       allow read, write: if false;

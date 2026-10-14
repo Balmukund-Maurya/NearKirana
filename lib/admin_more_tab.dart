@@ -10,6 +10,7 @@ import 'admin_settings_screen.dart';
 import 'admin_customers_screen.dart';
 import 'admin_complaints_screen.dart';
 import 'admin_analytics_screen.dart';
+import 'admin_suppliers_screen.dart';
 import 'shop_qr_screen.dart';
 import 'gateway_screen.dart';
 import 'app_theme.dart';
@@ -209,6 +210,21 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AdminAnalyticsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuTile(
+                  icon: Icons.local_shipping_rounded,
+                  color: Colors.indigo,
+                  title: 'Suppliers & Purchases',
+                  subtitle: 'Wholesalers, bills, received stock & dues',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminSuppliersScreen(),
                       ),
                     );
                   },

@@ -14,6 +14,7 @@ import 'utils/product_image_widget.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'widgets/admin_top_header.dart';
 import 'admin_add_product_screen.dart';
+import 'admin_suppliers_screen.dart';
 
 class ShopStockScreen extends StatefulWidget {
   const ShopStockScreen({super.key});
@@ -149,6 +150,19 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(AppLocalizations.of(context)!.shop_stock),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminSuppliersScreen()),
+              ).then((_) => _refresh());
+            },
+            icon: const Icon(Icons.local_shipping_rounded, size: 18),
+            label: const Text('Purchases', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [

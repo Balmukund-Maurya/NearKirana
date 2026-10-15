@@ -15,10 +15,12 @@ class ShopProvider with ChangeNotifier {
   String? _shopWhatsAppTemplate;
   String? _shopUpiId;
   String? _shopProfilePic;
+  String? _razorpayKeyId;
   bool _isActive = true;
 
   String? get currentShopId => _currentShopId;
   String? get shopName => _shopName;
+  String get currentShopName => _shopName ?? 'NearKirana';
   String? get shopAddress => _shopAddress;
   String? get shopMobile => _shopMobile;
   String? get shopSupportPhone => _shopSupportPhone;
@@ -26,6 +28,7 @@ class ShopProvider with ChangeNotifier {
   String? get shopWhatsAppTemplate => _shopWhatsAppTemplate;
   String? get shopUpiId => _shopUpiId;
   String? get shopProfilePic => _shopProfilePic;
+  String? get razorpayKeyId => _razorpayKeyId;
   bool get isActive => _isActive;
 
   Future<void> loadCurrentShop() async {
@@ -39,6 +42,7 @@ class ShopProvider with ChangeNotifier {
     _shopWhatsAppTemplate = prefs.getString('current_shop_whatsapp_template');
     _shopUpiId = prefs.getString('current_shop_upi_id');
     _shopProfilePic = prefs.getString('current_shop_profile_pic');
+    _razorpayKeyId = prefs.getString('current_shop_razorpay_key_id');
     _isActive = prefs.getBool('current_shop_is_active') ?? true;
 
     if (_currentShopId != null && _currentShopId!.isNotEmpty) {
@@ -69,6 +73,7 @@ class ShopProvider with ChangeNotifier {
       _shopWhatsAppTemplate = data['whatsapp_message_template']?.toString() ?? _shopWhatsAppTemplate;
       _shopUpiId = data['upi_id']?.toString() ?? data['vpa']?.toString() ?? _shopUpiId;
       _shopProfilePic = data['profile_image_url']?.toString() ?? _shopProfilePic;
+      _razorpayKeyId = data['razorpay_key_id']?.toString() ?? _razorpayKeyId;
       _isActive = data['is_active'] ?? true;
 
       try {
@@ -95,6 +100,9 @@ class ShopProvider with ChangeNotifier {
         }
         if ((_shopProfilePic ?? '').isNotEmpty) {
           await prefs.setString('current_shop_profile_pic', _shopProfilePic!);
+        }
+        if ((_razorpayKeyId ?? '').isNotEmpty) {
+          await prefs.setString('current_shop_razorpay_key_id', _razorpayKeyId!);
         }
         await prefs.setBool('current_shop_is_active', _isActive);
       } catch (_) {}

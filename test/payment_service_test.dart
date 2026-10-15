@@ -492,5 +492,44 @@ void main() {
         expect(rules.contains("match /payment_transactions/{txnId}"), isTrue);
       },
     );
+
+    test(
+      '11. verifyAndConfirmGatewayPayment updates order to paid and writes ledger audit record',
+      () async {
+        final orderRef = fakeFirestore.collection('orders').doc('ORDER_GATEWAY_101');
+        await orderRef.set({
+          'shop_id': 'SHOP_101',
+          'total_amount': 299.0,
+          'payment_method': PaymentMethod.upi,
+          'payment_status': PaymentStatus.paymentPending,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+
+        final result = await paymentService.verifyAndConfirmGatewayPayment(
+          orderId: 'ORDER_GATEWAY_101',
+          transactionId: 'TXN_GATEWAY_101',
+          gatewayPaymentRef: 'pay_N99281734891',
+          gatewaySignature: 'sig_valid_hash_9918237',
+          verifiedBy: 'Razorpay Gateway',
+          firestore: fakeFirestore,
+        );
+
+        expect(result.success, isTrue);
+
+        final orderDoc = await orderRef.get();
+        expect(orderDoc.data()!['payment_status'], equals(PaymentStatus.paid));
+        expect(orderDoc.data()!['upi_ref_id'], equals('pay_N99281734891'));
+        expect(orderDoc.data()!['verified_by'], equals('Razorpay Gateway'));
+
+        final txSnapshot = await fakeFirestore
+            .collection('payment_transactions')
+            .where('order_id', isEqualTo: 'ORDER_GATEWAY_101')
+            .get();
+        expect(txSnapshot.docs.length, equals(1));
+        final txData = txSnapshot.docs.first.data();
+        expect(txData['status'], equals('completed'));
+        expect(txData['gateway_reference'], equals('pay_N99281734891'));
+      },
+    );
   });
 }

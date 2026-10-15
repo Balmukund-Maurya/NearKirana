@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'user_provider.dart';
 import 'shop_provider.dart';
 import 'app_theme.dart';
 import 'firebase_utils.dart';
+import 'payment_service.dart';
 
 class DesktopKhataView extends StatefulWidget {
   const DesktopKhataView({super.key});
@@ -17,7 +21,9 @@ class DesktopKhataView extends StatefulWidget {
 class _DesktopKhataViewState extends State<DesktopKhataView> {
   bool _isLoading = false;
   Map<String, dynamic>? _customerData;
+  String? _customerDocId;
   List<DocumentSnapshot> _transactions = [];
+  double? _selectedPayAmount;
 
   @override
   void initState() {
@@ -48,6 +54,7 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
 
       if (customerQuery.docs.isNotEmpty) {
         final doc = customerQuery.docs.first;
+        _customerDocId = doc.id;
         _customerData = doc.data();
 
         final txQuery = await doc.reference
@@ -390,6 +397,10 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
   }
 
   Widget _buildMakePaymentCard(double currentBalance) {
+    final double amountToDisplay = _selectedPayAmount != null && _selectedPayAmount! > 0
+        ? _selectedPayAmount!
+        : currentBalance;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -409,9 +420,9 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('₹${currentBalance.toStringAsFixed(0)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              Text('₹${amountToDisplay.toStringAsFixed(0)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
               TextButton.icon(
-                onPressed: () {},
+                onPressed: () => _showChangeAmountDialog(currentBalance),
                 icon: const Icon(Icons.edit, size: 14, color: AppColors.primaryDark),
                 label: const Text('Change Amount', style: TextStyle(color: AppColors.primaryDark, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
@@ -424,8 +435,13 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
             height: 48,
             child: ElevatedButton(
               onPressed: () {
-                // Should integrate with existing payment flow if one exists
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Online payments not fully configured yet.')));
+                if (currentBalance <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Aapka outstanding balance zero hai. Koi payment baaki nahi hai.')),
+                  );
+                  return;
+                }
+                _showPaymentDialog(amountToDisplay, currentBalance);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryDark,
@@ -448,29 +464,337 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
           
           Row(
             children: [
-              Expanded(child: _buildQuickPayBtn('₹500')),
+              Expanded(child: _buildQuickPayBtn('₹500', 500, currentBalance)),
               const SizedBox(width: 8),
-              Expanded(child: _buildQuickPayBtn('₹1,000')),
+              Expanded(child: _buildQuickPayBtn('₹1,000', 1000, currentBalance)),
               const SizedBox(width: 8),
-              Expanded(child: _buildQuickPayBtn('₹2,000')),
+              Expanded(child: _buildQuickPayBtn('₹2,000', 2000, currentBalance)),
             ],
           ),
           const SizedBox(height: 8),
-          SizedBox(width: double.infinity, child: _buildQuickPayBtn('Full Amount')),
+          SizedBox(width: double.infinity, child: _buildQuickPayBtn('Full Amount', currentBalance, currentBalance)),
         ],
       ),
     );
   }
 
-  Widget _buildQuickPayBtn(String label) {
+  Widget _buildQuickPayBtn(String label, double amount, double currentBalance) {
+    final isSelected = _selectedPayAmount == amount;
     return OutlinedButton(
-      onPressed: () {},
+      onPressed: () {
+        setState(() {
+          _selectedPayAmount = amount > 0 ? amount : currentBalance;
+        });
+      },
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primaryDark, side: BorderSide(color: Colors.grey.shade300),
+        foregroundColor: isSelected ? Colors.white : AppColors.primaryDark,
+        backgroundColor: isSelected ? AppColors.primaryDark : null,
+        side: BorderSide(color: isSelected ? AppColors.primaryDark : Colors.grey.shade300),
         padding: const EdgeInsets.symmetric(vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  void _showChangeAmountDialog(double currentBalance) {
+    final controller = TextEditingController(
+      text: (_selectedPayAmount ?? currentBalance).toStringAsFixed(0),
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Enter Payment Amount'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            labelText: 'Amount (₹)',
+            prefixText: '₹ ',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text.trim());
+              if (val != null && val > 0) {
+                setState(() => _selectedPayAmount = val);
+                Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryDark),
+            child: const Text('Set Amount', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPaymentDialog(double amount, double currentBalance) {
+    final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+    final shopUpiId = shopProvider.shopUpiId ?? '';
+    final shopName = shopProvider.currentShopName;
+    final shopId = shopProvider.currentShopId ?? '';
+    final utrController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final upiUrl = shopUpiId.isNotEmpty
+              ? PaymentService().generateUpiPaymentUrl(
+                  upiId: shopUpiId,
+                  payeeName: shopName,
+                  amount: amount,
+                  orderId: 'KHATA_${DateTime.now().millisecondsSinceEpoch}',
+                  note: 'Khata Payment $shopName',
+                )
+              : null;
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Pay Khata Balance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(dialogCtx),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text('Total Amount to Pay', style: TextStyle(fontSize: 13, color: Color(0xFF166534))),
+                          const SizedBox(height: 4),
+                          Text('₹${amount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF15803D))),
+                          Text('Remaining Udhaar after payment: ₹${(currentBalance - amount).clamp(0, double.infinity).toStringAsFixed(0)}',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (shopUpiId.isEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.amber.shade300),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.orange),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Store UPI ID is not set yet. Please pay in cash at the counter.',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Shop UPI ID', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                Text(shopUpiId, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.copy, size: 18, color: Color(0xFF15803D)),
+                            tooltip: 'Copy UPI ID',
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(text: shopUpiId));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('UPI ID copied to clipboard'), duration: Duration(seconds: 1)),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: QrImageView(
+                                data: upiUrl ?? '',
+                                version: QrVersions.auto,
+                                size: 140,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text('Scan with GPay, PhonePe, Paytm', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          if (upiUrl != null) {
+                            final uri = Uri.parse(upiUrl);
+                            try {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            } catch (_) {}
+                          }
+                        },
+                        icon: const Icon(Icons.open_in_new, size: 16),
+                        label: const Text('Open UPI App to Pay'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF15803D),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: utrController,
+                      keyboardType: TextInputType.text,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
+                        LengthLimitingTextInputFormatter(35),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: '12-digit UTR / Payment Ref Number',
+                        hintText: 'Enter UTR after paying',
+                        prefixIcon: Icon(Icons.receipt_long, size: 18),
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              final utr = utrController.text.trim();
+                              if (!PaymentService().isValidUtr(utr)) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Kripya sahi 12-digit UPI Reference / UTR Number enter karein.'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              if (_customerDocId == null || _customerDocId!.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Customer record not found.'), backgroundColor: Colors.red),
+                                );
+                                return;
+                              }
+
+                              setDialogState(() => isSubmitting = true);
+                              try {
+                                final batch = FirebaseUtils.firestore.batch();
+                                final customerRef = FirebaseUtils.firestore.collection('customers').doc(_customerDocId);
+
+                                final Map<String, dynamic> updateData = {
+                                  'total_udhaar': FieldValue.increment(-amount),
+                                };
+                                if (shopId.isNotEmpty) {
+                                  updateData['shop_balances.$shopId'] = FieldValue.increment(-amount);
+                                }
+                                batch.update(customerRef, updateData);
+
+                                final txRef = customerRef.collection('khata_transactions').doc();
+                                batch.set(txRef, {
+                                  'amount': amount,
+                                  'type': 'jama',
+                                  'shop_id': shopId,
+                                  'payment_method': 'UPI',
+                                  'utr': utr,
+                                  'description': 'Khata Payment via UPI (UTR: $utr)',
+                                  'timestamp': FieldValue.serverTimestamp(),
+                                  'status': 'completed',
+                                });
+
+                                final pTxnId = 'KHATA_PAY_${DateTime.now().millisecondsSinceEpoch}';
+                                batch.set(FirebaseUtils.firestore.collection('payment_transactions').doc(pTxnId), {
+                                  'transaction_id': pTxnId,
+                                  'customer_id': _customerDocId,
+                                  'shop_id': shopId,
+                                  'amount': amount,
+                                  'payment_method': 'UPI',
+                                  'gateway_reference': utr,
+                                  'status': 'completed',
+                                  'verified_by': 'Customer Self Payment',
+                                  'created_at': FieldValue.serverTimestamp(),
+                                });
+
+                                await batch.commit();
+
+                                if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('₹${amount.toStringAsFixed(0)} payment successfully recorded! Khata balance updated.'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                await _fetchKhataData();
+                              } catch (e) {
+                                setDialogState(() => isSubmitting = false);
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Payment error: $e'), backgroundColor: Colors.red),
+                                );
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryDark,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: isSubmitting
+                          ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('Verify & Submit Payment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

@@ -344,6 +344,77 @@ class PaymentService {
     );
   }
 
+  /// Verifies and confirms an online payment made through payment gateway (e.g. Razorpay).
+  /// Updates payment_transactions ledger and marks the order as Paid.
+  Future<PaymentVerificationResult> verifyAndConfirmGatewayPayment({
+    required String orderId,
+    required String transactionId,
+    required String gatewayPaymentRef,
+    String? gatewaySignature,
+    String verifiedBy = 'Razorpay Gateway',
+    FirebaseFirestore? firestore,
+  }) async {
+    final cleanRef = gatewayPaymentRef.trim();
+    final db = firestore ?? FirebaseUtils.firestore;
+    final orderRef = db.collection('orders').doc(orderId);
+    final orderSnap = await orderRef.get();
+    if (!orderSnap.exists) {
+      throw Exception('Order #$orderId not found.');
+    }
+
+    final orderData = orderSnap.data()!;
+    final double orderTotal =
+        (orderData['total_amount'] as num?)?.toDouble() ?? 0.0;
+    final now = DateTime.now();
+
+    final txnRef = db.collection('payment_transactions').doc(transactionId);
+    final txnSnap = await txnRef.get();
+    if (txnSnap.exists) {
+      await txnRef.update({
+        'status': 'completed',
+        'gateway_reference': cleanRef,
+        'gateway_signature': ?gatewaySignature,
+        'verified_by': verifiedBy,
+        'completed_at': FieldValue.serverTimestamp(),
+      });
+    } else {
+      await txnRef.set({
+        'transaction_id': transactionId,
+        'order_id': orderId,
+        'shop_id': orderData['shop_id'] ?? '',
+        'amount': orderTotal,
+        'payment_method': orderData['payment_method'] ?? PaymentMethod.upi,
+        'customer_phone': orderData['phone_number'] ?? '',
+        'gateway_reference': cleanRef,
+        'gateway_signature': ?gatewaySignature,
+        'status': 'completed',
+        'verified_by': verifiedBy,
+        'created_at': FieldValue.serverTimestamp(),
+        'completed_at': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await orderRef.update({
+      'payment_status': PaymentStatus.paid,
+      'upi_ref_id': cleanRef,
+      'payment_transaction_id': transactionId,
+      'razorpay_signature': ?gatewaySignature,
+      'verified_at': FieldValue.serverTimestamp(),
+      'verified_by': verifiedBy,
+    });
+
+    return PaymentVerificationResult(
+      success: true,
+      orderId: orderId,
+      transactionId: transactionId,
+      status: PaymentStatus.paid,
+      message: 'Gateway payment verified and confirmed successfully.',
+      amount: orderTotal,
+      verifiedAt: now,
+      gatewayRef: cleanRef,
+    );
+  }
+
   /// Verifies an online payment and transitions status to 'Paid'.
   /// Can only be performed after merchant/backend verification.
   Future<bool> verifyAndMarkPaid({

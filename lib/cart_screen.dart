@@ -22,6 +22,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'auth_service.dart';
 import 'payment_service.dart';
+import 'razorpay_service.dart';
 import 'desktop_checkout_view.dart';
 import 'atomic_order_service.dart';
 import 'address_selection_bottom_sheet.dart';
@@ -1830,6 +1831,118 @@ class _CartScreenState extends State<CartScreen> {
                                     )
                                     .toList();
 
+                                String finalPaymentMethod = selectedPaymentMethod;
+                                String finalPaymentStatus = PaymentStatus.unpaid;
+                                String? finalUpiRefId;
+                                Map<String, dynamic> extraOrderData = {};
+
+                                if (selectedPaymentMethod == 'UPI') {
+                                  final manualUtr = utrController.text.trim();
+
+                                  if (manualUtr.isNotEmpty) {
+                                    // Customer paid directly via Store QR / UPI App and provided UTR
+                                    if (PaymentService().isValidUtr(manualUtr)) {
+                                      finalUpiRefId = manualUtr;
+                                      finalPaymentMethod = PaymentMethod.upi;
+                                      finalPaymentStatus =
+                                          PaymentStatus.pendingVerification;
+                                      extraOrderData = {
+                                        'upi_utr': manualUtr,
+                                        'manual_utr': manualUtr,
+                                        'verified_by': 'Manual UTR Submission',
+                                      };
+                                    } else {
+                                      if (context.mounted) {
+                                        setState(() => isProcessing = false);
+                                        showBottomSheetError(
+                                          context,
+                                          'Kripya sahi 12-digit UPI Reference / UTR Number enter karein.',
+                                        );
+                                      }
+                                      return;
+                                    }
+                                  } else {
+                                    // No UTR entered: Initiate online payment via Razorpay Gateway
+                                    final rzpKey =
+                                        (shopProvider.razorpayKeyId ?? '').isNotEmpty
+                                            ? shopProvider.razorpayKeyId!
+                                            : ((settingsDoc.data()?['razorpay_key_id'] as String?)?.trim().isNotEmpty == true
+                                                ? (settingsDoc.data()!['razorpay_key_id'] as String).trim()
+                                                : 'rzp_test_1DP5mmOlF5G5ag');
+
+                                    bool isPaymentSuccess = false;
+                                    String? failureReason;
+
+                                    try {
+                                      final paymentResult =
+                                          await RazorpayService().checkout(
+                                        keyId: rzpKey,
+                                        amount: finalTotal,
+                                        shopName:
+                                            shopName.isNotEmpty
+                                                ? shopName
+                                                : 'NearKirana Store',
+                                        customerPhone:
+                                            phoneController.text.trim(),
+                                        customerName:
+                                            nameController.text.trim(),
+                                        description:
+                                            'Order from ${shopName.isNotEmpty ? shopName : "NearKirana"}',
+                                        notes: {
+                                          'shop_id': shopId ?? '',
+                                          'customer_phone':
+                                              phoneController.text.trim(),
+                                        },
+                                      );
+
+                                      if (paymentResult is RazorpaySuccessResult) {
+                                        isPaymentSuccess = true;
+                                        finalUpiRefId = paymentResult.paymentId;
+                                        finalPaymentMethod = PaymentMethod.upi;
+                                        finalPaymentStatus = PaymentStatus.paid;
+                                        extraOrderData = {
+                                          'razorpay_payment_id':
+                                              paymentResult.paymentId,
+                                          if (paymentResult.orderId != null)
+                                            'razorpay_order_id':
+                                                paymentResult.orderId,
+                                          if (paymentResult.signature != null)
+                                            'razorpay_signature':
+                                                paymentResult.signature,
+                                          'verified_by': 'Razorpay Gateway',
+                                          'verified_at':
+                                              FieldValue.serverTimestamp(),
+                                        };
+                                      } else if (paymentResult
+                                          is RazorpayFailureResult) {
+                                        failureReason = paymentResult.message;
+                                      }
+                                    } catch (e) {
+                                      failureReason = e.toString();
+                                    }
+
+                                    if (!isPaymentSuccess) {
+                                      if (context.mounted) {
+                                        setState(() {
+                                          isProcessing = false;
+                                          showQrCode = true;
+                                        });
+                                        showBottomSheetError(
+                                          context,
+                                          failureReason != null &&
+                                                  failureReason.isNotEmpty
+                                              ? 'Payment complete nahi hua: $failureReason.\nBina payment ke online order place nahi ho sakta. Kripya QR scan karke 12-digit UTR enter karein, ya Cash on Delivery chunein.'
+                                              : 'Bina payment ke online order place nahi ho sakta. Kripya online payment complete karein, ya QR scan karke 12-digit UTR enter karein, ya Cash on Delivery chunein.',
+                                        );
+                                      }
+                                      return; // Stop! Do NOT place order without payment!
+                                    }
+                                  }
+                                } else {
+                                  finalPaymentMethod = selectedPaymentMethod;
+                                  finalPaymentStatus = PaymentStatus.unpaid;
+                                }
+
                                 final idempotencyKey =
                                     '${AuthService().currentUid ?? phoneController.text.trim()}_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}';
 
@@ -1864,30 +1977,15 @@ class _CartScreenState extends State<CartScreen> {
 
                                         deliveryFee: deliveryFee,
 
-                                        paymentMethod: selectedPaymentMethod,
+                                        paymentMethod: finalPaymentMethod,
 
-                                        paymentStatus:
-                                            selectedPaymentMethod == 'UPI'
-                                            ? (utrController.text
-                                                      .trim()
-                                                      .isNotEmpty
-                                                  ? PaymentStatus
-                                                        .pendingVerification
-                                                  : PaymentStatus
-                                                        .paymentPending)
-                                            : PaymentStatus.unpaid,
+                                        paymentStatus: finalPaymentStatus,
 
                                         upiId: selectedPaymentMethod == 'UPI'
                                             ? shopUpiId
                                             : null,
 
-                                        upiRefId:
-                                            (selectedPaymentMethod == 'UPI' &&
-                                                utrController.text
-                                                    .trim()
-                                                    .isNotEmpty)
-                                            ? utrController.text.trim()
-                                            : null,
+                                        upiRefId: finalUpiRefId,
 
                                         idempotencyKey: idempotencyKey,
 
@@ -1897,28 +1995,32 @@ class _CartScreenState extends State<CartScreen> {
 
                                         freeDeliveryThreshold:
                                             freeDeliveryThreshold,
+
+                                        extraData: extraOrderData,
                                       ),
                                     );
 
-                                if (selectedPaymentMethod == 'UPI') {
+                                if (finalPaymentStatus == PaymentStatus.paid && finalUpiRefId != null) {
                                   try {
-                                    await PaymentService()
-                                        .initiateOnlinePayment(
-                                          orderId: orderResult.orderId,
-                                          shopId: shopId ?? '',
-                                          amount: orderResult.totalAmount,
-                                          customerPhone: phoneController.text
-                                              .trim(),
-                                          customerName: nameController.text
-                                              .trim(),
-                                          paymentMethod: PaymentMethod.upi,
-                                          upiId: shopUpiId,
-                                          payeeName: shopName,
-                                        );
+                                    await FirebaseUtils.firestore
+                                        .collection('payment_transactions')
+                                        .doc(finalUpiRefId)
+                                        .set({
+                                          'transaction_id': finalUpiRefId,
+                                          'order_id': orderResult.orderId,
+                                          'shop_id': shopId ?? '',
+                                          'amount': orderResult.totalAmount,
+                                          'payment_method': finalPaymentMethod,
+                                          'customer_phone': phoneController.text.trim(),
+                                          'customer_name': nameController.text.trim(),
+                                          'status': 'completed',
+                                          'gateway_reference': finalUpiRefId,
+                                          'verified_by': 'Razorpay Gateway',
+                                          'created_at': FieldValue.serverTimestamp(),
+                                          'completed_at': FieldValue.serverTimestamp(),
+                                        });
                                   } catch (e) {
-                                    debugPrint(
-                                      'Payment session initiation error: $e',
-                                    );
+                                    debugPrint('Error logging payment transaction: $e');
                                   }
                                 }
 
@@ -2013,46 +2115,46 @@ class _CartScreenState extends State<CartScreen> {
                                                   BorderRadius.circular(8),
                                               border: Border.all(
                                                 color:
-                                                    selectedPaymentMethod ==
-                                                        'UPI'
+                                                    finalPaymentStatus == PaymentStatus.paid
                                                     ? const Color(
                                                         0xFF4CAF50,
                                                       ).withValues(alpha: 0.3)
-                                                    : Colors.grey[300]!,
+                                                    : (finalPaymentStatus == PaymentStatus.pendingVerification
+                                                        ? Colors.orange.withValues(alpha: 0.3)
+                                                        : Colors.grey[300]!),
                                               ),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Icon(
-                                                  selectedPaymentMethod == 'UPI'
-                                                      ? Icons
-                                                            .check_circle_outline
-                                                      : Icons.payments_outlined,
+                                                  finalPaymentStatus == PaymentStatus.paid
+                                                      ? Icons.verified
+                                                      : (finalPaymentStatus == PaymentStatus.pendingVerification
+                                                          ? Icons.hourglass_top_rounded
+                                                          : Icons.payments_outlined),
                                                   size: 16,
-                                                  color:
-                                                      selectedPaymentMethod ==
-                                                          'UPI'
+                                                  color: finalPaymentStatus == PaymentStatus.paid
                                                       ? const Color(0xFF4CAF50)
-                                                      : Colors.grey[700],
+                                                      : (finalPaymentStatus == PaymentStatus.pendingVerification
+                                                          ? Colors.orange[800]
+                                                          : Colors.grey[700]),
                                                 ),
                                                 const SizedBox(width: 6),
                                                 Text(
-                                                  selectedPaymentMethod == 'UPI'
-                                                      ? (utrController.text
-                                                                .trim()
-                                                                .isNotEmpty
-                                                            ? 'Payment: UPI (Verification Pending)'
-                                                            : 'Payment: UPI (Pending)')
-                                                      : 'Payment: Cash on Delivery',
+                                                  finalPaymentStatus == PaymentStatus.paid
+                                                      ? 'Payment: Paid Online (Verified)'
+                                                      : (finalPaymentStatus == PaymentStatus.pendingVerification
+                                                          ? 'Payment: UPI (Verification Pending)'
+                                                          : 'Payment: Cash on Delivery'),
                                                   style: GoogleFonts.poppins(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w600,
-                                                    color:
-                                                        selectedPaymentMethod ==
-                                                            'UPI'
-                                                        ? Colors.orange[800]
-                                                        : Colors.grey[800],
+                                                    color: finalPaymentStatus == PaymentStatus.paid
+                                                        ? const Color(0xFF4CAF50)
+                                                        : (finalPaymentStatus == PaymentStatus.pendingVerification
+                                                            ? Colors.orange[800]
+                                                            : Colors.grey[800]),
                                                   ),
                                                 ),
                                               ],

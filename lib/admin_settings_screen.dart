@@ -38,6 +38,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   final _storeLngController = TextEditingController();
   final _basePrepTimeController = TextEditingController(text: '15');
   final _upiIdController = TextEditingController();
+  final _razorpayKeyIdController = TextEditingController();
   final _supportPhoneController = TextEditingController();
   final _whatsappMessageController = TextEditingController();
   bool _isStoreOpen = true;
@@ -60,6 +61,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     _storeLngController.dispose();
     _basePrepTimeController.dispose();
     _upiIdController.dispose();
+    _razorpayKeyIdController.dispose();
     _supportPhoneController.dispose();
     _whatsappMessageController.dispose();
     super.dispose();
@@ -94,6 +96,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         _storeLngController.text = (data['store_longitude'] ?? '').toString();
         _basePrepTimeController.text = (data['base_prep_time_minutes'] ?? data['prep_time_minutes'] ?? 15).toString();
         _upiIdController.text = data['upi_id'] ?? data['vpa'] ?? '';
+        _razorpayKeyIdController.text = data['razorpay_key_id'] ?? '';
         _supportPhoneController.text = data['support_phone'] ?? '';
         _whatsappMessageController.text = data['whatsapp_message_template'] ?? "नमस्ते {shopName}, मेरा नाम {name} है और मेरा मोबाइल नंबर {phone} है। मुझे अपने ऑर्डर / अकाउंट के बारे में कुछ मदद चाहिए।";
 
@@ -155,6 +158,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         'support_phone': _supportPhoneController.text.trim(),
         'whatsapp_message_template': _whatsappMessageController.text.trim(),
         'upi_id': _upiIdController.text.trim(),
+        'razorpay_key_id': _razorpayKeyIdController.text.trim(),
       }, SetOptions(merge: true)).timeout(const Duration(seconds: 8));
 
       SoundService().productSaved();
@@ -577,6 +581,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           _buildHDField('Pickup Radius (km)', _pickupRadiusController, Icons.storefront_outlined, '25'),
           const SizedBox(height: 16),
           _buildHDField('Store UPI ID / VPA', _upiIdController, Icons.payment_outlined, 'merchant@upi'),
+          const SizedBox(height: 16),
+          _buildHDField('Razorpay Key ID (Online Payment Gateway)', _razorpayKeyIdController, Icons.vpn_key_outlined, 'rzp_live_... or rzp_test_...'),
         ],
       ),
     );

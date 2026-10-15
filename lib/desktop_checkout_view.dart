@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:near_kirana/cart_provider.dart';
 import 'package:near_kirana/user_provider.dart';
@@ -33,8 +37,10 @@ class DesktopCheckoutView extends StatefulWidget {
 class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   bool _isProcessingCheckout = false;
   int _selectedAddressIndex = 0;
-  int _selectedPaymentIndex = 0;
+  int _selectedPaymentIndex = 0; // 0: UPI, 1: Cash on Delivery, 2: Kirana Khata
+  bool _showQrCode = false;
   final TextEditingController _instructionsController = TextEditingController();
+  final TextEditingController _utrController = TextEditingController();
   CouponValidationResult? _appliedCouponResult;
 
   final Color primaryGreen = const Color(
@@ -46,6 +52,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   @override
   void dispose() {
     _instructionsController.dispose();
+    _utrController.dispose();
     super.dispose();
   }
 
@@ -334,102 +341,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       const SizedBox(height: 16),
                       Padding(
                         padding: EdgeInsets.only(left: isDesktop ? 48 : 0),
-                        child: isDesktop
-                            ? IntrinsicHeight(
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    Expanded(
-                                      child: _buildPaymentCard(
-                                        0,
-                                        Icons.payments_outlined,
-                                        l10n?.cash_on_delivery ?? "Cash on Delivery",
-                                        "Pay when you receive\nyour order",
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: _buildPaymentCard(
-                                        1,
-                                        Icons.qr_code_2,
-                                        l10n?.pay_online_upi ?? "UPI",
-                                        "Pay using UPI apps\n(GPay, PhonePe, etc.)",
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: _buildPaymentCard(
-                                        2,
-                                        Icons.credit_card,
-                                        "Credit / Debit Card",
-                                        "Pay using your card\n",
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: _buildPaymentCard(
-                                        3,
-                                        Icons.account_balance,
-                                        "Net Banking",
-                                        "Pay using net banking\n",
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : Column(
-                                children: [
-                                  IntrinsicHeight(
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        Expanded(
-                                          child: _buildPaymentCard(
-                                            0,
-                                            Icons.payments_outlined,
-                                            l10n?.cash_on_delivery ?? "Cash on Delivery",
-                                            "Pay when you receive order",
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: _buildPaymentCard(
-                                            1,
-                                            Icons.qr_code_2,
-                                            l10n?.pay_online_upi ?? "UPI",
-                                            "GPay, PhonePe, Paytm",
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  IntrinsicHeight(
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        Expanded(
-                                          child: _buildPaymentCard(
-                                            2,
-                                            Icons.credit_card,
-                                            "Card",
-                                            "Credit / Debit Card",
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: _buildPaymentCard(
-                                            3,
-                                            Icons.account_balance,
-                                            "Net Banking",
-                                            "All Indian Banks",
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        child: _buildZeptoBlinkitPaymentSection(
+                          context: context,
+                          shopUpiId: (shopProvider.shopUpiId ?? '').trim(),
+                          shopName: (shopProvider.shopName ?? 'NearKirana Store').trim(),
+                          finalTotal: finalTotal,
+                          isDesktop: isDesktop,
+                          l10n: l10n,
+                        ),
                       ),
                     ],
                   );
@@ -835,7 +754,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                             MainAxisAlignment.center,
                                         children: [
                                           Text(
-                                            l10n?.place_order ?? "Place Order",
+                                            _selectedPaymentIndex == 0
+                                                ? "Pay via UPI • ₹${finalTotal.toStringAsFixed(0)}"
+                                                : _selectedPaymentIndex == 2
+                                                    ? "Order via Khata • ₹${finalTotal.toStringAsFixed(0)}"
+                                                    : "Place Order (COD) • ₹${finalTotal.toStringAsFixed(0)}",
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.bold,
@@ -1309,92 +1232,781 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     );
   }
 
-  Widget _buildPaymentCard(
-    int index,
-    IconData icon,
-    String title,
-    String subtitle,
-  ) {
+  Widget _buildZeptoBlinkitPaymentSection({
+    required BuildContext context,
+    required String shopUpiId,
+    required String shopName,
+    required double finalTotal,
+    required bool isDesktop,
+    AppLocalizations? l10n,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 3 Modern Quick-Commerce Payment Method Cards
+        if (isDesktop)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _buildPaymentOptionCard(
+                    index: 0,
+                    icon: Icons.bolt_rounded,
+                    title: l10n?.pay_online_upi ?? "UPI",
+                    subtitle: "Google Pay, PhonePe, Paytm, QR",
+                    badgeText: "⚡ FASTEST",
+                    badgeColor: const Color(0xFF047857),
+                    iconColor: const Color(0xFF047857),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildPaymentOptionCard(
+                    index: 1,
+                    icon: Icons.payments_rounded,
+                    title: l10n?.cash_on_delivery ?? "Cash on Delivery",
+                    subtitle: "Pay cash or scan QR at doorstep",
+                    badgeText: "POPULAR",
+                    badgeColor: const Color(0xFF2563EB),
+                    iconColor: const Color(0xFF2563EB),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildPaymentOptionCard(
+                    index: 2,
+                    icon: Icons.menu_book_rounded,
+                    title: "Kirana Khata",
+                    subtitle: "Add to monthly store ledger",
+                    badgeText: "0% INTEREST",
+                    badgeColor: const Color(0xFFD97706),
+                    iconColor: const Color(0xFFD97706),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Column(
+            children: [
+              _buildPaymentOptionCard(
+                index: 0,
+                icon: Icons.bolt_rounded,
+                title: l10n?.pay_online_upi ?? "UPI",
+                subtitle: "Google Pay, PhonePe, Paytm, or QR",
+                badgeText: "⚡ FASTEST",
+                badgeColor: const Color(0xFF047857),
+                iconColor: const Color(0xFF047857),
+              ),
+              const SizedBox(height: 10),
+              _buildPaymentOptionCard(
+                index: 1,
+                icon: Icons.payments_rounded,
+                title: l10n?.cash_on_delivery ?? "Cash on Delivery",
+                subtitle: "Pay cash or scan QR at your doorstep",
+                badgeText: "POPULAR",
+                badgeColor: const Color(0xFF2563EB),
+                iconColor: const Color(0xFF2563EB),
+              ),
+              const SizedBox(height: 10),
+              _buildPaymentOptionCard(
+                index: 2,
+                icon: Icons.menu_book_rounded,
+                title: "Kirana Khata (Pay Later)",
+                subtitle: "Add to monthly store ledger (verified)",
+                badgeText: "0% INTEREST",
+                badgeColor: const Color(0xFFD97706),
+                iconColor: const Color(0xFFD97706),
+              ),
+            ],
+          ),
+
+        // Contextual Details Section based on selected payment method
+        const SizedBox(height: 16),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: _selectedPaymentIndex == 0
+              ? _buildUpiDetailBox(
+                  context: context,
+                  shopUpiId: shopUpiId,
+                  shopName: shopName,
+                  finalTotal: finalTotal,
+                )
+              : _selectedPaymentIndex == 1
+                  ? _buildCodDetailBox(finalTotal: finalTotal)
+                  : _buildKhataDetailBox(),
+        ),
+
+        // Security & NPCI Assurance Strip (Blinkit / Zepto trust badge)
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.verified_user_rounded,
+                color: Color(0xFF047857),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "100% Safe & Secure Payments • NPCI UPI Certified",
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF374151),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.lock, size: 12, color: Color(0xFF047857)),
+                    SizedBox(width: 4),
+                    Text(
+                      "Encrypted",
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF047857),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentOptionCard({
+    required int index,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String badgeText,
+    required Color badgeColor,
+    required Color iconColor,
+  }) {
     final isSelected = _selectedPaymentIndex == index;
-    // Disallow selection of non-COD methods based on project constraints, but for UI fidelity we allow clicking COD.
-    // We will just restrict the selection visually or show a snackbar if they click others.
 
     return InkWell(
       onTap: () {
+        HapticFeedback.lightImpact();
         setState(() => _selectedPaymentIndex = index);
       },
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected ? activeLightGreen : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? activeBorderGreen : Colors.grey.shade200,
-            width: isSelected ? 1.5 : 1.0,
+            width: isSelected ? 1.8 : 1.0,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeBorderGreen.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(
-                  icon,
-                  color: isSelected
-                      ? const Color(0xFF047857)
-                      : const Color(0xFF4B5563),
-                  size: 28,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Color(0xFF111827),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF047857).withValues(alpha: 0.1)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isSelected ? const Color(0xFF047857) : iconColor,
+                    size: 22,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 11,
-                    height: 1.3,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    badgeText,
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? activeBorderGreen : Colors.grey.shade300,
+                      width: 2,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: isSelected
+                      ? Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: activeBorderGreen,
+                            shape: BoxShape.circle,
+                          ),
+                        )
+                      : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13.5,
+                color: isSelected ? const Color(0xFF065F46) : const Color(0xFF111827),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 11,
+                height: 1.25,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpiDetailBox({
+    required BuildContext context,
+    required String shopUpiId,
+    required String shopName,
+    required double finalTotal,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFA7F3D0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF047857).withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFECFDF5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.qr_code_scanner_rounded,
+                  color: Color(0xFF047857),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Instant UPI Payment",
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    Text(
+                      "Pay directly to store via Google Pay, PhonePe, Paytm, or BHIM",
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Supported UPI Apps Row
+          Row(
+            children: [
+              _buildUpiAppChip(
+                name: "GPay",
+                bgColor: const Color(0xFFE8F0FE),
+                textColor: const Color(0xFF1A73E8),
+              ),
+              const SizedBox(width: 8),
+              _buildUpiAppChip(
+                name: "PhonePe",
+                bgColor: const Color(0xFFF3E8FF),
+                textColor: const Color(0xFF5F259F),
+              ),
+              const SizedBox(width: 8),
+              _buildUpiAppChip(
+                name: "Paytm",
+                bgColor: const Color(0xFFE0F2FE),
+                textColor: const Color(0xFF002E6E),
+              ),
+              const SizedBox(width: 8),
+              _buildUpiAppChip(
+                name: "BHIM / Any",
+                bgColor: const Color(0xFFFFF7ED),
+                textColor: const Color(0xFFC2410C),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          if (shopUpiId.isEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Store UPI ID is being updated. You can proceed with Cash on Delivery at your doorstep.",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            // Store UPI ID with 1-Tap Copy
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Store UPI VPA",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      Text(
+                        shopUpiId,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF111827),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  InkWell(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: shopUpiId));
+                      HapticFeedback.lightImpact();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("UPI ID copied to clipboard"),
+                          duration: Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFD1D5DB)),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.copy_rounded, size: 14, color: Color(0xFF047857)),
+                          SizedBox(width: 4),
+                          Text(
+                            "Copy",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF047857),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Action Buttons: Pay via UPI App OR Scan QR
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _launchUpiApp(
+                      context: context,
+                      shopUpiId: shopUpiId,
+                      shopName: shopName,
+                      finalTotal: finalTotal,
+                    ),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: Text(
+                      "Pay via UPI App (₹${finalTotal.toStringAsFixed(0)})",
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF047857),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    setState(() => _showQrCode = !_showQrCode);
+                  },
+                  icon: Icon(
+                    _showQrCode ? Icons.visibility_off_outlined : Icons.qr_code_2_rounded,
+                    size: 16,
+                  ),
+                  label: Text(_showQrCode ? "Hide QR" : "Show QR"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF047857),
+                    side: const BorderSide(color: Color(0xFF047857)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   ),
                 ),
               ],
             ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected
-                        ? activeBorderGreen
-                        : Colors.grey.shade300,
-                    width: 2,
+
+            if (_showQrCode) ...[
+              const SizedBox(height: 16),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      QrImageView(
+                        data: 'upi://pay?pa=$shopUpiId&pn=${Uri.encodeComponent(shopName)}&am=${finalTotal.toStringAsFixed(2)}&cu=INR&tn=${Uri.encodeComponent('NearKirana Order')}',
+                        version: QrVersions.auto,
+                        size: 150.0,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "Scan to Pay ₹${finalTotal.toStringAsFixed(2)}",
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF047857),
+                        ),
+                      ),
+                      Text(
+                        "Google Pay • PhonePe • Paytm • BHIM",
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                alignment: Alignment.center,
-                child: isSelected
-                    ? Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: activeBorderGreen,
-                          shape: BoxShape.circle,
-                        ),
-                      )
-                    : null,
+              ),
+            ],
+
+            const SizedBox(height: 14),
+            // UTR reference field
+            TextField(
+              controller: _utrController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: "UPI Reference / UTR No. (Optional)",
+                hintText: "12-digit UTR from payment receipt",
+                prefixIcon: const Icon(
+                  Icons.receipt_long_rounded,
+                  size: 18,
+                  color: Color(0xFF047857),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                  borderSide: BorderSide(color: Color(0xFF047857), width: 1.5),
+                ),
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCodDetailBox({required double finalTotal}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Color(0xFFDBEAFE),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.delivery_dining_rounded,
+              color: Color(0xFF1D4ED8),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Pay ₹${finalTotal.toStringAsFixed(0)} on Delivery",
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: const Color(0xFF1E3A8A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Pay in cash or ask delivery partner to scan their UPI QR code upon arrival at your doorstep.",
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: const Color(0xFF3B82F6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKhataDetailBox() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEF3C7),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.menu_book_rounded,
+              color: Color(0xFFB45309),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Kirana Khata (Pay Later / Udhaar)",
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: const Color(0xFF92400E),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Order amount will be added to your verified monthly shop ledger. Settle weekly or at month end directly with the store owner.",
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: const Color(0xFFB45309),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchUpiApp({
+    required BuildContext context,
+    required String shopUpiId,
+    required String shopName,
+    required double finalTotal,
+  }) async {
+    HapticFeedback.lightImpact();
+    final upiUrl =
+        'upi://pay?pa=$shopUpiId&pn=${Uri.encodeComponent(shopName)}&am=${finalTotal.toStringAsFixed(2)}&cu=INR&tn=${Uri.encodeComponent('NearKirana Order')}';
+    try {
+      final uri = Uri.parse(upiUrl);
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        setState(() => _showQrCode = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("No UPI app found. Please scan the QR code to pay!"),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        setState(() => _showQrCode = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Could not open UPI app directly. Scan the QR code below."),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildUpiAppChip({
+    required String name,
+    required Color bgColor,
+    required Color textColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: textColor.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        name,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: textColor,
         ),
       ),
     );
@@ -1494,17 +2106,17 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       final idempotencyKey =
           'desktop_${phone}_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}';
 
-      String paymentMethod = PaymentMethod.cod;
-      String paymentStatus = PaymentStatus.unpaid;
-      if (_selectedPaymentIndex == 1) {
+      String paymentMethod = PaymentMethod.upi;
+      String paymentStatus = PaymentStatus.paymentPending;
+      if (_selectedPaymentIndex == 0) {
         paymentMethod = PaymentMethod.upi;
         paymentStatus = PaymentStatus.paymentPending;
+      } else if (_selectedPaymentIndex == 1) {
+        paymentMethod = PaymentMethod.cod;
+        paymentStatus = PaymentStatus.unpaid;
       } else if (_selectedPaymentIndex == 2) {
-        paymentMethod = PaymentMethod.card;
-        paymentStatus = PaymentStatus.paymentPending;
-      } else if (_selectedPaymentIndex == 3) {
-        paymentMethod = PaymentMethod.netBanking;
-        paymentStatus = PaymentStatus.paymentPending;
+        paymentMethod = PaymentMethod.khata;
+        paymentStatus = PaymentStatus.unpaid;
       }
 
       final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
@@ -1532,12 +2144,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             'estimated_delivery_arrival_range': estimate.formattedTimeRange,
             'estimated_delivery_disclaimer': estimate.disclaimer,
             'estimated_delivery_details': estimate.toMap(),
+            if (_utrController.text.trim().isNotEmpty)
+              'upi_utr': _utrController.text.trim(),
           },
         ),
       );
 
       // If online payment is chosen, initiate gateway payment session
-      if (paymentMethod != PaymentMethod.cod) {
+      if (paymentMethod == PaymentMethod.upi) {
         try {
           await PaymentService().initiateOnlinePayment(
             orderId: result.orderId,

@@ -426,11 +426,9 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _buildPaymentMethodCard('Cash', Icons.money, 'Pay with cash')),
+              Expanded(child: _buildPaymentMethodCard('Cash', Icons.payments_rounded, 'Pay with cash')),
               const SizedBox(width: 16),
-              Expanded(child: _buildPaymentMethodCard('UPI', Icons.qr_code, 'Pay via UPI')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildPaymentMethodCard('Card', Icons.credit_card, 'Pay with card')),
+              Expanded(child: _buildPaymentMethodCard('UPI', Icons.qr_code_2_rounded, 'Pay via UPI / QR')),
             ],
           ),
 

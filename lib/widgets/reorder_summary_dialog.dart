@@ -13,12 +13,14 @@ class ReorderSummaryDialog extends StatelessWidget {
   final String sourceTitle;
   final ReorderValidationResult validationResult;
   final VoidCallback? onCartUpdated;
+  final BuildContext? parentContext;
 
   const ReorderSummaryDialog({
     super.key,
     required this.sourceTitle,
     required this.validationResult,
     this.onCartUpdated,
+    this.parentContext,
   });
 
   /// Convenient helper to validate and show the dialog in 1 step.
@@ -53,6 +55,7 @@ class ReorderSummaryDialog extends StatelessWidget {
             sourceTitle: sourceTitle,
             validationResult: result,
             onCartUpdated: onCartUpdated,
+            parentContext: context,
           ),
         );
       }
@@ -487,35 +490,42 @@ class ReorderSummaryDialog extends StatelessWidget {
     );
 
     onCartUpdated?.call();
+
+    // Capture effective mounted screen context before popping the dialog
+    final effectiveContext = parentContext ?? context;
     Navigator.pop(context);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                '$count items added to your cart!',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+    if (effectiveContext.mounted) {
+      ScaffoldMessenger.of(effectiveContext).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '$count items added to your cart!',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
+          backgroundColor: AppColors.primaryDark,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'View Cart',
+            textColor: Colors.amberAccent,
+            onPressed: () {
+              if (effectiveContext.mounted) {
+                Navigator.push(
+                  effectiveContext,
+                  MaterialPageRoute(builder: (ctx) => const CartScreen(isTab: false)),
+                );
+              }
+            },
+          ),
         ),
-        backgroundColor: AppColors.primaryDark,
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'View Cart',
-          textColor: Colors.amberAccent,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CartScreen()),
-            );
-          },
-        ),
-      ),
-    );
+      );
+    }
   }
 }

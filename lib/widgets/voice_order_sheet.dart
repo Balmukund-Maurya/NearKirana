@@ -129,36 +129,36 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
     if (_controller.isListening) {
       _controller.stopListening();
     } else {
-      // Pick a random prompt or listen for speech
-      final prompt = (_quickPrompts..shuffle()).first;
-      _controller.startListening(simulatedTranscript: prompt);
-
-      // Listen for when processing is done
+      // Listen for speech result or errors
       void listener() {
         if (_controller.state == VoiceListeningState.success) {
           _controller.removeListener(listener);
           _textController.text = _controller.currentTranscript;
           _processQuery(_controller.currentTranscript);
+        } else if (_controller.state == VoiceListeningState.error) {
+          _controller.removeListener(listener);
+          if (mounted && _controller.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(_controller.errorMessage!),
+                backgroundColor: Colors.orange.shade800,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         }
       }
 
       _controller.addListener(listener);
+      // Start REAL microphone listening
+      _controller.startListening();
     }
   }
 
   void _onQuickPromptSelected(String prompt) {
     HapticFeedback.selectionClick();
     _textController.text = prompt;
-    _controller.startListening(simulatedTranscript: prompt);
-
-    void listener() {
-      if (_controller.state == VoiceListeningState.success) {
-        _controller.removeListener(listener);
-        _processQuery(prompt);
-      }
-    }
-
-    _controller.addListener(listener);
+    _processQuery(prompt);
   }
 
   Future<void> _processQuery(String text) async {
@@ -528,42 +528,81 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
   }
 
   Widget _buildTranscriptField() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      child: Row(
-        children: [
-          const Icon(Icons.record_voice_over_rounded, color: AppColors.primaryDark, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              decoration: const InputDecoration(
-                hintText: 'Type or spoken words appear here...',
-                hintStyle: TextStyle(fontSize: 13, color: AppColors.textLight),
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textDark,
-              ),
-              onSubmitted: _processQuery,
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        if (_controller.isListening &&
+            _controller.currentTranscript.isNotEmpty &&
+            _textController.text != _controller.currentTranscript) {
+          _textController.value = TextEditingValue(
+            text: _controller.currentTranscript,
+            selection: TextSelection.collapsed(
+              offset: _controller.currentTranscript.length,
+            ),
+          );
+        }
+
+        final isListening = _controller.isListening;
+        return Container(
+          decoration: BoxDecoration(
+            color: isListening
+                ? AppColors.primaryDark.withValues(alpha: 0.05)
+                : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isListening
+                  ? AppColors.primaryDark.withValues(alpha: 0.45)
+                  : Colors.grey.shade200,
+              width: isListening ? 1.5 : 1.0,
             ),
           ),
-          if (_textController.text.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.send_rounded, color: AppColors.primaryDark, size: 20),
-              onPressed: () => _processQuery(_textController.text),
-              tooltip: 'Parse Words',
-            ),
-        ],
-      ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          child: Row(
+            children: [
+              Icon(
+                isListening
+                    ? Icons.mic_rounded
+                    : Icons.record_voice_over_rounded,
+                color: isListening ? Colors.redAccent : AppColors.primaryDark,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _textController,
+                  decoration: InputDecoration(
+                    hintText: isListening
+                        ? 'Listening to your voice... (हम सुन रहे हैं...)'
+                        : 'Type or spoken words appear here...',
+                    hintStyle: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textLight,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textDark,
+                  ),
+                  onSubmitted: _processQuery,
+                ),
+              ),
+              if (_textController.text.isNotEmpty)
+                IconButton(
+                  icon: const Icon(
+                    Icons.send_rounded,
+                    color: AppColors.primaryDark,
+                    size: 20,
+                  ),
+                  onPressed: () => _processQuery(_textController.text),
+                  tooltip: 'Parse Words',
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 

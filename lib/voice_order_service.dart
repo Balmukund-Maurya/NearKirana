@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'cart_provider.dart';
 import 'crash_reporting_service.dart';
 import 'firebase_utils.dart';
@@ -33,10 +34,22 @@ class VoiceOrderService {
       }
 
       final snapshot = await query.get();
-      return snapshot.docs
+      var products = snapshot.docs
           .map((doc) => VoiceCatalogProduct.fromFirestore(doc.data(), doc.id))
           .where((p) => p.name.isNotEmpty)
           .toList();
+
+      // If store has 0 products tagged with shop_id, fallback to all active products in the system
+      if (products.isEmpty && shopId.isNotEmpty) {
+        final allSnapshot =
+            await _firestore.collection('products').limit(300).get();
+        products = allSnapshot.docs
+            .map((doc) => VoiceCatalogProduct.fromFirestore(doc.data(), doc.id))
+            .where((p) => p.name.isNotEmpty)
+            .toList();
+      }
+
+      return products;
     } catch (e, stack) {
       if (kDebugMode) {
         print('Error fetching catalog for voice order: $e');
@@ -136,8 +149,13 @@ class VoiceOrderService {
   }
 }
 
-/// Helper speech recognition controller with live simulation and audio ripple waves
+/// Speech recognition controller with real microphone STT and animated audio level feedback
 class VoiceListeningController with ChangeNotifier {
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechInitialized = false;
+  bool _hasSpeechRecognition = false;
+  String? _errorMessage;
+
   VoiceListeningState _state = VoiceListeningState.idle;
   String _currentTranscript = '';
   double _audioLevel = 0.0;
@@ -148,32 +166,134 @@ class VoiceListeningController with ChangeNotifier {
   String get currentTranscript => _currentTranscript;
   double get audioLevel => _audioLevel;
   bool get isListening => _state == VoiceListeningState.listening;
+  String? get errorMessage => _errorMessage;
+  bool get hasSpeechRecognition => _hasSpeechRecognition;
 
-  void startListening({String? simulatedTranscript}) {
-    _state = VoiceListeningState.listening;
-    _currentTranscript = '';
-    _audioLevel = 0.3;
-    notifyListeners();
-
-    SoundService().play('scan_beep.wav');
-
-    // Simulate animated audio ripple waves
+  Future<void> startListening({
+    String? simulatedTranscript,
+    String? localeId,
+  }) async {
     _waveTimer?.cancel();
-    _waveTimer = Timer.periodic(const Duration(milliseconds: 120), (timer) {
-      if (_state != VoiceListeningState.listening) {
-        timer.cancel();
-        return;
-      }
-      _audioLevel = 0.2 + ((timer.tick % 5) * 0.18);
-      notifyListeners();
-    });
+    _listeningTimer?.cancel();
+    _currentTranscript = '';
+    _errorMessage = null;
 
-    // Auto complete simulated speech after 1.8 seconds if simulatedTranscript provided
+    // Simulation / headless testing mode
     if (simulatedTranscript != null) {
-      _listeningTimer?.cancel();
+      _state = VoiceListeningState.listening;
+      _audioLevel = 0.3;
+      notifyListeners();
+
+      SoundService().play('scan_beep.wav');
+
+      _waveTimer = Timer.periodic(const Duration(milliseconds: 120), (timer) {
+        if (_state != VoiceListeningState.listening) {
+          timer.cancel();
+          return;
+        }
+        _audioLevel = 0.2 + ((timer.tick % 5) * 0.18);
+        notifyListeners();
+      });
+
       _listeningTimer = Timer(const Duration(milliseconds: 1600), () {
         completeListening(simulatedTranscript);
       });
+      return;
+    }
+
+    // REAL Microphone Speech Recognition
+    try {
+      if (!_speechInitialized) {
+        _hasSpeechRecognition = await _speech.initialize(
+          onError: (val) {
+            debugPrint('STT Error: ${val.errorMsg}');
+            _handleSpeechError(val.errorMsg);
+          },
+          onStatus: (status) {
+            debugPrint('STT Status: $status');
+            if (status == 'done' || status == 'notListening') {
+              if (_state == VoiceListeningState.listening) {
+                if (_currentTranscript.trim().isNotEmpty) {
+                  completeListening(_currentTranscript.trim());
+                } else {
+                  stopListening();
+                }
+              }
+            }
+          },
+        );
+        _speechInitialized = true;
+      }
+
+      if (!_hasSpeechRecognition) {
+        _state = VoiceListeningState.error;
+        _errorMessage =
+            'Speech recognition is not available or microphone permission was denied.';
+        notifyListeners();
+        return;
+      }
+
+      _state = VoiceListeningState.listening;
+      _audioLevel = 0.25;
+      notifyListeners();
+
+      SoundService().play('scan_beep.wav');
+
+      // Attempt detecting Hindi/English locale
+      String? targetLocale = localeId;
+      if (targetLocale == null) {
+        try {
+          final locales = await _speech.locales();
+          final hasHindi =
+              locales.any((l) => l.localeId.toLowerCase().startsWith('hi'));
+          if (hasHindi) {
+            targetLocale = locales
+                .firstWhere((l) => l.localeId.toLowerCase().startsWith('hi'))
+                .localeId;
+          } else {
+            final hasIndianEng =
+                locales.any((l) => l.localeId.toLowerCase() == 'en_in');
+            if (hasIndianEng) targetLocale = 'en_IN';
+          }
+        } catch (_) {}
+      }
+
+      await _speech.listen(
+        onResult: (result) {
+          _currentTranscript = result.recognizedWords;
+          notifyListeners();
+          if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
+            completeListening(result.recognizedWords.trim());
+          }
+        },
+        listenOptions: stt.SpeechListenOptions(
+          listenFor: const Duration(seconds: 30),
+          pauseFor: const Duration(seconds: 3),
+          localeId: targetLocale,
+          cancelOnError: false,
+          partialResults: true,
+        ),
+        onSoundLevelChange: (level) {
+          _audioLevel = ((level + 20) / 30).clamp(0.1, 1.0);
+          notifyListeners();
+        },
+      );
+    } catch (e) {
+      debugPrint('Real speech recognition error: $e');
+      _handleSpeechError('Microphone error: $e');
+    }
+  }
+
+  void _handleSpeechError(String message) {
+    _waveTimer?.cancel();
+    _listeningTimer?.cancel();
+    _errorMessage = message;
+    if (_currentTranscript.trim().isNotEmpty) {
+      completeListening(_currentTranscript.trim());
+    } else {
+      _state = VoiceListeningState.error;
+      _audioLevel = 0.0;
+      notifyListeners();
     }
   }
 
@@ -182,9 +302,14 @@ class VoiceListeningController with ChangeNotifier {
     notifyListeners();
   }
 
-  void completeListening(String finalTranscript) {
+  void completeListening(String finalTranscript) async {
     _waveTimer?.cancel();
     _listeningTimer?.cancel();
+    if (_speech.isListening) {
+      try {
+        await _speech.stop();
+      } catch (_) {}
+    }
     _state = VoiceListeningState.processing;
     _currentTranscript = finalTranscript;
     _audioLevel = 0.0;
@@ -197,19 +322,30 @@ class VoiceListeningController with ChangeNotifier {
     });
   }
 
-  void stopListening() {
+  void stopListening() async {
     _waveTimer?.cancel();
     _listeningTimer?.cancel();
+    if (_speech.isListening) {
+      try {
+        await _speech.stop();
+      } catch (_) {}
+    }
     _state = VoiceListeningState.idle;
     _audioLevel = 0.0;
     notifyListeners();
   }
 
-  void reset() {
+  void reset() async {
     _waveTimer?.cancel();
     _listeningTimer?.cancel();
+    if (_speech.isListening) {
+      try {
+        await _speech.stop();
+      } catch (_) {}
+    }
     _state = VoiceListeningState.idle;
     _currentTranscript = '';
+    _errorMessage = null;
     _audioLevel = 0.0;
     notifyListeners();
   }
@@ -218,6 +354,9 @@ class VoiceListeningController with ChangeNotifier {
   void dispose() {
     _waveTimer?.cancel();
     _listeningTimer?.cancel();
+    if (_speech.isListening) {
+      _speech.stop();
+    }
     super.dispose();
   }
 }

@@ -14,6 +14,10 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to location when open to check delivery availability.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>NearKirana needs access to your microphone to allow voice-based grocery ordering in Hindi and English.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>NearKirana needs speech recognition to convert your spoken grocery list into cart items.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

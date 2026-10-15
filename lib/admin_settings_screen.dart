@@ -4,14 +4,19 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+
 import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
 import 'map_selection_screen.dart';
+
 import 'dart:convert';
+
 import 'package:image_picker/image_picker.dart';
+
 import 'utils/product_image_widget.dart';
+
 import 'package:near_kirana/firebase_utils.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
@@ -28,12 +33,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   final _minOrderController = TextEditingController();
   final _freeDeliveryThresholdController = TextEditingController();
   final _maxUdhaarController = TextEditingController();
-  final _pickupRadiusController = TextEditingController(); // FIX-3: Pickup radius
-  final _deliveryRadiusController = TextEditingController(); // FIX-32: Delivery radius
+  final _pickupRadiusController =
+      TextEditingController(); // FIX-3: Pickup radius
+  final _deliveryRadiusController =
+      TextEditingController(); // FIX-32: Delivery radius
   final _storeLatController = TextEditingController(); // FIX-32: Store Lat
   final _storeLngController = TextEditingController(); // FIX-32: Store Lng
   final _supportPhoneController = TextEditingController();
   final _whatsappMessageController = TextEditingController();
+  final _upiIdController = TextEditingController();
   bool _isStoreOpen = true;
   List<String> _categories = [
     'Dal',
@@ -60,6 +68,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     _storeLngController.dispose();
     _supportPhoneController.dispose();
     _whatsappMessageController.dispose();
+    _upiIdController.dispose();
     super.dispose();
   }
 
@@ -71,10 +80,16 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   Future<void> _loadSettings() async {
     try {
-      final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+      final shopId = Provider.of<ShopProvider>(
+        context,
+        listen: false,
+      ).currentShopId;
       final doc = shopId != null && shopId.isNotEmpty
           ? await FirebaseUtils.firestore.collection('shops').doc(shopId).get()
-          : await FirebaseUtils.firestore.collection('settings').doc('app_config').get();
+          : await FirebaseUtils.firestore
+                .collection('settings')
+                .doc('app_config')
+                .get();
       if (doc.exists) {
         final data = doc.data()!;
         _shopNameController.text = data['shop_name'] ?? '';
@@ -87,13 +102,16 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         _maxUdhaarController.text = (data['max_udhaar_limit'] ?? 2000.0)
             .toString();
         // FIX-3: Load pickup radius (default 25km)
-        _pickupRadiusController.text = (data['pickup_radius_km'] ?? 25.0).toString();
+        _pickupRadiusController.text = (data['pickup_radius_km'] ?? 25.0)
+            .toString();
         // FIX-32: Load geo-fencing data
-        _deliveryRadiusController.text = (data['delivery_radius_km'] ?? 5.0).toString();
+        _deliveryRadiusController.text = (data['delivery_radius_km'] ?? 5.0)
+            .toString();
         _storeLatController.text = (data['store_latitude'] ?? '').toString();
         _storeLngController.text = (data['store_longitude'] ?? '').toString();
         _supportPhoneController.text = data['support_phone'] ?? '';
         _whatsappMessageController.text = data['whatsapp_message_template'] ?? "नमस्ते {shopName}, मेरा नाम {name} है और मेरा मोबाइल नंबर {phone} है। मुझे अपने ऑर्डर / अकाउंट के बारे में कुछ मदद चाहिए।";
+        _upiIdController.text = data['upi_id'] ?? data['vpa'] ?? '';
 
         if (data['categories'] != null) {
           _categories = List<String>.from(data['categories']);
@@ -111,11 +129,17 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         _storeLngController.text = '';
         _supportPhoneController.text = '';
         _whatsappMessageController.text = "नमस्ते {shopName}, मेरा नाम {name} है और मेरा मोबाइल नंबर {phone} है। मुझे अपने ऑर्डर / अकाउंट के बारे में कुछ मदद चाहिए।";
+        _upiIdController.text = '';
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())),
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              AppLocalizations.of(context)!.error_loading
+                  .replaceAll('{error}', e.toString()),
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -129,17 +153,32 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     HapticFeedback.mediumImpact();
     setState(() => _isLoading = true);
     try {
-      final double deliveryFee = double.tryParse(_deliveryFeeController.text) ?? 20.0;
-      final double minOrder = double.tryParse(_minOrderController.text) ?? 300.0;
-      final double freeDeliveryThreshold = double.tryParse(_freeDeliveryThresholdController.text) ?? 500.0;
-      final double maxUdhaar = double.tryParse(_maxUdhaarController.text) ?? 2000.0;
-      final double pickupRadius = double.tryParse(_pickupRadiusController.text) ?? 25.0;
-      final double deliveryRadius = double.tryParse(_deliveryRadiusController.text) ?? 5.0;
+      final double deliveryFee =
+          double.tryParse(_deliveryFeeController.text) ?? 20.0;
+      final double minOrder =
+          double.tryParse(_minOrderController.text) ?? 300.0;
+      final double freeDeliveryThreshold =
+          double.tryParse(_freeDeliveryThresholdController.text) ?? 500.0;
+      final double maxUdhaar =
+          double.tryParse(_maxUdhaarController.text) ?? 2000.0;
+      final double pickupRadius =
+          double.tryParse(_pickupRadiusController.text) ?? 25.0;
+      final double deliveryRadius =
+          double.tryParse(_deliveryRadiusController.text) ?? 5.0;
 
-      if (deliveryFee < 0 || minOrder < 0 || freeDeliveryThreshold < 0 || maxUdhaar < 0 || pickupRadius < 0 || deliveryRadius < 0) {
+      if (deliveryFee < 0 ||
+          minOrder < 0 ||
+          freeDeliveryThreshold < 0 ||
+          maxUdhaar < 0 ||
+          pickupRadius < 0 ||
+          deliveryRadius < 0) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.err_negative_values), backgroundColor: AppColors.error),
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(AppLocalizations.of(context)!.err_negative_values),
+              backgroundColor: AppColors.error,
+            ),
           );
           setState(() => _isLoading = false);
         }
@@ -149,7 +188,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       if (deliveryRadius > 10) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Delivery Radius cannot exceed 10 km'), backgroundColor: AppColors.error),
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text('Delivery Radius cannot exceed 10 km'),
+              backgroundColor: AppColors.error,
+            ),
           );
           setState(() => _isLoading = false);
         }
@@ -159,42 +202,52 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       if (pickupRadius > 25) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Pickup Radius cannot exceed 25 km'), backgroundColor: AppColors.error),
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text('Pickup Radius cannot exceed 25 km'),
+              backgroundColor: AppColors.error,
+            ),
           );
           setState(() => _isLoading = false);
         }
         return;
       }
 
-      final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+      final shopId = Provider.of<ShopProvider>(
+        context,
+        listen: false,
+      ).currentShopId;
       final settingsRef = shopId != null && shopId.isNotEmpty
           ? FirebaseUtils.firestore.collection('shops').doc(shopId)
           : FirebaseUtils.firestore.collection('settings').doc('app_config');
 
       await settingsRef.set({
-            'shop_name': _shopNameController.text.trim(),
-            'owner_name': _ownerNameController.text.trim(),
-            'delivery_fee': deliveryFee,
-            'minimum_order': minOrder,
-            'free_delivery_threshold': freeDeliveryThreshold,
-            'max_udhaar_limit': maxUdhaar,
-            'is_store_open': _isStoreOpen,
-            'categories': _categories,
-            // FIX-3: Save pickup radius
-            'pickup_radius_km': pickupRadius,
-            // FIX-32: Save delivery geo-fencing
-            'delivery_radius_km': deliveryRadius,
-            'store_latitude': double.tryParse(_storeLatController.text),
-            'store_longitude': double.tryParse(_storeLngController.text),
-            'support_phone': _supportPhoneController.text.trim(),
-            'whatsapp_message_template': _whatsappMessageController.text.trim(),
-          }, SetOptions(merge: true));
+        'shop_name': _shopNameController.text.trim(),
+        'owner_name': _ownerNameController.text.trim(),
+        'delivery_fee': deliveryFee,
+        'minimum_order': minOrder,
+        'free_delivery_threshold': freeDeliveryThreshold,
+        'max_udhaar_limit': maxUdhaar,
+        'is_store_open': _isStoreOpen,
+        'categories': _categories,
+        // FIX-3: Save pickup radius
+        'pickup_radius_km': pickupRadius,
+        // FIX-32: Save delivery geo-fencing
+        'delivery_radius_km': deliveryRadius,
+        'store_latitude': double.tryParse(_storeLatController.text),
+        'store_longitude': double.tryParse(_storeLngController.text),
+        'support_phone': _supportPhoneController.text.trim(),
+        'whatsapp_message_template': _whatsappMessageController.text.trim(),
+        'upi_id': _upiIdController.text.trim(),
+      }, SetOptions(merge: true));
 
       SoundService().play('save.mp3');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.settings_saved),
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(AppLocalizations.of(context)!.settings_saved),
             backgroundColor: AppColors.primaryDark,
           ),
         );
@@ -203,7 +256,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())),
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              AppLocalizations.of(context)!.error_loading
+                  .replaceAll('{error}', e.toString()),
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -217,23 +275,23 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.store_settings),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.store_settings)),
       body: _isLoading
-          ? const Center(
-              child: ModernLoader(color: AppColors.primaryDark),
-            )
+          ? const Center(child: ModernLoader(color: AppColors.primaryDark))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Center(
-                    child: _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
-                  ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+                        child: _ShopAvatar(
+                          shopProvider: Provider.of<ShopProvider>(context),
+                        ),
+                      )
+                      .animate()
+                      .scale(duration: 400.ms, curve: Curves.easeOutBack),
                   const SizedBox(height: 24),
-                  
+
                   // Shop Name & Owner Name
                   _buildConfigField(
                     'Shop Name',
@@ -250,8 +308,16 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                     Icons.person_outline_rounded,
                     keyboardType: TextInputType.text,
                   ),
+                  const SizedBox(height: 16),
+                  _buildConfigField(
+                    'Shop UPI ID (for Customer Payments)',
+                    _upiIdController,
+                    'e.g. 9876543210@paytm or shop@okhdfcbank',
+                    Icons.qr_code_2_rounded,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
                   const SizedBox(height: 24),
-                  
+
                   // Store Status
                   Container(
                         padding: const EdgeInsets.all(20),
@@ -402,53 +468,101 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                             ),
                             const SizedBox(width: 16),
                             SizedBox(
-                              height: 120, // matches height of two fields + spacing
+                              height:
+                                  120, // matches height of two fields + spacing
                               child: ElevatedButton(
                                 onPressed: () async {
-                                  final currentLat = double.tryParse(_storeLatController.text) ?? 0.0;
-                                  final currentLng = double.tryParse(_storeLngController.text) ?? 0.0;
-                                  final dynamic pickedLocation = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => MapSelectionScreen(
-                                        initialLat: currentLat,
-                                        initialLng: currentLng,
-                                        isPickingOnly: true,
-                                      ),
-                                    ),
-                                  );
+                                  final currentLat =
+                                      double.tryParse(
+                                        _storeLatController.text,
+                                      ) ??
+                                      0.0;
+                                  final currentLng =
+                                      double.tryParse(
+                                        _storeLngController.text,
+                                      ) ??
+                                      0.0;
+                                  final dynamic pickedLocation =
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              MapSelectionScreen(
+                                                initialLat: currentLat,
+                                                initialLng: currentLng,
+                                                isPickingOnly: true,
+                                              ),
+                                        ),
+                                      );
                                   if (!context.mounted) return;
                                   if (pickedLocation != null) {
                                     try {
                                       setState(() {
-                                        _storeLatController.text = pickedLocation.latitude.toString();
-                                        _storeLngController.text = pickedLocation.longitude.toString();
+                                        _storeLatController.text =
+                                            pickedLocation.latitude.toString();
+                                        _storeLngController.text =
+                                            pickedLocation.longitude.toString();
                                       });
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.location_picked), backgroundColor: AppColors.primaryDark),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          behavior: SnackBarBehavior.floating,
+                                          content: Text(
+                                            AppLocalizations.of(context)!
+                                                .location_picked,
+                                          ),
+                                          backgroundColor:
+                                              AppColors.primaryDark,
+                                        ),
                                       );
                                     } catch (e) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.error_loading.replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          behavior: SnackBarBehavior.floating,
+                                          content: Text(
+                                            AppLocalizations.of(context)!
+                                                .error_loading
+                                                .replaceAll(
+                                                  '{error}',
+                                                  e.toString(),
+                                                ),
+                                          ),
+                                          backgroundColor: AppColors.error,
+                                        ),
                                       );
                                     }
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.err_no_location), backgroundColor: AppColors.error),
+                                      SnackBar(
+                                        behavior: SnackBarBehavior.floating,
+                                        content: Text(
+                                          AppLocalizations.of(context)!
+                                              .err_no_location,
+                                        ),
+                                        backgroundColor: AppColors.error,
+                                      ),
                                     );
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primaryDark,
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
                                 child: const Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(Icons.map_rounded, size: 28),
                                     SizedBox(height: 8),
-                                    Text('Pick on\nMap', textAlign: TextAlign.center),
+                                    Text(
+                                      'Pick on\nMap',
+                                      textAlign: TextAlign.center,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -495,9 +609,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       children: [
                         Expanded(
                           child: Theme(
-                            data: Theme.of(context).copyWith(
-                              canvasColor: Colors.transparent,
-                            ),
+                            data: Theme.of(context)
+                                .copyWith(canvasColor: Colors.transparent),
                             child: ReorderableListView.builder(
                               itemCount: _categories.length,
                               onReorderItem: (int oldIndex, int newIndex) {
@@ -512,16 +625,22 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                 return Container(
                                   key: ValueKey(cat),
                                   margin: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppColors.bgTint,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: ListTile(
                                     contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 0),
-                                    leading: const Icon(Icons.drag_indicator_rounded,
-                                        color: AppColors.textLight),
+                                      horizontal: 16,
+                                      vertical: 0,
+                                    ),
+                                    leading: const Icon(
+                                      Icons.drag_indicator_rounded,
+                                      color: AppColors.textLight,
+                                    ),
                                     title: Text(
                                       cat,
                                       style: AppTextStyles.bodySemiBold(
@@ -529,8 +648,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                       ),
                                     ),
                                     trailing: IconButton(
-                                      icon: const Icon(Icons.close_rounded,
-                                          color: Colors.redAccent),
+                                      icon: const Icon(
+                                        Icons.close_rounded,
+                                        color: Colors.redAccent,
+                                      ),
                                       onPressed: () {
                                         HapticFeedback.lightImpact();
                                         setState(() => _categories.remove(cat));
@@ -552,7 +673,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryDark,
                                 foregroundColor: AppColors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -698,7 +821,10 @@ class _ShopAvatarState extends State<_ShopAvatar> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+    );
     if (pickedFile != null) {
       setState(() => _isUploading = true);
       try {
@@ -727,21 +853,25 @@ class _ShopAvatarState extends State<_ShopAvatar> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.primaryLight.withValues(alpha: 0.2),
-              border: Border.all(
-                color: AppColors.primaryLight,
-                width: 3,
-              ),
+              border: Border.all(color: AppColors.primaryLight, width: 3),
             ),
             child: ClipOval(
               child: _isUploading
-                  ? const Center(child: ModernLoader(color: AppColors.primaryDark))
-                  : (widget.shopProvider.shopProfilePic != null && widget.shopProvider.shopProfilePic!.isNotEmpty)
-                      ? ProductImageWidget(imageUrl: widget.shopProvider.shopProfilePic, width: 100, height: 100)
-                      : const Icon(
-                          Icons.store_rounded,
-                          size: 50,
-                          color: AppColors.primaryDark,
-                        ),
+                  ? const Center(
+                      child: ModernLoader(color: AppColors.primaryDark),
+                    )
+                  : (widget.shopProvider.shopProfilePic != null &&
+                        widget.shopProvider.shopProfilePic!.isNotEmpty)
+                  ? ProductImageWidget(
+                      imageUrl: widget.shopProvider.shopProfilePic,
+                      width: 100,
+                      height: 100,
+                    )
+                  : const Icon(
+                      Icons.store_rounded,
+                      size: 50,
+                      color: AppColors.primaryDark,
+                    ),
             ),
           ),
           Container(
@@ -751,7 +881,11 @@ class _ShopAvatarState extends State<_ShopAvatar> {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 2),
             ),
-            child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
+            child: const Icon(
+              Icons.camera_alt_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
           ),
         ],
       ),

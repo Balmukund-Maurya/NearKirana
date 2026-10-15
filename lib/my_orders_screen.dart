@@ -244,6 +244,59 @@ class MyOrdersScreen extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (data['payment_method'] == 'UPI')
+                        ? AppColors.primaryLight.withValues(alpha: 0.15)
+                        : Colors.grey.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        (data['payment_method'] == 'UPI')
+                            ? Icons.account_balance_wallet_rounded
+                            : Icons.payments_rounded,
+                        size: 14,
+                        color: (data['payment_method'] == 'UPI')
+                            ? AppColors.primaryDark
+                            : AppColors.textMid,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        (data['payment_method'] == 'UPI')
+                            ? 'UPI (Paid)'
+                            : (data['payment_method'] ?? 'Cash on Delivery'),
+                        style: AppTextStyles.captionMedium(
+                          color: (data['payment_method'] == 'UPI')
+                              ? AppColors.primaryDark
+                              : AppColors.textMid,
+                        ).copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  (data['payment_status'] == 'Paid' || data['payment_method'] == 'UPI')
+                      ? 'Paid Online'
+                      : 'Pay on Delivery',
+                  style: AppTextStyles.captionMedium(
+                    color: (data['payment_status'] == 'Paid' || data['payment_method'] == 'UPI')
+                        ? AppColors.primaryDark
+                        : AppColors.textMid,
+                  ),
+                ),
+              ],
+            ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Divider(height: 1, thickness: 1, color: AppColors.bgTint),

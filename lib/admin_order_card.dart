@@ -34,9 +34,11 @@ class AdminOrderCard extends StatelessWidget {
     final String timeStr = createdAt != null
         ? DateFormat('dd MMM yyyy, hh:mm a').format(createdAt.toDate())
         : '';
-    final bool isPaid =
-        data['payment_method'] != null && data['payment_method'] != 'Unpaid';
     final String paymentMethod = data['payment_method'] ?? 'Unpaid';
+    final bool isPaid = data['payment_status'] == 'Paid' ||
+        paymentMethod == 'UPI' ||
+        (paymentMethod != 'Unpaid' && paymentMethod != 'Cash on Delivery');
+    final String? upiRefId = data['upi_ref_id']?.toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -386,7 +388,9 @@ class AdminOrderCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            paymentMethod,
+                            (isPaid && paymentMethod == 'UPI')
+                                ? 'UPI (Paid)'
+                                : paymentMethod,
                             style: AppTextStyles.bodySemiBold(
                               color: isPaid
                                   ? AppColors.primaryDark
@@ -398,6 +402,45 @@ class AdminOrderCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (upiRefId != null && upiRefId.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primaryLight.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.receipt_long_rounded,
+                          size: 14,
+                          color: AppColors.primaryDark,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'UPI UTR: ',
+                          style: AppTextStyles.captionMedium(
+                            color: AppColors.textMid,
+                          ),
+                        ),
+                        SelectableText(
+                          upiRefId,
+                          style: AppTextStyles.captionMedium(
+                            color: AppColors.textDark,
+                          ).copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 // Actions
                 if (status == 'Pending' ||
@@ -561,6 +604,8 @@ class AdminOrderCard extends StatelessWidget {
         data['payment_method'] == 'UPI' ||
         data['payment_method'] == 'Khata') {
       selectedPayment = data['payment_method'];
+    } else if (data['payment_method'] == 'Cash on Delivery') {
+      selectedPayment = 'Cash';
     }
 
     await showDialog(

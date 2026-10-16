@@ -3652,8 +3652,21 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       );
     } catch (e) {
       if (!context.mounted) return;
+      final errStr = e.toString().toLowerCase();
+      String userMessage = "Failed to place order: $e";
+      if (errStr.contains('unavailable') ||
+          errStr.contains('unable to resolve host') ||
+          errStr.contains('offline') ||
+          errStr.contains('network') ||
+          errStr.contains('socketexception')) {
+        userMessage = "Network connection issue. Please check your internet connection and try again.";
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to place order: $e"), backgroundColor: AppColors.error),
+        SnackBar(
+          content: Text(userMessage),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isProcessingCheckout = false);

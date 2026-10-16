@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:near_kirana/app_theme.dart';
@@ -6,6 +7,8 @@ import 'package:near_kirana/shop_provider.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:near_kirana/utils/product_image_widget.dart';
 
 class AdminCategoriesScreen extends StatefulWidget {
   const AdminCategoriesScreen({super.key});
@@ -16,6 +19,7 @@ class AdminCategoriesScreen extends StatefulWidget {
 
 class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
   List<String> _categories = [];
+  Map<String, String> _categoryImages = {};
   Map<String, int> _productCounts = {};
   int _totalProducts = 0;
   bool _isLoading = true;
@@ -34,10 +38,20 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
       
       // Fetch Categories
       final doc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
-      if (doc.exists && doc.data()!.containsKey('categories')) {
-        final List<dynamic> fetchedCats = doc['categories'];
-        _categories = fetchedCats.map((e) => e.toString()).toList();
-        _categories.remove('All');
+      if (doc.exists) {
+        final data = doc.data()!;
+        if (data.containsKey('categories') && data['categories'] != null) {
+          final List<dynamic> fetchedCats = data['categories'];
+          _categories = fetchedCats.map((e) => e.toString()).toList();
+          _categories.remove('All');
+        }
+        if (data.containsKey('category_images') && data['category_images'] is Map) {
+          final rawMap = data['category_images'] as Map<dynamic, dynamic>;
+          _categoryImages = rawMap.map((k, v) => MapEntry(k.toString(), v.toString()));
+        } else if (data.containsKey('categoryImages') && data['categoryImages'] is Map) {
+          final rawMap = data['categoryImages'] as Map<dynamic, dynamic>;
+          _categoryImages = rawMap.map((k, v) => MapEntry(k.toString(), v.toString()));
+        }
       }
 
       // Fetch Product counts
@@ -65,6 +79,135 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _editCategoryImage(String cat) async {
+    final currentImg = _categoryImages[cat] ?? '';
+    final urlController = TextEditingController(text: currentImg.startsWith('http') ? currentImg : '');
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Category Image: $cat'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (currentImg.isNotEmpty) ...[
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: ProductImageWidget(
+                      imageUrl: currentImg,
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId ?? 'app_config';
+                    Navigator.pop(ctx);
+                    final picker = ImagePicker();
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      imageQuality: 60,
+                    );
+                    if (pickedFile != null) {
+                      try {
+                        final bytes = await pickedFile.readAsBytes();
+                        final base64String = base64Encode(bytes);
+                        final finalUrl = 'data:image/jpeg;base64,$base64String';
+
+                        await FirebaseUtils.firestore.collection('shops').doc(shopId).update({
+                          'category_images.$cat': finalUrl,
+                        });
+                        if (mounted) {
+                          setState(() {
+                            _categoryImages[cat] = finalUrl;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Image updated for $cat!')),
+                          );
+                        }
+                      } catch (e) {
+                        debugPrint('Error updating category image: $e');
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: const Text('Pick Image from Gallery'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlController,
+                decoration: const InputDecoration(
+                  labelText: 'Or Paste Image URL (https://...)',
+                  hintText: 'https://example.com/image.jpg',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.link_rounded),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          if (currentImg.isNotEmpty)
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId ?? 'app_config';
+                  await FirebaseUtils.firestore.collection('shops').doc(shopId).update({
+                    'category_images.$cat': FieldValue.delete(),
+                  });
+                  setState(() {
+                    _categoryImages.remove(cat);
+                  });
+                } catch (e) {
+                  debugPrint('Error removing category image: $e');
+                }
+              },
+              child: const Text('Remove Image', style: TextStyle(color: Colors.red)),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final url = urlController.text.trim();
+              if (url.isNotEmpty) {
+                try {
+                  final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId ?? 'app_config';
+                  await FirebaseUtils.firestore.collection('shops').doc(shopId).update({
+                    'category_images.$cat': url,
+                  });
+                  setState(() {
+                    _categoryImages[cat] = url;
+                  });
+                } catch (e) {
+                  debugPrint('Error saving category image url: $e');
+                }
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Save URL'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _addCategory() {
@@ -398,14 +541,45 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         child: Row(
                           children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(8),
+                            InkWell(
+                              onTap: () => _editCategoryImage(cats[i]),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: AppColors.bgTint),
+                                    ),
+                                    child: (_categoryImages[cats[i]] != null && _categoryImages[cats[i]]!.isNotEmpty)
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: ProductImageWidget(
+                                              imageUrl: _categoryImages[cats[i]]!,
+                                              width: 44,
+                                              height: 44,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          )
+                                        : const Icon(Icons.category_rounded, color: Colors.orange, size: 22),
+                                  ),
+                                  Positioned(
+                                    bottom: -2,
+                                    right: -2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.primaryDark,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 10),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: const Icon(Icons.category, color: Colors.orange, size: 20),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -452,21 +626,28 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            Tooltip(
+                              message: 'Set Category Image',
+                              child: InkWell(
+                                onTap: () => _editCategoryImage(cats[i]),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade50,
+                                    border: Border.all(color: Colors.amber.shade200),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(Icons.add_photo_alternate_rounded, size: 16, color: Colors.amber.shade900),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             InkWell(
                               onTap: () => _editCategory(cats[i]),
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.bgTint), borderRadius: BorderRadius.circular(6)),
                                 child: const Icon(Icons.edit_outlined, size: 16, color: AppColors.textDark),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            InkWell(
-                              onTap: () {}, // View Products placeholder
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.bgTint), borderRadius: BorderRadius.circular(6)),
-                                child: const Icon(Icons.remove_red_eye_outlined, size: 16, color: AppColors.textDark),
                               ),
                             ),
                             const SizedBox(width: 8),

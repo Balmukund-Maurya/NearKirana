@@ -33,6 +33,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
   String _searchQuery = '';
   Timer? _debounce;
   String _selectedCategory = 'All';
+  Map<String, String> _categoryImages = {};
   List<String> _categories = [
     'All',
     'Wishlist',
@@ -74,6 +75,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
     try {
       debugPrint('Fetching categories for shopId: $shopId');
       List<String>? shopCategories;
+      Map<String, String> fetchedImages = {};
 
       if (shopId.isNotEmpty) {
         final shopDoc = await FirebaseUtils.firestore
@@ -87,6 +89,13 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
             debugPrint('Loaded from shop: $shopCategories');
           } else {
             debugPrint('No categories field in shop doc');
+          }
+          if (data.containsKey('category_images') && data['category_images'] is Map) {
+            final raw = data['category_images'] as Map<dynamic, dynamic>;
+            fetchedImages = raw.map((k, v) => MapEntry(k.toString(), v.toString()));
+          } else if (data.containsKey('categoryImages') && data['categoryImages'] is Map) {
+            final raw = data['categoryImages'] as Map<dynamic, dynamic>;
+            fetchedImages = raw.map((k, v) => MapEntry(k.toString(), v.toString()));
           }
         } else {
           debugPrint('Shop doc does not exist');
@@ -103,17 +112,26 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
           shopCategories = List<String>.from(doc.data()!['categories']);
           debugPrint('Loaded from app_config: $shopCategories');
         }
+        if (doc.exists && doc.data()!['category_images'] is Map) {
+          final raw = doc.data()!['category_images'] as Map<dynamic, dynamic>;
+          fetchedImages = raw.map((k, v) => MapEntry(k.toString(), v.toString()));
+        }
       }
 
       if (shopCategories != null && shopCategories.isNotEmpty) {
         if (mounted) {
           setState(() {
             _categories = ['All', 'Wishlist', ...shopCategories!];
+            _categoryImages = fetchedImages;
           });
-          debugPrint('Updated _categories state: $_categories');
+          debugPrint('Updated _categories state: $_categories, images: ${_categoryImages.length}');
         } else {
           debugPrint('Widget not mounted, skipping setState');
         }
+      } else if (fetchedImages.isNotEmpty && mounted) {
+        setState(() {
+          _categoryImages = fetchedImages;
+        });
       }
     } catch (e, stack) {
       debugPrint('Error in _fetchCategories: $e\n$stack');
@@ -757,13 +775,27 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            catIcon,
-                            color: isSelected
-                                ? AppColors.primaryDark
-                                : AppColors.textMid,
-                            size: 32,
-                          ),
+                          if (_categoryImages.containsKey(category) &&
+                              _categoryImages[category]!.isNotEmpty &&
+                              !isWishlist &&
+                              category != 'All')
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: ProductImageWidget(
+                                imageUrl: _categoryImages[category]!,
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          else
+                            Icon(
+                              catIcon,
+                              color: isSelected
+                                  ? AppColors.primaryDark
+                                  : AppColors.textMid,
+                              size: 32,
+                            ),
                           const SizedBox(height: 12),
                           Text(
                             displayName,
@@ -789,6 +821,11 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
               return Consumer<WishlistProvider>(
                 builder: (context, wishlistProvider, _) {
                   final wishlistCount = wishlistProvider.wishlistItems.length;
+                  final hasCustomImage = _categoryImages.containsKey(category) &&
+                      _categoryImages[category]!.isNotEmpty &&
+                      !isWishlist &&
+                      category != 'All';
+
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: GestureDetector(
@@ -833,13 +870,23 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                           ),
                                         ],
                                 ),
-                                child: Icon(
-                                  catIcon,
-                                  color: isSelected
-                                      ? AppColors.primaryDark
-                                      : catColor,
-                                  size: 26,
-                                ),
+                                child: hasCustomImage
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(15),
+                                        child: ProductImageWidget(
+                                          imageUrl: _categoryImages[category]!,
+                                          width: 50,
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                    : Icon(
+                                        catIcon,
+                                        color: isSelected
+                                            ? AppColors.primaryDark
+                                            : catColor,
+                                        size: 26,
+                                      ),
                               ),
                               if (isWishlist && wishlistCount > 0)
                                 Positioned(

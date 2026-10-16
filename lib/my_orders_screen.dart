@@ -270,44 +270,55 @@ class MyOrdersScreen extends StatelessWidget {
                     color: AppColors.primaryDark,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: (paymentMethod == 'UPI')
-                        ? AppColors.primaryLight.withValues(alpha: 0.15)
-                        : Colors.grey.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Icon(
-                        (paymentMethod == 'UPI')
-                            ? Icons.account_balance_wallet_rounded
-                            : (paymentMethod == 'Khata'
-                                ? Icons.book_rounded
-                                : Icons.payments_rounded),
-                        size: 14,
-                        color: (paymentMethod == 'UPI')
-                            ? AppColors.primaryDark
-                            : AppColors.textMid,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        paymentMethod,
-                        style: AppTextStyles.captionMedium(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
                           color: (paymentMethod == 'UPI')
-                              ? AppColors.primaryDark
-                              : AppColors.textMid,
-                        ).copyWith(fontWeight: FontWeight.bold),
+                              ? AppColors.primaryLight.withValues(alpha: 0.15)
+                              : Colors.grey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              (paymentMethod == 'UPI')
+                                  ? Icons.account_balance_wallet_rounded
+                                  : (paymentMethod == 'Khata'
+                                      ? Icons.book_rounded
+                                      : Icons.payments_rounded),
+                              size: 13,
+                              color: (paymentMethod == 'UPI')
+                                  ? AppColors.primaryDark
+                                  : AppColors.textMid,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              paymentMethod,
+                              style: AppTextStyles.captionMedium(
+                                color: (paymentMethod == 'UPI')
+                                    ? AppColors.primaryDark
+                                    : AppColors.textMid,
+                              ).copyWith(fontWeight: FontWeight.bold, fontSize: 11),
+                            ),
+                          ],
+                        ),
                       ),
+                      _buildCustomerPaymentStatusBadge(paymentStatus, paymentMethod),
                     ],
                   ),
                 ),
-                _buildCustomerPaymentStatusBadge(paymentStatus, paymentMethod),
               ],
             ),
             if (paymentMethod == 'UPI' && status != 'Cancelled' && (isPendingVerification || isPaymentPending || isFailed)) ...[
@@ -536,7 +547,11 @@ class MyOrdersScreen extends StatelessWidget {
                   ),
                 ),
               ],
-              _buildTimeline(status, context),
+              _buildTimeline(
+                status,
+                context,
+                isPickup: (data['delivery_type'] ?? '') == 'Pickup',
+              ),
               if (status == OrderStatus.pending) ...[
                 const SizedBox(height: 16),
                 Align(
@@ -1212,35 +1227,101 @@ class MyOrdersScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeline(String currentStatus, BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final currentIndex = OrderStateMachine.getTimelineStepIndex(currentStatus);
+  Widget _buildTimeline(
+    String currentStatus,
+    BuildContext context, {
+    bool isPickup = false,
+  }) {
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final isHindi = langProvider.isHindi;
+    final isHinglish = langProvider.isHinglish;
 
-    final steps = [
-      l10n?.order_status_pending ?? 'Placed',
-      l10n?.order_status_accepted ?? 'Accepted',
-      l10n?.order_status_packing ?? 'Packing',
-      l10n?.order_status_ready ?? 'Ready',
-      l10n?.order_status_out ?? 'Out',
-      l10n?.order_status_delivered ?? 'Delivered',
-    ];
+    if (currentStatus == OrderStatus.cancelled ||
+        currentStatus == 'Cancelled' ||
+        currentStatus == 'Rejected') {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFECACA)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                isHindi
+                    ? 'यह ऑर्डर कैंसिल हो चुका है'
+                    : (isHinglish
+                        ? 'Yeh order cancel ho gaya hai'
+                        : 'This order has been cancelled'),
+                style: GoogleFonts.poppins(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF991B1B),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final int activeMilestone;
+    if (currentStatus == OrderStatus.delivered || currentStatus == 'Delivered') {
+      activeMilestone = 3;
+    } else if (currentStatus == OrderStatus.outForDelivery ||
+        currentStatus == 'Out for Delivery' ||
+        currentStatus == OrderStatus.ready ||
+        currentStatus == 'Ready') {
+      activeMilestone = 2;
+    } else if (currentStatus == OrderStatus.packing ||
+        currentStatus == OrderStatus.packed ||
+        currentStatus == 'Packing' ||
+        currentStatus == 'Packed') {
+      activeMilestone = 1;
+    } else {
+      activeMilestone = 0;
+    }
+
+    final List<String> stepLabels;
+    if (isPickup) {
+      if (isHindi) {
+        stepLabels = ['ऑर्डर दिया', 'तैयार हो रहा', 'पिकअप तैयार', 'पिकअप हुआ'];
+      } else if (isHinglish) {
+        stepLabels = ['Order Placed', 'Preparing', 'Ready to Pick', 'Picked Up'];
+      } else {
+        stepLabels = ['Placed', 'Preparing', 'Ready', 'Picked Up'];
+      }
+    } else {
+      if (isHindi) {
+        stepLabels = ['ऑर्डर दिया', 'पैकिंग', 'रास्ते में', 'डिलीवर हुआ'];
+      } else if (isHinglish) {
+        stepLabels = ['Order Placed', 'Packing', 'On the Way', 'Delivered'];
+      } else {
+        stepLabels = ['Placed', 'Packing', 'On the way', 'Delivered'];
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200, width: 1),
       ),
       child: Row(
-        children: List.generate(steps.length * 2 - 1, (index) {
+        children: List.generate(stepLabels.length * 2 - 1, (index) {
           if (index.isOdd) {
             final stepIndex = index ~/ 2;
-            return _buildTimelineLine(currentIndex > stepIndex);
+            return _buildTimelineLine(activeMilestone > stepIndex);
           } else {
             final stepIndex = index ~/ 2;
-            return _buildTimelineStep(steps[stepIndex], stepIndex, currentIndex);
+            return _buildTimelineStep(stepLabels[stepIndex], stepIndex, activeMilestone);
           }
         }),
       ),
@@ -1255,8 +1336,8 @@ class MyOrdersScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 22,
-          height: 22,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: isCompleted ? AppColors.primaryDark : Colors.grey.shade300,
@@ -1276,21 +1357,22 @@ class MyOrdersScreen extends StatelessWidget {
           child: isCompleted
               ? const Icon(
                   Icons.check_rounded,
-                  size: 13,
+                  size: 14,
                   color: AppColors.white,
                 )
               : null,
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 6),
         SizedBox(
-          width: 46,
+          width: 66,
           child: Text(
             label,
             textAlign: TextAlign.center,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.poppins(
-              fontSize: 9.5,
+              fontSize: 10,
+              height: 1.15,
               fontWeight: isCurrent
                   ? FontWeight.w700
                   : (isCompleted ? FontWeight.w600 : FontWeight.w400),
@@ -1305,11 +1387,11 @@ class MyOrdersScreen extends StatelessWidget {
   Widget _buildTimelineLine(bool isCompleted) {
     return Expanded(
       child: Container(
-        margin: const EdgeInsets.only(bottom: 18),
-        height: 2,
+        margin: const EdgeInsets.only(bottom: 22),
+        height: 2.5,
         decoration: BoxDecoration(
           color: isCompleted ? AppColors.primaryDark : Colors.grey.shade300,
-          borderRadius: BorderRadius.circular(1),
+          borderRadius: BorderRadius.circular(1.5),
         ),
       ),
     );

@@ -143,6 +143,17 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  Future<void> updateCustomerName(String name) async {
+    _customerName = name.trim();
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('customerName', _customerName);
+    } catch (e) {
+      debugPrint('Error updating customer name: $e');
+    }
+  }
+
   Future<void> setDeliveryAddress(
     String address,
     String houseNo,

@@ -20,7 +20,6 @@ import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/firebase_utils.dart';
-import 'package:near_kirana/razorpay_service.dart';
 import 'package:near_kirana/widgets/payment_bottom_sheet.dart';
 
 class DesktopCheckoutView extends StatefulWidget {
@@ -2359,7 +2358,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     } on InvalidCouponException catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Coupon Error: \${e.message}"), backgroundColor: AppColors.error),
+        SnackBar(content: Text("Coupon Error: ${e.message}"), backgroundColor: AppColors.error),
       );
     } catch (e) {
       if (!context.mounted) return;

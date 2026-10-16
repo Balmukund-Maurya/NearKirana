@@ -345,6 +345,47 @@ void main() {
       expect(find.textContaining('mins'), findsWidgets);
       expect(find.textContaining('Not a strict guarantee'), findsOneWidget);
     });
+
+    testWidgets('renders Store Pickup mode with store details and free delivery at checkout',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final userProvider = UserProvider();
+      final cartProvider = CartProvider();
+      final shopProvider = ShopProvider();
+      await shopProvider.setShop(
+        'shop_123',
+        'Gupta Kirana Store',
+        address: 'Shop No 4, Main Market, Delhi',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<UserProvider>.value(value: userProvider),
+              ChangeNotifierProvider<CartProvider>.value(value: cartProvider),
+              ChangeNotifierProvider<ShopProvider>.value(value: shopProvider),
+            ],
+            child: Scaffold(
+              body: DesktopCheckoutView(
+                deliveryType: 'Pickup',
+                onBackToCart: () {},
+                onOrderPlaced: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify Store Pickup indicators are displayed
+      expect(find.text('Store Pickup'), findsWidgets);
+      expect(find.text('Gupta Kirana Store'), findsWidgets);
+      expect(find.text('STORE PICKUP'), findsOneWidget);
+      expect(find.text('Estimated Pickup Ready Time'), findsOneWidget);
+      expect(find.text('Pay at Store'), findsOneWidget);
+    });
   });
 }
 

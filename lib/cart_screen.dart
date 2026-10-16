@@ -39,6 +39,7 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   bool _isCheckout = false;
+  String _checkoutDeliveryType = 'Delivery';
 
   // FIX-5: Store settings cache for cart UI
   double _minOrder = 300.0;
@@ -106,6 +107,7 @@ class _CartScreenState extends State<CartScreen> {
       return Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
         body: DesktopCheckoutView(
+          deliveryType: _checkoutDeliveryType,
           onBackToCart: () => setState(() => _isCheckout = false),
           onOrderPlaced: () {
             setState(() => _isCheckout = false);
@@ -558,6 +560,7 @@ class _CartScreenState extends State<CartScreen> {
                         ? () {
                             HapticFeedback.mediumImpact();
                             setState(() {
+                              _checkoutDeliveryType = 'Delivery';
                               _isCheckout = true;
                             });
                           }
@@ -637,6 +640,7 @@ class _CartScreenState extends State<CartScreen> {
                     ? () {
                         HapticFeedback.mediumImpact();
                         setState(() {
+                          _checkoutDeliveryType = 'Pickup';
                           _isCheckout = true;
                         });
                       }
@@ -2829,6 +2833,7 @@ class _CartScreenState extends State<CartScreen> {
                                   ? null
                                   : () {
                                       setState(() {
+                                        _checkoutDeliveryType = 'Delivery';
                                         _isCheckout = true;
                                       });
                                     },

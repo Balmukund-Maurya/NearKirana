@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:near_kirana/cart_provider.dart';
@@ -25,11 +24,13 @@ import 'package:near_kirana/saved_address_model.dart';
 class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
   final VoidCallback onOrderPlaced;
+  final String deliveryType;
 
   const DesktopCheckoutView({
     super.key,
     required this.onBackToCart,
     required this.onOrderPlaced,
+    this.deliveryType = 'Delivery',
   });
 
   @override
@@ -37,6 +38,7 @@ class DesktopCheckoutView extends StatefulWidget {
 }
 
 class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
+  bool get _isPickup => widget.deliveryType.toLowerCase() == 'pickup';
   bool _isProcessingCheckout = false;
   int _selectedAddressIndex = 0;
   int _selectedPaymentIndex = 0; // 0: UPI, 1: Cash on Delivery, 2: Kirana Khata
@@ -45,6 +47,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   final Set<String> _selectedInstructionChips = {};
   CouponValidationResult? _appliedCouponResult;
 
+  // Khata Verification State (Offline customers created by shop owner)
+  bool _isLoadingKhata = true;
+  bool _hasShopKhata = false;
+  double _khataCreditLimit = 5000.0;
+  double _currentKhataBalance = 0.0;
+  String? _checkedShopId;
+  String? _checkedPhone;
+
   final Color primaryGreen = AppColors.primaryDark;
   final Color activeLightGreen = const Color(0xFFF0FDF4);
   final Color activeBorderGreen = const Color(0xFF22C55E);
@@ -52,6 +62,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkCustomerKhata();
+    });
   }
 
   @override
@@ -69,6 +82,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     final shopProvider = Provider.of<ShopProvider>(context);
     final String currentShopId = shopProvider.currentShopId ?? '';
     final String customerPhone = userProvider.phoneNumber;
+    if ((currentShopId != _checkedShopId || customerPhone != _checkedPhone) && !_isLoadingKhata) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkCustomerKhata());
+    }
     final cartItems = cartProvider.itemsList;
 
     // Derived Calculations
@@ -77,15 +93,17 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     double deliveryFeeAmount = 20;
 
     final double subtotal = cartProvider.cartTotal; // Real subtotal from cart
-    final bool canDeliver = subtotal >= minOrder;
-    final double deliveryFee = (canDeliver && subtotal < freeDeliveryThreshold)
-        ? deliveryFeeAmount
-        : 0.0;
+    final bool canDeliver = _isPickup ? true : (subtotal >= minOrder);
+    final double deliveryFee = _isPickup
+        ? 0.0
+        : ((canDeliver && subtotal < freeDeliveryThreshold)
+            ? deliveryFeeAmount
+            : 0.0);
 
     // Promotional Coupon / Discount Engine (Feature 49)
     final double discount = _appliedCouponResult?.totalSavings ?? 0.0;
     final double finalTotal =
-        max(0.0, subtotal + (canDeliver ? deliveryFee : 0) - discount);
+        max(0.0, subtotal + (_isPickup ? 0.0 : (canDeliver ? deliveryFee : 0)) - discount);
 
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width >= 900;
@@ -183,7 +201,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: Row(
                   children: [
-                    _buildStep(1, isDesktop ? (l10n?.delivery_address ?? 'Delivery Address') : (l10n?.address_lbl ?? 'Address'), isActive: true),
+                    _buildStep(1, _isPickup ? (l10n?.store_pickup ?? 'Store Pickup') : (isDesktop ? (l10n?.delivery_address ?? 'Delivery Address') : (l10n?.address_lbl ?? 'Address')), isActive: true),
                     _buildLine(isActive: true),
                     _buildStep(2, isDesktop ? (l10n?.order_summary ?? 'Order Review') : "Review", isActive: false),
                     _buildLine(isActive: false),
@@ -202,48 +220,56 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 final leftColumn = Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                      // SECTION 1: Delivery Address
+                      // SECTION 1: Delivery Address or Store Pickup Location
                       _buildSectionHeader(
                         1,
-                        l10n?.delivery_address ?? "Delivery Address",
-                        "Select a delivery address for your order",
-                        trailing: OutlinedButton.icon(
-                          onPressed: () async {
-                            await AddressSelectionBottomSheet.show(
-                              context,
-                              isCheckoutMode: true,
-                            );
-                            if (mounted) setState(() {});
-                          },
-                          icon: const Icon(
-                            Icons.add,
-                            size: 16,
-                            color: Color(0xFF047857),
-                          ),
-                          label: Text(
-                            l10n?.add_address_btn ?? "Manage / Add Address",
-                            style: const TextStyle(
-                              color: Color(0xFF047857),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF047857)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                          ),
-                        ),
+                        _isPickup
+                            ? (l10n?.store_pickup ?? "Store Pickup Location")
+                            : (l10n?.delivery_address ?? "Delivery Address"),
+                        _isPickup
+                            ? "Pick up your order directly from the shop counter"
+                            : "Select a delivery address for your order",
+                        trailing: _isPickup
+                            ? null
+                            : OutlinedButton.icon(
+                                onPressed: () async {
+                                  await AddressSelectionBottomSheet.show(
+                                    context,
+                                    isCheckoutMode: true,
+                                  );
+                                  if (mounted) setState(() {});
+                                },
+                                icon: const Icon(
+                                  Icons.add,
+                                  size: 16,
+                                  color: Color(0xFF047857),
+                                ),
+                                label: Text(
+                                  l10n?.add_address_btn ?? "Manage / Add Address",
+                                  style: const TextStyle(
+                                    color: Color(0xFF047857),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFF047857)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                ),
+                              ),
                       ),
                       const SizedBox(height: 16),
                       Padding(
                         padding: EdgeInsets.only(left: isDesktop ? 48 : 0),
-                        child: Column(
-                          children: [
+                        child: _isPickup
+                            ? _buildStorePickupCard(shopProvider)
+                            : Column(
+                                children: [
                             if (userProvider.savedAddressesList.isNotEmpty)
                               ...userProvider.savedAddressesList.asMap().entries.map((entry) {
                                 final idx = entry.key;
@@ -309,11 +335,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
 
                       const SizedBox(height: 40),
 
-                      // SECTION 2: Delivery Instructions
+                      // SECTION 2: Delivery Instructions / Store Pickup Note
                       _buildSectionHeader(
                         2,
-                        "Delivery Instructions (Optional)",
-                        "Add special instructions for delivery partner",
+                        _isPickup ? "Store Pickup Note (Optional)" : "Delivery Instructions (Optional)",
+                        _isPickup ? "Add a note for the shopkeeper" : "Add special instructions for delivery partner",
                       ),
                       const SizedBox(height: 16),
                       Padding(
@@ -783,7 +809,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                                   ? "Pay Online / UPI \u2022 \u20b9${finalTotal.toStringAsFixed(0)}"
                                                   : _selectedPaymentIndex == 2
                                                       ? "Order via Khata \u2022 \u20b9${finalTotal.toStringAsFixed(0)}"
-                                                      : "Place Order (COD) \u2022 \u20b9${finalTotal.toStringAsFixed(0)}",
+                                                      : "${_isPickup ? 'Pay at Store' : 'Place Order (COD)'} \u2022 \u20b9${finalTotal.toStringAsFixed(0)}",
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.bold,
@@ -833,7 +859,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       // DELIVERY INFO BOX
                       Builder(
                         builder: (context) {
-                          final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
+                          final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: _isPickup ? 'Pickup' : 'Delivery');
                           return Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -846,8 +872,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(
-                                      Icons.local_shipping,
+                                    Icon(
+                                      _isPickup ? Icons.storefront_rounded : Icons.local_shipping,
                                       color: Colors.blue,
                                       size: 26,
                                     ),
@@ -856,9 +882,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          const Text(
-                                            "Estimated Delivery Time",
-                                            style: TextStyle(
+                                          Text(
+                                            _isPickup ? "Estimated Pickup Ready Time" : "Estimated Delivery Time",
+                                            style: const TextStyle(
                                               color: Colors.blue,
                                               fontSize: 12,
                                             ),
@@ -970,7 +996,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     required String currentShopId,
     required String customerPhone,
   }) {
-    final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
+    final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: _isPickup ? 'Pickup' : 'Delivery');
     final String shopName = (shopProvider.shopName ?? 'NearKirana Store').trim();
 
     return Scaffold(
@@ -997,13 +1023,22 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              l10n?.checkout ?? "Checkout",
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isPickup) ...[
+                  const Icon(Icons.storefront_rounded, size: 20, color: AppColors.primaryDark),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  _isPickup ? "Store Pickup" : (l10n?.checkout ?? "Checkout"),
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ],
             ),
             Text(
               "${cartItems.length} items • ₹${finalTotal.toStringAsFixed(0)}",
@@ -1026,18 +1061,23 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Zepto / Blinkit Delivery ETA Banner
+            // 1. Zepto / Blinkit Delivery or Pickup ETA Banner
             _buildMobileDeliveryEtaBanner(estimate, cartItems.length, shopName),
 
             const SizedBox(height: 12),
 
-            // 2. Zepto / Blinkit Delivery Address Card
-            _buildMobileAddressCard(context, userProvider, l10n),
+            // 2. Zepto / Blinkit Delivery Address or Store Pickup Card
+            if (_isPickup)
+              _buildStorePickupCard(shopProvider)
+            else
+              _buildMobileAddressCard(context, userProvider, l10n),
 
-            const SizedBox(height: 12),
+            if (!_isPickup) ...[
+              const SizedBox(height: 12),
 
-            // 3. Zepto / Blinkit Delivery Instructions Card
-            _buildMobileDeliveryInstructionsCard(),
+              // 3. Zepto / Blinkit Delivery Instructions Card
+              _buildMobileDeliveryInstructionsCard(),
+            ],
 
             const SizedBox(height: 12),
 
@@ -1174,8 +1214,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   color: AppColors.primaryDark,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.bolt_rounded,
+                child: Icon(
+                  _isPickup ? Icons.storefront_rounded : Icons.bolt_rounded,
                   color: Colors.white,
                   size: 18,
                 ),
@@ -1188,7 +1228,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     Row(
                       children: [
                         Text(
-                          "Estimated Delivery Time",
+                          _isPickup ? "Estimated Pickup Ready Time" : "Estimated Delivery Time",
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -1215,7 +1255,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "Shipment of $itemCount items from $shopName",
+                      _isPickup
+                          ? "Pick up $itemCount items from $shopName counter"
+                          : "Shipment of $itemCount items from $shopName",
                       style: GoogleFonts.poppins(
                         fontSize: 11.5,
                         color: AppColors.textMid,
@@ -1244,6 +1286,139 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       fontSize: 10,
                       fontStyle: FontStyle.italic,
                       color: Colors.blue.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStorePickupCard(ShopProvider shopProvider) {
+    final String shopName = (shopProvider.shopName ?? 'NearKirana Store').trim();
+    final String shopAddress = (shopProvider.shopAddress ?? 'Shop Counter / Store Location').trim();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.storefront_rounded,
+                  color: AppColors.primaryDark,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            shopName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textDark,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            "STORE PICKUP",
+                            style: GoogleFonts.poppins(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF166534),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      shopAddress,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textDark,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "Collect directly at the store billing counter",
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: AppColors.textMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 14,
+                  color: AppColors.success,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    "Self Pickup • Free Service Fee • Quick Counter Handover",
+                    style: GoogleFonts.poppins(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF166534),
                     ),
                   ),
                 ),
@@ -1764,9 +1939,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           _buildMobileBillRow("Item Subtotal", "₹${subtotal.toStringAsFixed(0)}"),
           const SizedBox(height: 10),
           _buildMobileBillRow(
-            "Delivery Partner Fee",
-            deliveryFee == 0 ? "FREE" : "₹${deliveryFee.toStringAsFixed(0)}",
-            isFree: deliveryFee == 0,
+            _isPickup ? "Delivery Fee (Store Pickup)" : "Delivery Partner Fee",
+            (_isPickup || deliveryFee == 0) ? "FREE" : "₹${deliveryFee.toStringAsFixed(0)}",
+            isFree: _isPickup || deliveryFee == 0,
           ),
           if (discount > 0) ...[
             const SizedBox(height: 10),
@@ -1983,7 +2158,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             ? "PAY USING UPI"
                             : _selectedPaymentIndex == 2
                                 ? "KIRANA KHATA"
-                                : "PAY ON DELIVERY",
+                                : (_isPickup ? "PAY AT STORE" : "PAY ON DELIVERY"),
                         style: GoogleFonts.poppins(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w700,
@@ -2056,10 +2231,10 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             Flexible(
                               child: Text(
                                 _selectedPaymentIndex == 0
-                                    ? "Place Order"
+                                    ? (_isPickup ? "Place Pickup Order" : "Place Order")
                                     : _selectedPaymentIndex == 2
                                         ? "Order via Khata"
-                                        : "Place Order (COD)",
+                                        : (_isPickup ? "Confirm Pickup Order" : "Place Order (COD)"),
                                 style: GoogleFonts.poppins(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
@@ -2427,26 +2602,28 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 Expanded(
                   child: _buildPaymentOptionCard(
                     index: 1,
-                    icon: Icons.payments_rounded,
-                    title: l10n?.cash_on_delivery ?? "Cash on Delivery",
-                    subtitle: "Pay cash or scan QR at doorstep",
-                    badgeText: "POPULAR",
+                    icon: _isPickup ? Icons.storefront_rounded : Icons.payments_rounded,
+                    title: _isPickup ? "Pay at Store" : (l10n?.cash_on_delivery ?? "Cash on Delivery"),
+                    subtitle: _isPickup ? "Pay cash or scan UPI QR at the store counter" : "Pay cash or scan QR at doorstep",
+                    badgeText: _isPickup ? "AT STORE" : "POPULAR",
                     badgeColor: const Color(0xFF2563EB),
                     iconColor: const Color(0xFF2563EB),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildPaymentOptionCard(
-                    index: 2,
-                    icon: Icons.menu_book_rounded,
-                    title: "Kirana Khata",
-                    subtitle: "Add to monthly store ledger",
-                    badgeText: "0% INTEREST",
-                    badgeColor: const Color(0xFFD97706),
-                    iconColor: const Color(0xFFD97706),
+                if (_hasShopKhata) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildPaymentOptionCard(
+                      index: 2,
+                      icon: Icons.menu_book_rounded,
+                      title: "Kirana Khata",
+                      subtitle: "Add to monthly store ledger",
+                      badgeText: "0% INTEREST",
+                      badgeColor: const Color(0xFFD97706),
+                      iconColor: const Color(0xFFD97706),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           )
@@ -2465,23 +2642,25 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               const SizedBox(height: 10),
               _buildPaymentOptionCard(
                 index: 1,
-                icon: Icons.payments_rounded,
-                title: l10n?.cash_on_delivery ?? "Cash on Delivery",
-                subtitle: "Pay cash or scan QR at your doorstep",
-                badgeText: "POPULAR",
+                icon: _isPickup ? Icons.storefront_rounded : Icons.payments_rounded,
+                title: _isPickup ? "Pay at Store" : (l10n?.cash_on_delivery ?? "Cash on Delivery"),
+                subtitle: _isPickup ? "Pay cash or scan UPI QR at the store counter" : "Pay cash or scan QR at your doorstep",
+                badgeText: _isPickup ? "AT STORE" : "POPULAR",
                 badgeColor: const Color(0xFF2563EB),
                 iconColor: const Color(0xFF2563EB),
               ),
-              const SizedBox(height: 10),
-              _buildPaymentOptionCard(
-                index: 2,
-                icon: Icons.menu_book_rounded,
-                title: "Kirana Khata (Pay Later)",
-                subtitle: "Add to monthly store ledger (verified)",
-                badgeText: "0% INTEREST",
-                badgeColor: const Color(0xFFD97706),
-                iconColor: const Color(0xFFD97706),
-              ),
+              if (_hasShopKhata) ...[
+                const SizedBox(height: 10),
+                _buildPaymentOptionCard(
+                  index: 2,
+                  icon: Icons.menu_book_rounded,
+                  title: "Kirana Khata (Pay Later)",
+                  subtitle: "Add to monthly store ledger (verified)",
+                  badgeText: "0% INTEREST",
+                  badgeColor: const Color(0xFFD97706),
+                  iconColor: const Color(0xFFD97706),
+                ),
+              ],
             ],
           ),
 
@@ -2498,7 +2677,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 )
               : _selectedPaymentIndex == 1
                   ? _buildCodDetailBox(finalTotal: finalTotal)
-                  : _buildKhataDetailBox(),
+                  : (_hasShopKhata
+                      ? _buildKhataDetailBox()
+                      : const SizedBox.shrink()),
         ),
 
         // Security & NPCI Assurance Strip (Blinkit / Zepto trust badge)
@@ -2775,62 +2956,36 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          if (shopUpiId.isEmpty) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.amber.shade300),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "Store UPI ID is being updated. You can proceed with Cash on Delivery at your doorstep.",
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.amber.shade900,
-                      ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.verified_outlined,
+                  color: Color(0xFF16A34A),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Click 'Place Order' below to pay via your preferred UPI app. Order will be confirmed automatically on successful payment.",
+                    style: GoogleFonts.poppins(
+                      fontSize: 11.5,
+                      color: const Color(0xFF166534),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ] else ...[
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _launchUpiApp(
-                  context: context,
-                  shopUpiId: shopUpiId,
-                  shopName: shopName,
-                  finalTotal: finalTotal,
-                ),
-                icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                label: Text(
-                  "Pay via UPI App (₹${finalTotal.toStringAsFixed(0)})",
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.5,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF047857),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  elevation: 0,
-                ),
-              ),
-            ),
-          ],
+          ),
         ],
       ),
     );
@@ -2854,9 +3009,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               color: Color(0xFFDBEAFE),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.delivery_dining_rounded,
-              color: Color(0xFF1D4ED8),
+            child: Icon(
+              _isPickup ? Icons.storefront_rounded : Icons.delivery_dining_rounded,
+              color: const Color(0xFF1D4ED8),
               size: 20,
             ),
           ),
@@ -2866,7 +3021,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Pay ₹${finalTotal.toStringAsFixed(0)} on Delivery",
+                  _isPickup
+                      ? "Pay ₹${finalTotal.toStringAsFixed(0)} at Store"
+                      : "Pay ₹${finalTotal.toStringAsFixed(0)} on Delivery",
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
@@ -2875,7 +3032,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Pay in cash or ask delivery partner to scan their UPI QR code upon arrival at your doorstep.",
+                  _isPickup
+                      ? "Pay in cash or scan the store UPI QR code when collecting your order from the shop counter."
+                      : "Pay in cash or ask delivery partner to scan their UPI QR code upon arrival at your doorstep.",
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: const Color(0xFF3B82F6),
@@ -2934,6 +3093,22 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     color: const Color(0xFFB45309),
                   ),
                 ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    "Credit Limit: ₹${_khataCreditLimit.toStringAsFixed(0)}  •  Current Udhaar: ₹${_currentKhataBalance.toStringAsFixed(0)}",
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF78350F),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -2942,45 +3117,94 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     );
   }
 
-  Future<void> _launchUpiApp({
-    required BuildContext context,
-    required String shopUpiId,
-    required String shopName,
-    required double finalTotal,
-  }) async {
-    HapticFeedback.lightImpact();
-    final upiUrl =
-        'upi://pay?pa=$shopUpiId&pn=${Uri.encodeComponent(shopName)}&am=${finalTotal.toStringAsFixed(2)}&cu=INR&tn=${Uri.encodeComponent('NearKirana Order')}';
+  /// Verifies if the customer is an offline customer created by the shop owner with an active Khata
+  Future<void> _checkCustomerKhata() async {
     try {
-      final uri = Uri.parse(upiUrl);
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("UPI App me payment complete karein. Payment hone ke baad order place karein."),
-            backgroundColor: Color(0xFF047857),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 5),
-          ),
-        );
-      } else if (!launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("No UPI app found. Please select Cash on Delivery or Kirana Khata."),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+      final String shopId = shopProvider.currentShopId ?? '';
+      final String rawPhone = userProvider.phoneNumber.trim();
+
+      if (shopId == _checkedShopId && rawPhone == _checkedPhone && !_isLoadingKhata) {
+        return;
+      }
+      _checkedShopId = shopId;
+      _checkedPhone = rawPhone;
+
+      if (shopId.isEmpty || rawPhone.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isLoadingKhata = false;
+            _hasShopKhata = false;
+            if (_selectedPaymentIndex == 2) _selectedPaymentIndex = 0;
+          });
+        }
+        return;
+      }
+
+      String cleanPhone = rawPhone.replaceAll(RegExp(r'\D'), '');
+      if (cleanPhone.length > 10) {
+        cleanPhone = cleanPhone.substring(cleanPhone.length - 10);
+      }
+
+      final phonesToSearch = <String>{
+        rawPhone,
+        cleanPhone,
+        if (cleanPhone.isNotEmpty) '+91$cleanPhone',
+        if (cleanPhone.isNotEmpty) '91$cleanPhone',
+      }.where((p) => p.isNotEmpty).toList();
+
+      final querySnapshot = await FirebaseUtils.firestore
+          .collection('customers')
+          .where('mobile', whereIn: phonesToSearch.take(10).toList())
+          .get();
+
+      bool hasKhata = false;
+      double creditLimit = 5000.0;
+      double balance = 0.0;
+
+      for (final doc in querySnapshot.docs) {
+        final data = doc.data();
+        final shopIds = (data['shop_ids'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [];
+        final shopBalances = data['shop_balances'] as Map<String, dynamic>?;
+
+        // Offline customer must be created by shop owner for this shop
+        if (shopIds.contains(shopId) ||
+            (shopBalances != null && shopBalances.containsKey(shopId))) {
+          if (data['is_banned'] != true) {
+            hasKhata = true;
+            creditLimit = (data['credit_limit'] as num?)?.toDouble() ?? 5000.0;
+            balance = (shopBalances?[shopId] as num?)?.toDouble() ??
+                ((data['total_udhaar'] as num?)?.toDouble() ?? 0.0);
+            break;
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoadingKhata = false;
+          _hasShopKhata = hasKhata;
+          _khataCreditLimit = creditLimit;
+          _currentKhataBalance = balance;
+          if (!hasKhata && _selectedPaymentIndex == 2) {
+            _selectedPaymentIndex = 0;
+          }
+        });
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Could not open UPI app. Please choose Cash on Delivery or Kirana Khata."),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      debugPrint('Error verifying customer Khata: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingKhata = false;
+          _hasShopKhata = false;
+          if (_selectedPaymentIndex == 2) {
+            _selectedPaymentIndex = 0;
+          }
+        });
       }
     }
   }
@@ -3020,7 +3244,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     double deliveryFee,
   ) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    if (userProvider.currentLat == null || userProvider.currentLng == null) {
+    if (!_isPickup && (userProvider.currentLat == null || userProvider.currentLng == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Please add a delivery address first"),
@@ -3053,7 +3277,6 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       final String shopName = shopProvider.currentShopName.isNotEmpty
           ? shopProvider.currentShopName
           : 'NearKirana Store';
-      final String shopUpiId = (shopProvider.shopUpiId ?? '').trim();
 
       // Fetch Razorpay key (from provider or Firestore fallback)
       String rzpKey = shopProvider.razorpayKeyId ?? '';
@@ -3064,48 +3287,77 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               .doc('general')
               .get();
           if (settingsDoc.exists && settingsDoc.data()?['razorpay_key_id'] != null) {
-            rzpKey = (settingsDoc.data()!['razorpay_key_id'] as String).trim();
+            final key = (settingsDoc.data()!['razorpay_key_id'] as String).trim();
+            if (key.isNotEmpty) rzpKey = key;
           }
         } catch (_) {}
       }
+      if (rzpKey.isEmpty) {
+        rzpKey = 'rzp_test_1DP5mmOlF5G5ag';
+      }
 
-      // Check if user is banned
+      // Check if user is banned and verify shop Khata record
+      String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+      if (cleanPhone.length > 10) {
+        cleanPhone = cleanPhone.substring(cleanPhone.length - 10);
+      }
+      final phonesToSearch = <String>{
+        phone,
+        cleanPhone,
+        if (cleanPhone.isNotEmpty) '+91$cleanPhone',
+        if (cleanPhone.isNotEmpty) '91$cleanPhone',
+      }.where((p) => p.isNotEmpty).toList();
+
       QuerySnapshot<Map<String, dynamic>>? customerQuery;
       try {
         customerQuery = await FirebaseUtils.firestore
             .collection('customers')
-            .where('mobile', isEqualTo: phone)
-            .where('shop_ids', arrayContains: shopId)
-            .limit(1)
+            .where('mobile', whereIn: phonesToSearch.take(10).toList())
             .get();
-        if (customerQuery.docs.isNotEmpty) {
-          final d = customerQuery.docs.first.data();
-          if (d['is_banned'] == true) {
-            setState(() => _isProcessingCheckout = false);
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Aapka account block kar diya gaya hai. Kripya dukan par sampark karein.'),
-                  backgroundColor: AppColors.error,
-                ),
-              );
-            }
-            return;
-          }
-        }
       } catch (e) {
-        debugPrint('Ban check error: $e');
+        debugPrint('Customer check error: $e');
       }
 
-      // Khata eligibility check
-      bool khataEligible = false;
+      Map<String, dynamic>? shopCustomerData;
       if (customerQuery != null && customerQuery.docs.isNotEmpty) {
-        final d = customerQuery.docs.first.data();
-        final double creditLimit = (d['credit_limit'] as num?)?.toDouble() ?? 5000.0;
-        final shopBalances = d['shop_balances'] as Map<String, dynamic>?;
+        for (final doc in customerQuery.docs) {
+          final data = doc.data();
+          final shopIds = (data['shop_ids'] as List<dynamic>?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              [];
+          final shopBalances = data['shop_balances'] as Map<String, dynamic>?;
+          if (shopIds.contains(shopId) ||
+              (shopBalances != null && shopBalances.containsKey(shopId))) {
+            shopCustomerData = data;
+            break;
+          }
+        }
+      }
+
+      if (shopCustomerData != null && shopCustomerData['is_banned'] == true) {
+        setState(() => _isProcessingCheckout = false);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Aapka account block kar diya gaya hai. Kripya dukan par sampark karein.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Khata eligibility check: only offline customer created by shop owner for this shop
+      bool hasShopKhataRecord = shopCustomerData != null;
+      bool khataEligible = false;
+      if (hasShopKhataRecord) {
+        final double creditLimit =
+            (shopCustomerData['credit_limit'] as num?)?.toDouble() ?? 5000.0;
+        final shopBalances = shopCustomerData['shop_balances'] as Map<String, dynamic>?;
         final double currentUdhaar =
             (shopBalances?[shopId] as num?)?.toDouble() ??
-            ((d['total_udhaar'] as num?)?.toDouble() ?? 0.0);
+            ((shopCustomerData['total_udhaar'] as num?)?.toDouble() ?? 0.0);
         khataEligible = (currentUdhaar + finalTotal) <= creditLimit;
       }
 
@@ -3121,7 +3373,19 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         paymentMethod = PaymentMethod.cod;
         paymentStatus = 'Pending';
       } else if (_selectedPaymentIndex == 2) {
-        // Kirana Khata
+        // Kirana Khata: Only for offline customers whose khata was created by the shop owner
+        if (!hasShopKhataRecord || !_hasShopKhata) {
+          setState(() => _isProcessingCheckout = false);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Khata sirf unhi offline customers ke liye hai jinka khata dukan malik ne create kiya hai.'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
         if (!khataEligible) {
           setState(() => _isProcessingCheckout = false);
           if (context.mounted) {
@@ -3137,60 +3401,75 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         paymentMethod = 'Kirana Khata';
         paymentStatus = 'Pending (Khata)';
       } else {
-        // Pay Online / UPI
-        if (rzpKey.isNotEmpty) {
-          final rzpResult = await RazorpayService().checkout(
+        // Instant UPI Payment via Razorpay Gateway (Google Pay, PhonePe, Paytm, BHIM, etc.)
+        RazorpayCheckoutResult rzpResult;
+        try {
+          rzpResult = await RazorpayService().checkout(
             keyId: rzpKey,
             amount: finalTotal,
             shopName: shopName,
             customerPhone: phone,
             customerName: customerName,
             description: 'Order from $shopName',
-            notes: {'shop_id': shopId, 'customer_phone': phone},
+            notes: {
+              'shop_id': shopId,
+              'customer_phone': phone,
+              'payment_flow': 'checkout_upi',
+            },
           );
-          if (rzpResult is RazorpaySuccessResult) {
-            paymentMethod = PaymentMethod.upi;
-            paymentStatus = PaymentStatus.paid;
-            finalUpiRefId = rzpResult.paymentId;
-            isRazorpaySuccess = true;
-            extraPaymentData = {
-              'razorpay_payment_id': rzpResult.paymentId,
-              if (rzpResult.orderId != null) 'razorpay_order_id': rzpResult.orderId,
-              if (rzpResult.signature != null) 'razorpay_signature': rzpResult.signature,
-              'verified_by': 'Razorpay Gateway',
-              'verified_at': FieldValue.serverTimestamp(),
-            };
-          } else {
-            setState(() => _isProcessingCheckout = false);
-            if (context.mounted) {
-              final msg = (rzpResult is RazorpayFailureResult && rzpResult.message.isNotEmpty)
-                  ? rzpResult.message
-                  : 'Payment complete nahi hua. Dobara try karein.';
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(msg), backgroundColor: AppColors.error),
-              );
-            }
-            return;
-          }
-        } else {
-          // Direct Store UPI App
+        } catch (e) {
+          rzpResult = RazorpayFailureResult(
+            code: -1,
+            message: 'UPI payment initiation error: $e',
+          );
+        }
+
+        if (rzpResult is RazorpaySuccessResult) {
+          // Payment Successful -> Confirm Order!
           paymentMethod = PaymentMethod.upi;
-          paymentStatus = PaymentStatus.pendingVerification;
+          paymentStatus = PaymentStatus.paid;
+          finalUpiRefId = rzpResult.paymentId;
+          isRazorpaySuccess = true;
           extraPaymentData = {
-            'payment_type': 'Direct UPI App',
-            'store_upi_vpa': shopUpiId,
+            'razorpay_payment_id': rzpResult.paymentId,
+            if (rzpResult.orderId != null) 'razorpay_order_id': rzpResult.orderId,
+            if (rzpResult.signature != null) 'razorpay_signature': rzpResult.signature,
+            'verified_by': 'Razorpay Gateway',
+            'verified_at': FieldValue.serverTimestamp(),
           };
+        } else {
+          // Payment Failed / Cancelled -> Reject Order (Do not place in database)
+          setState(() => _isProcessingCheckout = false);
+          if (context.mounted) {
+            final failureMsg = (rzpResult is RazorpayFailureResult && rzpResult.message.isNotEmpty)
+                ? rzpResult.message
+                : 'Payment fail ho gaya ya cancel kiya gaya. Order place nahi hua.';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(failureMsg),
+                backgroundColor: AppColors.error,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return; // Stop and reject!
         }
       }
 
       // Build delivery address
-      String finalDeliveryAddress = 'House: ${userProvider.customerHouseNo}';
-      if (userProvider.customerLandmark.isNotEmpty) {
-        finalDeliveryAddress += ', Landmark: ${userProvider.customerLandmark}';
-      }
-      finalDeliveryAddress += ' — (Locality: ${userProvider.autoLocality})';
-      if (userProvider.addressLabel.isNotEmpty) {
-        finalDeliveryAddress += ' [${userProvider.addressLabel}]';
+      String finalDeliveryAddress;
+      if (_isPickup) {
+        final String sAddress = (shopProvider.shopAddress ?? '').trim();
+        finalDeliveryAddress = 'Store Pickup at $shopName${sAddress.isNotEmpty ? ' ($sAddress)' : ' (Shop Counter)'}';
+      } else {
+        finalDeliveryAddress = 'House: ${userProvider.customerHouseNo}';
+        if (userProvider.customerLandmark.isNotEmpty) {
+          finalDeliveryAddress += ', Landmark: ${userProvider.customerLandmark}';
+        }
+        finalDeliveryAddress += ' — (Locality: ${userProvider.autoLocality})';
+        if (userProvider.addressLabel.isNotEmpty) {
+          finalDeliveryAddress += ' [${userProvider.addressLabel}]';
+        }
       }
 
       final items = cartProvider.itemsList
@@ -3207,7 +3486,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       final idempotencyKey =
           'pay_${phone}_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}';
 
-      final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
+      final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: _isPickup ? 'Pickup' : 'Delivery');
 
       final result = await AtomicOrderService.instance.placeOrderAtomic(
         OrderPlacementParams(
@@ -3215,10 +3494,10 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           customerName: customerName,
           customerPhone: phone,
           deliveryAddress: finalDeliveryAddress,
-          customerLat: userProvider.currentLat,
-          customerLng: userProvider.currentLng,
-          deliveryType: 'Delivery',
-          deliveryFee: deliveryFee,
+          customerLat: _isPickup ? (userProvider.storeLat ?? userProvider.currentLat) : userProvider.currentLat,
+          customerLng: _isPickup ? (userProvider.storeLng ?? userProvider.currentLng) : userProvider.currentLng,
+          deliveryType: _isPickup ? 'Pickup' : 'Delivery',
+          deliveryFee: _isPickup ? 0.0 : deliveryFee,
           paymentMethod: paymentMethod,
           paymentStatus: paymentStatus,
           upiRefId: finalUpiRefId,

@@ -826,8 +826,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       langProvider.isHindi
                           ? 'हिं'
                           : langProvider.isHinglish
-                              ? 'Hing'
-                              : 'EN',
+                          ? 'Hing'
+                          : 'EN',
                       style: AppTextStyles.captionMedium(
                         color: AppColors.primaryDark,
                       ),

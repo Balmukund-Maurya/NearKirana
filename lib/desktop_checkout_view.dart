@@ -26,12 +26,18 @@ class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
   final VoidCallback onOrderPlaced;
   final String deliveryType;
+  final double? initialDeliveryFee;
+  final double? initialMinOrder;
+  final double? initialFreeDeliveryThreshold;
 
   const DesktopCheckoutView({
     super.key,
     required this.onBackToCart,
     required this.onOrderPlaced,
     this.deliveryType = 'Delivery',
+    this.initialDeliveryFee,
+    this.initialMinOrder,
+    this.initialFreeDeliveryThreshold,
   });
 
   @override
@@ -56,6 +62,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   String? _checkedShopId;
   String? _checkedPhone;
 
+  // Shop delivery config loaded from database
+  double? _shopDeliveryFeeAmount;
+  double? _shopMinOrder;
+  double? _shopFreeDeliveryThreshold;
+
   final Color primaryGreen = AppColors.primaryDark;
   final Color activeLightGreen = const Color(0xFFF0FDF4);
   final Color activeBorderGreen = const Color(0xFF22C55E);
@@ -65,7 +76,36 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkCustomerKhata();
+      _fetchShopDeliverySettings();
     });
+  }
+
+  Future<void> _fetchShopDeliverySettings() async {
+    try {
+      final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+      final shopId = shopProvider.currentShopId;
+      if (shopId != null && shopId.isNotEmpty) {
+        final doc = await FirebaseFirestore.instance.collection('shops').doc(shopId).get();
+        if (doc.exists && mounted) {
+          final data = doc.data()!;
+          setState(() {
+            _shopDeliveryFeeAmount = (data['delivery_fee'] as num?)?.toDouble();
+            _shopMinOrder = (data['minimum_order'] as num?)?.toDouble();
+            _shopFreeDeliveryThreshold = (data['free_delivery_threshold'] as num?)?.toDouble();
+          });
+          return;
+        }
+      }
+      final configDoc = await FirebaseFirestore.instance.collection('settings').doc('app_config').get();
+      if (configDoc.exists && mounted) {
+        final data = configDoc.data()!;
+        setState(() {
+          _shopDeliveryFeeAmount = (data['delivery_fee'] as num?)?.toDouble();
+          _shopMinOrder = (data['minimum_order'] as num?)?.toDouble();
+          _shopFreeDeliveryThreshold = (data['free_delivery_threshold'] as num?)?.toDouble();
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -89,22 +129,19 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     final cartItems = cartProvider.itemsList;
 
     // Derived Calculations
-    double minOrder = 300;
-    double freeDeliveryThreshold = 1000;
-    double deliveryFeeAmount = 20;
+    final double minOrder = widget.initialMinOrder ?? _shopMinOrder ?? 50.0;
+    final double freeDeliveryThreshold = widget.initialFreeDeliveryThreshold ?? _shopFreeDeliveryThreshold ?? 500.0;
+    final double deliveryFeeAmount = widget.initialDeliveryFee ?? _shopDeliveryFeeAmount ?? 20.0;
 
     final double subtotal = cartProvider.cartTotal; // Real subtotal from cart
     final bool canDeliver = _isPickup ? true : (subtotal >= minOrder);
     final double deliveryFee = _isPickup
         ? 0.0
-        : ((canDeliver && subtotal < freeDeliveryThreshold)
-            ? deliveryFeeAmount
-            : 0.0);
+        : (subtotal >= freeDeliveryThreshold ? 0.0 : deliveryFeeAmount);
 
     // Promotional Coupon / Discount Engine (Feature 49)
     final double discount = _appliedCouponResult?.totalSavings ?? 0.0;
-    final double finalTotal =
-        max(0.0, subtotal + (_isPickup ? 0.0 : (canDeliver ? deliveryFee : 0)) - discount);
+    final double finalTotal = max(0.0, subtotal + deliveryFee - discount);
 
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width >= 900;
@@ -3433,13 +3470,13 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           if (context.mounted) {
             final failureMsg = (rzpResult is RazorpayFailureResult && rzpResult.message.isNotEmpty)
                 ? rzpResult.message
-                : 'Payment fail ho gaya ya cancel kiya gaya. Order place nahi hua.';
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(failureMsg),
-                backgroundColor: AppColors.error,
-                duration: const Duration(seconds: 4),
-              ),
+                : 'Payment fail ho gaya ya cancel kiya gaya.';
+            _showOnlinePaymentFallbackSheet(
+              context: context,
+              failureMessage: failureMsg,
+              cartProvider: cartProvider,
+              finalTotal: finalTotal,
+              deliveryFee: deliveryFee,
             );
           }
           return; // Stop and reject!
@@ -3678,4 +3715,143 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       if (mounted) setState(() => _isProcessingCheckout = false);
     }
   }
+
+  void _showOnlinePaymentFallbackSheet({
+    required BuildContext context,
+    required String failureMessage,
+    required CartProvider cartProvider,
+    required double finalTotal,
+    required double deliveryFee,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFEF3C7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.payment_rounded,
+                  color: Color(0xFFD97706),
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Online Payment Incomplete',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Payment app uplabdh nahi hua ya transaction cancel ho gaya. Aap bina kisi rukawat ke Cash on Delivery (COD) se order turant confirm kar sakte hain.',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Switch to COD and place order button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    setState(() => _selectedPaymentIndex = 1);
+                    _executeOrder(context, cartProvider, finalTotal, deliveryFee);
+                  },
+                  icon: const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 20),
+                  label: Text(
+                    '${_isPickup ? 'Pay at Store' : 'Place Order with COD'} • ₹${finalTotal.toStringAsFixed(0)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF047857),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Retry UPI button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _executeOrder(context, cartProvider, finalTotal, deliveryFee);
+                  },
+                  icon: const Icon(Icons.refresh_rounded, color: Color(0xFF047857), size: 18),
+                  label: Text(
+                    'Retry Online / UPI Payment',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF047857),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF047857), width: 1.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
+

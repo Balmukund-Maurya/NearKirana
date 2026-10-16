@@ -131,6 +131,17 @@ class RazorpayService {
       'theme': {
         'color': '#047857', // Emerald theme
       },
+      'retry': {
+        'enabled': true,
+        'max_count': 3,
+      },
+      'send_sms_hash': true,
+      'method': {
+        'netbanking': true,
+        'card': true,
+        'upi': true,
+        'wallet': true,
+      },
       'notes': ?notes,
     };
 

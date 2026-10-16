@@ -36,7 +36,6 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
   Map<String, String> _categoryImages = {};
   List<String> _categories = [
     'All',
-    'Wishlist',
     'Dal',
     'Rice',
     'Spices',
@@ -121,7 +120,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
       if (shopCategories != null && shopCategories.isNotEmpty) {
         if (mounted) {
           setState(() {
-            _categories = ['All', 'Wishlist', ...shopCategories!];
+            _categories = ['All', ...shopCategories!];
             _categoryImages = fetchedImages;
           });
           debugPrint('Updated _categories state: $_categories, images: ${_categoryImages.length}');
@@ -334,7 +333,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                 const SizedBox(height: 10),
               ],
 
-              // Top Bar: Fast Delivery ETA & Store Pill + User Greeting
+              // Top Bar: Fast Delivery ETA & Store Pill + Wishlist & User Greeting
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -392,28 +391,81 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                   ),
                   const SizedBox(width: 8),
 
-                  // User greeting pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.person_rounded, size: 14, color: Colors.white),
-                        const SizedBox(width: 4),
-                        Text(
-                          userName,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
+                  // Actions: Wishlist Button + User greeting pill
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Consumer<WishlistProvider>(
+                        builder: (context, wp, _) {
+                          final count = wp.wishlistItems.length;
+                          final isSelected = _selectedCategory == 'Wishlist';
+                          return InkWell(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() {
+                                _selectedCategory = isSelected ? 'All' : 'Wishlist';
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.25),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isSelected ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                    size: 15,
+                                    color: isSelected ? const Color(0xFFEF4444) : Colors.white,
+                                  ),
+                                  if (count > 0) ...[
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$count',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: isSelected ? const Color(0xFFEF4444) : Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.person_rounded, size: 14, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              userName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1431,31 +1483,6 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                   fontSize: 10,
                                   color: Colors.grey.shade500,
                                 ),
-                              ),
-                            ],
-                          )
-                        else
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.timer_outlined,
-                                size: 11,
-                                color: AppColors.primaryDark,
-                              ),
-                              const SizedBox(width: 3),
-                              Consumer<UserProvider>(
-                                builder: (context, userProvider, _) {
-                                  final etaWindow = userProvider.getEstimatedDeliveryTime().formattedWindow;
-                                  return Text(
-                                    etaWindow,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primaryDark,
-                                    ),
-                                  );
-                                },
                               ),
                             ],
                           ),

@@ -18,6 +18,8 @@ import 'main.dart' show LoginScreen;
 import 'user_provider.dart';
 import 'auth_service.dart';
 import 'delivery_partner_screen.dart';
+import 'language_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class GatewayScreen extends StatefulWidget {
   const GatewayScreen({super.key});
@@ -734,112 +736,270 @@ class _GatewayScreenState extends State<GatewayScreen> {
   }
 
   Widget _buildAuthCard(BuildContext context, bool isDesktop) {
+    LanguageProvider? langProvider;
+    try {
+      langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    } catch (_) {}
+    final lang = langProvider?.currentLanguage ?? 'en';
+
+    final String brandSubtitle = lang == 'hi'
+        ? 'ताज़ा किराना व सामान आपके दरवाज़े पर'
+        : (lang == 'hinglish'
+            ? 'Fresh groceries aur daily items seedhe ghar par'
+            : 'Fresh Groceries & Daily Essentials');
+
+    final String featDelivery = lang == 'hi'
+        ? '10-25 मिनट'
+        : (lang == 'hinglish' ? '10-25 Mins' : '10-25 Mins');
+
+    final String featPrice = lang == 'hi'
+        ? 'किफायती दाम'
+        : (lang == 'hinglish' ? 'Best Prices' : 'Best Prices');
+
+    final String featSafety = lang == 'hi'
+        ? 'सुरक्षित व आसान'
+        : (lang == 'hinglish' ? '100% Safe' : '100% Safe');
+
+    final String phoneLabel = lang == 'hi'
+        ? 'अपना मोबाइल नंबर दर्ज करें'
+        : (lang == 'hinglish'
+            ? 'Apna mobile number daalein'
+            : 'Enter your mobile number');
+
+    final String phoneHint = lang == 'hi'
+        ? '10 अंकों का नंबर'
+        : (lang == 'hinglish'
+            ? '10-digit mobile number'
+            : 'Enter 10-digit mobile number');
+
+    final String continueBtnText = lang == 'hi'
+        ? 'आगे बढ़ें'
+        : (lang == 'hinglish' ? 'Continue Karein' : 'Continue');
+
+    final String termsText = lang == 'hi'
+        ? 'जारी रखकर आप हमारी सेवा की शर्तों और गोपनीयता नीति से सहमत हैं'
+        : (lang == 'hinglish'
+            ? 'Continue karke aap hamari Terms of Service & Privacy Policy se agree karte hain'
+            : 'By continuing, you agree to our Terms of Service & Privacy Policy');
+
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 36 : 18,
+        vertical: isDesktop ? 36 : 24,
+      ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: isDesktop ? 0.9 : 1.0),
-        borderRadius: BorderRadius.circular(32),
-        border: isDesktop ? Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5) : null,
-        boxShadow: isDesktop ? [
+        color: Colors.white.withValues(alpha: isDesktop ? 0.95 : 1.0),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDesktop ? Colors.grey.shade200 : const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          )
-        ] : [],
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Logo & Branding
+          // Zepto / Blinkit Brand Header
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 60,
-                height: 60,
-                decoration: AppDecorations.primaryGradient(radius: 16),
-                child: const Icon(
-                  Icons.shopping_basket_rounded,
-                  color: AppColors.white,
-                  size: 32,
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF047857), Color(0xFF10B981)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF047857).withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ).animate().scale(begin: const Offset(0,0), end: const Offset(1,1), duration: 600.ms, curve: Curves.elasticOut),
-              const SizedBox(width: 16),
-              Text(
-                'NearKirana',
-                style: AppTextStyles.display(color: AppColors.primaryDark).copyWith(fontSize: 32),
-              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+                child: const Icon(
+                  Icons.shopping_bag_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ).animate().scale(begin: const Offset(0, 0), end: const Offset(1, 1), duration: 500.ms, curve: Curves.easeOutBack),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'NearKirana',
+                    style: GoogleFonts.poppins(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF047857),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Text(
+                    'Instant Local Delivery',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade500,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
+              ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.1, end: 0),
             ],
           ),
-          const SizedBox(height: 16),
-          
+          const SizedBox(height: 14),
+
+          // Subtitle
           Text(
-            'Fresh Groceries\nAt Your Doorstep',
+            brandSubtitle,
             textAlign: TextAlign.center,
-            style: AppTextStyles.heading2(color: AppColors.textDark),
-          ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
-          
-          const SizedBox(height: 48),
-          
-          // Input Field
+            style: GoogleFonts.poppins(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+              height: 1.3,
+            ),
+          ).animate().fadeIn(delay: 200.ms),
+
+          const SizedBox(height: 18),
+
+          // Zepto/Blinkit Style 3 Trust Feature Badges
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _buildTrustBadge(
+                icon: Icons.bolt_rounded,
+                iconColor: const Color(0xFFD97706),
+                label: featDelivery,
+                bgColor: const Color(0xFFFEF3C7),
+              ),
+              _buildTrustBadge(
+                icon: Icons.verified_rounded,
+                iconColor: const Color(0xFF059669),
+                label: featPrice,
+                bgColor: const Color(0xFFD1FAE5),
+              ),
+              _buildTrustBadge(
+                icon: Icons.security_rounded,
+                iconColor: const Color(0xFF2563EB),
+                label: featSafety,
+                bgColor: const Color(0xFFDBEAFE),
+              ),
+            ],
+          ).animate().fadeIn(delay: 300.ms),
+
+          const SizedBox(height: 28),
+
+          // Input Field Title
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Enter your mobile number',
-              style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
+              phoneLabel,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF334155),
+              ),
             ),
-          ).animate().fadeIn(delay: 400.ms),
-          const SizedBox(height: 12),
-          
+          ).animate().fadeIn(delay: 350.ms),
+          const SizedBox(height: 8),
+
+          // Modern Rounded Phone Input Container
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: const Color(0xFFCBD5E1),
+                width: 1.2,
+              ),
             ),
             child: Row(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   child: Row(
                     children: [
-                      const Icon(Icons.phone_android_rounded, size: 20, color: AppColors.textMid),
-                      const SizedBox(width: 8),
-                      Text('+91', style: AppTextStyles.bodySemiBold(color: AppColors.textDark)),
+                      const Icon(
+                        Icons.phone_android_rounded,
+                        size: 20,
+                        color: Color(0xFF047857),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '+91',
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Container(width: 1, height: 24, color: Colors.grey.withValues(alpha: 0.3)),
+                Container(
+                  width: 1.2,
+                  height: 24,
+                  color: const Color(0xFFCBD5E1),
+                ),
                 Expanded(
                   child: TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
-                    style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    style: GoogleFonts.poppins(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E293B),
+                      letterSpacing: 1.2,
+                    ),
                     decoration: InputDecoration(
-                      hintText: 'Enter mobile number',
-                      hintStyle: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                      hintText: phoneHint,
+                      hintStyle: GoogleFonts.poppins(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.grey.shade400,
+                        letterSpacing: 0,
+                      ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
                     ),
                   ),
                 ),
               ],
             ),
-          ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.1, end: 0),
-          
-          const SizedBox(height: 24),
-          
-          // Continue Button
+          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.08, end: 0),
+
+          const SizedBox(height: 22),
+
+          // Continue Button (Zepto / Blinkit Vibrant Green Button)
           SizedBox(
             width: double.infinity,
-            height: 58,
+            height: 54,
             child: ElevatedButton(
               onPressed: () {
                 if (_phoneController.text.length != 10) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a valid 10-digit mobile number')),
+                    const SnackBar(
+                      content: Text('Please enter a valid 10-digit mobile number'),
+                    ),
                   );
                   return;
                 }
@@ -856,39 +1016,93 @@ class _GatewayScreenState extends State<GatewayScreen> {
                   _forceLogin();
                 }
               },
-              style: AppButtonStyles.primary(radius: 16),
-              child: const Row(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF047857),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Continue', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                  Text(
+                    continueBtnText,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ],
               ),
             ),
-          ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.1, end: 0),
-          
-          const SizedBox(height: 20),
-          
-          TextButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const DeliveryPartnerScreen(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.two_wheeler_rounded, size: 20, color: Colors.deepOrange),
-            label: const Text(
-              'Delivery Partner Mode (डिलीवरी पार्टनर मोड)',
-              style: TextStyle(
-                color: Colors.deepOrange,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+          ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.08, end: 0),
+
+          const SizedBox(height: 18),
+
+          // Terms and Privacy Footer (With lock icon, NO emojis)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.lock_outline_rounded,
+                size: 13,
+                color: Color(0xFF94A3B8),
               ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  termsText,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF64748B),
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ).animate().fadeIn(delay: 500.ms),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrustBadge({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: iconColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: iconColor,
             ),
-          ).animate().fadeIn(delay: 600.ms),
+          ),
         ],
       ),
     );

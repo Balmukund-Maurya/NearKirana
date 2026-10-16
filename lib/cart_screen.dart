@@ -109,6 +109,9 @@ class _CartScreenState extends State<CartScreen> {
         backgroundColor: const Color(0xFFF6F8FA),
         body: DesktopCheckoutView(
           deliveryType: _checkoutDeliveryType,
+          initialDeliveryFee: _deliveryFeeAmount,
+          initialMinOrder: _minOrder,
+          initialFreeDeliveryThreshold: _freeDeliveryThreshold,
           onBackToCart: () => setState(() => _isCheckout = false),
           onOrderPlaced: () {
             setState(() => _isCheckout = false);

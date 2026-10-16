@@ -54,7 +54,22 @@ class MyOrdersScreen extends StatelessWidget {
       backgroundColor: AppColors.surface,
       appBar: MediaQuery.of(context).size.width > 800 ? null : AppBar(
         automaticallyImplyLeading: !isTab,
-        title: Text(AppLocalizations.of(context)!.my_orders),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
+        title: Text(
+          langProvider.isHindi
+              ? 'मेरे ऑर्डर'
+              : (langProvider.isHinglish ? 'Mere Orders' : 'My Orders'),
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF0F172A),
+          ),
+        ),
       ),
       body: phone.isEmpty || shopProvider.currentShopId == null
           ? Center(

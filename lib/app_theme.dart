@@ -216,11 +216,17 @@ class AppTheme {
     scaffoldBackgroundColor: AppColors.surface,
     textTheme: GoogleFonts.poppinsTextTheme(),
     appBarTheme: AppBarTheme(
-      backgroundColor: AppColors.primaryDark,
+      backgroundColor: Colors.white,
+      foregroundColor: const Color(0xFF0F172A),
       elevation: 0,
+      scrolledUnderElevation: 0,
       centerTitle: true,
-      titleTextStyle: AppTextStyles.heading2(color: AppColors.white),
-      iconTheme: const IconThemeData(color: AppColors.white),
+      titleTextStyle: GoogleFonts.poppins(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF0F172A),
+      ),
+      iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
     ),
     cardTheme: CardThemeData(
       elevation: 0,

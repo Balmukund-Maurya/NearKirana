@@ -128,7 +128,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF6F8FA),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
           horizontal: isDesktop ? 40 : 16,
@@ -604,6 +604,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             // COUPONS & DISCOUNT ENGINE (Feature 49)
                             CouponInputCard(
                               subtotal: subtotal,
+                              deliveryFee: deliveryFee,
                               shopId: currentShopId.isNotEmpty ? currentShopId : null,
                               customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
                               appliedResult: _appliedCouponResult,
@@ -1001,7 +1002,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     final String shopName = (shopProvider.shopName ?? 'NearKirana Store').trim();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FAF5),
+      backgroundColor: const Color(0xFFF6F8FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -1079,29 +1080,22 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             const SizedBox(height: 12),
 
             // 5. Promotional Coupon & Discount Engine
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: CouponInputCard(
-                subtotal: subtotal,
-                shopId: currentShopId.isNotEmpty ? currentShopId : null,
-                customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
-                appliedResult: _appliedCouponResult,
-                onCouponApplied: (result) {
-                  setState(() {
-                    _appliedCouponResult = result;
-                  });
-                },
-                onCouponRemoved: () {
-                  setState(() {
-                    _appliedCouponResult = null;
-                  });
-                },
-              ),
+            CouponInputCard(
+              subtotal: subtotal,
+              deliveryFee: deliveryFee,
+              shopId: currentShopId.isNotEmpty ? currentShopId : null,
+              customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
+              appliedResult: _appliedCouponResult,
+              onCouponApplied: (result) {
+                setState(() {
+                  _appliedCouponResult = result;
+                });
+              },
+              onCouponRemoved: () {
+                setState(() {
+                  _appliedCouponResult = null;
+                });
+              },
             ),
 
             const SizedBox(height: 12),

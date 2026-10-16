@@ -106,7 +106,7 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     if (_isCheckout) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: const Color(0xFFF6F8FA),
         body: DesktopCheckoutView(
           deliveryType: _checkoutDeliveryType,
           onBackToCart: () => setState(() => _isCheckout = false),
@@ -119,7 +119,7 @@ class _CartScreenState extends State<CartScreen> {
 
     if (MediaQuery.of(context).size.width > 800) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: const Color(0xFFF6F8FA),
         body: Consumer<CartProvider>(
           builder: (context, cartProvider, child) {
             return _buildDesktopCart(context, cartProvider);
@@ -128,7 +128,7 @@ class _CartScreenState extends State<CartScreen> {
       );
     }
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: const Color(0xFFF6F8FA),
       appBar: AppBar(
         automaticallyImplyLeading: !widget.isTab,
         title: Text(AppLocalizations.of(context)!.cart_title),

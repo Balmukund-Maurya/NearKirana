@@ -20,6 +20,7 @@ import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:near_kirana/saved_address_model.dart';
+import 'package:near_kirana/language_provider.dart';
 
 class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
@@ -3652,14 +3653,25 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       );
     } catch (e) {
       if (!context.mounted) return;
+      final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+      final isHindi = langProvider.isHindi;
+      final isHinglish = langProvider.isHinglish;
       final errStr = e.toString().toLowerCase();
-      String userMessage = "Failed to place order: $e";
+
+      String userMessage = isHindi
+          ? "ऑर्डर करने में समस्या: $e"
+          : (isHinglish ? "Order place karne me problem: $e" : "Failed to place order: $e");
+
       if (errStr.contains('unavailable') ||
           errStr.contains('unable to resolve host') ||
           errStr.contains('offline') ||
           errStr.contains('network') ||
           errStr.contains('socketexception')) {
-        userMessage = "Network connection issue. Please check your internet connection and try again.";
+        userMessage = isHindi
+            ? "इंटरनेट कनेक्शन समस्या। कृपया अपना नेटवर्क जांचें और दोबारा प्रयास करें।"
+            : (isHinglish
+                ? "Internet connection problem hai. Kripya network check karke dubara try karein."
+                : "Network connection issue. Please check your internet connection and try again.");
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

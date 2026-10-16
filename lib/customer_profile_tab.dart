@@ -729,7 +729,9 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
           ),
         ],
       ),
-      child: ListTile(
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         leading: Container(
           padding: const EdgeInsets.all(10),
@@ -785,6 +787,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
             ),
           );
         },
+      ),
       ),
     );
   }
@@ -878,7 +881,9 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
           const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
           // Address Row
-          ListTile(
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             leading: Container(
               padding: const EdgeInsets.all(8),
@@ -923,6 +928,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
               HapticFeedback.lightImpact();
               AddressSelectionBottomSheet.show(context, isCheckoutMode: false);
             },
+          ),
           ),
         ],
       ),
@@ -991,7 +997,9 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
       child: Column(
         children: [
           // Call Store
-          ListTile(
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
             leading: Container(
               padding: const EdgeInsets.all(8),
@@ -1020,11 +1028,14 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
             trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
             onTap: () => _handleCallShop(context, shopProvider, isHindi),
           ),
+          ),
 
           const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
           // WhatsApp Support
-          ListTile(
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
             leading: Container(
               padding: const EdgeInsets.all(8),
@@ -1053,11 +1064,14 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
             trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
             onTap: () => _handleWhatsApp(context, shopProvider, userProvider),
           ),
+          ),
 
           const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
           // Change Shop
-          ListTile(
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
             leading: Container(
               padding: const EdgeInsets.all(8),
@@ -1086,6 +1100,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
             trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
             onTap: () => _handleSwitchShop(context, isHindi, isHinglish),
           ),
+          ),
         ],
       ),
     );
@@ -1111,7 +1126,9 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
           ),
         ],
       ),
-      child: ListTile(
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         leading: Container(
           padding: const EdgeInsets.all(8),
@@ -1139,6 +1156,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
         ),
         trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
         onTap: () => _handleLogout(context, userProvider, isHindi, isHinglish),
+      ),
       ),
     );
   }

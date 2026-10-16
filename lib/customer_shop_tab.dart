@@ -2541,6 +2541,7 @@ class _ProductGridState extends State<ProductGrid> {
 
       if (querySnapshot.docs.isNotEmpty) {
         _lastDocument = querySnapshot.docs.last;
+        if (!mounted) return;
         if (widget.selectedCategory == 'Wishlist') {
           final wishlistProvider =
               Provider.of<WishlistProvider>(context, listen: false);

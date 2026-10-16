@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -13,6 +12,7 @@ import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/sound_service.dart';
 import 'package:near_kirana/atomic_order_service.dart';
 import 'package:near_kirana/payment_service.dart';
+import 'package:near_kirana/razorpay_service.dart';
 import 'package:near_kirana/address_selection_bottom_sheet.dart';
 import 'package:near_kirana/coupon_model.dart';
 import 'package:near_kirana/widgets/coupon_widgets.dart';
@@ -20,7 +20,7 @@ import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/firebase_utils.dart';
-import 'package:near_kirana/widgets/payment_bottom_sheet.dart';
+import 'package:near_kirana/saved_address_model.dart';
 
 class DesktopCheckoutView extends StatefulWidget {
   final VoidCallback onBackToCart;
@@ -40,13 +40,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   bool _isProcessingCheckout = false;
   int _selectedAddressIndex = 0;
   int _selectedPaymentIndex = 0; // 0: UPI, 1: Cash on Delivery, 2: Kirana Khata
-  bool _showQrCode = false;
   final TextEditingController _instructionsController = TextEditingController();
+  final ScrollController _mobileScrollController = ScrollController();
+  final Set<String> _selectedInstructionChips = {};
   CouponValidationResult? _appliedCouponResult;
 
-  final Color primaryGreen = const Color(
-    0xFF0F766E,
-  ); // or similar NearKirana green
+  final Color primaryGreen = AppColors.primaryDark;
   final Color activeLightGreen = const Color(0xFFF0FDF4);
   final Color activeBorderGreen = const Color(0xFF22C55E);
 
@@ -58,6 +57,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   @override
   void dispose() {
     _instructionsController.dispose();
+    _mobileScrollController.dispose();
     super.dispose();
   }
 
@@ -89,6 +89,24 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
 
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width >= 900;
+
+    if (!isDesktop) {
+      return _buildMobileZeptoBlinkitCheckout(
+        context: context,
+        l10n: l10n,
+        cartProvider: cartProvider,
+        userProvider: userProvider,
+        shopProvider: shopProvider,
+        cartItems: cartItems,
+        subtotal: subtotal,
+        deliveryFee: deliveryFee,
+        discount: discount,
+        finalTotal: finalTotal,
+        canDeliver: canDeliver,
+        currentShopId: currentShopId,
+        customerPhone: customerPhone,
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -933,6 +951,1141 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     );
   }
 
+  // ==========================================
+  // MOBILE ZEPTO / BLINKIT CHECKOUT EXPERIENCE
+  // ==========================================
+
+  Widget _buildMobileZeptoBlinkitCheckout({
+    required BuildContext context,
+    required AppLocalizations? l10n,
+    required CartProvider cartProvider,
+    required UserProvider userProvider,
+    required ShopProvider shopProvider,
+    required List<dynamic> cartItems,
+    required double subtotal,
+    required double deliveryFee,
+    required double discount,
+    required double finalTotal,
+    required bool canDeliver,
+    required String currentShopId,
+    required String customerPhone,
+  }) {
+    final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
+    final String shopName = (shopProvider.shopName ?? 'NearKirana Store').trim();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7FAF5),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(7),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF3F4F6),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 15,
+              color: AppColors.textDark,
+            ),
+          ),
+          onPressed: widget.onBackToCart,
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n?.checkout ?? "Checkout",
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
+            Text(
+              "${cartItems.length} items • ₹${finalTotal.toStringAsFixed(0)}",
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textMid,
+              ),
+            ),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: const Color(0xFFE5E7EB), height: 1),
+        ),
+      ),
+      body: SingleChildScrollView(
+        controller: _mobileScrollController,
+        padding: const EdgeInsets.only(left: 14, right: 14, top: 12, bottom: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Zepto / Blinkit Delivery ETA Banner
+            _buildMobileDeliveryEtaBanner(estimate, cartItems.length, shopName),
+
+            const SizedBox(height: 12),
+
+            // 2. Zepto / Blinkit Delivery Address Card
+            _buildMobileAddressCard(context, userProvider, l10n),
+
+            const SizedBox(height: 12),
+
+            // 3. Zepto / Blinkit Delivery Instructions Card
+            _buildMobileDeliveryInstructionsCard(),
+
+            const SizedBox(height: 12),
+
+            // 4. Zepto / Blinkit Review Items Preview
+            _buildMobileCartItemsCard(cartItems, l10n),
+
+            const SizedBox(height: 12),
+
+            // 5. Promotional Coupon & Discount Engine
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: CouponInputCard(
+                subtotal: subtotal,
+                shopId: currentShopId.isNotEmpty ? currentShopId : null,
+                customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
+                appliedResult: _appliedCouponResult,
+                onCouponApplied: (result) {
+                  setState(() {
+                    _appliedCouponResult = result;
+                  });
+                },
+                onCouponRemoved: () {
+                  setState(() {
+                    _appliedCouponResult = null;
+                  });
+                },
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // 6. Payment Method Section
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 18,
+                        color: AppColors.primaryDark,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n?.payment_method ?? "Payment Method",
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _buildZeptoBlinkitPaymentSection(
+                    context: context,
+                    shopUpiId: (shopProvider.shopUpiId ?? '').trim(),
+                    shopName: shopName,
+                    finalTotal: finalTotal,
+                    isDesktop: false,
+                    l10n: l10n,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // 7. Bill Details Breakdown
+            _buildMobileBillDetailsCard(
+              subtotal: subtotal,
+              deliveryFee: deliveryFee,
+              discount: discount,
+              finalTotal: finalTotal,
+              cartItemsCount: cartItems.length,
+              l10n: l10n,
+            ),
+
+            const SizedBox(height: 12),
+
+            // 8. Cancellation Policy & Trust Card
+            _buildMobileTrustAndPolicyCard(),
+
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildMobileStickyBottomBar(
+        context: context,
+        cartProvider: cartProvider,
+        finalTotal: finalTotal,
+        deliveryFee: deliveryFee,
+        discount: discount,
+      ),
+    );
+  }
+
+  Widget _buildMobileDeliveryEtaBanner(
+    dynamic estimate,
+    int itemCount,
+    String shopName,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE8F5E9), Color(0xFFF7FAF5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC8E6C9), width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryDark,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.bolt_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          "Estimated Delivery Time",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryDark,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            estimate.formattedWindow,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "Shipment of $itemCount items from $shopName",
+                      style: GoogleFonts.poppins(
+                        fontSize: 11.5,
+                        color: AppColors.textMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, size: 12, color: Colors.blue.shade700),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    estimate.disclaimer,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.blue.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileAddressCard(
+    BuildContext context,
+    UserProvider userProvider,
+    AppLocalizations? l10n,
+  ) {
+    SavedAddress? selectedAddr;
+    if (userProvider.savedAddressesList.isNotEmpty) {
+      if (_selectedAddressIndex >= 0 &&
+          _selectedAddressIndex < userProvider.savedAddressesList.length) {
+        selectedAddr = userProvider.savedAddressesList[_selectedAddressIndex];
+      } else {
+        selectedAddr = userProvider.savedAddressesList.first;
+      }
+    }
+
+    final String addressLabel = selectedAddr?.label ??
+        (userProvider.addressLabel.isNotEmpty ? userProvider.addressLabel : "Home");
+    final String formattedAddress = selectedAddr?.formattedAddress ??
+        (userProvider.currentLat != null
+            ? "${userProvider.customerHouseNo.isNotEmpty ? '${userProvider.customerHouseNo}, ' : ''}${userProvider.autoLocality}"
+            : "No delivery address selected");
+    final bool isServiceable = selectedAddr != null
+        ? userProvider.evaluateAddressServiceability(selectedAddr).isServiceable
+        : userProvider.isServiceable;
+    final double distKm = selectedAddr != null
+        ? userProvider.evaluateAddressServiceability(selectedAddr).distanceKm
+        : (userProvider.currentLat != null && userProvider.currentLng != null
+            ? userProvider
+                .evaluateAddressServiceability(SavedAddress(
+                  id: 'current',
+                  label: 'Home',
+                  address: userProvider.deliveryAddress,
+                  latitude: userProvider.currentLat!,
+                  longitude: userProvider.currentLng!,
+                ))
+                .distanceKm
+            : 0.0);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.home_rounded,
+                  color: AppColors.primaryDark,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          addressLabel,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            "DEFAULT",
+                            style: GoogleFonts.poppins(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF166534),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      formattedAddress,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textDark,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (userProvider.deliveryAddress.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        userProvider.deliveryAddress,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: AppColors.textMid,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: () async {
+                  await AddressSelectionBottomSheet.show(context, isCheckoutMode: true);
+                  if (mounted) setState(() {});
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryDark,
+                  side: const BorderSide(color: AppColors.primaryDark, width: 1.2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  "Change",
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isServiceable ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isServiceable ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                  size: 14,
+                  color: isServiceable ? AppColors.success : AppColors.error,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    isServiceable
+                        ? "${distKm.toStringAsFixed(1)} km away • Deliverable to your doorstep"
+                        : "Currently outside store delivery radius",
+                    style: GoogleFonts.poppins(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isServiceable ? const Color(0xFF166534) : AppColors.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileDeliveryInstructionsCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.directions_bike_rounded, size: 18, color: AppColors.primaryDark),
+              const SizedBox(width: 8),
+              Text(
+                "Delivery Instructions",
+                style: GoogleFonts.poppins(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                "(Optional)",
+                style: GoogleFonts.poppins(
+                  fontSize: 11.5,
+                  color: AppColors.textLight,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildInstructionChip(
+                icon: Icons.volume_off_outlined,
+                label: "Avoid calling",
+                rawText: "Avoid calling",
+              ),
+              _buildInstructionChip(
+                icon: Icons.notifications_off_outlined,
+                label: "Don't ring bell",
+                rawText: "Don't ring bell",
+              ),
+              _buildInstructionChip(
+                icon: Icons.door_front_door_outlined,
+                label: "Leave at door",
+                rawText: "Leave at door",
+              ),
+              _buildInstructionChip(
+                icon: Icons.phone_in_talk_outlined,
+                label: "Call on arrival",
+                rawText: "Call on arrival",
+              ),
+              _buildInstructionChip(
+                icon: Icons.directions_outlined,
+                label: "Follow directions",
+                rawText: "Follow directions",
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _instructionsController,
+            maxLines: 2,
+            onChanged: (_) => setState(() {}),
+            style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textDark),
+            decoration: InputDecoration(
+              hintText: "Add specific instructions (e.g. Ring bell, gate code, landmark...)",
+              hintStyle: GoogleFonts.poppins(fontSize: 12, color: AppColors.textLight),
+              filled: true,
+              fillColor: const Color(0xFFF9FAFB),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+                borderSide: BorderSide(color: AppColors.primaryDark, width: 1.5),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              "${_instructionsController.text.length}/200",
+              style: GoogleFonts.poppins(fontSize: 10, color: AppColors.textLight),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionChip({
+    required IconData icon,
+    required String label,
+    required String rawText,
+  }) {
+    final bool isSelected = _selectedInstructionChips.contains(rawText);
+    return InkWell(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            _selectedInstructionChips.remove(rawText);
+            String current = _instructionsController.text;
+            current = current.replaceAll(rawText, '').replaceAll(', ,', ',').trim();
+            if (current.startsWith(',')) current = current.substring(1).trim();
+            if (current.endsWith(',')) current = current.substring(0, current.length - 1).trim();
+            _instructionsController.text = current;
+          } else {
+            _selectedInstructionChips.add(rawText);
+            final current = _instructionsController.text.trim();
+            if (current.isEmpty) {
+              _instructionsController.text = rawText;
+            } else if (!current.contains(rawText)) {
+              _instructionsController.text = "$current, $rawText";
+            }
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFE8F5E9) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryDark : const Color(0xFFE5E7EB),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected ? AppColors.primaryDark : AppColors.textMid,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 11.5,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? AppColors.primaryDark : AppColors.textDark,
+              ),
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 4),
+              const Icon(Icons.check_rounded, size: 14, color: AppColors.primaryDark),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileCartItemsCard(List<dynamic> cartItems, AppLocalizations? l10n) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.shopping_bag_outlined, size: 18, color: AppColors.primaryDark),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Review Items (${cartItems.length})",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: widget.onBackToCart,
+                child: Row(
+                  children: [
+                    const Icon(Icons.edit_outlined, size: 13, color: AppColors.primaryDark),
+                    const SizedBox(width: 4),
+                    Text(
+                      "Edit Cart",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: cartItems.length,
+            separatorBuilder: (_, _) => const Divider(height: 16, color: Color(0xFFF3F4F6)),
+            itemBuilder: (ctx, i) {
+              final item = cartItems[i];
+              return Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.inventory_2_outlined,
+                      color: AppColors.primaryDark,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textDark,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          "${item.isLoose ? 'Loose' : 'Pack'} • Qty: ${item.quantity.toStringAsFixed(0)}",
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: AppColors.textMid,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    "₹${(item.price * item.quantity).toStringAsFixed(0)}",
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileBillDetailsCard({
+    required double subtotal,
+    required double deliveryFee,
+    required double discount,
+    required double finalTotal,
+    required int cartItemsCount,
+    required AppLocalizations? l10n,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.receipt_long_outlined, size: 18, color: AppColors.primaryDark),
+              const SizedBox(width: 8),
+              Text(
+                l10n?.bill_details ?? "Bill Details",
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _buildMobileBillRow("Item Subtotal", "₹${subtotal.toStringAsFixed(0)}"),
+          const SizedBox(height: 10),
+          _buildMobileBillRow(
+            "Delivery Partner Fee",
+            deliveryFee == 0 ? "FREE" : "₹${deliveryFee.toStringAsFixed(0)}",
+            isFree: deliveryFee == 0,
+          ),
+          if (discount > 0) ...[
+            const SizedBox(height: 10),
+            _buildMobileBillRow(
+              "Coupon Discount",
+              "-₹${discount.toStringAsFixed(0)}",
+              isDiscount: true,
+            ),
+          ],
+          const SizedBox(height: 10),
+          _buildMobileBillRow("Handling & Packaging", "FREE", isFree: true),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: Color(0xFFE5E7EB), height: 1),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "To Pay",
+                style: GoogleFonts.poppins(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              Text(
+                "₹${finalTotal.toStringAsFixed(0)}",
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primaryDark,
+                ),
+              ),
+            ],
+          ),
+          if (discount > 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.celebration_rounded, color: Color(0xFF166534), size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "You are saving ₹${discount.toStringAsFixed(0)} on this order!",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF166534),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileBillRow(
+    String label,
+    String value, {
+    bool isFree = false,
+    bool isDiscount = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: AppColors.textMid,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (isFree)
+          Row(
+            children: [
+              Text(
+                "₹30",
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  decoration: TextDecoration.lineThrough,
+                  color: AppColors.textLight,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                "FREE",
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.success,
+                ),
+              ),
+            ],
+          )
+        else
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: isDiscount ? FontWeight.w700 : FontWeight.w600,
+              color: isDiscount ? AppColors.success : AppColors.textDark,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMobileTrustAndPolicyCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.security_rounded, size: 15, color: AppColors.primaryDark),
+              const SizedBox(width: 6),
+              Text(
+                "Cancellation Policy",
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Orders cannot be cancelled once packed by your local Kirana store. 100% Genuine and Fresh products delivered safely.",
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: AppColors.textMid,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileStickyBottomBar({
+    required BuildContext context,
+    required CartProvider cartProvider,
+    required double finalTotal,
+    required double deliveryFee,
+    required double discount,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, -3),
+          ),
+        ],
+        border: const Border(
+          top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            InkWell(
+              onTap: () {
+                if (_mobileScrollController.hasClients) {
+                  _mobileScrollController.animateTo(
+                    _mobileScrollController.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeOut,
+                  );
+                }
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _selectedPaymentIndex == 0
+                            ? Icons.bolt_rounded
+                            : _selectedPaymentIndex == 2
+                                ? Icons.menu_book_rounded
+                                : Icons.payments_rounded,
+                        size: 13,
+                        color: AppColors.primaryDark,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        _selectedPaymentIndex == 0
+                            ? "PAY USING UPI"
+                            : _selectedPaymentIndex == 2
+                                ? "KIRANA KHATA"
+                                : "PAY ON DELIVERY",
+                        style: GoogleFonts.poppins(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryDark,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 1),
+                  Row(
+                    children: [
+                      Text(
+                        "₹${finalTotal.toStringAsFixed(0)}",
+                        style: GoogleFonts.poppins(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.textMid),
+                    ],
+                  ),
+                  Text(
+                    "View Detailed Bill",
+                    style: GoogleFonts.poppins(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryDark,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isProcessingCheckout
+                      ? null
+                      : () => _executeOrder(
+                            context,
+                            cartProvider,
+                            finalTotal,
+                            deliveryFee,
+                          ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _isProcessingCheckout
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.2,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _selectedPaymentIndex == 0
+                                    ? "Place Order"
+                                    : _selectedPaymentIndex == 2
+                                        ? "Order via Khata"
+                                        : "Place Order (COD)",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // UI HELPERS
 
   Widget _buildStep(int stepNum, String label, {required bool isActive}) {
@@ -1264,8 +2417,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     index: 0,
                     icon: Icons.bolt_rounded,
                     title: l10n?.pay_online_upi ?? "UPI",
-                    subtitle: "Google Pay, PhonePe, Paytm, QR",
-                    badgeText: "⚡ FASTEST",
+                    subtitle: "Google Pay, PhonePe, Paytm, BHIM",
+                    badgeText: "FASTEST",
                     badgeColor: const Color(0xFF047857),
                     iconColor: const Color(0xFF047857),
                   ),
@@ -1304,8 +2457,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 index: 0,
                 icon: Icons.bolt_rounded,
                 title: l10n?.pay_online_upi ?? "UPI",
-                subtitle: "Google Pay, PhonePe, Paytm, or QR",
-                badgeText: "⚡ FASTEST",
+                subtitle: "Google Pay, PhonePe, Paytm, or BHIM",
+                badgeText: "FASTEST",
                 badgeColor: const Color(0xFF047857),
                 iconColor: const Color(0xFF047857),
               ),
@@ -1562,7 +2715,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.qr_code_scanner_rounded,
+                  Icons.bolt_rounded,
                   color: Color(0xFF047857),
                   size: 20,
                 ),
@@ -1649,179 +2802,34 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               ),
             ),
           ] else ...[
-            // Store UPI ID with 1-Tap Copy
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Store UPI VPA",
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                      Text(
-                        shopUpiId,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF111827),
-                        ),
-                      ),
-                    ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _launchUpiApp(
+                  context: context,
+                  shopUpiId: shopUpiId,
+                  shopName: shopName,
+                  finalTotal: finalTotal,
+                ),
+                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                label: Text(
+                  "Pay via UPI App (₹${finalTotal.toStringAsFixed(0)})",
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
                   ),
-                  const Spacer(),
-                  InkWell(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: shopUpiId));
-                      HapticFeedback.lightImpact();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("UPI ID copied to clipboard"),
-                          duration: Duration(seconds: 1),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFD1D5DB)),
-                      ),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.copy_rounded, size: 14, color: Color(0xFF047857)),
-                          SizedBox(width: 4),
-                          Text(
-                            "Copy",
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF047857),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF047857),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                ],
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  elevation: 0,
+                ),
               ),
             ),
-            const SizedBox(height: 14),
-
-            // Action Buttons: Pay via UPI App OR Scan QR
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _launchUpiApp(
-                      context: context,
-                      shopUpiId: shopUpiId,
-                      shopName: shopName,
-                      finalTotal: finalTotal,
-                    ),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                    label: Text(
-                      "Pay via UPI App (₹${finalTotal.toStringAsFixed(0)})",
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF047857),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      elevation: 0,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    setState(() => _showQrCode = !_showQrCode);
-                  },
-                  icon: Icon(
-                    _showQrCode ? Icons.visibility_off_outlined : Icons.qr_code_2_rounded,
-                    size: 16,
-                  ),
-                  label: Text(_showQrCode ? "Hide QR" : "Show QR"),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF047857),
-                    side: const BorderSide(color: Color(0xFF047857)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  ),
-                ),
-              ],
-            ),
-
-            if (_showQrCode) ...[
-              const SizedBox(height: 16),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade200),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      QrImageView(
-                        data: 'upi://pay?pa=$shopUpiId&pn=${Uri.encodeComponent(shopName)}&am=${finalTotal.toStringAsFixed(2)}&cu=INR&tn=${Uri.encodeComponent('NearKirana Order')}',
-                        version: QrVersions.auto,
-                        size: 150.0,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        "Scan to Pay ₹${finalTotal.toStringAsFixed(2)}",
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF047857),
-                        ),
-                      ),
-                      Text(
-                        "Google Pay • PhonePe • Paytm • BHIM",
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-
-
           ],
         ],
       ),
@@ -1956,10 +2964,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           ),
         );
       } else if (!launched && context.mounted) {
-        setState(() => _showQrCode = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("No UPI app found. Please scan the QR code to pay!"),
+            content: Text("No UPI app found. Please select Cash on Delivery or Kirana Khata."),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
           ),
@@ -1967,10 +2974,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       }
     } catch (e) {
       if (context.mounted) {
-        setState(() => _showQrCode = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Could not open UPI app directly. Scan the QR code below."),
+            content: Text("Could not open UPI app. Please choose Cash on Delivery or Kirana Khata."),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
           ),
@@ -2103,51 +3109,19 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         khataEligible = (currentUdhaar + finalTotal) <= creditLimit;
       }
 
-      setState(() => _isProcessingCheckout = false);
-
-      // ── OPEN PAYMENT BOTTOM SHEET (Zepto/Blinkit style) ──
-      if (!context.mounted) return;
-      final payResult = await PaymentBottomSheet.show(
-        context,
-        amount: finalTotal,
-        shopUpiId: shopUpiId,
-        shopName: shopName,
-        razorpayKeyId: rzpKey,
-        customerPhone: phone,
-        customerName: customerName,
-        shopId: shopId,
-        khataEligible: khataEligible,
-      );
-
-      // User dismissed the sheet without paying
-      if (payResult == null || payResult is PaymentSheetCancelled) return;
-
-      // ── PLACE ORDER (only reached after payment success/selection) ──
-      setState(() => _isProcessingCheckout = true);
-
+      // Direct payment method resolution based on customer selection on screen
       String paymentMethod;
       String paymentStatus;
       String? finalUpiRefId;
       Map<String, dynamic> extraPaymentData = {};
+      bool isRazorpaySuccess = false;
 
-      if (payResult is PaymentSheetRazorpaySuccess) {
-        paymentMethod = payResult.paymentMethod;
-        paymentStatus = payResult.paymentStatus;
-        finalUpiRefId = payResult.razorpayPaymentId;
-        extraPaymentData = Map<String, dynamic>.from(payResult.extraData);
-      } else if (payResult is PaymentSheetUpiQrPending) {
-        paymentMethod = payResult.paymentMethod;
-        paymentStatus = payResult.paymentStatus;
-        extraPaymentData = Map<String, dynamic>.from(payResult.extraData);
-      } else if (payResult is PaymentSheetCodSelected) {
-        // Khata credit limit final check
-        if (customerQuery != null && customerQuery.docs.isNotEmpty) {
-          // (already checked above — safe to proceed)
-        }
-        paymentMethod = payResult.paymentMethod;
-        paymentStatus = payResult.paymentStatus;
-      } else if (payResult is PaymentSheetKhataSelected) {
-        // Final khata validation
+      if (_selectedPaymentIndex == 1) {
+        // Cash on Delivery
+        paymentMethod = PaymentMethod.cod;
+        paymentStatus = 'Pending';
+      } else if (_selectedPaymentIndex == 2) {
+        // Kirana Khata
         if (!khataEligible) {
           setState(() => _isProcessingCheckout = false);
           if (context.mounted) {
@@ -2160,21 +3134,63 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           }
           return;
         }
-        paymentMethod = payResult.paymentMethod;
-        paymentStatus = payResult.paymentStatus;
+        paymentMethod = 'Kirana Khata';
+        paymentStatus = 'Pending (Khata)';
       } else {
-        setState(() => _isProcessingCheckout = false);
-        return;
+        // Pay Online / UPI
+        if (rzpKey.isNotEmpty) {
+          final rzpResult = await RazorpayService().checkout(
+            keyId: rzpKey,
+            amount: finalTotal,
+            shopName: shopName,
+            customerPhone: phone,
+            customerName: customerName,
+            description: 'Order from $shopName',
+            notes: {'shop_id': shopId, 'customer_phone': phone},
+          );
+          if (rzpResult is RazorpaySuccessResult) {
+            paymentMethod = PaymentMethod.upi;
+            paymentStatus = PaymentStatus.paid;
+            finalUpiRefId = rzpResult.paymentId;
+            isRazorpaySuccess = true;
+            extraPaymentData = {
+              'razorpay_payment_id': rzpResult.paymentId,
+              if (rzpResult.orderId != null) 'razorpay_order_id': rzpResult.orderId,
+              if (rzpResult.signature != null) 'razorpay_signature': rzpResult.signature,
+              'verified_by': 'Razorpay Gateway',
+              'verified_at': FieldValue.serverTimestamp(),
+            };
+          } else {
+            setState(() => _isProcessingCheckout = false);
+            if (context.mounted) {
+              final msg = (rzpResult is RazorpayFailureResult && rzpResult.message.isNotEmpty)
+                  ? rzpResult.message
+                  : 'Payment complete nahi hua. Dobara try karein.';
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+              );
+            }
+            return;
+          }
+        } else {
+          // Direct Store UPI App
+          paymentMethod = PaymentMethod.upi;
+          paymentStatus = PaymentStatus.pendingVerification;
+          extraPaymentData = {
+            'payment_type': 'Direct UPI App',
+            'store_upi_vpa': shopUpiId,
+          };
+        }
       }
 
       // Build delivery address
-      String finalDeliveryAddress = 'House: \${userProvider.customerHouseNo}';
+      String finalDeliveryAddress = 'House: ${userProvider.customerHouseNo}';
       if (userProvider.customerLandmark.isNotEmpty) {
-        finalDeliveryAddress += ', Landmark: \${userProvider.customerLandmark}';
+        finalDeliveryAddress += ', Landmark: ${userProvider.customerLandmark}';
       }
-      finalDeliveryAddress += ' — (Locality: \${userProvider.autoLocality})';
+      finalDeliveryAddress += ' — (Locality: ${userProvider.autoLocality})';
       if (userProvider.addressLabel.isNotEmpty) {
-        finalDeliveryAddress += ' [\${userProvider.addressLabel}]';
+        finalDeliveryAddress += ' [${userProvider.addressLabel}]';
       }
 
       final items = cartProvider.itemsList
@@ -2189,7 +3205,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           .toList();
 
       final idempotencyKey =
-          'pay_\${phone}_\${DateTime.now().millisecondsSinceEpoch}_\${Random().nextInt(999999)}';
+          'pay_${phone}_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}';
 
       final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
 
@@ -2223,7 +3239,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       );
 
       // If Razorpay payment succeeded, write payment audit trail
-      if (payResult is PaymentSheetRazorpaySuccess && finalUpiRefId != null) {
+      if (isRazorpaySuccess && finalUpiRefId != null) {
         try {
           final session = await PaymentService().initiateOnlinePayment(
             orderId: result.orderId,
@@ -2293,7 +3309,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  result.isDuplicate ? "Order Already Received!" : "Order Placed Successfully! 🎉",
+                  result.isDuplicate ? "Order Already Received!" : "Order Placed Successfully!",
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
                   textAlign: TextAlign.center,
                 ),

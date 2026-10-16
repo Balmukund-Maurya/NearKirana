@@ -1023,22 +1023,13 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_isPickup) ...[
-                  const Icon(Icons.storefront_rounded, size: 20, color: AppColors.primaryDark),
-                  const SizedBox(width: 6),
-                ],
-                Text(
-                  _isPickup ? "Store Pickup" : (l10n?.checkout ?? "Checkout"),
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ],
+            Text(
+              _isPickup ? "Store Pickup" : (l10n?.checkout ?? "Checkout"),
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
             ),
             Text(
               "${cartItems.length} items • ₹${finalTotal.toStringAsFixed(0)}",
@@ -1227,12 +1218,16 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          _isPickup ? "Estimated Pickup Ready Time" : "Estimated Delivery Time",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textDark,
+                        Expanded(
+                          child: Text(
+                            _isPickup ? "Pickup Ready Time" : "Estimated Delivery Time",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textDark,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -2231,12 +2226,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             Flexible(
                               child: Text(
                                 _selectedPaymentIndex == 0
-                                    ? (_isPickup ? "Place Pickup Order" : "Place Order")
+                                    ? (_isPickup ? "Place Pickup" : "Place Order")
                                     : _selectedPaymentIndex == 2
                                         ? "Order via Khata"
-                                        : (_isPickup ? "Confirm Pickup Order" : "Place Order (COD)"),
+                                        : (_isPickup ? "Confirm Pickup" : "Place Order (COD)"),
                                 style: GoogleFonts.poppins(
-                                  fontSize: 15,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
                                 ),

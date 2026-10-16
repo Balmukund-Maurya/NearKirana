@@ -333,14 +333,19 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                         children: [
                           const Icon(Icons.bolt_rounded, size: 16, color: Color(0xFFFFD54F)),
                           const SizedBox(width: 4),
-                          Text(
-                            "10-15 MINS",
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFFFFD54F),
-                              letterSpacing: 0.4,
-                            ),
+                          Consumer<UserProvider>(
+                            builder: (context, userProvider, _) {
+                              final eta = userProvider.getEstimatedDeliveryTime();
+                              return Text(
+                                eta.formattedWindow.toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFFFFD54F),
+                                  letterSpacing: 0.4,
+                                ),
+                              );
+                            },
                           ),
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 6),
@@ -642,12 +647,12 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: isDesktop ? 120 : 48,
+          height: isDesktop ? 120 : 86,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(
-              horizontal: isDesktop ? 32 : 16,
-              vertical: 6,
+              horizontal: isDesktop ? 32 : 14,
+              vertical: 4,
             ),
             itemCount: _categories.length,
             itemBuilder: (context, index) {
@@ -657,42 +662,65 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
               final l10n = AppLocalizations.of(context)!;
               String displayName = category;
               IconData catIcon = Icons.category_rounded;
+              Color catBg = const Color(0xFFF1F5F9);
+              Color catColor = AppColors.primaryDark;
+
               switch (category.toLowerCase()) {
                 case 'all':
                   displayName = l10n.cat_all;
-                  catIcon = Icons.grid_view_rounded;
+                  catIcon = Icons.dashboard_rounded;
+                  catBg = const Color(0xFFDCFCE7);
+                  catColor = const Color(0xFF15803D);
                   break;
                 case 'wishlist':
                   displayName = 'Wishlist';
                   catIcon = Icons.favorite_rounded;
+                  catBg = const Color(0xFFFFE4E6);
+                  catColor = const Color(0xFFE11D48);
                   break;
                 case 'dal':
                   displayName = l10n.cat_dal;
-                  catIcon = Icons.eco_rounded;
+                  catIcon = Icons.grain_rounded;
+                  catBg = const Color(0xFFECFDF5);
+                  catColor = const Color(0xFF059669);
                   break;
                 case 'rice':
                   displayName = l10n.cat_rice;
                   catIcon = Icons.rice_bowl_rounded;
+                  catBg = const Color(0xFFFEF9C3);
+                  catColor = const Color(0xFFB45309);
                   break;
+                case 'cooking':
                 case 'spices':
                   displayName = l10n.cat_spices;
-                  catIcon = Icons.spa_rounded;
+                  catIcon = Icons.bakery_dining_rounded;
+                  catBg = const Color(0xFFFEF3C7);
+                  catColor = const Color(0xFFD97706);
                   break;
                 case 'oil':
                   displayName = l10n.cat_oil;
                   catIcon = Icons.water_drop_rounded;
+                  catBg = const Color(0xFFFEF9C3);
+                  catColor = const Color(0xFFCA8A04);
                   break;
+                case 'snack':
                 case 'snacks':
                   displayName = l10n.cat_snacks;
                   catIcon = Icons.fastfood_rounded;
+                  catBg = const Color(0xFFFFE4E6);
+                  catColor = const Color(0xFFDB2777);
                   break;
                 case 'soap':
                   displayName = l10n.cat_soap;
-                  catIcon = Icons.soap_rounded;
+                  catIcon = Icons.clean_hands_rounded;
+                  catBg = const Color(0xFFE0F2FE);
+                  catColor = const Color(0xFF0284C7);
                   break;
                 case 'loose':
                   displayName = l10n.cat_loose;
-                  catIcon = Icons.shopping_bag_rounded;
+                  catIcon = Icons.scale_rounded;
+                  catBg = const Color(0xFFF3E8FF);
+                  catColor = const Color(0xFF7E22CE);
                   break;
               }
 
@@ -762,73 +790,106 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                 builder: (context, wishlistProvider, _) {
                   final wishlistCount = wishlistProvider.wishlistItems.length;
                   return Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: 12),
                     child: GestureDetector(
                       onTap: () {
                         HapticFeedback.selectionClick();
                         setState(() => _selectedCategory = category);
                       },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeInOut,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primaryDark
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(100),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primaryDark
-                                : (isWishlist ? const Color(0xFFFCA5A5) : const Color(0xFFE5E7EB)),
-                            width: 1.2,
-                          ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: AppColors.primaryDark.withValues(alpha: 0.25),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFFE8F5E9)
+                                      : catBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.primaryDark
+                                        : (isWishlist ? const Color(0xFFFCA5A5) : Colors.transparent),
+                                    width: isSelected ? 2.2 : 1,
                                   ),
-                                ]
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.02),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 1),
-                                  ),
-                                ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (isWishlist) ...[
-                              Icon(
-                                Icons.favorite_rounded,
-                                size: 14,
-                                color: isSelected ? Colors.white : const Color(0xFFEF4444),
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: AppColors.primaryDark.withValues(alpha: 0.22),
+                                            blurRadius: 6,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.04),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 1),
+                                          ),
+                                        ],
+                                ),
+                                child: Icon(
+                                  catIcon,
+                                  color: isSelected
+                                      ? AppColors.primaryDark
+                                      : catColor,
+                                  size: 26,
+                                ),
                               ),
-                              const SizedBox(width: 5),
+                              if (isWishlist && wishlistCount > 0)
+                                Positioned(
+                                  top: -3,
+                                  right: -3,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                      vertical: 1.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEF4444),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '$wishlistCount',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
-                            Text(
-                              isWishlist && wishlistCount > 0
-                                  ? '$displayName ($wishlistCount)'
-                                  : displayName,
+                          ),
+                          const SizedBox(height: 5),
+                          SizedBox(
+                            width: 62,
+                            child: Text(
+                              displayName,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.poppins(
-                                fontSize: 12.5,
+                                fontSize: 11,
                                 color: isSelected
-                                    ? Colors.white
+                                    ? AppColors.primaryDark
                                     : (isWishlist ? const Color(0xFFDC2626) : AppColors.textDark),
                                 fontWeight: isSelected
-                                    ? FontWeight.w600
+                                    ? FontWeight.w700
                                     : FontWeight.w500,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -1176,7 +1237,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(milliseconds: 2000),
+                                  duration: const Duration(milliseconds: 1500),
                                   margin: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 12,
@@ -1203,7 +1264,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                         child: Text(
                                           isInWishlist
                                               ? "Removed from Wishlist"
-                                              : "Added to Wishlist ❤️",
+                                              : "Added to Wishlist",
                                           style: GoogleFonts.poppins(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
@@ -1336,13 +1397,18 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                                 color: AppColors.primaryDark,
                               ),
                               const SizedBox(width: 3),
-                              Text(
-                                '10-15 mins',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryDark,
-                                ),
+                              Consumer<UserProvider>(
+                                builder: (context, userProvider, _) {
+                                  final etaWindow = userProvider.getEstimatedDeliveryTime().formattedWindow;
+                                  return Text(
+                                    etaWindow,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -1703,157 +1769,403 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          height: MediaQuery.of(context).size.height * 0.85,
+          height: MediaQuery.of(context).size.height * 0.88,
           decoration: const BoxDecoration(
-            color: AppColors.surface,
+            color: Color(0xFFF8F9FA),
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Image Header
+              // Top drag indicator
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 6),
+                  width: 44,
+                  height: 4.5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              // Hero Image & Floating Controls
               Container(
-                height: 320,
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                height: 260,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Stack(
                   children: [
                     Center(
-                      child: imageUrl != null && imageUrl.isNotEmpty
-                          ? ProductImageWidget(
-                              imageUrl: imageUrl,
-                              fit: BoxFit.contain,
-                              width: double.infinity,
-                              height: 320,
-                            )
-                          : const Icon(
-                              Icons.image_not_supported_rounded,
-                              size: 80,
-                              color: AppColors.textLight,
-                            ),
-                    ),
-                    Positioned(
-                      top: 16,
-                      right: 16,
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: AppColors.textMid,
-                          size: 30,
-                        ),
-                        onPressed: () => Navigator.pop(context),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: imageUrl != null && imageUrl.isNotEmpty
+                            ? ProductImageWidget(
+                                imageUrl: imageUrl,
+                                fit: BoxFit.contain,
+                                width: double.infinity,
+                                height: 220,
+                              )
+                            : const Icon(
+                                Icons.image_not_supported_rounded,
+                                size: 80,
+                                color: AppColors.textLight,
+                              ),
                       ),
                     ),
+                    // Top-Left: Veg/Non-Veg tag
                     if (hasVegStatus)
                       Positioned(
-                        top: 20,
-                        left: 20,
+                        top: 14,
+                        left: 14,
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: AppColors.white,
-                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
                             border: Border.all(
                               color: isVegetarian
-                                  ? AppColors.success
-                                  : AppColors.error,
-                              width: 2,
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFFDC2626),
+                              width: 1.5,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 4,
+                              ),
+                            ],
                           ),
                           child: Icon(
                             Icons.circle,
                             color: isVegetarian
-                                ? AppColors.success
-                                : AppColors.error,
-                            size: 14,
+                                ? const Color(0xFF16A34A)
+                                : const Color(0xFFDC2626),
+                            size: 10,
                           ),
                         ),
                       ),
+                    // Top-Right: Wishlist Heart + Close Buttons
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Consumer<WishlistProvider>(
+                            builder: (context, wp, _) {
+                              final inWishlist = wp.isInWishlist(id);
+                              return Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    wp.toggleWishlist(id);
+                                    ScaffoldMessenger.of(context).clearSnackBars();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        behavior: SnackBarBehavior.floating,
+                                        duration: const Duration(milliseconds: 1500),
+                                        margin: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        backgroundColor: inWishlist
+                                            ? AppColors.textDark
+                                            : AppColors.primaryDark,
+                                        content: Row(
+                                          children: [
+                                            Icon(
+                                              inWishlist
+                                                  ? Icons.favorite_border_rounded
+                                                  : Icons.favorite_rounded,
+                                              color: inWishlist
+                                                  ? Colors.white70
+                                                  : Colors.redAccent,
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                inWishlist
+                                                    ? "Removed from Wishlist"
+                                                    : "Added to Wishlist",
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        action: inWishlist
+                                            ? null
+                                            : SnackBarAction(
+                                                label: "VIEW",
+                                                textColor: const Color(0xFFFFD54F),
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                  setState(
+                                                    () => _selectedCategory = 'Wishlist',
+                                                  );
+                                                },
+                                              ),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.92),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 6,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      inWishlist
+                                          ? Icons.favorite_rounded
+                                          : Icons.favorite_border_rounded,
+                                      color: inWishlist
+                                          ? const Color(0xFFEF4444)
+                                          : AppColors.textMid,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () => Navigator.pop(context),
+                              child: Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.08),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  color: AppColors.textMid,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-              // Product Info
+              // Scrollable Product Info
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Zepto style ETA badge
+                      Consumer<UserProvider>(
+                        builder: (context, up, _) {
+                          final etaWindow = up.getEstimatedDeliveryTime().formattedWindow;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.timer_outlined, size: 12, color: Color(0xFFD97706)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  etaWindow.toUpperCase(),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFD97706),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 8),
                       if (brand.isNotEmpty)
                         Text(
                           brand.toUpperCase(),
-                          style:
-                              AppTextStyles.captionMedium(
-                                color: AppColors.accentPink,
-                              ).copyWith(
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                            color: AppColors.textLight,
+                          ),
                         ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Text(
                         name,
-                        style: AppTextStyles.heading1(
+                        style: GoogleFonts.poppins(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.textDark,
-                        ).copyWith(fontSize: 22),
+                          height: 1.25,
+                        ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        '₹$price',
-                        style: AppTextStyles.heading2(
-                          color: AppColors.primaryDark,
-                        ).copyWith(fontSize: 24),
+                      // Pack size pill
+                      if (quantity.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Text(
+                            quantity,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      // Price row
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '₹$price',
+                            style: GoogleFonts.poppins(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            isLoose ? '(per kg)' : '(inclusive of all taxes)',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: AppColors.textLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Highlights / Ingredients card
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primaryDark),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Product Details',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (ingredients.isNotEmpty) ...[
+                              Text(
+                                'Ingredients:',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textMid,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                ingredients,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: AppColors.textDark,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ] else ...[
+                              Text(
+                                'Quality checked by local Kirana partner. Stored and packed in hygienic condition.',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: AppColors.textMid,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 20),
-                      const Divider(color: AppColors.bgTint),
-                      const SizedBox(height: 10),
-                      if (quantity.isNotEmpty) ...[
-                        _buildDetailRow('Quantity/Weight:', quantity),
-                        const SizedBox(height: 10),
-                      ],
-                      if (ingredients.isNotEmpty) ...[
-                        Text(
-                          'Ingredients',
-                          style: AppTextStyles.heading2(
-                            color: AppColors.textDark,
-                          ).copyWith(fontSize: 16),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          ingredients,
-                          style: AppTextStyles.bodyMedium(
-                            color: AppColors.textMid,
-                          ).copyWith(height: 1.5, fontSize: 14),
-                        ),
-                      ] else ...[
-                        Text(
-                          'No detailed information available for this product.',
-                          style: AppTextStyles.bodyMedium(
-                            color: AppColors.textLight,
-                          ).copyWith(fontStyle: FontStyle.italic, fontSize: 14),
-                        ),
-                      ],
                     ],
                   ),
                 ),
               ),
-              // Bottom Add to Cart Bar
+              // Sticky Bottom Bar
               Container(
                 padding: EdgeInsets.only(
                   left: 20,
                   right: 20,
-                  top: 16,
-                  bottom: 16 + MediaQuery.of(context).padding.bottom,
+                  top: 12,
+                  bottom: 12 + MediaQuery.of(context).padding.bottom,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.white,
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
-                      offset: const Offset(0, -4),
-                      blurRadius: 10,
+                      offset: const Offset(0, -3),
+                      blurRadius: 8,
                     ),
                   ],
                 ),
@@ -1862,130 +2174,172 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                     final cartItem = cartProvider.items[id];
                     final bool isInCart = cartItem != null;
                     final double stock =
-                        (productData['stock_quantity'] as num?)?.toDouble() ??
-                        0.0;
+                        (productData['stock_quantity'] as num?)?.toDouble() ?? 0.0;
                     final bool isOutOfStock = stock <= 0;
 
-                    if (isOutOfStock) {
-                      return ElevatedButton(
-                        onPressed: null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.textLight,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Out of Stock',
-                          style: AppTextStyles.button(color: AppColors.white),
-                        ),
-                      );
-                    }
+                    final currentQty = cartItem?.quantity ?? 1.0;
+                    final totalPrice = price * currentQty;
 
-                    if (!isInCart) {
-                      return ElevatedButton(
-                        onPressed: () {
-                          bool added = cartProvider.addItem(
-                            id,
-                            name,
-                            price,
-                            isLoose,
-                            stock,
-                            imageUrl: imageUrl,
-                          );
-                          if (added) {
-                            SoundService().addToCart();
-                          } else {
-                            HapticFeedback.heavyImpact();
-                            SoundService().blocked();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                behavior: SnackBarBehavior.floating,
-                                content: Text(
-                                  AppLocalizations.of(context)!.qty_exceeds,
-                                ),
-                                backgroundColor: AppColors.error,
-                                duration: const Duration(seconds: 1),
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              isInCart ? 'Total Price' : 'Unit Price',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: AppColors.textLight,
+                                fontWeight: FontWeight.w500,
                               ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryDark,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                            ),
+                            Text(
+                              '₹${isInCart ? totalPrice.toStringAsFixed(0) : price.toStringAsFixed(0)}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          AppLocalizations.of(context)!.add,
-                          style: AppTextStyles.button(color: AppColors.white),
-                        ),
-                      );
-                    }
-
-                    // Plus/Minus Controls
-                    return Container(
-                      height: 55,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryDark,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.remove_rounded,
-                              color: AppColors.white,
-                              size: 24,
+                        if (isOutOfStock)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              cartProvider.updateQuantity(
-                                id,
-                                isLoose ? -0.5 : -1.0,
-                              );
-                            },
-                          ),
-                          Text(
-                            isLoose
-                                ? cartItem.quantity.toStringAsFixed(1)
-                                : cartItem.quantity.toInt().toString(),
-                            style: AppTextStyles.heading2(
-                              color: AppColors.white,
+                            child: Text(
+                              'Out of Stock',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.add_rounded,
-                              color: AppColors.white,
-                              size: 24,
-                            ),
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              bool updated = cartProvider.updateQuantity(
-                                id,
-                                isLoose ? 0.5 : 1.0,
-                              );
-                              if (!updated) {
-                                SoundService().blocked();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    behavior: SnackBarBehavior.floating,
-                                    content: Text(
-                                      AppLocalizations.of(context)!.max_stock,
-                                    ),
-                                    backgroundColor: AppColors.error,
-                                    duration: const Duration(seconds: 1),
-                                  ),
+                          )
+                        else if (!isInCart)
+                          SizedBox(
+                            height: 46,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                bool added = cartProvider.addItem(
+                                  id,
+                                  name,
+                                  price,
+                                  isLoose,
+                                  stock,
+                                  imageUrl: imageUrl,
                                 );
-                              }
-                            },
+                                if (added) {
+                                  SoundService().addToCart();
+                                } else {
+                                  HapticFeedback.heavyImpact();
+                                  SoundService().blocked();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      behavior: SnackBarBehavior.floating,
+                                      content: Text(
+                                        AppLocalizations.of(context)!.qty_exceeds,
+                                      ),
+                                      backgroundColor: AppColors.error,
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.add_rounded, size: 18),
+                              label: Text(
+                                'ADD TO CART',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryDark,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDF4),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.primaryDark, width: 1.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.remove_rounded,
+                                    color: AppColors.primaryDark,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    cartProvider.updateQuantity(
+                                      id,
+                                      isLoose ? -0.5 : -1.0,
+                                    );
+                                  },
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  child: Text(
+                                    isLoose
+                                        ? cartItem.quantity.toStringAsFixed(1)
+                                        : cartItem.quantity.toInt().toString(),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.add_rounded,
+                                    color: AppColors.primaryDark,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    bool updated = cartProvider.updateQuantity(
+                                      id,
+                                      isLoose ? 0.5 : 1.0,
+                                    );
+                                    if (!updated) {
+                                      SoundService().blocked();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          behavior: SnackBarBehavior.floating,
+                                          content: Text(
+                                            AppLocalizations.of(context)!.max_stock,
+                                          ),
+                                          backgroundColor: AppColors.error,
+                                          duration: const Duration(seconds: 1),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
+                      ],
                     );
                   },
                 ),
@@ -1997,28 +2351,6 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.bodySemiBold(
-            color: AppColors.textDark,
-          ).copyWith(fontSize: 14),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            value,
-            style: AppTextStyles.bodyMedium(
-              color: AppColors.textMid,
-            ).copyWith(fontSize: 14),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class ProductGrid extends StatefulWidget {
@@ -2233,7 +2565,7 @@ class _ProductGridState extends State<ProductGrid> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Explore products and tap the heart icon ❤️ on any item to save it to your wishlist.",
+                  "Explore products and tap the heart icon on any item to save it to your wishlist.",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 13,

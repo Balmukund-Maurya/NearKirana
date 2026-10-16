@@ -1,5 +1,6 @@
 import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -186,16 +187,6 @@ class MyOrdersScreen extends StatelessWidget {
                 );
               },
             ),
-      floatingActionButton: MediaQuery.of(context).size.width > 800 ? null : FloatingActionButton.extended(
-        heroTag: 'fab_my_orders_screen',
-        onPressed: () => _callShopOwner(context),
-        backgroundColor: AppColors.accentPink,
-        icon: const Icon(Icons.call_rounded, color: AppColors.white),
-        label: Text(
-          AppLocalizations.of(context)!.call_shop,
-          style: AppTextStyles.button(),
-        ),
-      ).animate().scale(delay: 500.ms),
     );
   }
 
@@ -246,42 +237,39 @@ class MyOrdersScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      AppLocalizations.of(context)!.date,
-                      style: AppTextStyles.captionMedium(
-                        color: AppColors.textMid,
-                      ),
-                    ),
-                    Text(
-                      dateStr,
-                      style: AppTextStyles.bodySemiBold(
+                      'Order #${doc.id.length > 8 ? doc.id.substring(0, 8).toUpperCase() : doc.id.toUpperCase()}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.textDark,
                       ),
                     ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
+                    const SizedBox(height: 2),
                     Text(
-                      AppLocalizations.of(context)!.total_amount,
-                      style: AppTextStyles.captionMedium(
+                      dateStr,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11.5,
                         color: AppColors.textMid,
                       ),
                     ),
-                    Text(
-                      '₹$total',
-                      style: AppTextStyles.heading2(
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
                   ],
                 ),
+                _buildOrderStatusBadge(status),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                Text(
+                  '₹$total',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -852,46 +840,71 @@ class MyOrdersScreen extends StatelessWidget {
                 data.containsKey('delivery_pin')) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.accentPink.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.accentPink.withValues(alpha: 0.3),
-                  ),
+                  color: const Color(0xFFF8F9FA),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade200, width: 1.2),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.accentPink.withValues(alpha: 0.2),
+                        color: AppColors.primaryLight.withValues(alpha: 0.18),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.pin_rounded,
-                        color: AppColors.accentPink,
-                        size: 24,
+                        Icons.shield_outlined,
+                        color: AppColors.primaryDark,
+                        size: 20,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             AppLocalizations.of(context)!.delivery_pin,
-                            style: AppTextStyles.captionMedium(
-                              color: AppColors.accentPink,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textMid,
                             ),
                           ),
                           Text(
-                            data['delivery_pin'].toString(),
-                            style: AppTextStyles.heading1(
-                              color: AppColors.textDark,
-                            ).copyWith(letterSpacing: 2),
+                            'Share at delivery doorstep',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: AppColors.textLight,
+                            ),
                           ),
                         ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.primaryLight, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        data['delivery_pin'].toString(),
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 4,
+                          color: AppColors.primaryDark,
+                        ),
                       ),
                     ),
                   ],
@@ -1000,42 +1013,63 @@ class MyOrdersScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                OutlinedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    final phone = data['phone_number']?.toString() ?? '';
-                    final shopId = data['shop_id']?.toString() ?? '';
-                    _showSaveOrderAsListDialog(context, doc.id, phone, shopId, items);
-                  },
-                  icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-                  label: const Text('Save as List'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryDark,
-                    side: BorderSide(color: AppColors.primaryDark.withValues(alpha: 0.3)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      _callShopOwner(context);
+                    },
+                    icon: const Icon(Icons.call_outlined, size: 15),
+                    label: const Text('Call Store'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryDark,
+                      side: BorderSide(color: AppColors.primaryDark.withValues(alpha: 0.25)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
                   ),
                 ),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.mediumImpact();
-                    final shopId = data['shop_id']?.toString() ?? '';
-                    ReorderSummaryDialog.showForItems(
-                      context: context,
-                      sourceTitle: 'Order #${doc.id}',
-                      shopId: shopId,
-                      items: items.map((i) => Map<String, dynamic>.from(i as Map)).toList(),
-                    );
-                  },
-                  icon: const Icon(Icons.replay_rounded, size: 18),
-                  label: const Text('Reorder'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryDark,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      final phone = data['phone_number']?.toString() ?? '';
+                      final shopId = data['shop_id']?.toString() ?? '';
+                      _showSaveOrderAsListDialog(context, doc.id, phone, shopId, items);
+                    },
+                    icon: const Icon(Icons.bookmark_add_outlined, size: 15),
+                    label: const Text('Save List'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textMid,
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      HapticFeedback.mediumImpact();
+                      final shopId = data['shop_id']?.toString() ?? '';
+                      ReorderSummaryDialog.showForItems(
+                        context: context,
+                        sourceTitle: 'Order #${doc.id}',
+                        shopId: shopId,
+                        items: items.map((i) => Map<String, dynamic>.from(i as Map)).toList(),
+                      );
+                    },
+                    icon: const Icon(Icons.replay_rounded, size: 15),
+                    label: const Text('Reorder'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryDark,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
                   ),
                 ),
               ],
@@ -1111,27 +1145,104 @@ class MyOrdersScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildOrderStatusBadge(String status) {
+    Color bg;
+    Color border;
+    Color textColor;
+    IconData icon;
+
+    switch (status) {
+      case OrderStatus.delivered:
+        bg = AppColors.primaryLight.withValues(alpha: 0.15);
+        border = AppColors.primaryDark.withValues(alpha: 0.3);
+        textColor = AppColors.primaryDark;
+        icon = Icons.check_circle_rounded;
+        break;
+      case OrderStatus.cancelled:
+      case OrderStatus.rejected:
+        bg = AppColors.error.withValues(alpha: 0.1);
+        border = AppColors.error.withValues(alpha: 0.3);
+        textColor = AppColors.error;
+        icon = Icons.cancel_rounded;
+        break;
+      case OrderStatus.outForDelivery:
+        bg = Colors.blue.withValues(alpha: 0.12);
+        border = Colors.blue.withValues(alpha: 0.3);
+        textColor = Colors.blue.shade800;
+        icon = Icons.moped_rounded;
+        break;
+      case OrderStatus.packing:
+      case OrderStatus.ready:
+        bg = Colors.teal.withValues(alpha: 0.12);
+        border = Colors.teal.withValues(alpha: 0.3);
+        textColor = Colors.teal.shade800;
+        icon = Icons.inventory_2_rounded;
+        break;
+      case OrderStatus.pending:
+      default:
+        bg = Colors.amber.withValues(alpha: 0.15);
+        border = Colors.amber.withValues(alpha: 0.3);
+        textColor = Colors.amber.shade900;
+        icon = Icons.schedule_rounded;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            status,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTimeline(String currentStatus, BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final currentIndex = OrderStateMachine.getTimelineStepIndex(currentStatus);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final steps = [
+      l10n?.order_status_pending ?? 'Placed',
+      l10n?.order_status_accepted ?? 'Accepted',
+      l10n?.order_status_packing ?? 'Packing',
+      l10n?.order_status_ready ?? 'Ready',
+      l10n?.order_status_out ?? 'Out',
+      l10n?.order_status_delivered ?? 'Delivered',
+    ];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildTimelineStep(l10n?.order_status_pending ?? 'Pending', 0, currentIndex),
-          _buildTimelineLine(currentIndex > 0),
-          _buildTimelineStep(l10n?.order_status_accepted ?? 'Accepted', 1, currentIndex),
-          _buildTimelineLine(currentIndex > 1),
-          _buildTimelineStep(l10n?.order_status_packing ?? 'Packing', 2, currentIndex),
-          _buildTimelineLine(currentIndex > 2),
-          _buildTimelineStep(l10n?.order_status_ready ?? 'Ready', 3, currentIndex),
-          _buildTimelineLine(currentIndex > 3),
-          _buildTimelineStep(l10n?.order_status_out ?? 'Out', 4, currentIndex),
-          _buildTimelineLine(currentIndex > 4),
-          _buildTimelineStep(l10n?.order_status_delivered ?? 'Delivered', 5, currentIndex),
-        ],
+        children: List.generate(steps.length * 2 - 1, (index) {
+          if (index.isOdd) {
+            final stepIndex = index ~/ 2;
+            return _buildTimelineLine(currentIndex > stepIndex);
+          } else {
+            final stepIndex = index ~/ 2;
+            return _buildTimelineStep(steps[stepIndex], stepIndex, currentIndex);
+          }
+        }),
       ),
     );
   }
@@ -1139,24 +1250,25 @@ class MyOrdersScreen extends StatelessWidget {
   Widget _buildTimelineStep(String label, int stepIndex, int currentIndex) {
     final bool isCompleted = stepIndex <= currentIndex;
     final bool isCurrent = stepIndex == currentIndex;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 24,
-          height: 24,
+          width: 22,
+          height: 22,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isCompleted ? AppColors.primaryDark : AppColors.bgTint,
+            color: isCompleted ? AppColors.primaryDark : Colors.grey.shade300,
             border: isCurrent
                 ? Border.all(color: AppColors.primaryLight, width: 2.5)
                 : null,
             boxShadow: isCompleted
                 ? [
                     BoxShadow(
-                      color: AppColors.primaryDark.withValues(alpha: 0.25),
+                      color: AppColors.primaryDark.withValues(alpha: 0.2),
                       blurRadius: 4,
-                      offset: const Offset(0, 2),
+                      offset: const Offset(0, 1),
                     ),
                   ]
                 : null,
@@ -1164,21 +1276,26 @@ class MyOrdersScreen extends StatelessWidget {
           child: isCompleted
               ? const Icon(
                   Icons.check_rounded,
-                  size: 14,
+                  size: 13,
                   color: AppColors.white,
                 )
               : null,
         ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: AppTextStyles.caption(
-            color: isCompleted
-                ? AppColors.primaryDark
-                : AppColors.textLight,
-          ).copyWith(
-            fontSize: 10,
-            fontWeight: isCompleted ? FontWeight.bold : FontWeight.w500,
+        const SizedBox(height: 5),
+        SizedBox(
+          width: 46,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              fontSize: 9.5,
+              fontWeight: isCurrent
+                  ? FontWeight.w700
+                  : (isCompleted ? FontWeight.w600 : FontWeight.w400),
+              color: isCompleted ? AppColors.primaryDark : AppColors.textLight,
+            ),
           ),
         ),
       ],
@@ -1188,11 +1305,11 @@ class MyOrdersScreen extends StatelessWidget {
   Widget _buildTimelineLine(bool isCompleted) {
     return Expanded(
       child: Container(
-        margin: const EdgeInsets.only(bottom: 20, left: 2, right: 2),
-        height: 2.5,
+        margin: const EdgeInsets.only(bottom: 18),
+        height: 2,
         decoration: BoxDecoration(
-          color: isCompleted ? AppColors.primaryDark : AppColors.bgTint,
-          borderRadius: BorderRadius.circular(2),
+          color: isCompleted ? AppColors.primaryDark : Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(1),
         ),
       ),
     );

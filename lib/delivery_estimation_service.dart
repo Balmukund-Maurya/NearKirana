@@ -83,8 +83,9 @@ class DeliveryEstimationService {
       final rawMin = (totalExpected * 0.88).round();
       final rawMax = (totalExpected * 1.20).round();
 
-      minMinutes = max(20, (rawMin / 5).round() * 5);
-      maxMinutes = max(minMinutes + 10, (rawMax / 5).round() * 5);
+      // Lower bound is 10 minutes (for ultra-fast local kirana / quick-commerce delivery)
+      minMinutes = max(10, (rawMin / 5).round() * 5);
+      maxMinutes = max(minMinutes + 5, (rawMax / 5).round() * 5);
     }
 
     final startArrival = now.add(Duration(minutes: minMinutes));

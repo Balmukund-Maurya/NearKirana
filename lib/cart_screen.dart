@@ -28,6 +28,7 @@ import 'atomic_order_service.dart';
 import 'address_selection_bottom_sheet.dart';
 import 'shopping_list_service.dart';
 import 'widgets/voice_order_sheet.dart';
+import 'utils/product_image_widget.dart';
 
 class CartScreen extends StatefulWidget {
   final bool isTab;
@@ -212,30 +213,101 @@ class _CartScreenState extends State<CartScreen> {
             );
           }
 
+          final userProvider = Provider.of<UserProvider>(context);
+          final double subtotal = cartProvider.cartTotal;
+          final bool isDelivery = _checkoutDeliveryType == 'Delivery';
+          final bool canDeliver = subtotal >= _minOrder;
+          final bool isWithinRadius = userProvider.isServiceable;
+          final String? geoFenceError = userProvider.serviceabilityError;
+          final bool isPickupAllowed = userProvider.isPickupAllowed;
+          final String? pickupError = userProvider.pickupError;
+          final double deliveryFee = (isDelivery && canDeliver && subtotal < _freeDeliveryThreshold)
+              ? _deliveryFeeAmount
+              : 0.0;
+          final double finalTotal = subtotal + (isDelivery && canDeliver ? deliveryFee : 0);
+
           return Column(
             children: [
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: cartItems.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = cartItems[index];
-                    return _buildCartItem(
-                      id: item.id,
-                      name: item.name,
-                      price:
-                          '₹${item.price} x ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)}',
-                      quantity: item.quantity,
-                      isLoose: item.isLoose,
-                      cartProvider: cartProvider,
-                      context: context,
-                    );
-                  },
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                  children: [
+                    // Delivery vs Pickup Segmented Selector (Zepto/Blinkit)
+                    _buildDeliveryTypeSelector(
+                      context,
+                      userProvider,
+                      isDelivery,
+                      canDeliver,
+                      isWithinRadius,
+                      geoFenceError,
+                      isPickupAllowed,
+                      pickupError,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Items Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${cartItems.length} ${cartItems.length == 1 ? 'ITEM' : 'ITEMS'} IN CART',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: AppColors.textMid,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Cart Items List
+                    ...cartItems.map((item) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildCartItem(
+                          id: item.id,
+                          name: item.name,
+                          unitPrice: item.price,
+                          quantity: item.quantity,
+                          isLoose: item.isLoose,
+                          imageUrl: item.imageUrl,
+                          cartProvider: cartProvider,
+                          context: context,
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 14),
+
+                    // Zepto/Blinkit Bill Details Card
+                    _buildBillDetailsCard(
+                      context,
+                      subtotal,
+                      deliveryFee,
+                      finalTotal,
+                      isDelivery,
+                      canDeliver,
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Cancellation Policy Reassurance Card
+                    _buildAssuranceCard(context),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-              _buildCheckoutBottomBar(context, cartProvider),
+              _buildCheckoutBottomBar(
+                context,
+                cartProvider,
+                finalTotal,
+                isDelivery,
+                canDeliver,
+                isWithinRadius,
+                geoFenceError,
+                isPickupAllowed,
+                pickupError,
+              ),
             ],
           );
         },
@@ -243,82 +315,361 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  Widget _buildDeliveryTypeSelector(
+    BuildContext context,
+    UserProvider userProvider,
+    bool isDelivery,
+    bool canDeliver,
+    bool isWithinRadius,
+    String? geoFenceError,
+    bool isPickupAllowed,
+    String? pickupError,
+  ) {
+    final estimate = userProvider.getEstimatedDeliveryTime(
+      deliveryType: isDelivery ? 'Delivery' : 'Pickup',
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.bgTint, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Segmented Tabs
+          Padding(
+            padding: const EdgeInsets.all(6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _checkoutDeliveryType = 'Delivery');
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isDelivery
+                            ? AppColors.primaryLight.withValues(alpha: 0.18)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: isDelivery
+                            ? Border.all(color: AppColors.primaryLight, width: 1.5)
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.moped_rounded,
+                            size: 18,
+                            color: isDelivery ? AppColors.primaryDark : AppColors.textMid,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            AppLocalizations.of(context)!.home_delivery,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: isDelivery ? FontWeight.w700 : FontWeight.w500,
+                              color: isDelivery ? AppColors.primaryDark : AppColors.textMid,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _checkoutDeliveryType = 'Pickup');
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: !isDelivery
+                            ? AppColors.primaryLight.withValues(alpha: 0.18)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: !isDelivery
+                            ? Border.all(color: AppColors.primaryLight, width: 1.5)
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.storefront_rounded,
+                            size: 18,
+                            color: !isDelivery ? AppColors.primaryDark : AppColors.textMid,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            AppLocalizations.of(context)!.store_pickup,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: !isDelivery ? FontWeight.w700 : FontWeight.w500,
+                              color: !isDelivery ? AppColors.primaryDark : AppColors.textMid,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.bgTint),
+          // Sub-info Banner
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: isDelivery
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade100,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.bolt_rounded,
+                              size: 16,
+                              color: Colors.orange,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Delivery in ${estimate.formattedWindow} (${estimate.formattedTimeRange})',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textLight),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              userProvider.deliveryAddress.isNotEmpty
+                                  ? '${userProvider.addressLabel}: ${userProvider.deliveryAddress}'
+                                  : 'Delivering to active address',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: AppColors.textMid,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (!isWithinRadius) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_off_rounded, size: 14, color: AppColors.error),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  geoFenceError ?? 'Outside delivery area. Switch to Store Pickup.',
+                                  style: GoogleFonts.poppins(fontSize: 11, color: AppColors.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.storefront_rounded,
+                          size: 16,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Ready for pickup in 10-15 mins',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                            Text(
+                              'Pick up directly from store counter with Zero Delivery Fee',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: AppColors.textMid,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCartItem({
     required String id,
     required String name,
-    required String price,
+    required double unitPrice,
     required double quantity,
     required bool isLoose,
     required CartProvider cartProvider,
     required BuildContext context,
+    String? imageUrl,
   }) {
+    final double totalPrice = unitPrice * quantity;
+    final String qtyFormatted = quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 1);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.bgTint, width: 1.5),
+        border: Border.all(color: AppColors.bgTint, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Icon Container
+          // Zepto/Blinkit Product Image Thumbnail
           Container(
-            width: 56,
-            height: 56,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: isLoose
-                  ? AppColors.accentPink.withValues(alpha: 0.15)
-                  : AppColors.primaryLight.withValues(alpha: 0.15),
+              color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.bgTint),
             ),
-            child: Icon(
-              isLoose ? Icons.scale_rounded : Icons.shopping_bag_rounded,
-              color: isLoose ? AppColors.accentPink : AppColors.primaryDark,
-              size: 28,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: imageUrl != null && imageUrl.isNotEmpty
+                  ? ProductImageWidget(
+                      imageUrl: imageUrl,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                    )
+                  : Center(
+                      child: Icon(
+                        isLoose ? Icons.scale_rounded : Icons.shopping_basket_outlined,
+                        color: AppColors.primaryDark.withValues(alpha: 0.6),
+                        size: 26,
+                      ),
+                    ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
+          // Title & Pricing
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
-                  style: AppTextStyles.bodySemiBold(
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textDark,
-                  ).copyWith(fontSize: 14),
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  isLoose ? 'Loose by weight' : '₹${unitPrice.toStringAsFixed(0)} / unit',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: AppColors.textMid,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  price,
-                  style: AppTextStyles.heading2(
+                  '₹${totalPrice.toStringAsFixed(0)}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.primaryDark,
-                  ).copyWith(fontSize: 14),
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          // Quantity Controls
+          const SizedBox(width: 10),
+          // Zepto Green Stepper Button
           Container(
+            height: 34,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.primaryDark,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.bgTint),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryDark.withValues(alpha: 0.25),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildQtyButton(
+                _buildZeptoStepperBtn(
                   icon: Icons.remove_rounded,
                   onPressed: () {
                     if (quantity <= (isLoose ? 0.5 : 1.0)) {
@@ -330,18 +681,19 @@ class _CartScreenState extends State<CartScreen> {
                   },
                 ),
                 Container(
-                  width: 32,
+                  constraints: const BoxConstraints(minWidth: 26),
                   alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
-                    quantity.toStringAsFixed(
-                      quantity.truncateToDouble() == quantity ? 0 : 1,
+                    qtyFormatted,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.white,
                     ),
-                    style: AppTextStyles.bodySemiBold(
-                      color: AppColors.textDark,
-                    ).copyWith(fontSize: 14),
                   ),
                 ),
-                _buildQtyButton(
+                _buildZeptoStepperBtn(
                   icon: Icons.add_rounded,
                   onPressed: () {
                     HapticFeedback.lightImpact();
@@ -369,10 +721,10 @@ class _CartScreenState extends State<CartScreen> {
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms).slideX(begin: 0.1, end: 0);
+    );
   }
 
-  Widget _buildQtyButton({
+  Widget _buildZeptoStepperBtn({
     required IconData icon,
     required VoidCallback onPressed,
   }) {
@@ -380,8 +732,183 @@ class _CartScreenState extends State<CartScreen> {
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Icon(icon, size: 20, color: AppColors.textMid),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Icon(icon, size: 16, color: AppColors.white),
+      ),
+    );
+  }
+
+  Widget _buildBillDetailsCard(
+    BuildContext context,
+    double subtotal,
+    double deliveryFee,
+    double finalTotal,
+    bool isDelivery,
+    bool canDeliver,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.bgTint, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.receipt_long_rounded, size: 18, color: AppColors.primaryDark),
+              const SizedBox(width: 8),
+              Text(
+                'Bill Details',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.subtotal,
+                style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textMid),
+              ),
+              Text(
+                '₹${subtotal.toStringAsFixed(1)}',
+                style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.delivery_fee,
+                    style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textMid),
+                  ),
+                  if (isDelivery && subtotal >= _freeDeliveryThreshold) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'FREE',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              Text(
+                !isDelivery
+                    ? 'FREE (Pickup)'
+                    : (deliveryFee > 0 ? '+₹${deliveryFee.toStringAsFixed(1)}' : 'FREE'),
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: (!isDelivery || deliveryFee == 0) ? AppColors.primaryDark : AppColors.accentPink,
+                ),
+              ),
+            ],
+          ),
+          if (isDelivery && !canDeliver) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Minimum order amount for Home Delivery is ₹${_minOrder.toStringAsFixed(0)}',
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                color: AppColors.accentPink,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1, color: AppColors.bgTint),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'To Pay',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              Text(
+                '₹${finalTotal.toStringAsFixed(1)}',
+                style: GoogleFonts.poppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primaryDark,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssuranceCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.verified_user_outlined, size: 18, color: AppColors.primaryDark),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cancellation Policy',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+                Text(
+                  'Orders can be cancelled free of charge while in Pending status. Directly fulfilled by your neighbourhood kirana.',
+                  style: GoogleFonts.poppins(
+                    fontSize: 10.5,
+                    color: AppColors.textMid,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -389,294 +916,113 @@ class _CartScreenState extends State<CartScreen> {
   Widget _buildCheckoutBottomBar(
     BuildContext context,
     CartProvider cartProvider,
+    double finalTotal,
+    bool isDelivery,
+    bool canDeliver,
+    bool isWithinRadius,
+    String? geoFenceError,
+    bool isPickupAllowed,
+    String? pickupError,
   ) {
-    final userProvider = Provider.of<UserProvider>(context);
-    final double subtotal = cartProvider.cartTotal;
-    // FIX-5: Use dynamic settings from Firebase instead of hardcoded values
-    final bool canDeliver = subtotal >= _minOrder;
-    final bool isWithinRadius = userProvider.isServiceable;
-    final String? geoFenceError = userProvider.serviceabilityError;
-    // FIX-3: Separate pickup serviceability
-    final bool isPickupAllowed = userProvider.isPickupAllowed;
-    final String? pickupError = userProvider.pickupError;
-    final double deliveryFee = (canDeliver && subtotal < _freeDeliveryThreshold)
-        ? _deliveryFeeAmount
-        : 0.0;
-    final double finalTotal = subtotal + (canDeliver ? deliveryFee : 0);
+    final bool canProceed = isDelivery
+        ? (canDeliver && isWithinRadius)
+        : isPickupAllowed;
+
+    String? disabledReason;
+    if (isDelivery) {
+      if (!isWithinRadius) {
+        disabledReason = 'Outside delivery area';
+      } else if (!canDeliver) {
+        disabledReason = 'Min. order ₹${_minOrder.toStringAsFixed(0)}';
+      }
+    } else {
+      if (!isPickupAllowed) {
+        disabledReason = pickupError ?? 'Pickup not available';
+      }
+    }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 24,
-            offset: const Offset(0, -8),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        top: false,
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Left Total Column
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppLocalizations.of(context)!.subtotal,
-                  style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                  'TOTAL',
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: AppColors.textMid,
+                  ),
                 ),
                 Text(
-                  '₹$subtotal',
-                  style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
+                  '₹${finalTotal.toStringAsFixed(1)}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                  ),
                 ),
               ],
             ),
-            if (canDeliver && deliveryFee > 0) ...[
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.delivery_fee,
-                    style: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                  ),
-                  Text(
-                    '+₹$deliveryFee',
-                    style: AppTextStyles.bodySemiBold(
-                      color: AppColors.accentPink,
+            const SizedBox(width: 20),
+            // Right CTA Button (Zepto / Blinkit style)
+            Expanded(
+              child: SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: canProceed
+                      ? () {
+                          HapticFeedback.mediumImpact();
+                          setState(() {
+                            _isCheckout = true;
+                          });
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canProceed ? AppColors.primaryDark : AppColors.bgTint,
+                    foregroundColor: canProceed ? AppColors.white : AppColors.textLight,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                    elevation: canProceed ? 2 : 0,
                   ),
-                ],
-              ),
-            ],
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Divider(height: 1, thickness: 1, color: AppColors.bgTint),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${AppLocalizations.of(context)!.total_amount}:',
-                  style: AppTextStyles.heading2(color: AppColors.textDark),
-                ),
-                Text(
-                  '₹$finalTotal',
-                  style: AppTextStyles.heading1(color: AppColors.primaryDark),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            if (!isWithinRadius)
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.error.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.location_off_rounded,
-                      color: AppColors.error,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        geoFenceError ?? 'Outside delivery area',
-                        style: AppTextStyles.captionMedium(
-                          color: AppColors.error,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        disabledReason ?? (isDelivery ? 'Proceed to Delivery' : 'Proceed to Pickup'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(),
-
-            if (canDeliver && isWithinRadius) ...[
-              Builder(
-                builder: (context) {
-                  final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.blue.shade100),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.schedule_rounded, size: 16, color: Colors.blue.shade700),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Est. Delivery: ${estimate.formattedWindow} (${estimate.formattedTimeRange})',
-                                style: TextStyle(
-                                  color: Colors.blue.shade900,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                estimate.disclaimer,
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontSize: 10,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      if (canProceed) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.arrow_forward_rounded, size: 18),
                       ],
-                    ),
-                  );
-                },
-              ),
-            ],
-
-            // Delivery Option 1: Ghar Tak Delivery
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: (canDeliver && isWithinRadius)
-                        ? () {
-                            HapticFeedback.mediumImpact();
-                            setState(() {
-                              _checkoutDeliveryType = 'Delivery';
-                              _isCheckout = true;
-                            });
-                          }
-                        : null,
-                    icon: const Icon(Icons.moped_rounded, size: 24),
-                    label: Text(
-                      '${AppLocalizations.of(context)!.home_delivery}${deliveryFee > 0 ? ' (+₹$deliveryFee)' : ''}',
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: canDeliver
-                          ? AppColors.accentPink
-                          : AppColors.bgTint,
-                      foregroundColor: canDeliver
-                          ? AppColors.white
-                          : AppColors.textLight,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      textStyle: AppTextStyles.button(),
-                      elevation: 0,
-                    ),
+                    ],
                   ),
-                ),
-                if (!canDeliver || subtotal >= 500)
-                  Positioned(
-                    top: -12,
-                    right: 20,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: canDeliver
-                              ? AppColors.primaryDark
-                              : AppColors.accentPink,
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        // FIX-5: Show dynamic minimum order amount
-                        canDeliver
-                            ? 'Free Delivery'
-                            : 'Min. ₹${_minOrder.toStringAsFixed(0)}',
-                        style: AppTextStyles.captionMedium(
-                          color: canDeliver
-                              ? AppColors.primaryDark
-                              : AppColors.accentPink,
-                        ).copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ).animate().scale(
-                    delay: 200.ms,
-                    duration: 300.ms,
-                    curve: Curves.easeOutBack,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Delivery Option 2: Dukaan Se Pickup
-            // FIX-3: Use isPickupAllowed (larger radius) instead of delivery isWithinRadius
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton.icon(
-                onPressed: isPickupAllowed
-                    ? () {
-                        HapticFeedback.mediumImpact();
-                        setState(() {
-                          _checkoutDeliveryType = 'Pickup';
-                          _isCheckout = true;
-                        });
-                      }
-                    : null,
-                icon: const Icon(Icons.storefront_rounded, size: 24),
-                label: Text(AppLocalizations.of(context)!.store_pickup),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isPickupAllowed
-                      ? AppColors.primaryLight.withValues(alpha: 0.2)
-                      : AppColors.bgTint,
-                  foregroundColor: isPickupAllowed
-                      ? AppColors.primaryDark
-                      : AppColors.textLight,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: isPickupAllowed
-                          ? AppColors.primaryLight
-                          : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  textStyle: AppTextStyles.button(),
-                  elevation: 0,
                 ),
               ),
             ),
-            if (!isPickupAllowed && pickupError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  pickupError,
-                  style: AppTextStyles.caption(color: AppColors.error),
-                  textAlign: TextAlign.center,
-                ),
-              ),
           ],
         ),
       ),
@@ -2208,13 +2554,13 @@ class _CartScreenState extends State<CartScreen> {
                                         cartProvider.removeItem(id);
                                         showBottomSheetError(
                                           context,
-                                          "Kshama karein! 🚨 '$name' abhi kisi aur customer ne kharid liya hai aur stock khatam ho gaya hai. Item cart se hata diya gaya hai.",
+                                          "Kshama karein! '$name' abhi kisi aur customer ne kharid liya hai aur stock khatam ho gaya hai. Item cart se hata diya gaya hai.",
                                         );
                                       } else {
                                         cartProvider.setQuantity(id, stock);
                                         showBottomSheetError(
                                           context,
-                                          "Oh no! 🚨 '$name' ka kewal ${stock.toStringAsFixed(0)} bacha hai. Kisi aur ne baki stock le liya. Aapka cart update kar diya gaya hai.",
+                                          "Notice: '$name' ka kewal ${stock.toStringAsFixed(0)} bacha hai. Kisi aur ne baki stock le liya. Aapka cart update kar diya gaya hai.",
                                         );
                                       }
                                       return;
@@ -2232,7 +2578,7 @@ class _CartScreenState extends State<CartScreen> {
 
                                       showBottomSheetError(
                                         context,
-                                        "Oops! 🏷️ The price of '$name' has changed to ₹$newPrice. We've updated your cart with the latest price.",
+                                        "Notice: The price of '$name' has changed to ₹$newPrice. We've updated your cart with the latest price.",
                                       );
                                       return;
                                     }

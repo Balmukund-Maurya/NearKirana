@@ -143,12 +143,50 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  List<String> _getPhoneVariants() {
+    final rawDigits = _phoneNumber.replaceAll(RegExp(r'\D'), '');
+    final cleanPhone = rawDigits.length >= 10 ? rawDigits.substring(rawDigits.length - 10) : rawDigits;
+    final variants = <String>{};
+    if (cleanPhone.isNotEmpty) {
+      variants.add(cleanPhone);
+      variants.add('+91$cleanPhone');
+      variants.add('+91 $cleanPhone');
+      variants.add('91$cleanPhone');
+    }
+    if (_phoneNumber.trim().isNotEmpty) {
+      variants.add(_phoneNumber.trim());
+    }
+    return variants.toList();
+  }
+
   Future<void> updateCustomerName(String name) async {
     _customerName = name.trim();
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('customerName', _customerName);
+
+      final variants = _getPhoneVariants();
+      if (variants.isNotEmpty) {
+        final qs = await FirebaseUtils.firestore
+            .collection('customers')
+            .where('mobile', whereIn: variants.take(10).toList())
+            .get();
+        for (final doc in qs.docs) {
+          await doc.reference.update({
+            'name': _customerName,
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      final currentUser = FirebaseUtils.auth.currentUser;
+      if (currentUser != null) {
+        await FirebaseUtils.firestore.collection('users').doc(currentUser.uid).set({
+          'name': _customerName,
+          'updated_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
     } catch (e) {
       debugPrint('Error updating customer name: $e');
     }
@@ -627,36 +665,69 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> updateProfileImage(String base64Image) async {
     _profileImageUrl = base64Image;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('customerProfilePic', base64Image);
-    
-    final phoneStr = _phoneNumber.replaceAll(RegExp(r'\D'), '');
-    if (phoneStr.isNotEmpty) {
-      final qs = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phoneStr).get();
-      if (qs.docs.isNotEmpty) {
-        await FirebaseUtils.firestore.collection('customers').doc(qs.docs.first.id).update({
-          'profile_image': base64Image,
-        });
-      }
-    }
     notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('customerProfilePic', base64Image);
+
+      final variants = _getPhoneVariants();
+      if (variants.isNotEmpty) {
+        final qs = await FirebaseUtils.firestore
+            .collection('customers')
+            .where('mobile', whereIn: variants.take(10).toList())
+            .get();
+        for (final doc in qs.docs) {
+          await doc.reference.update({
+            'profile_image': base64Image,
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      final currentUser = FirebaseUtils.auth.currentUser;
+      if (currentUser != null) {
+        await FirebaseUtils.firestore.collection('users').doc(currentUser.uid).set({
+          'profile_image': base64Image,
+          'photo_url': base64Image,
+          'updated_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Error updating profile image: $e');
+    }
   }
 
   Future<void> updateEmail(String newEmail) async {
-    _email = newEmail;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('customerEmail', newEmail);
-    
-    final phoneStr = _phoneNumber.replaceAll(RegExp(r'\D'), '');
-    if (phoneStr.isNotEmpty) {
-      final qs = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phoneStr).get();
-      if (qs.docs.isNotEmpty) {
-        await FirebaseUtils.firestore.collection('customers').doc(qs.docs.first.id).update({
-          'email': newEmail,
-        });
-      }
-    }
+    _email = newEmail.trim();
     notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('customerEmail', _email);
+
+      final variants = _getPhoneVariants();
+      if (variants.isNotEmpty) {
+        final qs = await FirebaseUtils.firestore
+            .collection('customers')
+            .where('mobile', whereIn: variants.take(10).toList())
+            .get();
+        for (final doc in qs.docs) {
+          await doc.reference.update({
+            'email': _email,
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      final currentUser = FirebaseUtils.auth.currentUser;
+      if (currentUser != null) {
+        await FirebaseUtils.firestore.collection('users').doc(currentUser.uid).set({
+          'email': _email,
+          'updated_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Error updating customer email: $e');
+    }
   }
 
   Future<void> updatePreference(String key, bool value) async {

@@ -366,21 +366,14 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF1E5128),
-            AppColors.primaryDark,
-            Color(0xFF2E7D32),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryDark.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -394,9 +387,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: tier.color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                  border: Border.all(color: tier.color.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -406,7 +399,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                     Text(
                       tier.localizedLabel(context),
                       style: GoogleFonts.poppins(
-                        color: Colors.white,
+                        color: const Color(0xFF0F172A),
                         fontWeight: FontWeight.bold,
                         fontSize: 12.5,
                       ),
@@ -417,9 +410,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               Text(
                 '${tier.pointsMultiplier}x ${isHindi ? "पॉइंट्स मल्टीप्लायर" : "Points Multiplier"}',
                 style: GoogleFonts.poppins(
-                  color: Colors.white70,
+                  color: const Color(0xFF64748B),
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -435,7 +428,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 style: GoogleFonts.poppins(
                   fontSize: 38,
                   fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                  color: const Color(0xFF0F172A),
                   height: 1.0,
                 ),
               ),
@@ -444,22 +437,16 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 padding: const EdgeInsets.only(bottom: 5),
                 child: Text(
                   isHindi ? 'अंक उपलब्ध' : (isHinglish ? 'Points Available' : 'Points Available'),
-                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                  style: GoogleFonts.poppins(color: const Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500),
                 ),
               ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.primaryDark.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.2)),
                 ),
                 child: Column(
                   children: [
@@ -485,14 +472,15 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
 
           // Instant Discount Reassurance Pill (Clears user confusion)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
+              color: const Color(0xFFF0FDF4),
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFDCFCE7)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 15),
+                const Icon(Icons.check_circle_outline_rounded, color: AppColors.primaryDark, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -501,7 +489,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                         : (isHinglish
                             ? 'Checkout pe instant discount: 10 points = ₹1 off'
                             : 'Checkout discount: 10 points = ₹1.0 off on your order'),
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.poppins(color: AppColors.primaryDark, fontSize: 11.5, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -515,9 +503,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: account.progressToNextTier,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              minHeight: 5,
+              backgroundColor: const Color(0xFFF1F5F9),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryDark),
+              minHeight: 6,
             ),
           ),
           const SizedBox(height: 6),
@@ -530,11 +518,11 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                     : (isHindi
                         ? '${account.nextTier.localizedLabel(context)} हेतु ${account.pointsNeededForNextTier} अंक और चाहिए'
                         : '${account.pointsNeededForNextTier} pts needed for ${account.nextTier.localizedLabel(context)}'),
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                style: GoogleFonts.poppins(color: const Color(0xFF64748B), fontSize: 11),
               ),
               Text(
                 '${isHindi ? "कुल अर्जित" : "Total Earned"}: ${account.lifetimeEarnedPoints} pts',
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                style: GoogleFonts.poppins(color: const Color(0xFF64748B), fontSize: 11),
               ),
             ],
           ),

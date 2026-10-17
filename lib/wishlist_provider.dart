@@ -1,41 +1,107 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Manages customer wishlist items strictly scoped per store (shop_id).
+/// Prevents cross-store wishlist leakage so Shop A's items never appear in Shop B.
 class WishlistProvider extends ChangeNotifier {
-  List<String> _wishlistItems = [];
+  String? _currentShopId;
+  final Map<String, List<String>> _shopWishlists = {};
 
-  List<String> get wishlistItems => _wishlistItems;
+  String? get currentShopId => _currentShopId;
 
-  WishlistProvider() {
-    _loadWishlist();
+  /// Returns wishlist items for the currently active shop
+  List<String> get wishlistItems {
+    final key = _effectiveShopKey(_currentShopId);
+    return List.unmodifiable(_shopWishlists[key] ?? []);
   }
 
-  Future<void> _loadWishlist() async {
+  WishlistProvider() {
+    _init();
+  }
+
+  Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
-    _wishlistItems = prefs.getStringList('wishlist') ?? [];
+    _currentShopId = prefs.getString('current_shop_id');
+    await loadWishlistForShop(_currentShopId);
+  }
+
+  String _effectiveShopKey(String? shopId) {
+    if (shopId != null && shopId.trim().isNotEmpty) {
+      return shopId.trim();
+    }
+    if (_currentShopId != null && _currentShopId!.trim().isNotEmpty) {
+      return _currentShopId!.trim();
+    }
+    return 'default_shop';
+  }
+
+  Future<void> setCurrentShopId(String? shopId) async {
+    final newKey = shopId?.trim();
+    if (_currentShopId != newKey) {
+      _currentShopId = newKey;
+      await loadWishlistForShop(newKey);
+    }
+  }
+
+  Future<void> loadWishlistForShop(String? shopId) async {
+    final key = _effectiveShopKey(shopId);
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList('wishlist_$key');
+    if (stored != null) {
+      _shopWishlists[key] = List<String>.from(stored);
+    } else {
+      _shopWishlists[key] = [];
+    }
     notifyListeners();
   }
 
-  Future<void> toggleWishlist(String productId) async {
-    if (_wishlistItems.contains(productId)) {
-      _wishlistItems.remove(productId);
+  List<String> getWishlistForShop(String? shopId) {
+    final key = _effectiveShopKey(shopId);
+    if (!_shopWishlists.containsKey(key)) {
+      // Lazy load from prefs if not loaded yet
+      SharedPreferences.getInstance().then((prefs) {
+        final stored = prefs.getStringList('wishlist_$key');
+        if (stored != null) {
+          _shopWishlists[key] = List<String>.from(stored);
+          notifyListeners();
+        }
+      });
+      return const [];
+    }
+    return List.unmodifiable(_shopWishlists[key] ?? []);
+  }
+
+  int getCount([String? shopId]) {
+    final key = _effectiveShopKey(shopId);
+    return (_shopWishlists[key] ?? []).length;
+  }
+
+  bool isInWishlist(String productId, [String? shopId]) {
+    final key = _effectiveShopKey(shopId);
+    final items = _shopWishlists[key] ?? [];
+    return items.contains(productId);
+  }
+
+  Future<void> toggleWishlist(String productId, [String? shopId]) async {
+    final key = _effectiveShopKey(shopId);
+    final list = _shopWishlists.putIfAbsent(key, () => []);
+    
+    if (list.contains(productId)) {
+      list.remove(productId);
     } else {
-      _wishlistItems.add(productId);
+      list.add(productId);
     }
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('wishlist', _wishlistItems);
+    await prefs.setStringList('wishlist_$key', list);
     notifyListeners();
   }
 
-  bool isInWishlist(String productId) {
-    return _wishlistItems.contains(productId);
-  }
-
-  Future<void> clearWishlist() async {
-    _wishlistItems.clear();
+  Future<void> clearWishlist([String? shopId]) async {
+    final key = _effectiveShopKey(shopId);
+    _shopWishlists[key]?.clear();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('wishlist');
+    await prefs.remove('wishlist_$key');
     notifyListeners();
   }
 }

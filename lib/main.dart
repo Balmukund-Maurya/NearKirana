@@ -562,45 +562,69 @@ class _LoginScreenState extends State<LoginScreen> {
     LanguageProvider langProvider,
     String shopName,
   ) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Illustration Half
-          SizedBox(
-            height: size.height * 0.35,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  'assets/images/kirana_web_hero.jpg',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.surface,
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.3),
-                      ],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                    ),
+    final isHindi = langProvider.isHindi;
+    final isHinglish = langProvider.isHinglish;
+
+    final deliveryBadgeText = isHindi
+        ? '10-25 मिनट में तेज़ डिलीवरी'
+        : (isHinglish ? '10-25 Mins me Tez Delivery' : '10-25 MINS DELIVERY');
+
+    return Column(
+      children: [
+        // Top Bar with Speed Badge & Language Pill (Zepto/Blinkit style)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF047857).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF047857).withValues(alpha: 0.2),
                   ),
                 ),
-              ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.bolt_rounded,
+                      color: Color(0xFF047857),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      deliveryBadgeText,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF047857),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const LanguageTogglePill(),
+            ],
+          ),
+        ),
+
+        // Auth Card Centered & Scrollable
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: _buildAuthCard(context, langProvider, shopName, false),
+              ),
             ),
           ),
-
-          // Auth Half
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: _buildAuthCard(context, langProvider, shopName, false),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -750,12 +774,13 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Top Language Toggle Pill
-          Align(
-            alignment: Alignment.topRight,
-            child: const LanguageTogglePill(),
-          ),
-          const SizedBox(height: 6),
+          if (isDesktop) ...[
+            Align(
+              alignment: Alignment.topRight,
+              child: const LanguageTogglePill(),
+            ),
+            const SizedBox(height: 6),
+          ],
 
           // Zepto Brand Header
           Row(

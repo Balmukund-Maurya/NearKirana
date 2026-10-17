@@ -162,6 +162,18 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
               final newName = controller.text.trim();
               if (newName.isNotEmpty) {
                 await userProvider.updateCustomerName(newName);
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isHindi ? 'नाम सफलतापूर्वक अपडेट हुआ!' : (isHinglish ? 'Naam update ho gaya!' : 'Name updated successfully!'),
+                      ),
+                      backgroundColor: AppColors.primaryDark,
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
               }
               if (ctx.mounted) Navigator.pop(ctx);
             },
@@ -1358,7 +1370,12 @@ class _ProfileAvatarState extends State<_ProfileAvatar> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 400,
+      maxHeight: 400,
+      imageQuality: 70,
+    );
     if (pickedFile != null) {
       setState(() => _isUploading = true);
       try {
@@ -1366,8 +1383,27 @@ class _ProfileAvatarState extends State<_ProfileAvatar> {
         final base64String = base64Encode(bytes);
         final finalImageUrl = 'data:image/jpeg;base64,$base64String';
         await widget.userProvider.updateProfileImage(finalImageUrl);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('प्रोफ़ाइल फ़ोटो सफलतापूर्वक अपडेट हो गई! / Profile photo updated!'),
+              backgroundColor: AppColors.primaryDark,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       } catch (e) {
         debugPrint('Error uploading profile pic: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error uploading profile photo: $e'),
+              backgroundColor: Colors.red.shade700,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } finally {
         if (mounted) setState(() => _isUploading = false);
       }

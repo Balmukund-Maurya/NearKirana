@@ -1,15 +1,15 @@
-import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 
 import 'notification_service.dart';
 import 'admin_order_card.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'animation_helpers.dart';
-import 'package:provider/provider.dart';
 import 'shop_provider.dart';
+import 'language_provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 
 class AdminOrdersTab extends StatefulWidget {
@@ -38,39 +38,152 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = AppLocalizations.of(context)!;
+    final lang = Provider.of<LanguageProvider>(context);
+
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
+    final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(langProvider.orders_tab),
-        bottom: TabBar(
-          controller: _tabController,
-          labelStyle: AppTextStyles.bodySemiBold(color: AppColors.white),
-          unselectedLabelStyle: AppTextStyles.bodyMedium(
-            color: AppColors.white.withValues(alpha: 0.7),
-          ),
-          indicatorColor: AppColors.white,
-          indicatorWeight: 3,
-          labelColor: AppColors.white,
-          unselectedLabelColor: AppColors.white.withValues(alpha: 0.7),
-          tabs: const [
-            Tab(text: 'Active Orders'),
-            Tab(text: 'History'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                color: Color(0xFF0C831F),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  t('Customer Orders', 'ग्राहकों के ऑर्डर्स', 'Customer Orders'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                Text(
+                  t('Live order fulfillment', 'लाइव ऑर्डर प्रोसेसिंग', 'Live order fulfillment'),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
           ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: const Color(0xFF0C831F),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0C831F).withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              labelColor: Colors.white,
+              unselectedLabelColor: const Color(0xFF64748B),
+              labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              padding: const EdgeInsets.all(3),
+              tabs: [
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseUtils.firestore
+                      .collection('orders')
+                      .where('shop_id', isEqualTo: shopId)
+                      .where(
+                        'status',
+                        whereIn: const [
+                          'Pending',
+                          'Accepted',
+                          'Packing',
+                          'Packed',
+                          'Ready',
+                          'Out for Delivery',
+                          'Delivery_Failed',
+                        ],
+                      )
+                      .snapshots(),
+                  builder: (context, snap) {
+                    final count = snap.data?.docs.length ?? 0;
+                    return Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(t('Active Orders', 'चालू ऑर्डर्स', 'Active Orders')),
+                          if (count > 0) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '$count',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                Tab(text: t('History', 'इतिहास', 'History')),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildLiveOrdersStream(context),
-          const _OrderHistoryTab()
+          _buildLiveOrdersStream(context, t),
+          _OrderHistoryTab(t: t),
         ],
       ),
     );
   }
 
-  Widget _buildLiveOrdersStream(BuildContext context) {
+  Widget _buildLiveOrdersStream(BuildContext context, String Function(String, String, String) t) {
     final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
     
     return StreamBuilder<QuerySnapshot>(
@@ -94,20 +207,20 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
         if (snapshot.hasError) {
           return Center(
             child: Text(
-              'Error loading orders: ${snapshot.error}',
+              '${t('Error loading orders', 'ऑर्डर्स लोड करने में त्रुटि', 'Orders load karne me error')}: ${snapshot.error}',
               style: AppTextStyles.bodyMedium(color: AppColors.error),
             ),
           );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: ModernLoader(color: AppColors.primaryDark),
+            child: ModernLoader(color: Color(0xFF0C831F)),
           );
         }
 
         final orders = snapshot.data?.docs ?? [];
 
-        // Sort orders manually
+        // Sort orders manually descending
         orders.sort((a, b) {
           final aData = a.data() as Map<String, dynamic>;
           final bData = b.data() as Map<String, dynamic>;
@@ -124,8 +237,8 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (currentCount > _previousPendingCount) {
             NotificationService.showOrderNotification(
-              'Naya Order Aaya Hai!',
-              'Total $currentCount pending orders hai. Jaldi check karein.',
+              t('New Order Received!', 'नया ऑर्डर आया है!', 'Naya Order Aaya Hai!'),
+              t('Total $currentCount pending orders. Check immediately.', 'कुल $currentCount ऑर्डर्स पेंडिंग हैं। तुरंत चेक करें।', 'Total $currentCount pending orders hai. Jaldi check karein.'),
             );
           }
           _previousPendingCount = currentCount;
@@ -136,28 +249,43 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.done_all_rounded, size: 80, color: AppColors.bgTint),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0C831F).withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.done_all_rounded,
+                    size: 54,
+                    color: Color(0xFF0C831F),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Text(
-                  'No active orders right now.',
-                  style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
+                  t('No active orders right now.', 'अभी कोई नया ऑर्डर नहीं है।', 'Abhi koi active order nahi hai.'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
               ],
             ),
-          ).animate().fadeIn(duration: 400.ms);
+          ).animate().fadeIn(duration: 350.ms);
         }
 
         return ListView.builder(
           padding: const EdgeInsets.only(
-            top: 16,
-            left: 16,
-            right: 16,
+            top: 14,
+            left: 14,
+            right: 14,
             bottom: 100,
           ),
           itemCount: orders.length,
           itemBuilder: (context, index) {
             return AdminOrderCard(orderDoc: orders[index])
-                .fadeSlideUp(delay: 50 * index);
+                .fadeSlideUp(delay: 40 * (index % 10));
           },
         );
       },
@@ -167,7 +295,8 @@ class _AdminOrdersTabState extends State<AdminOrdersTab>
 
 // Order History Tab Content
 class _OrderHistoryTab extends StatefulWidget {
-  const _OrderHistoryTab();
+  final String Function(String, String, String)? t;
+  const _OrderHistoryTab({this.t});
 
   @override
   State<_OrderHistoryTab> createState() => _OrderHistoryTabState();
@@ -244,9 +373,11 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
 
   @override
   Widget build(BuildContext context) {
+    final t = widget.t ?? (String en, String hi, String hinglish) => en;
+
     if (_orders.isEmpty && _isLoading) {
       return const Center(
-        child: ModernLoader(color: AppColors.primaryDark),
+        child: ModernLoader(color: Color(0xFF0C831F)),
       );
     }
 
@@ -255,11 +386,26 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history_rounded, size: 80, color: AppColors.bgTint),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0C831F).withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.history_rounded,
+                size: 54,
+                color: Color(0xFF64748B),
+              ),
+            ),
             const SizedBox(height: 16),
             Text(
-              'No order history found.',
-              style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
+              t('No order history found.', 'कोई पुराना ऑर्डर नहीं मिला।', 'Koi order history nahi mili.'),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748B),
+              ),
             ),
           ],
         ),
@@ -268,13 +414,13 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
 
     return RefreshIndicator(
       onRefresh: _refresh,
-      color: AppColors.primaryDark,
+      color: const Color(0xFF0C831F),
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.only(
-          top: 16,
-          left: 16,
-          right: 16,
+          top: 14,
+          left: 14,
+          right: 14,
           bottom: 100,
         ),
         itemCount: _orders.length + (_hasMore ? 1 : 0),
@@ -283,7 +429,7 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
             return const Padding(
               padding: EdgeInsets.all(16.0),
               child: Center(
-                child: ModernLoader(color: AppColors.primaryDark),
+                child: ModernLoader(color: Color(0xFF0C831F)),
               ),
             );
           }

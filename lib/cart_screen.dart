@@ -28,10 +28,12 @@ import 'address_selection_bottom_sheet.dart';
 import 'shopping_list_service.dart';
 import 'widgets/voice_order_sheet.dart';
 import 'utils/product_image_widget.dart';
+import 'home_screen.dart';
 
 class CartScreen extends StatefulWidget {
   final bool isTab;
-  const CartScreen({super.key, this.isTab = false});
+  final VoidCallback? onBrowseStore;
+  const CartScreen({super.key, this.isTab = false, this.onBrowseStore});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -280,8 +282,17 @@ class _CartScreenState extends State<CartScreen> {
                         height: 44,
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            if (!widget.isTab && Navigator.canPop(context)) {
+                            if (widget.onBrowseStore != null) {
+                              widget.onBrowseStore!();
+                            } else if (!widget.isTab && Navigator.canPop(context)) {
                               Navigator.pop(context);
+                            } else {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (_) => const HomeScreen(initialIndex: 0),
+                                ),
+                                (route) => false,
+                              );
                             }
                           },
                           icon: const Icon(Icons.storefront_rounded, size: 18, color: AppColors.primaryDark),

@@ -35,7 +35,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   List<Widget> get _tabs => [
     const CustomerShopTab(),
-    const CartScreen(isTab: true),
+    CartScreen(
+      isTab: true,
+      onBrowseStore: () => _onNavTap(0),
+    ),
     const MyOrdersScreen(isTab: true),
     const CustomerProfileTab(),
     const DesktopKhataView(),

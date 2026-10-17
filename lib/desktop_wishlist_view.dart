@@ -34,8 +34,9 @@ class _DesktopWishlistViewState extends State<DesktopWishlistView> {
       final shopProvider = Provider.of<ShopProvider>(context, listen: false);
       final wishlistProvider = Provider.of<WishlistProvider>(context, listen: false);
       final shopId = shopProvider.currentShopId;
+      final itemIds = wishlistProvider.getWishlistForShop(shopId);
       
-      if (shopId == null || wishlistProvider.wishlistItems.isEmpty) {
+      if (shopId == null || itemIds.isEmpty) {
         if (mounted) {
           setState(() {
             _wishlistProducts = [];
@@ -48,7 +49,6 @@ class _DesktopWishlistViewState extends State<DesktopWishlistView> {
       // Fetch products in chunks if necessary, but since it's a simple query we fetch all matching
       // Firestore 'whereIn' supports max 10 items. So we chunk it.
       final List<DocumentSnapshot> products = [];
-      final itemIds = wishlistProvider.wishlistItems;
       
       for (var i = 0; i < itemIds.length; i += 10) {
         final end = (i + 10 < itemIds.length) ? i + 10 : itemIds.length;
@@ -81,7 +81,8 @@ class _DesktopWishlistViewState extends State<DesktopWishlistView> {
   }
 
   void _removeProduct(String productId) {
-    Provider.of<WishlistProvider>(context, listen: false).toggleWishlist(productId);
+    final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+    Provider.of<WishlistProvider>(context, listen: false).toggleWishlist(productId, shopId);
     setState(() {
       _wishlistProducts.removeWhere((doc) => doc.id == productId);
     });

@@ -715,41 +715,73 @@ class _GatewayScreenState extends State<GatewayScreen> {
   }
 
   Widget _buildMobileLayout(BuildContext context, Size size) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Illustration Half
-          SizedBox(
-            height: size.height * 0.35,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  'assets/images/kirana_web_hero.jpg',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.surface, Colors.transparent, Colors.black.withValues(alpha: 0.3)],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                    ),
+    LanguageProvider? langProvider;
+    try {
+      langProvider = Provider.of<LanguageProvider>(context);
+    } catch (_) {}
+    final isHindi = langProvider?.isHindi ?? false;
+    final isHinglish = langProvider?.isHinglish ?? false;
+
+    final deliveryBadgeText = isHindi
+        ? '10-25 मिनट में तेज़ डिलीवरी'
+        : (isHinglish ? '10-25 Mins me Tez Delivery' : '10-25 MINS DELIVERY');
+
+    return Column(
+      children: [
+        // Top Bar with Speed Badge & Language Pill (Zepto/Blinkit style)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF047857).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF047857).withValues(alpha: 0.2),
                   ),
                 ),
-              ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.bolt_rounded,
+                      color: Color(0xFF047857),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      deliveryBadgeText,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF047857),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const LanguageTogglePill(),
+            ],
+          ),
+        ),
+
+        // Auth Card Centered & Scrollable
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: _buildAuthCard(context, false),
+              ),
             ),
           ),
-          
-          // Auth Half
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: _buildAuthCard(context, false),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -852,12 +884,13 @@ class _GatewayScreenState extends State<GatewayScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Language Switcher (Top Right)
-          Align(
-            alignment: Alignment.topRight,
-            child: const LanguageTogglePill(),
-          ),
-          const SizedBox(height: 8),
+          if (isDesktop) ...[
+            Align(
+              alignment: Alignment.topRight,
+              child: const LanguageTogglePill(),
+            ),
+            const SizedBox(height: 8),
+          ],
 
           // Zepto / Blinkit Brand Header
           Row(
@@ -1207,54 +1240,71 @@ class _GatewayScreenState extends State<GatewayScreen> {
   }
 
   Widget _buildRoleSelectionMobile(BuildContext context, Size size) {
-    return Stack(
+    LanguageProvider? langProvider;
+    try {
+      langProvider = Provider.of<LanguageProvider>(context);
+    } catch (_) {}
+    final isHindi = langProvider?.isHindi ?? false;
+    final isHinglish = langProvider?.isHinglish ?? false;
+
+    final speedText = isHindi
+        ? '10-25 मिनट में तेज़ डिलीवरी'
+        : (isHinglish ? '10-25 Mins Tez Delivery' : '10-25 MINS DELIVERY');
+
+    return Column(
       children: [
-        SingleChildScrollView(
-          child: Column(
+        // Top Bar with Speed Badge & Language Pill (Zepto/Blinkit style)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Illustration Header (Compact Zepto style)
-              SizedBox(
-                height: 160,
-                width: double.infinity,
-                child: Stack(
-                  fit: StackFit.expand,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF047857).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF047857).withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset(
-                      'assets/images/kirana_web_hero.jpg',
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
+                    const Icon(
+                      Icons.bolt_rounded,
+                      color: Color(0xFF047857),
+                      size: 16,
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.black.withValues(alpha: 0.45),
-                            Colors.transparent,
-                            AppColors.surface,
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
+                    const SizedBox(width: 4),
+                    Text(
+                      speedText,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF047857),
                       ),
                     ),
                   ],
                 ),
               ),
-              
-              // Panel Half
-              Container(
-                transform: Matrix4.translationValues(0, -18, 0),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildRolePanel(context, false),
-              ),
+              const LanguageTogglePill(),
             ],
           ),
         ),
-        // Top Language Toggle Pill
-        Positioned(
-          top: 10,
-          right: 14,
-          child: const LanguageTogglePill(),
+
+        // Role Panel Centered & Scrollable
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: _buildRolePanel(context, false),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -1351,8 +1401,61 @@ class _GatewayScreenState extends State<GatewayScreen> {
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 200.ms),
+
+          if (_globalPhone != null && _globalPhone!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF047857),
+                    size: 15,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '+91 $_globalPhone',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.remove('global_phone');
+                      await prefs.remove('app_role');
+                      if (context.mounted) {
+                        setState(() {
+                          _globalPhone = null;
+                        });
+                      }
+                    },
+                    child: Text(
+                      isHindi ? 'नंबर बदलें' : (isHinglish ? 'Change' : 'Change'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF047857),
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           
           // Customer Role Card
           _buildRoleCard(
@@ -1360,6 +1463,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
             subtitle: custSub,
             icon: Icons.shopping_bag_rounded,
             color: const Color(0xFF047857),
+            backgroundColor: const Color(0xFFF0FDF4),
             badgeText: custBadge,
             badgeColor: const Color(0xFF047857),
             badgeBgColor: const Color(0xFFD1FAE5),
@@ -1375,6 +1479,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
             subtitle: shopSub,
             icon: Icons.store_mall_directory_rounded,
             color: const Color(0xFF7C3AED), // Vibrant purple
+            backgroundColor: const Color(0xFFFAF5FF),
             badgeText: shopBadge,
             badgeColor: const Color(0xFF7C3AED),
             badgeBgColor: const Color(0xFFEDE9FE),
@@ -1390,6 +1495,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
             subtitle: riderSub,
             icon: Icons.two_wheeler_rounded,
             color: const Color(0xFFEA580C), // Orange
+            backgroundColor: const Color(0xFFFFF7ED),
             badgeText: riderBadge,
             badgeColor: const Color(0xFFEA580C),
             badgeBgColor: const Color(0xFFFFEDD5),

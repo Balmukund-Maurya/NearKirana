@@ -4,16 +4,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'app_theme.dart';
 import 'sound_service.dart';
 import 'modern_loader.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'animation_helpers.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'payment_service.dart';
 import 'order_state_machine.dart';
 import 'notification_service.dart';
+import 'language_provider.dart';
 import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
 import 'package:near_kirana/widgets/assign_delivery_partner_dialog.dart';
@@ -24,8 +24,72 @@ class AdminOrderCard extends StatelessWidget {
 
   const AdminOrderCard({super.key, required this.orderDoc});
 
+  void _callCustomer(String phone) async {
+    if (phone.isEmpty) return;
+    final uri = Uri.parse('tel:$phone');
+    try {
+      await launchUrl(uri);
+    } catch (_) {}
+  }
+
+  void _whatsappCustomer(String phone, String customerName) async {
+    if (phone.isEmpty) return;
+    String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    if (!cleanPhone.startsWith('91') && cleanPhone.length == 10) {
+      cleanPhone = '91$cleanPhone';
+    }
+    final uri = Uri.parse(
+      'https://wa.me/$cleanPhone?text=${Uri.encodeComponent('Namaste $customerName ji, aapka NearKirana order update:')}',
+    );
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
+    String getLocalizedStatus(String s) {
+      switch (s) {
+        case OrderStatus.pending:
+          return t('PENDING', 'लंबित', 'PENDING');
+        case OrderStatus.accepted:
+          return t('ACCEPTED', 'स्वीकृत', 'ACCEPTED');
+        case OrderStatus.packing:
+          return t('PACKING', 'पैकिंग जारी', 'PACKING');
+        case OrderStatus.packed:
+          return t('PACKED', 'पैक हुआ', 'PACKED');
+        case OrderStatus.ready:
+          return t('READY', 'तैयार है', 'READY');
+        case OrderStatus.outForDelivery:
+          return t('OUT FOR DELIVERY', 'डिलीवरी पर निकला', 'OUT FOR DELIVERY');
+        case OrderStatus.delivered:
+          return t('DELIVERED', 'डिलीवर हुआ', 'DELIVERED');
+        case OrderStatus.deliveryFailed:
+          return t('DELIVERY FAILED', 'डिलीवरी असफल', 'DELIVERY FAILED');
+        case OrderStatus.cancelled:
+          return t('CANCELLED', 'रद्द किया', 'CANCELLED');
+        case OrderStatus.rejected:
+          return t('REJECTED', 'अस्वीकृत', 'REJECTED');
+        default:
+          return s.toUpperCase();
+      }
+    }
+
+    String getLocalizedDeliveryType(String dt) {
+      if (dt == 'Delivery') {
+        return t('Delivery', 'डिलीवरी', 'Delivery');
+      }
+      return t('Pickup', 'पिकअप', 'Pickup');
+    }
+
     final data = orderDoc.data() as Map<String, dynamic>;
     final String customerName = data['customer_name'] ?? 'Unknown';
     final String phone = data['phone_number'] ?? '';
@@ -39,7 +103,7 @@ class AdminOrderCard extends StatelessWidget {
     final List items = data['items'] ?? [];
     final Timestamp? createdAt = data['created_at'] as Timestamp?;
     final String timeStr = createdAt != null
-        ? DateFormat('dd MMM yyyy, hh:mm a').format(createdAt.toDate())
+        ? DateFormat('dd MMM, hh:mm a').format(createdAt.toDate())
         : '';
     final String paymentMethod = data['payment_method'] ?? 'Unpaid';
     final String paymentStatus =
@@ -58,18 +122,15 @@ class AdminOrderCard extends StatelessWidget {
     final pendingProposals = proposals.where((p) => p.isPending).toList();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: _getStatusColor(status).withValues(alpha: 0.3),
-          width: 1.5,
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: _getStatusColor(status).withValues(alpha: 0.05),
-            blurRadius: 12,
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -77,156 +138,111 @@ class AdminOrderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header
+          // Header: Status, Delivery Type, Order ID & Timestamp
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: _getStatusColor(status).withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(18),
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(17)),
+              border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    Icon(
-                      _getStatusIcon(status),
-                      color: _getStatusColor(status),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      status.toUpperCase(),
-                      style: AppTextStyles.bodySemiBold(
-                        color: _getStatusColor(status),
-                      ).copyWith(letterSpacing: 1, fontSize: 12),
-                    ),
-                  ],
-                ).animate(key: ValueKey(status)).popIn(),
-                Text(
-                  timeStr,
-                  style: AppTextStyles.captionMedium(color: AppColors.textMid),
-                ),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (pendingProposals.isNotEmpty) ...[
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade100.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.amber.shade400),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.swap_horiz_rounded, size: 16, color: Colors.amber),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '${pendingProposals.length} item substitution proposal awaiting customer approval',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-
-                // Customer Info
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            customerName,
-                            style: AppTextStyles.heading2(
-                              color: AppColors.textDark,
-                            ).copyWith(fontSize: 18),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.phone_rounded,
-                                size: 14,
-                                color: AppColors.textMid,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                phone,
-                                style: AppTextStyles.captionMedium(
-                                  color: AppColors.textMid,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Status Pill with colored dot
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: type == 'Delivery'
-                            ? Colors.blue.withValues(alpha: 0.1)
-                            : Colors.orange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: _getStatusColor(status).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: type == 'Delivery'
-                              ? Colors.blue.withValues(alpha: 0.3)
-                              : Colors.orange.withValues(alpha: 0.3),
+                          color: _getStatusColor(status).withValues(alpha: 0.3),
+                          width: 1,
                         ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            type == 'Delivery'
-                                ? Icons.moped_rounded
-                                : Icons.storefront_rounded,
-                            size: 16,
-                            color: type == 'Delivery'
-                                ? Colors.blue
-                                : Colors.orange,
+                            _getStatusIcon(status),
+                            size: 12,
+                            color: _getStatusColor(status),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 5),
                           Text(
-                            type,
-                            style: AppTextStyles.bodySemiBold(
-                              color: type == 'Delivery'
-                                  ? Colors.blue
-                                  : Colors.orange,
-                            ).copyWith(fontSize: 12),
+                            getLocalizedStatus(status),
+                            style: TextStyle(
+                              color: _getStatusColor(status),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Delivery Type Chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: type == 'Delivery' ? const Color(0xFFEFF6FF) : const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: type == 'Delivery' ? const Color(0xFFBFDBFE) : const Color(0xFFFDE68A),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            type == 'Delivery' ? Icons.moped_rounded : Icons.storefront_rounded,
+                            size: 13,
+                            color: type == 'Delivery' ? const Color(0xFF2563EB) : const Color(0xFFD97706),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            getLocalizedDeliveryType(type),
+                            style: TextStyle(
+                              color: type == 'Delivery' ? const Color(0xFF2563EB) : const Color(0xFFD97706),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
+                // Time & Order ID
+                Row(
+                  children: [
+                    Text(
+                      timeStr,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
 
-                if (data['is_reviewed'] == true) ...[
-                  const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Substitution Notice if pending
+                if (pendingProposals.isNotEmpty) ...[
                   Container(
+                    margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFFBEB),
@@ -235,10 +251,118 @@ class AdminOrderCard extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
+                        const Icon(Icons.swap_horiz_rounded, size: 16, color: Color(0xFFD97706)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${pendingProposals.length} ${t('item substitution awaiting customer approval', 'सामान बदलाव पर ग्राहक की मंजूरी बाकी', 'item substitution customer approval pending')}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF92400E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Customer Info Row with Direct Call & WhatsApp buttons
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                      child: Text(
+                        customerName.isNotEmpty ? customerName[0].toUpperCase() : 'C',
+                        style: const TextStyle(
+                          color: Color(0xFF0C831F),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            customerName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.phone_outlined,
+                                size: 13,
+                                color: Color(0xFF64748B),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                phone,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (phone.isNotEmpty) ...[
+                      // Quick Call Button
+                      IconButton(
+                        onPressed: () => _callCustomer(phone),
+                        icon: const Icon(Icons.call_rounded, size: 18, color: Color(0xFF0C831F)),
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFFDCFCE7),
+                          padding: const EdgeInsets.all(8),
+                          minimumSize: const Size(36, 36),
+                        ),
+                        tooltip: t('Call Customer', 'कॉल करें', 'Call Karein'),
+                      ),
+                      const SizedBox(width: 8),
+                      // Quick WhatsApp Button
+                      IconButton(
+                        onPressed: () => _whatsappCustomer(phone, customerName),
+                        icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18, color: Color(0xFF0284C7)),
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFFE0F2FE),
+                          padding: const EdgeInsets.all(8),
+                          minimumSize: const Size(36, 36),
+                        ),
+                        tooltip: t('WhatsApp', 'व्हाट्सएप', 'WhatsApp'),
+                      ),
+                    ],
+                  ],
+                ),
+
+                // Review Rating Banner if reviewed
+                if (data['is_reviewed'] == true) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
                         const SizedBox(width: 6),
                         Text(
-                          'Customer Rating: ${(data['shop_rating'] as num?)?.toDouble() ?? 5.0} / 5.0',
+                          '${t('Rating', 'रेटिंग', 'Rating')}: ${(data['shop_rating'] as num?)?.toDouble() ?? 5.0} / 5.0',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -266,33 +390,46 @@ class AdminOrderCard extends StatelessWidget {
                   ),
                 ],
 
+                // Delivery Address Card
                 if (type == 'Delivery' &&
                     deliveryAddress != null &&
                     deliveryAddress.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.bgTint,
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
                     ),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.location_on_rounded,
-                          color: AppColors.textMid,
-                          size: 18,
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(
+                            Icons.location_on_rounded,
+                            color: Color(0xFF0C831F),
+                            size: 15,
+                          ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             deliveryAddress,
-                            style: AppTextStyles.bodyMedium(
-                              color: AppColors.textDark,
+                            style: const TextStyle(
+                              color: Color(0xFF1E293B),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              height: 1.3,
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         IconButton(
                           onPressed: () async {
                             HapticFeedback.lightImpact();
@@ -314,9 +451,9 @@ class AdminOrderCard extends StatelessWidget {
                             } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     behavior: SnackBarBehavior.floating,
-                                    content: Text('Could not open Maps.'),
+                                    content: Text(t('Could not open Maps.', 'मैप्स नहीं खुल पाया', 'Maps open nahi ho paya.')),
                                   ),
                                 );
                               }
@@ -324,198 +461,199 @@ class AdminOrderCard extends StatelessWidget {
                           },
                           icon: const Icon(
                             Icons.directions_rounded,
-                            color: Colors.blue,
+                            color: Color(0xFF2563EB),
+                            size: 18,
                           ),
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                            backgroundColor: const Color(0xFFEFF6FF),
+                            padding: const EdgeInsets.all(6),
+                            minimumSize: const Size(32, 32),
                           ),
-                          padding: const EdgeInsets.all(8),
-                          constraints: const BoxConstraints(),
+                          tooltip: t('Navigate', 'रास्ता देखें', 'Directions'),
                         ),
                       ],
                     ),
                   ),
                 ],
 
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.bgTint,
-                  ),
-                ),
+                const SizedBox(height: 10),
 
-                // Items
-                Material(
-                  color: Colors.transparent,
-                  child: Theme(
-                    data: Theme.of(
-                      context,
-                    ).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      collapsedIconColor: AppColors.primaryDark,
-                      iconColor: AppColors.primaryDark,
-                      title: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight.withValues(
-                                alpha: 0.2,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${items.length}',
-                              style: AppTextStyles.bodySemiBold(
-                                color: AppColors.primaryDark,
-                              ),
-                            ),
+                // Items Accordion
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    collapsedIconColor: const Color(0xFF0C831F),
+                    iconColor: const Color(0xFF0C831F),
+                    title: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Items Ordered',
-                            style: AppTextStyles.bodySemiBold(
-                              color: AppColors.textDark,
-                            ),
-                          ),
-                        ],
-                      ),
-                      children: items.map((item) {
-                        final String itemId = item['id']?.toString() ?? item['productId']?.toString() ?? '';
-                        final String itemName = item['name']?.toString() ?? '';
-                        final bool isSubstituted = item['is_substituted'] == true;
-                        final String? substitutedFrom = item['substituted_from']?.toString();
-                        final pendingProposal = proposals.where((p) =>
-                            p.isPending &&
-                            (p.originalProductId == itemId ||
-                                p.originalProductName.toLowerCase() == itemName.toLowerCase())).firstOrNull;
-                        final bool canPropose = ['Pending', 'Accepted', 'Packing', 'Packed'].contains(status) &&
-                            pendingProposal == null;
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: isSubstituted
-                                ? const Color(0xFFECFDF5)
-                                : (pendingProposal != null ? Colors.amber.shade50 : Colors.transparent),
-                            borderRadius: BorderRadius.circular(8),
-                            border: (isSubstituted || pendingProposal != null)
-                                ? Border.all(
-                                    color: isSubstituted ? const Color(0xFFA7F3D0) : Colors.amber.shade300,
-                                    width: 1,
-                                  )
-                                : null,
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFA7F3D0)),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '• ${item['name']}',
-                                      style: AppTextStyles.bodyMedium(
-                                        color: AppColors.textMid,
-                                      ).copyWith(fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${item['quantity']}x • ₹${((item['price'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(0)}',
-                                    style: AppTextStyles.bodySemiBold(
-                                      color: AppColors.textDark,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (isSubstituted && substitutedFrom != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: SubstitutedItemBadge(originalName: substitutedFrom),
-                                ),
-                              if (pendingProposal != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Proposal Pending: "${pendingProposal.substituteProductName}" (${pendingProposal.formattedDifference})',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.amber.shade900,
-                                          ),
-                                        ),
-                                      ),
-                                      InkWell(
-                                        onTap: () async {
-                                          await ProductSubstitutionService.instance.cancelSubstitutionProposal(
-                                            orderId: orderDoc.id,
-                                            proposalId: pendingProposal.id,
-                                          );
-                                        },
-                                        child: const Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                          child: Text(
-                                            'Cancel',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              if (canPropose)
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton.icon(
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    icon: const Icon(Icons.swap_horiz, size: 14, color: AppColors.primaryDark),
-                                    label: const Text(
-                                      'Suggest Alternative',
-                                      style: TextStyle(fontSize: 11, color: AppColors.primaryDark, fontWeight: FontWeight.bold),
-                                    ),
-                                    onPressed: () {
-                                      ProposeSubstitutionDialog.show(
-                                        context,
-                                        orderId: orderDoc.id,
-                                        item: Map<String, dynamic>.from(item as Map),
-                                      );
-                                    },
-                                  ),
-                                ),
-                            ],
+                          child: Text(
+                            '${items.length}',
+                            style: const TextStyle(
+                              color: Color(0xFF065F46),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          t('Items Ordered', 'सामान ऑर्डर किए', 'Items Order Kiye'),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                      ],
                     ),
+                    children: items.map((item) {
+                      final String itemId = item['id']?.toString() ?? item['productId']?.toString() ?? '';
+                      final String itemName = item['name']?.toString() ?? '';
+                      final bool isSubstituted = item['is_substituted'] == true;
+                      final String? substitutedFrom = item['substituted_from']?.toString();
+                      final pendingProposal = proposals.where((p) =>
+                          p.isPending &&
+                          (p.originalProductId == itemId ||
+                              p.originalProductName.toLowerCase() == itemName.toLowerCase())).firstOrNull;
+                      final bool canPropose = ['Pending', 'Accepted', 'Packing', 'Packed'].contains(status) &&
+                          pendingProposal == null;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isSubstituted
+                              ? const Color(0xFFECFDF5)
+                              : (pendingProposal != null ? Colors.amber.shade50 : const Color(0xFFF8FAFC)),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSubstituted
+                                ? const Color(0xFFA7F3D0)
+                                : (pendingProposal != null ? Colors.amber.shade300 : const Color(0xFFF1F5F9)),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Color(0xFF16A34A),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      item['name'] ?? '',
+                                      style: const TextStyle(
+                                        color: Color(0xFF1E293B),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '${item['quantity']}x • ₹${((item['price'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (isSubstituted && substitutedFrom != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: SubstitutedItemBadge(originalName: substitutedFrom),
+                              ),
+                            if (pendingProposal != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Proposal Pending: "${pendingProposal.substituteProductName}" (${pendingProposal.formattedDifference})',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amber.shade900,
+                                        ),
+                                      ),
+                                    ),
+                                    InkWell(
+                                      onTap: () async {
+                                        await ProductSubstitutionService.instance.cancelSubstitutionProposal(
+                                          orderId: orderDoc.id,
+                                          proposalId: pendingProposal.id,
+                                        );
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                        child: Text(
+                                          t('Cancel', 'रद्द करें', 'Cancel'),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (canPropose)
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  icon: const Icon(Icons.swap_horiz, size: 14, color: Color(0xFF0C831F)),
+                                  label: Text(
+                                    t('Suggest Alternative', 'दूसरा सामान सुझाएं', 'Suggest Alternative'),
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF0C831F), fontWeight: FontWeight.bold),
+                                  ),
+                                  onPressed: () {
+                                    ProposeSubstitutionDialog.show(
+                                      context,
+                                      orderId: orderDoc.id,
+                                      item: Map<String, dynamic>.from(item as Map),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
 
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.bgTint,
-                  ),
-                ),
+                const Divider(height: 20, thickness: 1, color: Color(0xFFF1F5F9)),
 
                 // Total & Payment Status
                 Row(
@@ -525,15 +663,19 @@ class AdminOrderCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Total Amount',
-                          style: AppTextStyles.captionMedium(
-                            color: AppColors.textMid,
+                          t('Total Amount', 'कुल राशि', 'Total Amount'),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B),
                           ),
                         ),
                         Text(
-                          '₹$total',
-                          style: AppTextStyles.heading2(
-                            color: AppColors.primaryDark,
+                          '₹${total.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0C831F),
                           ),
                         ),
                       ],
@@ -546,55 +688,55 @@ class AdminOrderCard extends StatelessWidget {
                         final String badgeText;
 
                         if (isPaid) {
-                          badgeBg = AppColors.primaryLight.withValues(
-                            alpha: 0.2,
-                          );
-                          badgeBorder = AppColors.primaryDark;
+                          badgeBg = const Color(0xFFECFDF5);
+                          badgeBorder = const Color(0xFF0C831F);
                           badgeIcon = Icons.check_circle_rounded;
                           badgeText = (paymentMethod == 'UPI')
-                              ? 'UPI (Paid)'
-                              : '$paymentMethod (Paid)';
+                              ? t('UPI (Paid)', 'UPI (भुगतान सफल)', 'UPI (Paid)')
+                              : '$paymentMethod (${t('Paid', 'भुगतान सफल', 'Paid')})';
                         } else if (isRefunded) {
-                          badgeBg = Colors.purple.withValues(alpha: 0.15);
+                          badgeBg = Colors.purple.withValues(alpha: 0.12);
                           badgeBorder = Colors.purple;
                           badgeIcon = Icons.currency_exchange_rounded;
-                          badgeText = 'Refunded';
+                          badgeText = t('Refunded', 'रिफंड हुआ', 'Refunded');
                         } else if (isFailed) {
-                          badgeBg = AppColors.error.withValues(alpha: 0.15);
+                          badgeBg = AppColors.error.withValues(alpha: 0.12);
                           badgeBorder = AppColors.error;
                           badgeIcon = Icons.cancel_rounded;
-                          badgeText = 'Payment Failed';
+                          badgeText = t('Payment Failed', 'भुगतान असफल', 'Payment Failed');
                         } else if (isPendingVerification) {
-                          badgeBg = Colors.amber.withValues(alpha: 0.15);
-                          badgeBorder = Colors.amber[800]!;
+                          badgeBg = const Color(0xFFFFFBEB);
+                          badgeBorder = const Color(0xFFD97706);
                           badgeIcon = Icons.hourglass_top_rounded;
-                          badgeText = 'UPI (Verify Pending)';
+                          badgeText = t('UPI (Verify Pending)', 'UPI (वेरिफिकेशन बाकी)', 'UPI (Verify Pending)');
                         } else {
-                          badgeBg = Colors.grey.withValues(alpha: 0.15);
-                          badgeBorder = Colors.grey[600]!;
+                          badgeBg = const Color(0xFFF1F5F9);
+                          badgeBorder = const Color(0xFF94A3B8);
                           badgeIcon = Icons.payments_outlined;
-                          badgeText = 'COD (Unpaid)';
+                          badgeText = t('COD (Unpaid)', 'कैश ऑन डिलीवरी (बाकी)', 'COD (Unpaid)');
                         }
 
                         return Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                            horizontal: 10,
+                            vertical: 5,
                           ),
                           decoration: BoxDecoration(
                             color: badgeBg,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: badgeBorder),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: badgeBorder, width: 1),
                           ),
                           child: Row(
                             children: [
                               Icon(badgeIcon, size: 14, color: badgeBorder),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 5),
                               Text(
                                 badgeText,
-                                style: AppTextStyles.bodySemiBold(
+                                style: TextStyle(
                                   color: badgeBorder,
-                                ).copyWith(fontSize: 12),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),
@@ -603,6 +745,7 @@ class AdminOrderCard extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 if (upiRefId != null && upiRefId.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Container(
@@ -611,11 +754,9 @@ class AdminOrderCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withValues(alpha: 0.1),
+                      color: const Color(0xFFECFDF5),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.primaryLight.withValues(alpha: 0.3),
-                      ),
+                      border: Border.all(color: const Color(0xFFA7F3D0)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -623,20 +764,23 @@ class AdminOrderCard extends StatelessWidget {
                         const Icon(
                           Icons.receipt_long_rounded,
                           size: 14,
-                          color: AppColors.primaryDark,
+                          color: Color(0xFF0C831F),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           'UPI UTR: ',
-                          style: AppTextStyles.captionMedium(
-                            color: AppColors.textMid,
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 11,
                           ),
                         ),
                         SelectableText(
                           upiRefId,
-                          style: AppTextStyles.captionMedium(
-                            color: AppColors.textDark,
-                          ).copyWith(fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
@@ -651,10 +795,10 @@ class AdminOrderCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.08),
+                      color: const Color(0xFFFFFBEB),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.amber.withValues(alpha: 0.4),
+                        color: const Color(0xFFFDE68A),
                       ),
                     ),
                     child: Column(
@@ -665,15 +809,21 @@ class AdminOrderCard extends StatelessWidget {
                             const Icon(
                               Icons.verified_user_outlined,
                               size: 16,
-                              color: Colors.orange,
+                              color: Color(0xFFD97706),
                             ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                'Verify customer payment before confirming:',
-                                style: AppTextStyles.captionMedium(
-                                  color: AppColors.textDark,
-                                ).copyWith(fontWeight: FontWeight.w600),
+                                t(
+                                  'Verify customer payment before confirming:',
+                                  'ऑर्डर कन्फर्म करने से पहले भुगतान चेक करें:',
+                                  'Customer payment verify karein confirm karne se pehle:',
+                                ),
+                                style: const TextStyle(
+                                  color: Color(0xFF92400E),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
                           ],
@@ -687,9 +837,9 @@ class AdminOrderCard extends StatelessWidget {
                                   Icons.check_circle_outline,
                                   size: 16,
                                 ),
-                                label: const Text('Verify & Mark Paid'),
+                                label: Text(t('Verify & Mark Paid', 'भुगतान चेक हुआ', 'Verify & Mark Paid')),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF4CAF50),
+                                  backgroundColor: const Color(0xFF0C831F),
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   padding: const EdgeInsets.symmetric(
@@ -710,9 +860,9 @@ class AdminOrderCard extends StatelessWidget {
                                   if (context.mounted) {
                                     SoundService().success();
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'Payment verified & marked Paid!',
+                                          t('Payment verified & marked Paid!', 'भुगतान वेरिफाई हो गया!', 'Payment verified & marked Paid!'),
                                         ),
                                       ),
                                     );
@@ -723,7 +873,7 @@ class AdminOrderCard extends StatelessWidget {
                             const SizedBox(width: 8),
                             OutlinedButton.icon(
                               icon: const Icon(Icons.close_rounded, size: 16),
-                              label: const Text('Invalid UTR'),
+                              label: Text(t('Invalid UTR', 'गलत UTR', 'Invalid UTR')),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.red,
                                 side: const BorderSide(color: Colors.red),
@@ -744,9 +894,9 @@ class AdminOrderCard extends StatelessWidget {
                                 );
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
-                                        'Payment marked as Failed.',
+                                        t('Payment marked as Failed.', 'भुगतान असफल मार्क किया गया।', 'Payment marked as Failed.'),
                                       ),
                                     ),
                                   );
@@ -766,18 +916,22 @@ class AdminOrderCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withValues(alpha: 0.25)),
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.two_wheeler_rounded, size: 16, color: Colors.blue),
+                        const Icon(Icons.two_wheeler_rounded, size: 18, color: Color(0xFF2563EB)),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Delivery Partner: ${data['delivery_boy_name']} (${data['delivery_status'] ?? 'assigned'})${data['delivery_boy_phone'] != null && data['delivery_boy_phone'].toString().isNotEmpty ? ' • ${data['delivery_boy_phone']}' : ''}',
-                            style: AppTextStyles.captionMedium(color: Colors.blue.shade900),
+                            '${t('Rider', 'राइडर', 'Rider')}: ${data['delivery_boy_name']} (${data['delivery_status'] ?? 'assigned'})${data['delivery_boy_phone'] != null && data['delivery_boy_phone'].toString().isNotEmpty ? ' • ${data['delivery_boy_phone']}' : ''}',
+                            style: const TextStyle(
+                              color: Color(0xFF1E3A8A),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -791,9 +945,9 @@ class AdminOrderCard extends StatelessWidget {
                             );
                           },
                           icon: const Icon(Icons.location_on_rounded, size: 14),
-                          label: const Text('Track Live'),
+                          label: Text(t('Track Live', 'लाइव ट्रैक', 'Track Live')),
                           style: TextButton.styleFrom(
-                            foregroundColor: Colors.blue.shade900,
+                            foregroundColor: const Color(0xFF1E3A8A),
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -865,7 +1019,7 @@ class AdminOrderCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Delivery Failed: ${data['delivery_failure_reason'] ?? 'Customer unavailable'}',
+                            '${t('Delivery Failed', 'डिलीवरी असफल', 'Delivery Failed')}: ${data['delivery_failure_reason'] ?? 'Customer unavailable'}',
                             style: AppTextStyles.captionMedium(
                               color: Colors.deepOrange.shade900,
                             ),
@@ -901,7 +1055,7 @@ class AdminOrderCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Order Rejected: ${data['cancellation_reason'] ?? 'Shop unavailable'}',
+                            '${t('Order Rejected', 'ऑर्डर अस्वीकृत', 'Order Rejected')}: ${data['cancellation_reason'] ?? 'Shop unavailable'}',
                             style: AppTextStyles.captionMedium(
                               color: AppColors.error,
                             ),
@@ -914,8 +1068,8 @@ class AdminOrderCard extends StatelessWidget {
 
                 // Actions
                 if (OrderStatus.activeStatuses.contains(status)) ...[
-                  const SizedBox(height: 20),
-                  _buildActionRow(context, orderDoc, type, status, total),
+                  const SizedBox(height: 14),
+                  _buildActionRow(context, orderDoc, type, status, total, t),
                 ],
               ],
             ),
@@ -931,6 +1085,7 @@ class AdminOrderCard extends StatelessWidget {
     String deliveryType,
     String currentStatus,
     double totalAmount,
+    String Function(String, String, String) t,
   ) {
     final String orderId = orderDoc.id;
     final Map<String, dynamic> data = orderDoc.data() as Map<String, dynamic>;
@@ -945,18 +1100,18 @@ class AdminOrderCard extends StatelessWidget {
                 _showFailedDeliveryDialog(context, orderId, data);
               },
               icon: const Icon(Icons.report_problem_rounded, size: 16),
-              label: const Text('Failed Delivery'),
+              label: Text(t('Failed Delivery', 'डिलीवरी असफल', 'Failed Delivery')),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.deepOrange,
                 side: const BorderSide(color: Colors.deepOrange),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             flex: 2,
             child: _buildNextStepButton(
@@ -965,6 +1120,7 @@ class AdminOrderCard extends StatelessWidget {
               data,
               deliveryType,
               currentStatus,
+              t,
             ),
           ),
         ],
@@ -980,10 +1136,10 @@ class AdminOrderCard extends StatelessWidget {
               orderId,
               totalAmount,
               data,
-              label: 'Return Order',
+              label: t('Return Order', 'वापस लें', 'Return Order'),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             flex: 2,
             child: _buildNextStepButton(
@@ -992,6 +1148,7 @@ class AdminOrderCard extends StatelessWidget {
               data,
               deliveryType,
               currentStatus,
+              t,
             ),
           ),
         ],
@@ -1007,10 +1164,10 @@ class AdminOrderCard extends StatelessWidget {
               orderId,
               totalAmount,
               data,
-              label: 'Reject / Cancel',
+              label: t('Reject Order', 'अस्वीकार करें', 'Reject Karein'),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             flex: 2,
             child: _buildNextStepButton(
@@ -1019,6 +1176,7 @@ class AdminOrderCard extends StatelessWidget {
               data,
               deliveryType,
               currentStatus,
+              t,
             ),
           ),
         ],
@@ -1028,9 +1186,15 @@ class AdminOrderCard extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: _buildCancelButton(context, orderId, totalAmount, data),
+          child: _buildCancelButton(
+            context,
+            orderId,
+            totalAmount,
+            data,
+            label: t('Cancel', 'रद्द करें', 'Cancel'),
+          ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           flex: 2,
           child: _buildNextStepButton(
@@ -1039,11 +1203,13 @@ class AdminOrderCard extends StatelessWidget {
             data,
             deliveryType,
             currentStatus,
+            t,
           ),
         ),
       ],
     );
   }
+
 
   void _showFailedDeliveryDialog(
     BuildContext context,
@@ -1192,15 +1358,16 @@ class AdminOrderCard extends StatelessWidget {
     String orderId,
     Map<String, dynamic> data,
     String deliveryType,
-    String currentStatus,
-  ) {
+    String currentStatus, [
+    String Function(String, String, String)? t,
+  ]) {
     final nextStatus = OrderStateMachine.getNextProgressiveStatus(
       currentStatus,
       deliveryType: deliveryType,
     );
     if (nextStatus == null) return const SizedBox.shrink();
 
-    final buttonText = OrderStateMachine.getProgressiveButtonLabel(
+    final rawButtonText = OrderStateMachine.getProgressiveButtonLabel(
       currentStatus,
       deliveryType: deliveryType,
     );
@@ -1210,6 +1377,21 @@ class AdminOrderCard extends StatelessWidget {
     final buttonColor = OrderStateMachine.getProgressiveButtonColor(
       currentStatus,
     );
+
+    String buttonText = rawButtonText;
+    if (t != null) {
+      if (rawButtonText.contains('Accept')) {
+        buttonText = t('Accept Order', 'ऑर्डर स्वीकारें', 'Order Accept Karein');
+      } else if (rawButtonText.contains('Start Packing') || rawButtonText.contains('Pack')) {
+        buttonText = t('Start Packing', 'पैकिंग शुरू करें', 'Packing Shuru Karein');
+      } else if (rawButtonText.contains('Ready')) {
+        buttonText = t('Mark Ready', 'तैयार मार्क करें', 'Ready Mark Karein');
+      } else if (rawButtonText.contains('Dispatch')) {
+        buttonText = t('Dispatch Order', 'ऑर्डर भेजें', 'Dispatch Order');
+      } else if (rawButtonText.contains('Deliver') || rawButtonText.contains('Complete')) {
+        buttonText = t('Complete Delivery', 'डिलीवरी पूरी करें', 'Delivery Complete Karein');
+      }
+    }
 
     return ElevatedButton.icon(
       onPressed: () async {
@@ -1261,13 +1443,16 @@ class AdminOrderCard extends StatelessWidget {
           }
         }
       },
-      icon: Icon(buttonIcon, size: 20),
-      label: Text(buttonText),
+      icon: Icon(buttonIcon, size: 18),
+      label: Text(
+        buttonText,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: buttonColor,
         foregroundColor: AppColors.white,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 0,
       ),
     );
@@ -1295,15 +1480,18 @@ class AdminOrderCard extends StatelessWidget {
         );
       },
       icon: Icon(
-        isRejection ? Icons.thumb_down_alt_outlined : Icons.cancel_rounded,
-        size: 18,
+        isRejection ? Icons.thumb_down_alt_outlined : Icons.close_rounded,
+        size: 16,
       ),
-      label: Text(label),
+      label: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      ),
       style: TextButton.styleFrom(
         backgroundColor: AppColors.error.withValues(alpha: 0.1),
         foregroundColor: AppColors.error,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

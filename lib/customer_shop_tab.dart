@@ -397,7 +397,7 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                     children: [
                       Consumer<WishlistProvider>(
                         builder: (context, wp, _) {
-                          final count = wp.wishlistItems.length;
+                          final count = wp.getCount(shopProvider.currentShopId);
                           final isSelected = _selectedCategory == 'Wishlist';
                           return InkWell(
                             onTap: () {
@@ -870,9 +870,10 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                 );
               }
 
+              final currentShopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
               return Consumer<WishlistProvider>(
                 builder: (context, wishlistProvider, _) {
-                  final wishlistCount = wishlistProvider.wishlistItems.length;
+                  final wishlistCount = wishlistProvider.getCount(currentShopId);
                   final hasCustomImage = _categoryImages.containsKey(category) &&
                       _categoryImages[category]!.isNotEmpty &&
                       !isWishlist &&
@@ -1324,14 +1325,16 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                     right: 8,
                     child: Consumer<WishlistProvider>(
                       builder: (context, wishlistProvider, child) {
-                        final isInWishlist = wishlistProvider.isInWishlist(id);
+                        final cardShopId = productData['shop_id']?.toString() ??
+                            Provider.of<ShopProvider>(context, listen: false).currentShopId;
+                        final isInWishlist = wishlistProvider.isInWishlist(id, cardShopId);
                         return Material(
                           color: Colors.transparent,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
                             onTap: () {
                               HapticFeedback.lightImpact();
-                              wishlistProvider.toggleWishlist(id);
+                              wishlistProvider.toggleWishlist(id, cardShopId);
                               ScaffoldMessenger.of(context).clearSnackBars();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -1939,14 +1942,16 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                         children: [
                           Consumer<WishlistProvider>(
                             builder: (context, wp, _) {
-                              final inWishlist = wp.isInWishlist(id);
+                              final sheetShopId = productData['shop_id']?.toString() ??
+                                  Provider.of<ShopProvider>(context, listen: false).currentShopId;
+                              final inWishlist = wp.isInWishlist(id, sheetShopId);
                               return Material(
                                 color: Colors.transparent,
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(20),
                                   onTap: () {
                                     HapticFeedback.lightImpact();
-                                    wp.toggleWishlist(id);
+                                    wp.toggleWishlist(id, sheetShopId);
                                     ScaffoldMessenger.of(context).clearSnackBars();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -2526,7 +2531,7 @@ class _ProductGridState extends State<ProductGrid> {
           if (widget.selectedCategory == 'Wishlist') {
             final wishlistProvider =
                 Provider.of<WishlistProvider>(context, listen: false);
-            final wishlistIds = wishlistProvider.wishlistItems;
+            final wishlistIds = wishlistProvider.getWishlistForShop(shopId);
             if (wishlistIds.isEmpty) {
               if (mounted) {
                 setState(() {
@@ -2572,7 +2577,7 @@ class _ProductGridState extends State<ProductGrid> {
         if (widget.selectedCategory == 'Wishlist') {
           final wishlistProvider =
               Provider.of<WishlistProvider>(context, listen: false);
-          final wishlistIds = wishlistProvider.wishlistItems;
+          final wishlistIds = wishlistProvider.getWishlistForShop(shopId);
           final filtered = querySnapshot.docs.where(
             (doc) => wishlistIds.contains(doc.id),
           );

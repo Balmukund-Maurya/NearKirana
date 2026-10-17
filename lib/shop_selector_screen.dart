@@ -12,6 +12,7 @@ import 'shop_provider.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'cart_provider.dart';
+import 'wishlist_provider.dart';
 import 'language_provider.dart';
 import 'widgets/language_bottom_sheet.dart';
 import 'super_admin_screen.dart' as super_admin_screen;
@@ -132,6 +133,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
         if (currentShopId != null && currentShopId != shopId) {
           Provider.of<CartProvider>(context, listen: false).clearCart();
         }
+        Provider.of<WishlistProvider>(context, listen: false).setCurrentShopId(shopId);
 
         await Provider.of<ShopProvider>(context, listen: false).setShop(
           shopId,

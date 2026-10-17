@@ -780,16 +780,20 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
-                  child: Text(
-                    effectiveProd?.name.isNotEmpty == true
-                        ? effectiveProd!.name.characters.first.toUpperCase()
-                        : '🛒',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryDark,
-                    ),
-                  ),
+                  child: effectiveProd?.name.isNotEmpty == true
+                      ? Text(
+                          effectiveProd!.name.characters.first.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryDark,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.shopping_cart_rounded,
+                          size: 18,
+                          color: AppColors.primaryDark,
+                        ),
                 ),
               ),
               const SizedBox(width: 12),

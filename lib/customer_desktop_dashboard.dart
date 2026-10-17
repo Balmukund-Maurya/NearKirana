@@ -476,7 +476,11 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Text('👋', style: TextStyle(fontSize: 24)),
+                            const Icon(
+                              Icons.waving_hand_rounded,
+                              size: 24,
+                              color: Color(0xFFF59E0B),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),

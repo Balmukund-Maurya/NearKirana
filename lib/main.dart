@@ -262,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         langProvider,
                         'hinglish',
                         'Hinglish',
-                        '🇮🇳',
+                        Icons.translate_rounded,
                         'Roman Hindi',
                       ),
                       _buildLangOption(
@@ -270,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         langProvider,
                         'hi',
                         'हिंदी',
-                        '🔤',
+                        Icons.font_download_rounded,
                         'Devanagari',
                       ),
                       _buildLangOption(
@@ -278,7 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         langProvider,
                         'en',
                         'English',
-                        '🌐',
+                        Icons.language_rounded,
                         'English',
                       ),
                     ],
@@ -298,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
     LanguageProvider langProvider,
     String code,
     String label,
-    String emoji,
+    IconData icon,
     String desc,
   ) {
     final isSelected = langProvider.currentLanguage == code;
@@ -324,7 +324,20 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primaryDark.withValues(alpha: 0.12)
+                    : Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: isSelected ? AppColors.primaryDark : AppColors.textDark,
+              ),
+            ),
             const SizedBox(width: 16),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -820,7 +833,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('🌐', style: TextStyle(fontSize: 16)),
+                    const Icon(
+                      Icons.language_rounded,
+                      size: 16,
+                      color: AppColors.primaryDark,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       langProvider.isHindi

@@ -19,7 +19,6 @@ import 'shop_provider.dart';
 import 'wishlist_provider.dart';
 import 'admin_dashboard.dart';
 import 'app_theme.dart';
-import 'sound_service.dart';
 import 'modern_loader.dart';
 import 'shop_selector_screen.dart';
 import 'gateway_screen.dart';
@@ -28,6 +27,8 @@ import 'package:phone_email_auth/phone_email_auth.dart';
 import 'custom_auth_screen.dart';
 import 'auth_service.dart';
 import 'crash_reporting_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'widgets/language_bottom_sheet.dart';
 
 import 'package:flutter/foundation.dart'; // Added for kIsWeb
 
@@ -224,154 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _showLanguageBottomSheet(BuildContext context) {
-    SoundService().languageSwitch();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        final langProvider = Provider.of<LanguageProvider>(context);
-        return Container(
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.bgTint,
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        AppLocalizations.of(context)!.language,
-                        style: AppTextStyles.heading2(),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildLangOption(
-                        context,
-                        langProvider,
-                        'hinglish',
-                        'Hinglish',
-                        Icons.translate_rounded,
-                        'Roman Hindi',
-                      ),
-                      _buildLangOption(
-                        context,
-                        langProvider,
-                        'hi',
-                        'हिंदी',
-                        Icons.font_download_rounded,
-                        'Devanagari',
-                      ),
-                      _buildLangOption(
-                        context,
-                        langProvider,
-                        'en',
-                        'English',
-                        Icons.language_rounded,
-                        'English',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-            .animate()
-            .slideY(begin: 0.3, end: 0, duration: 350.ms, curve: Curves.easeOut)
-            .fadeIn(duration: 300.ms);
-      },
-    );
-  }
 
-  Widget _buildLangOption(
-    BuildContext context,
-    LanguageProvider langProvider,
-    String code,
-    String label,
-    IconData icon,
-    String desc,
-  ) {
-    final isSelected = langProvider.currentLanguage == code;
-    return GestureDetector(
-      onTap: () {
-        langProvider.setLanguage(code);
-        SoundService().languageSwitch();
-        Navigator.pop(context);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryLight.withValues(alpha: 0.3)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? AppColors.primaryDark : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primaryDark.withValues(alpha: 0.12)
-                    : Colors.grey.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 22,
-                color: isSelected ? AppColors.primaryDark : AppColors.textDark,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: AppTextStyles.bodySemiBold(
-                    color: isSelected
-                        ? AppColors.primaryDark
-                        : AppColors.textDark,
-                  ),
-                ),
-                Text(desc, style: AppTextStyles.caption()),
-              ],
-            ),
-            const Spacer(),
-            if (isSelected)
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryDark,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check,
-                  color: AppColors.white,
-                  size: 14,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _promptForNameAndRegister(String phone) {
     String newName = '';
@@ -781,210 +635,338 @@ class _LoginScreenState extends State<LoginScreen> {
         .fadeIn(duration: 600.ms);
   }
 
+  Widget _buildTrustBadge({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: iconColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: iconColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAuthCard(
     BuildContext context,
     LanguageProvider langProvider,
     String shopName,
     bool isDesktop,
   ) {
+    final lang = langProvider.currentLanguage;
+
+    final String brandSubtitle = lang == 'hi'
+        ? 'ताज़ा किराना व सामान आपके दरवाज़े पर'
+        : (lang == 'hinglish'
+            ? 'Fresh groceries aur daily items seedhe ghar par'
+            : 'Fresh Groceries & Daily Essentials');
+
+    final String featDelivery = lang == 'hi'
+        ? '10-25 मिनट'
+        : (lang == 'hinglish' ? '10-25 Mins' : '10-25 Mins');
+
+    final String featPrice = lang == 'hi'
+        ? 'सर्वोत्तम दाम'
+        : (lang == 'hinglish' ? 'Best Prices' : 'Best Prices');
+
+    final String featSafety = lang == 'hi'
+        ? '100% सुरक्षित'
+        : (lang == 'hinglish' ? '100% Safe' : '100% Safe');
+
+    final String phoneLabel = lang == 'hi'
+        ? 'अपना मोबाइल नंबर दर्ज करें'
+        : (lang == 'hinglish'
+            ? 'Apna mobile number dalein'
+            : 'Enter your mobile number');
+
+    final String phoneHint = lang == 'hi'
+        ? '10 अंकों का नंबर'
+        : (lang == 'hinglish'
+            ? '10-digit mobile number'
+            : 'Enter 10-digit number');
+
+    final String continueBtnText = lang == 'hi'
+        ? 'आगे बढ़ें (Continue)'
+        : (lang == 'hinglish' ? 'Aage Badhein' : 'Continue');
+
+    final String termsText = lang == 'hi'
+        ? 'जारी रखकर आप हमारी सेवा की शर्तों और गोपनीयता नीति से सहमत हैं'
+        : (lang == 'hinglish'
+            ? 'Continue karke aap hamari Terms of Service & Privacy Policy se agree karte hain'
+            : 'By continuing, you agree to our Terms of Service & Privacy Policy');
+
+    final String orDivider = lang == 'hi'
+        ? 'या'
+        : (lang == 'hinglish' ? 'ya' : 'or');
+
+    final String ownerLoginText = lang == 'hi'
+        ? 'दुकानदार लॉगिन'
+        : (lang == 'hinglish' ? 'Shop Owner Login' : 'Shop Owner Login');
+
+    final String changeShopText = lang == 'hi'
+        ? 'दुकान बदलें'
+        : (lang == 'hinglish' ? 'Change Shop' : 'Change Shop');
+
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 36 : 20,
+        vertical: isDesktop ? 36 : 22,
+      ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: isDesktop ? 0.9 : 1.0),
-        borderRadius: BorderRadius.circular(32),
-        border: isDesktop
-            ? Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5)
-            : null,
-        boxShadow: isDesktop
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ]
-            : [],
+        color: Colors.white.withValues(alpha: isDesktop ? 0.95 : 1.0),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDesktop ? Colors.grey.shade200 : const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Language toggle (top right)
+          // Top Language Toggle Pill
           Align(
             alignment: Alignment.topRight,
-            child: GestureDetector(
-              onTap: () => _showLanguageBottomSheet(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(100),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.language_rounded,
-                      size: 16,
-                      color: AppColors.primaryDark,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      langProvider.isHindi
-                          ? 'हिं'
-                          : langProvider.isHinglish
-                          ? 'Hing'
-                          : 'EN',
-                      style: AppTextStyles.captionMedium(
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(
-                      Icons.expand_more_rounded,
-                      size: 16,
-                      color: AppColors.textMid,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            child: const LanguageTogglePill(),
           ),
-          const SizedBox(height: 16),
-          // Logo & Branding
+          const SizedBox(height: 6),
+
+          // Zepto Brand Header
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 60,
-                height: 60,
-                decoration: AppDecorations.primaryGradient(radius: 16),
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF047857), Color(0xFF10B981)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF047857).withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: const Icon(
-                  Icons.shopping_basket_rounded,
-                  color: AppColors.white,
-                  size: 32,
+                  Icons.shopping_bag_rounded,
+                  color: Colors.white,
+                  size: 26,
                 ),
               ).animate().scale(
                 begin: const Offset(0, 0),
                 end: const Offset(1, 1),
-                duration: 600.ms,
-                curve: Curves.elasticOut,
+                duration: 450.ms,
+                curve: Curves.easeOutBack,
               ),
-              const SizedBox(width: 16),
-              Text(
-                'NearKirana',
-                style: AppTextStyles.display(
-                  color: AppColors.primaryDark,
-                ).copyWith(fontSize: 32),
-              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    shopName.isNotEmpty && shopName != 'NearKirana'
+                        ? shopName
+                        : 'NearKirana',
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF047857),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Text(
+                    'Instant Local Delivery',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade500,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.1, end: 0),
             ],
           ),
+          const SizedBox(height: 12),
+
+          // Subtitle
+          Text(
+            brandSubtitle,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+              height: 1.3,
+            ),
+          ).animate().fadeIn(delay: 200.ms),
+
           const SizedBox(height: 16),
 
-          Text(
-            'Fresh Groceries\nAt Your Doorstep',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.heading2(color: AppColors.textDark),
-          ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
+          // Zepto/Blinkit Style 3 Trust Feature Badges
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _buildTrustBadge(
+                icon: Icons.bolt_rounded,
+                iconColor: const Color(0xFFD97706),
+                label: featDelivery,
+                bgColor: const Color(0xFFFEF3C7),
+              ),
+              _buildTrustBadge(
+                icon: Icons.verified_rounded,
+                iconColor: const Color(0xFF059669),
+                label: featPrice,
+                bgColor: const Color(0xFFD1FAE5),
+              ),
+              _buildTrustBadge(
+                icon: Icons.security_rounded,
+                iconColor: const Color(0xFF2563EB),
+                label: featSafety,
+                bgColor: const Color(0xFFDBEAFE),
+              ),
+            ],
+          ).animate().fadeIn(delay: 300.ms),
 
-          const SizedBox(height: 48),
+          const SizedBox(height: 24),
 
-          // Input Field
+          // Input Field Title
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Enter your mobile number',
-              style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
+              phoneLabel,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF334155),
+              ),
             ),
-          ).animate().fadeIn(delay: 400.ms),
-          const SizedBox(height: 12),
+          ).animate().fadeIn(delay: 350.ms),
+          const SizedBox(height: 8),
 
+          // Modern Rounded Phone Input Container
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: const Color(0xFFCBD5E1),
+                width: 1.2,
+              ),
             ),
             child: Row(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                   child: Row(
                     children: [
                       const Icon(
                         Icons.phone_android_rounded,
                         size: 20,
-                        color: AppColors.textMid,
+                        color: Color(0xFF047857),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Text(
                         '+91',
-                        style: AppTextStyles.bodySemiBold(
-                          color: AppColors.textDark,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1E293B),
                         ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  width: 1,
+                  width: 1.2,
                   height: 24,
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: const Color(0xFFCBD5E1),
                 ),
                 Expanded(
-                  child: TextField(
+                  child: TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                       LengthLimitingTextInputFormatter(10),
                     ],
-                    style: AppTextStyles.bodySemiBold(
-                      color: AppColors.textDark,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E293B),
+                      letterSpacing: 1.2,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Enter mobile number',
-                      hintStyle: AppTextStyles.bodyMedium(
-                        color: AppColors.textMid,
+                      hintText: phoneHint,
+                      hintStyle: GoogleFonts.poppins(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.grey.shade400,
+                        letterSpacing: 0,
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
+                        horizontal: 14,
+                        vertical: 14,
                       ),
                     ),
                   ),
                 ),
               ],
             ),
-          ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.1, end: 0),
+          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.08, end: 0),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Continue Button
+          // Full-Width Zepto Green Continue Button
           SizedBox(
             width: double.infinity,
-            height: 58,
+            height: 52,
             child: ElevatedButton(
               onPressed: () {
                 if (_phoneController.text.length != 10) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                        'Please enter a valid 10-digit mobile number',
+                        lang == 'hi'
+                            ? 'कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें'
+                            : (lang == 'hinglish'
+                                ? 'Kripya 10-digit ka valid mobile number dalein'
+                                : 'Please enter a valid 10-digit mobile number'),
                       ),
+                      backgroundColor: const Color(0xFFDC2626),
+                      behavior: SnackBarBehavior.floating,
                     ),
                   );
                   return;
@@ -997,46 +979,87 @@ class _LoginScreenState extends State<LoginScreen> {
                   _startCustomPhoneLogin();
                 }
               },
-              style: AppButtonStyles.primary(radius: 16),
-              child: const Row(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF047857),
+                foregroundColor: Colors.white,
+                elevation: 3,
+                shadowColor: const Color(0xFF047857).withValues(alpha: 0.35),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Continue',
-                    style: TextStyle(
+                    continueBtnText,
+                    style: GoogleFonts.poppins(
                       color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Icon(
+                  const SizedBox(width: 8),
+                  const Icon(
                     Icons.arrow_forward_rounded,
                     color: Colors.white,
-                    size: 20,
+                    size: 19,
                   ),
                 ],
               ),
             ),
-          ).animate().fadeIn(delay: 550.ms).slideY(begin: 0.1, end: 0),
+          ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.08, end: 0),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 14),
 
+          // Terms and Privacy Footer (With lock icon, NO emojis)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.lock_outline_rounded,
+                size: 13,
+                color: Color(0xFF94A3B8),
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  termsText,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF64748B),
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ).animate().fadeIn(delay: 500.ms),
+
+          const SizedBox(height: 20),
+
+          // Divider
           Row(
             children: [
-              Expanded(child: Divider(color: AppColors.bgTint, thickness: 1.5)),
+              const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
-                  AppLocalizations.of(context)!.or_divider,
-                  style: AppTextStyles.caption(),
+                  orDivider,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF94A3B8),
+                  ),
                 ),
               ),
-              Expanded(child: Divider(color: AppColors.bgTint, thickness: 1.5)),
+              const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1)),
             ],
-          ).animate().fadeIn(delay: 650.ms),
+          ).animate().fadeIn(delay: 550.ms),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // Admin/Owner login
           TextButton.icon(
@@ -1045,31 +1068,58 @@ class _LoginScreenState extends State<LoginScreen> {
               MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
             ),
             icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
-            label: Text(AppLocalizations.of(context)!.owner_login),
-            style: TextButton.styleFrom(foregroundColor: AppColors.textMid),
-          ).animate().fadeIn(delay: 700.ms),
+            label: Text(
+              ownerLoginText,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF475569),
+              ),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF475569),
+            ),
+          ).animate().fadeIn(delay: 600.ms),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+
+          // Change Shop Button
           TextButton.icon(
             onPressed: () async {
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Change Shop?'),
-                  content: const Text(
-                    'Do you want to leave this shop and choose another? Your cart will be cleared.',
+                  title: Text(
+                    lang == 'hi'
+                        ? 'दुकान बदलें?'
+                        : (lang == 'hinglish' ? 'Shop badlein?' : 'Change Shop?'),
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                  ),
+                  content: Text(
+                    lang == 'hi'
+                        ? 'क्या आप इस दुकान से बाहर निकलकर दूसरी दुकान चुनना चाहते हैं? आपकी कार्ट खाली हो जाएगी।'
+                        : (lang == 'hinglish'
+                            ? 'Kya aap doosri shop choose karna chahte hain? Aapka cart khali ho jayega.'
+                            : 'Do you want to leave this shop and choose another? Your cart will be cleared.'),
+                    style: GoogleFonts.poppins(fontSize: 13),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
+                      child: Text(
+                        lang == 'hi' ? 'रद्द करें' : 'Cancel',
+                        style: GoogleFonts.poppins(),
+                      ),
                     ),
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
+                        backgroundColor: const Color(0xFF047857),
                       ),
-                      child: const Text('Yes, Change Shop'),
+                      child: Text(
+                        lang == 'hi' ? 'हाँ, दुकान बदलें' : 'Yes, Change Shop',
+                        style: GoogleFonts.poppins(color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
@@ -1095,9 +1145,16 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             },
             icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-            label: const Text('Change Shop'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.primaryDark),
-          ).animate().fadeIn(delay: 750.ms),
+            label: Text(
+              changeShopText,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF047857),
+              ),
+            ),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF047857)),
+          ).animate().fadeIn(delay: 650.ms),
         ],
       ),
     );

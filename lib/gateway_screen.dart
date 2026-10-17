@@ -20,6 +20,7 @@ import 'auth_service.dart';
 import 'delivery_partner_screen.dart';
 import 'language_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'widgets/language_bottom_sheet.dart';
 
 class GatewayScreen extends StatefulWidget {
   const GatewayScreen({super.key});
@@ -547,55 +548,100 @@ class _GatewayScreenState extends State<GatewayScreen> {
     Color? backgroundColor,
     required VoidCallback onTap,
     required Duration delay,
+    String? badgeText,
+    Color? badgeColor,
+    Color? badgeBgColor,
   }) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
+          color: backgroundColor ?? Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.22), width: 1.2),
           boxShadow: [
             BoxShadow(
               color: color.withValues(alpha: 0.05),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: color, size: 32),
+              child: Icon(icon, color: color, size: 28),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: AppTextStyles.heading2(color: AppColors.textDark),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                      ),
+                      if (badgeText != null) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: badgeBgColor ?? color.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            badgeText,
+                            style: GoogleFonts.poppins(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              color: badgeColor ?? color,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: AppTextStyles.captionMedium(color: AppColors.textMid),
+                    style: GoogleFonts.poppins(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF64748B),
+                      height: 1.25,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, color: color, size: 20),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.arrow_forward_ios_rounded, color: color, size: 14),
+            ),
           ],
         ),
-      ).animate().fadeIn(delay: delay).slideX(begin: 0.1, end: 0),
-    );
+      ),
+    ).animate().fadeIn(delay: delay).slideY(begin: 0.08, end: 0);
   }
 
   Widget _buildDesktopLayout(BuildContext context, Size size) {
@@ -805,6 +851,13 @@ class _GatewayScreenState extends State<GatewayScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Language Switcher (Top Right)
+          Align(
+            alignment: Alignment.topRight,
+            child: const LanguageTogglePill(),
+          ),
+          const SizedBox(height: 8),
+
           // Zepto / Blinkit Brand Header
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1153,127 +1206,197 @@ class _GatewayScreenState extends State<GatewayScreen> {
   }
 
   Widget _buildRoleSelectionMobile(BuildContext context, Size size) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Illustration Half
-          SizedBox(
-            height: size.height * 0.4,
-            width: double.infinity,
-            child: Image.asset(
-              'assets/images/kirana_web_hero.jpg',
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-            ),
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          child: Column(
+            children: [
+              // Illustration Header (Compact Zepto style)
+              SizedBox(
+                height: 160,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      'assets/images/kirana_web_hero.jpg',
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withValues(alpha: 0.45),
+                            Colors.transparent,
+                            AppColors.surface,
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Panel Half
+              Container(
+                transform: Matrix4.translationValues(0, -18, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildRolePanel(context, false),
+              ),
+            ],
           ),
-          
-          // Panel Half
-          Container(
-            color: const Color(0xFFFDFBF7),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: _buildRolePanel(context, false),
-          ),
-        ],
-      ),
+        ),
+        // Top Language Toggle Pill
+        Positioned(
+          top: 10,
+          right: 14,
+          child: const LanguageTogglePill(),
+        ),
+      ],
     );
   }
 
   Widget _buildRolePanel(BuildContext context, bool isDesktop) {
+    LanguageProvider? langProvider;
+    try {
+      langProvider = Provider.of<LanguageProvider>(context);
+    } catch (_) {}
+    final isHindi = langProvider?.isHindi ?? false;
+    final isHinglish = langProvider?.isHinglish ?? false;
+
+    final String heading = isHindi
+        ? 'NearKirana में आपका स्वागत है'
+        : (isHinglish ? 'NearKirana me Welcome' : 'Welcome to NearKirana');
+
+    final String subtitle = isHindi
+        ? 'आगे बढ़ने के लिए अपनी भूमिका चुनें'
+        : (isHinglish ? 'Aage badhne ke liye apna role chunein' : 'Select how you would like to proceed');
+
+    // Role translations
+    final String custTitle = isHindi ? 'ग्राहक (Customer)' : (isHinglish ? 'Customer (Grahak)' : 'I am a Customer');
+    final String custSub = isHindi
+        ? 'पास की दुकानों से ताज़ा किराना ऑर्डर करें'
+        : (isHinglish ? 'Aas-paas ki kirana dukano se order mangwayein' : 'Order groceries & essentials from nearby shops');
+    final String custBadge = isHindi ? '⚡ 10-25 मिनट' : (isHinglish ? '⚡ 10-25 Mins' : '⚡ 10-25 Mins');
+
+    final String shopTitle = isHindi ? 'दुकानदार (Shop Owner)' : (isHinglish ? 'Shop Owner (Dukandar)' : 'I am a Shop Owner');
+    final String shopSub = isHindi
+        ? 'दुकान रजिस्टर करें और ऑनलाइन ऑर्डर स्वीकार करें'
+        : (isHinglish ? 'Apni dukan register karein aur online orders lein' : 'Register your shop & receive online orders');
+    final String shopBadge = isHindi ? '📈 बिज़नेस बढ़ाएं' : (isHinglish ? '📈 Grow Business' : '📈 Grow Business');
+
+    final String riderTitle = isHindi ? 'डिलीवरी पार्टनर (Rider)' : (isHinglish ? 'Delivery Partner (Rider)' : 'I am a Delivery Partner');
+    final String riderSub = isHindi
+        ? 'स्थानीय दुकानों के ऑर्डर पहुंचाएं व रोज़ कमाएं'
+        : (isHinglish ? 'Local shops ke orders deliver karein aur daily kamayein' : 'Deliver orders for local kiranas & earn daily');
+    final String riderBadge = isHindi ? '🛵 दैनिक कमाई' : (isHinglish ? '🛵 Daily Payouts' : '🛵 Daily Payouts');
+
     return Container(
-      padding: EdgeInsets.all(isDesktop ? 48 : 32),
+      padding: EdgeInsets.all(isDesktop ? 36 : 18),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: AppColors.primaryDark.withValues(alpha: 0.05),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Storefront Icon
+          // Storefront Icon Pill
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.primaryDark,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.storefront_rounded,
               color: Colors.white,
-              size: 40,
+              size: 30,
             ),
-          ).animate().scale(curve: Curves.easeOutBack, duration: 600.ms),
+          ).animate().scale(curve: Curves.easeOutBack, duration: 500.ms),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           
           // Heading
-          RichText(
+          Text(
+            heading,
             textAlign: TextAlign.center,
-            text: TextSpan(
-              style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 32),
-              children: [
-                const TextSpan(text: 'Welcome to '),
-                TextSpan(
-                  text: 'NearKirana',
-                  style: TextStyle(color: AppColors.primaryDark),
-                ),
-              ],
+            style: GoogleFonts.poppins(
+              fontSize: isDesktop ? 26 : 21,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF1E293B),
             ),
-          ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+          ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.15, end: 0),
           
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           
           // Subtitle
           Text(
-            'Choose your role',
-            style: AppTextStyles.bodyMedium(color: AppColors.textMid).copyWith(fontSize: 18),
+            subtitle,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
             textAlign: TextAlign.center,
-          ).animate().fadeIn(delay: 300.ms),
+          ).animate().fadeIn(delay: 200.ms),
           
-          const SizedBox(height: 48),
+          const SizedBox(height: 20),
           
-          // Role Cards
+          // Customer Role Card
           _buildRoleCard(
-            title: 'I am a Customer',
-            subtitle: 'Order items from nearby shops',
-            icon: Icons.shopping_basket_rounded,
-            color: AppColors.primaryDark,
-            backgroundColor: Colors.white.withValues(alpha: 0.9),
+            title: custTitle,
+            subtitle: custSub,
+            icon: Icons.shopping_bag_rounded,
+            color: const Color(0xFF047857),
+            badgeText: custBadge,
+            badgeColor: const Color(0xFF047857),
+            badgeBgColor: const Color(0xFFD1FAE5),
             onTap: _selectCustomerRole,
-            delay: 400.ms,
+            delay: 250.ms,
           ),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           
+          // Shop Owner Role Card
           _buildRoleCard(
-            title: 'I am a Shop Owner',
-            subtitle: 'Register your shop and take orders online',
+            title: shopTitle,
+            subtitle: shopSub,
             icon: Icons.store_mall_directory_rounded,
-            color: AppColors.accentPink, // Soft pink/saffron
-            backgroundColor: AppColors.accentPink.withValues(alpha: 0.05),
+            color: const Color(0xFF7C3AED), // Vibrant purple
+            badgeText: shopBadge,
+            badgeColor: const Color(0xFF7C3AED),
+            badgeBgColor: const Color(0xFFEDE9FE),
             onTap: _selectAdminRole,
-            delay: 500.ms,
+            delay: 350.ms,
           ),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           
+          // Delivery Partner Role Card
           _buildRoleCard(
-            title: 'I am a Delivery Partner',
-            subtitle: 'Deliver orders for local shops & track dispatches',
+            title: riderTitle,
+            subtitle: riderSub,
             icon: Icons.two_wheeler_rounded,
-            color: Colors.deepOrange,
-            backgroundColor: Colors.deepOrange.withValues(alpha: 0.05),
+            color: const Color(0xFFEA580C), // Orange
+            badgeText: riderBadge,
+            badgeColor: const Color(0xFFEA580C),
+            badgeBgColor: const Color(0xFFFFEDD5),
             onTap: _selectDeliveryPartnerRole,
-            delay: 600.ms,
+            delay: 450.ms,
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 800.ms).slideX(begin: 0.05, end: 0, duration: 800.ms);
+    ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.05, end: 0, duration: 600.ms);
   }
 }

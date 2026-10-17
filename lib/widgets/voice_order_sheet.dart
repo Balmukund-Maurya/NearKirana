@@ -10,6 +10,7 @@ import '../cart_provider.dart';
 import '../user_provider.dart';
 import '../voice_order_models.dart';
 import '../voice_order_service.dart';
+import '../language_provider.dart';
 
 class VoiceOrderSheet extends StatefulWidget {
   final String shopId;
@@ -150,8 +151,10 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
       }
 
       _controller.addListener(listener);
-      // Start REAL microphone listening
-      _controller.startListening();
+      // Start REAL microphone listening with user's selected language
+      final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+      final targetLocale = (langProvider.isHindi || langProvider.isHinglish) ? 'hi_IN' : 'en_IN';
+      _controller.startListening(localeId: targetLocale);
     }
   }
 

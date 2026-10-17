@@ -18,6 +18,8 @@ import 'package:near_kirana/widgets/substitution_widgets.dart';
 import 'package:near_kirana/product_substitution_service.dart';
 import 'package:near_kirana/widgets/assign_delivery_partner_dialog.dart';
 import 'package:near_kirana/customer_live_tracking_screen.dart';
+import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
+import 'shop_provider.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;
@@ -743,6 +745,69 @@ class AdminOrderCard extends StatelessWidget {
                         );
                       },
                     ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // Bill / Receipt & Store Counter Item Modification Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          DigitalReceiptDialog.showForOrder(
+                            context,
+                            orderData: data,
+                            orderId: orderDoc.id,
+                          );
+                        },
+                        icon: const Icon(Icons.receipt_long_rounded, size: 15, color: Color(0xFF0C831F)),
+                        label: Text(
+                          t('View / Print Bill', 'बिल / रसीद देखें', 'View / Print Bill'),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0C831F),
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF0C831F), width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          backgroundColor: const Color(0xFF0C831F).withValues(alpha: 0.05),
+                        ),
+                      ),
+                    ),
+                    if (status != OrderStatus.cancelled &&
+                        status != OrderStatus.rejected &&
+                        status != OrderStatus.delivered) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            _showModifyOrderItemsDialog(context, orderDoc.id, data);
+                          },
+                          icon: const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFF2563EB)),
+                          label: Text(
+                            t('Modify Items', 'सामान बदलें', 'Modify Items'),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2563EB),
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF93C5FD), width: 1.2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            backgroundColor: const Color(0xFFEFF6FF),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
 
@@ -1504,6 +1569,7 @@ class AdminOrderCard extends StatelessWidget {
   ) async {
     final expectedPin = data['delivery_pin']?.toString();
     final pinController = TextEditingController();
+    final focusNode = FocusNode();
     bool showError = false;
     bool showPaymentError = false;
     String? selectedPayment;
@@ -1515,331 +1581,464 @@ class AdminOrderCard extends StatelessWidget {
       selectedPayment = 'Cash';
     }
 
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setState) => Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          title: Row(
-            children: [
-              const Icon(
-                Icons.verified_user_rounded,
-                color: AppColors.primaryDark,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Verify Delivery',
-                style: AppTextStyles.heading2(color: AppColors.textDark),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (expectedPin != null && expectedPin.isNotEmpty) ...[
-                  Text(
-                    'Ask customer for their 4-digit PIN',
-                    style: AppTextStyles.captionMedium(
-                      color: AppColors.textMid,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: pinController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 4,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      letterSpacing: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: '----',
-                      errorText: showError ? 'Invalid PIN' : null,
-                      filled: true,
-                      fillColor: AppColors.bgTint,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      counterText: '',
-                    ),
-                    onChanged: (v) {
-                      if (showError) setState(() => showError = false);
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                ],
-
-                Text(
-                  'Payment Received Via:',
-                  style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
-                ),
-                if (showPaymentError)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '* Please select a payment method',
-                      style: AppTextStyles.captionMedium(
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 12),
-                Row(
-                  children: ['Cash', 'UPI', 'Khata'].map((method) {
-                    final isSelected = selectedPayment == method;
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              selectedPayment = method;
-                              showPaymentError = false;
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primaryLight.withValues(
-                                      alpha: 0.2,
-                                    )
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.primaryDark
-                                    : AppColors.bgTint,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Text(
-                              method,
-                              style: AppTextStyles.bodySemiBold(
-                                color: isSelected
-                                    ? AppColors.primaryDark
-                                    : AppColors.textMid,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: Wrap(
-                    alignment: WrapAlignment.end,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    runSpacing: 12,
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header with green check badge
+                  Row(
                     children: [
-                      if (expectedPin != null && expectedPin.isNotEmpty)
-                        TextButton(
-                          onPressed: () async {
-                            if (selectedPayment == null) {
-                              setState(() => showPaymentError = true);
-                              return;
-                            }
-                            HapticFeedback.lightImpact();
-                            Navigator.pop(dialogContext);
-                            // FIX-26: Admin bypass logic should also use atomic batch for Khata updates
-                            final batch = FirebaseUtils.firestore.batch();
-                            final orderRef = FirebaseUtils.firestore
-                                .collection('orders')
-                                .doc(orderId);
-
-                            batch.update(orderRef, {
-                              'status': nextStatus,
-                              'payment_method': selectedPayment,
-                              'pin_bypassed': true,
-                              if (nextStatus == 'Delivered' &&
-                                  selectedPayment != 'Khata')
-                                'payment_status': PaymentStatus.paid,
-                            });
-
-                            if (nextStatus == 'Delivered' &&
-                                selectedPayment == 'Khata') {
-                              final phone = data['phone_number'] as String?;
-                              final total =
-                                  (data['total_amount'] as num?)?.toDouble() ??
-                                  0.0;
-                              if (phone != null && total > 0) {
-                                final customerQuery = await FirebaseUtils
-                                    .firestore
-                                    .collection('customers')
-                                    .where('mobile', isEqualTo: phone)
-                                    .limit(1)
-                                    .get();
-                                if (customerQuery.docs.isNotEmpty) {
-                                  final customerRef =
-                                      customerQuery.docs.first.reference;
-                                  batch.update(customerRef, {
-                                    'shop_balances.${data['shop_id']}':
-                                        FieldValue.increment(total),
-                                    'total_udhaar': FieldValue.increment(total),
-                                    'shop_ids': FieldValue.arrayUnion([
-                                      data['shop_id'],
-                                    ]),
-                                  });
-                                  batch.set(
-                                    customerRef
-                                        .collection('khata_transactions')
-                                        .doc(),
-                                    {
-                                      'amount': total,
-                                      'type': 'debit',
-                                      'shop_id': data['shop_id'],
-                                      'description':
-                                          'Order Delivered (#${orderId.substring(0, 5)})',
-                                      'timestamp': FieldValue.serverTimestamp(),
-                                    },
-                                  );
-                                }
-                              }
-                            }
-
-                            await batch.commit();
-                            NotificationService.dispatchOrderStatusNotification(
-                              orderId: orderId,
-                              newStatus: nextStatus,
-                              customerPhone:
-                                  data['phone_number']?.toString() ?? '',
-                              customerUid: data['customer_uid']?.toString(),
-                              shopId: data['shop_id']?.toString() ?? '',
-                              orderTotal: (data['total_amount'] as num?)
-                                  ?.toDouble(),
-                            );
-                            SoundService().orderDelivered();
-                          },
-                          child: Text(
-                            'Skip PIN',
-                            style: AppTextStyles.bodySemiBold(
-                              color: AppColors.error,
-                            ),
-                          ),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFECFDF5),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
                         ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        child: Text(
-                          'Cancel',
-                          style: AppTextStyles.bodySemiBold(
-                            color: AppColors.textMid,
-                          ),
+                        child: const Icon(
+                          Icons.verified_user_rounded,
+                          color: Color(0xFF0C831F),
+                          size: 24,
                         ),
                       ),
-                      ElevatedButton(
-                        onPressed: () async {
-                          if (selectedPayment == null) {
-                            setState(() => showPaymentError = true);
-                            return;
-                          }
-                          if (expectedPin == null ||
-                              expectedPin.isEmpty ||
-                              pinController.text.trim() == expectedPin) {
-                            Navigator.pop(dialogContext);
-
-                            // FIX-8: Atomic batch — Khata + order status update together
-                            final batch = FirebaseUtils.firestore.batch();
-                            final orderRef = FirebaseUtils.firestore
-                                .collection('orders')
-                                .doc(orderId);
-
-                            // Add order status update to batch
-                            batch.update(orderRef, {
-                              'status': nextStatus,
-                              'payment_method': selectedPayment,
-                              if (nextStatus == 'Delivered' &&
-                                  selectedPayment != 'Khata')
-                                'payment_status': PaymentStatus.paid,
-                            });
-
-                            // Add Khata update to SAME batch if delivered via Khata
-                            if (nextStatus == 'Delivered' &&
-                                selectedPayment == 'Khata') {
-                              final phone = data['phone_number'] as String?;
-                              final total =
-                                  (data['total_amount'] as num?)?.toDouble() ??
-                                  0.0;
-                              if (phone != null && total > 0) {
-                                final customerQuery = await FirebaseUtils
-                                    .firestore
-                                    .collection('customers')
-                                    .where('mobile', isEqualTo: phone)
-                                    .limit(1)
-                                    .get();
-                                if (customerQuery.docs.isNotEmpty) {
-                                  final customerRef =
-                                      customerQuery.docs.first.reference;
-                                  batch.update(customerRef, {
-                                    'shop_balances.${data['shop_id']}':
-                                        FieldValue.increment(total),
-                                    'total_udhaar': FieldValue.increment(total),
-                                    'shop_ids': FieldValue.arrayUnion([
-                                      data['shop_id'],
-                                    ]),
-                                  });
-                                  batch.set(
-                                    customerRef
-                                        .collection('khata_transactions')
-                                        .doc(),
-                                    {
-                                      'amount': total,
-                                      'type': 'debit',
-                                      'shop_id': data['shop_id'],
-                                      'description':
-                                          'Order Delivered (#${orderId.substring(0, 5)})',
-                                      'timestamp': FieldValue.serverTimestamp(),
-                                    },
-                                  );
-                                }
-                              }
-                            }
-
-                            await batch.commit();
-                            NotificationService.dispatchOrderStatusNotification(
-                              orderId: orderId,
-                              newStatus: nextStatus,
-                              customerPhone:
-                                  data['phone_number']?.toString() ?? '',
-                              customerUid: data['customer_uid']?.toString(),
-                              shopId: data['shop_id']?.toString() ?? '',
-                              orderTotal: (data['total_amount'] as num?)
-                                  ?.toDouble(),
-                            );
-                            SoundService().orderDelivered();
-                          } else {
-                            HapticFeedback.heavyImpact();
-                            setState(() => showError = true);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryDark,
-                          foregroundColor: AppColors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t('Verify & Complete Delivery', 'डिलीवरी सत्यापित व पूर्ण करें', 'Delivery Verify & Complete Karein'),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${t('Order', 'ऑर्डर', 'Order')} #${orderId.length > 8 ? orderId.substring(0, 8) : orderId}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                        child: const Text('Confirm'),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+
+                  // 4-Digit Security PIN Section
+                  if (expectedPin != null && expectedPin.isNotEmpty) ...[
+                    Text(
+                      t('Ask customer for 4-digit PIN', 'ग्राहक से 4 अंकों का सुरक्षा पिन पूछें', 'Customer se 4-digit security PIN maangein'),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Invisible real input + 4 styled boxes
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Opacity(
+                          opacity: 0.0,
+                          child: TextField(
+                            controller: pinController,
+                            focusNode: focusNode,
+                            keyboardType: TextInputType.number,
+                            maxLength: 4,
+                            autofocus: true,
+                            onChanged: (v) {
+                              setState(() {
+                                if (showError) showError = false;
+                              });
+                            },
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => focusNode.requestFocus(),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(4, (index) {
+                              final text = pinController.text;
+                              final isFilled = text.length > index;
+                              final isCurrent = text.length == index;
+                              final char = isFilled ? text[index] : '';
+
+                              final Color borderColor;
+                              final Color bgColor;
+                              if (showError) {
+                                borderColor = const Color(0xFFEF4444);
+                                bgColor = const Color(0xFFFEF2F2);
+                              } else if (isCurrent) {
+                                borderColor = const Color(0xFF0C831F);
+                                bgColor = const Color(0xFFF0FDF4);
+                              } else if (isFilled) {
+                                borderColor = const Color(0xFF0C831F);
+                                bgColor = Colors.white;
+                              } else {
+                                borderColor = const Color(0xFFCBD5E1);
+                                bgColor = const Color(0xFFF8FAFC);
+                              }
+
+                              return Container(
+                                width: 54,
+                                height: 58,
+                                margin: const EdgeInsets.symmetric(horizontal: 6),
+                                decoration: BoxDecoration(
+                                  color: bgColor,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: borderColor, width: isCurrent ? 2.0 : 1.5),
+                                  boxShadow: isCurrent
+                                      ? [
+                                          BoxShadow(
+                                            color: const Color(0xFF0C831F).withValues(alpha: 0.15),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : [],
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  char.isNotEmpty ? char : '•',
+                                  style: TextStyle(
+                                    fontSize: char.isNotEmpty ? 24 : 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: char.isNotEmpty ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (showError)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline_rounded, size: 14, color: Color(0xFFEF4444)),
+                            const SizedBox(width: 4),
+                            Text(
+                              t('Invalid PIN. Please check with customer.', 'गलत पिन दर्ज किया गया। कृपया दोबारा जांचें।', 'Invalid PIN. Customer se dobara poochein.'),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFEF4444),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Payment method selector
+                  Text(
+                    t('Payment Received Via:', 'भुगतान का माध्यम:', 'Payment Received Via:'),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  if (showPaymentError)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        t('* Please select a payment mode', '* कृपया भुगतान का तरीका चुनें', '* Payment mode select karein'),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFEF4444),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+
+                  // 3 Selectable Modern Payment Pills
+                  Row(
+                    children: [
+                      ('Cash', Icons.payments_outlined, t('Cash', 'नकद', 'Cash')),
+                      ('UPI', Icons.qr_code_2_rounded, t('UPI', 'यूपीआई', 'UPI')),
+                      ('Khata', Icons.account_balance_wallet_outlined, t('Khata', 'खाता', 'Khata')),
+                    ].map((item) {
+                      final key = item.$1;
+                      final icon = item.$2;
+                      final label = item.$3;
+                      final isSelected = selectedPayment == key;
+
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: InkWell(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() {
+                                selectedPayment = key;
+                                showPaymentError = false;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFF0C831F) : const Color(0xFFE2E8F0),
+                                  width: isSelected ? 2 : 1,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    icon,
+                                    size: 20,
+                                    color: isSelected ? const Color(0xFF0C831F) : const Color(0xFF64748B),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                      color: isSelected ? const Color(0xFF0C831F) : const Color(0xFF334155),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Actions: Skip PIN & Cancel row, and big Confirm button
+                  if (expectedPin != null && expectedPin.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () async {
+                              if (selectedPayment == null) {
+                                setState(() => showPaymentError = true);
+                                return;
+                              }
+                              HapticFeedback.lightImpact();
+                              Navigator.pop(dialogContext);
+
+                              final batch = FirebaseUtils.firestore.batch();
+                              final orderRef = FirebaseUtils.firestore.collection('orders').doc(orderId);
+
+                              batch.update(orderRef, {
+                                'status': nextStatus,
+                                'payment_method': selectedPayment,
+                                'pin_bypassed': true,
+                                if (nextStatus == 'Delivered' && selectedPayment != 'Khata')
+                                  'payment_status': PaymentStatus.paid,
+                              });
+
+                              if (nextStatus == 'Delivered' && selectedPayment == 'Khata') {
+                                final phone = data['phone_number'] as String?;
+                                final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
+                                if (phone != null && total > 0) {
+                                  final customerQuery = await FirebaseUtils.firestore
+                                      .collection('customers')
+                                      .where('mobile', isEqualTo: phone)
+                                      .limit(1)
+                                      .get();
+                                  if (customerQuery.docs.isNotEmpty) {
+                                    final customerRef = customerQuery.docs.first.reference;
+                                    batch.update(customerRef, {
+                                      'shop_balances.${data['shop_id']}': FieldValue.increment(total),
+                                      'total_udhaar': FieldValue.increment(total),
+                                      'shop_ids': FieldValue.arrayUnion([data['shop_id']]),
+                                    });
+                                    batch.set(
+                                      customerRef.collection('khata_transactions').doc(),
+                                      {
+                                        'amount': total,
+                                        'type': 'debit',
+                                        'shop_id': data['shop_id'],
+                                        'description': 'Order Delivered (#${orderId.substring(0, 5)})',
+                                        'timestamp': FieldValue.serverTimestamp(),
+                                      },
+                                    );
+                                  }
+                                }
+                              }
+
+                              await batch.commit();
+                              NotificationService.dispatchOrderStatusNotification(
+                                orderId: orderId,
+                                newStatus: nextStatus,
+                                customerPhone: data['phone_number']?.toString() ?? '',
+                                customerUid: data['customer_uid']?.toString(),
+                                shopId: data['shop_id']?.toString() ?? '',
+                                orderTotal: (data['total_amount'] as num?)?.toDouble(),
+                              );
+                              SoundService().orderDelivered();
+                            },
+                            icon: const Icon(Icons.lock_open_rounded, size: 16, color: Color(0xFFEF4444)),
+                            label: Text(
+                              t('Bypass / Skip PIN', 'पिन छोड़ें (आपातकालीन)', 'Skip PIN (Emergency)'),
+                              style: const TextStyle(
+                                color: Color(0xFFEF4444),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: Text(
+                              t('Cancel', 'रद्द करें', 'Cancel'),
+                              style: const TextStyle(
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // Full-width Confirm Delivery Button
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        if (selectedPayment == null) {
+                          setState(() => showPaymentError = true);
+                          return;
+                        }
+                        if (expectedPin == null ||
+                            expectedPin.isEmpty ||
+                            pinController.text.trim() == expectedPin) {
+                          Navigator.pop(dialogContext);
+
+                          final batch = FirebaseUtils.firestore.batch();
+                          final orderRef = FirebaseUtils.firestore.collection('orders').doc(orderId);
+
+                          batch.update(orderRef, {
+                            'status': nextStatus,
+                            'payment_method': selectedPayment,
+                            if (nextStatus == 'Delivered' && selectedPayment != 'Khata')
+                              'payment_status': PaymentStatus.paid,
+                          });
+
+                          if (nextStatus == 'Delivered' && selectedPayment == 'Khata') {
+                            final phone = data['phone_number'] as String?;
+                            final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
+                            if (phone != null && total > 0) {
+                              final customerQuery = await FirebaseUtils.firestore
+                                  .collection('customers')
+                                  .where('mobile', isEqualTo: phone)
+                                  .limit(1)
+                                  .get();
+                              if (customerQuery.docs.isNotEmpty) {
+                                final customerRef = customerQuery.docs.first.reference;
+                                batch.update(customerRef, {
+                                  'shop_balances.${data['shop_id']}': FieldValue.increment(total),
+                                  'total_udhaar': FieldValue.increment(total),
+                                  'shop_ids': FieldValue.arrayUnion([data['shop_id']]),
+                                });
+                                batch.set(
+                                  customerRef.collection('khata_transactions').doc(),
+                                  {
+                                    'amount': total,
+                                    'type': 'debit',
+                                    'shop_id': data['shop_id'],
+                                    'description': 'Order Delivered (#${orderId.substring(0, 5)})',
+                                    'timestamp': FieldValue.serverTimestamp(),
+                                  },
+                                );
+                              }
+                            }
+                          }
+
+                          await batch.commit();
+                          NotificationService.dispatchOrderStatusNotification(
+                            orderId: orderId,
+                            newStatus: nextStatus,
+                            customerPhone: data['phone_number']?.toString() ?? '',
+                            customerUid: data['customer_uid']?.toString(),
+                            shopId: data['shop_id']?.toString() ?? '',
+                            orderTotal: (data['total_amount'] as num?)?.toDouble(),
+                          );
+                          SoundService().orderDelivered();
+                        } else {
+                          HapticFeedback.heavyImpact();
+                          setState(() => showError = true);
+                        }
+                      },
+                      icon: const Icon(Icons.check_circle_rounded, size: 20, color: Colors.white),
+                      label: Text(
+                        t('Confirm & Complete Delivery', 'डिलीवरी कन्फर्म करें', 'Delivery Confirm Karein'),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0C831F),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                  if (expectedPin == null || expectedPin.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: Text(
+                          t('Cancel', 'रद्द करें', 'Cancel'),
+                          style: const TextStyle(color: Color(0xFF64748B)),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1969,6 +2168,527 @@ class AdminOrderCard extends StatelessWidget {
     );
   }
 
+  void _showModifyOrderItemsDialog(
+    BuildContext context,
+    String orderId,
+    Map<String, dynamic> data,
+  ) {
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
+    final rawItems = data['items'] as List? ?? [];
+    List<Map<String, dynamic>> currentItems = rawItems
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+
+    final shopId = data['shop_id']?.toString() ??
+        Provider.of<ShopProvider>(context, listen: false).currentShopId ??
+        '';
+
+    final deliveryFee = ((data['delivery_fee'] ?? 0.0) as num).toDouble();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setModalState) {
+          double subtotal = 0.0;
+          int totalItemUnits = 0;
+          for (final item in currentItems) {
+            final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+            final price = (item['price'] as num?)?.toDouble() ?? 0.0;
+            subtotal += qty * price;
+            totalItemUnits += qty.toInt();
+          }
+          final grandTotal = subtotal + deliveryFee;
+
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.88,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              top: 16,
+              left: 18,
+              right: 18,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Top drag pill
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.edit_note_rounded, color: Color(0xFF2563EB), size: 22),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t('Modify Items / Bill', 'सामान बदलें / बिल अपडेट', 'Items Modify Karein / Bill Update'),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            t('For Store Pickup or counter changes', 'काउंटर पिकअप या सामान बदलने पर', 'Store pickup ya counter modification ke liye'),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                      onPressed: () => Navigator.pop(sheetContext),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20, color: Color(0xFFF1F5F9)),
+
+                // Item List
+                Expanded(
+                  child: currentItems.isEmpty
+                      ? Center(
+                          child: Text(
+                            t('No items in order. Please add products below.', 'ऑर्डर में कोई सामान नहीं है। कृपया नीचे से सामान जोड़ें।', 'Order me koi item nahi hai. Niche se add karein.'),
+                            style: const TextStyle(color: Color(0xFF64748B)),
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: currentItems.length,
+                          separatorBuilder: (context, index) => const Divider(height: 14, color: Color(0xFFF8FAFC)),
+                          itemBuilder: (context, index) {
+                            final item = currentItems[index];
+                            final name = item['name']?.toString() ?? 'Item';
+                            final price = ((item['price'] ?? 0.0) as num).toDouble();
+                            final qty = ((item['quantity'] ?? 1) as num).toDouble();
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '₹${price.toStringAsFixed(0)} / ${item['unit'] ?? 'pc'} • Total: ₹${(price * qty).toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF0C831F),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Stepper (- Qty +)
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        InkWell(
+                                          onTap: () {
+                                            HapticFeedback.lightImpact();
+                                            setModalState(() {
+                                              if (qty > 1) {
+                                                item['quantity'] = qty - 1;
+                                              } else {
+                                                currentItems.removeAt(index);
+                                              }
+                                            });
+                                          },
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            child: Icon(Icons.remove_rounded, size: 16, color: Color(0xFF0F172A)),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                                          child: Text(
+                                            qty.toInt().toString(),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                        InkWell(
+                                          onTap: () {
+                                            HapticFeedback.lightImpact();
+                                            setModalState(() {
+                                              item['quantity'] = qty + 1;
+                                            });
+                                          },
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            child: Icon(Icons.add_rounded, size: 16, color: Color(0xFF0C831F)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
+                                    onPressed: () {
+                                      HapticFeedback.lightImpact();
+                                      setModalState(() {
+                                        currentItems.removeAt(index);
+                                      });
+                                    },
+                                    tooltip: t('Remove', 'हटाएं', 'Remove'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Button to Add Product from Store
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    HapticFeedback.lightImpact();
+                    // Open product picker sheet
+                    final selected = await showModalBottomSheet<Map<String, dynamic>>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (pickerCtx) => _buildAddProductPicker(pickerCtx, shopId, t),
+                    );
+
+                    if (selected != null) {
+                      setModalState(() {
+                        final existingIdx = currentItems.indexWhere(
+                          (i) => i['name'] == selected['name'] || (selected['id'] != null && i['product_id'] == selected['id']),
+                        );
+                        if (existingIdx != -1) {
+                          currentItems[existingIdx]['quantity'] =
+                              ((currentItems[existingIdx]['quantity'] ?? 1) as num).toDouble() + 1.0;
+                        } else {
+                          currentItems.add({
+                            'name': selected['name'],
+                            'price': ((selected['price'] ?? 0.0) as num).toDouble(),
+                            'quantity': 1.0,
+                            'product_id': selected['id'],
+                            'image_url': selected['image_url'] ?? '',
+                            'unit': selected['unit'] ?? (selected['is_loose'] == true ? 'kg' : 'pc'),
+                          });
+                        }
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.add_circle_outline_rounded, size: 18, color: Color(0xFF0C831F)),
+                  label: Text(
+                    t('+ Add Item from Store Catalog', '+ दुकान से नया सामान जोड़ें', '+ Add Item from Store'),
+                    style: const TextStyle(
+                      color: Color(0xFF0C831F),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF86EFAC), width: 1.2),
+                    backgroundColor: const Color(0xFFF0FDF4),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Bill Summary Card
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${t('New Subtotal', 'नया सामान योग', 'New Subtotal')}: ₹${subtotal.toStringAsFixed(0)}',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                          ),
+                          Text(
+                            '${t('Total Bill', 'नया कुल बिल', 'New Total Bill')}: ₹${grandTotal.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                        ],
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: currentItems.isEmpty
+                            ? null
+                            : () async {
+                                HapticFeedback.mediumImpact();
+                                Navigator.pop(sheetContext);
+
+                                // Commit update in Firestore batch
+                                final batch = FirebaseUtils.firestore.batch();
+                                final orderRef = FirebaseUtils.firestore.collection('orders').doc(orderId);
+
+                                final oldTotal = ((data['total_amount'] ?? 0.0) as num).toDouble();
+                                final totalDiff = grandTotal - oldTotal;
+
+                                batch.update(orderRef, {
+                                  'items': currentItems,
+                                  'items_count': totalItemUnits,
+                                  'subtotal': subtotal,
+                                  'total_amount': grandTotal,
+                                  'updated_at': FieldValue.serverTimestamp(),
+                                  'status_history': FieldValue.arrayUnion([
+                                    {
+                                      'status': data['status'],
+                                      'timestamp': Timestamp.now(),
+                                      'note': 'Order items updated on counter by merchant. New Total: ₹${grandTotal.toStringAsFixed(0)}',
+                                    }
+                                  ]),
+                                });
+
+                                // If order was paid via Khata and already delivered, adjust customer khata balance
+                                if (data['payment_method'] == 'Khata' && data['status'] == OrderStatus.delivered && totalDiff != 0) {
+                                  final phone = data['phone_number'] as String?;
+                                  if (phone != null) {
+                                    final cq = await FirebaseUtils.firestore
+                                        .collection('customers')
+                                        .where('mobile', isEqualTo: phone)
+                                        .limit(1)
+                                        .get();
+                                    if (cq.docs.isNotEmpty) {
+                                      final custRef = cq.docs.first.reference;
+                                      batch.update(custRef, {
+                                        'shop_balances.$shopId': FieldValue.increment(totalDiff),
+                                        'total_udhaar': FieldValue.increment(totalDiff),
+                                      });
+                                    }
+                                  }
+                                }
+
+                                await batch.commit();
+                                SoundService().success();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      behavior: SnackBarBehavior.floating,
+                                      backgroundColor: const Color(0xFF0C831F),
+                                      content: Text(
+                                        t(
+                                          'Order items and bill updated successfully! (₹${grandTotal.toStringAsFixed(0)})',
+                                          'ऑर्डर का सामान व नया बिल सफलतापूर्वक अपडेट हुआ! (₹${grandTotal.toStringAsFixed(0)})',
+                                          'Order items aur new bill successfully update ho gaya! (₹${grandTotal.toStringAsFixed(0)})',
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                        icon: const Icon(Icons.check_circle_rounded, size: 18, color: Colors.white),
+                        label: Text(
+                          t('Update Bill', 'बिल अपडेट करें', 'Update Bill'),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0C831F),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAddProductPicker(
+    BuildContext pickerCtx,
+    String shopId,
+    String Function(String, String, String) t,
+  ) {
+    String searchFilter = '';
+    return StatefulBuilder(
+      builder: (context, setPickerState) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    t('Select Product to Add', 'जोड़ने के लिए सामान चुनें', 'Add karne ke liye product chunein'),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(pickerCtx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              autofocus: false,
+              onChanged: (val) => setPickerState(() => searchFilter = val.trim().toLowerCase()),
+              decoration: InputDecoration(
+                hintText: t('Search product name...', 'सामान का नाम खोजें...', 'Product search karein...'),
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseUtils.firestore
+                    .collection('products')
+                    .where('shop_id', isEqualTo: shopId)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: ModernLoader(color: AppColors.primaryDark));
+                  }
+                  final docs = snapshot.data!.docs.where((d) {
+                    if (searchFilter.isEmpty) return true;
+                    final name = (d.get('name') ?? '').toString().toLowerCase();
+                    return name.contains(searchFilter);
+                  }).toList();
+
+                  if (docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        t('No matching products found', 'कोई सामान नहीं मिला', 'No product found'),
+                        style: const TextStyle(color: Color(0xFF64748B)),
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    itemCount: docs.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    itemBuilder: (context, index) {
+                      final doc = docs[index];
+                      final data = doc.data() as Map<String, dynamic>;
+                      final name = data['name'] ?? 'Product';
+                      final price = ((data['price'] ?? 0.0) as num).toDouble();
+                      final stock = ((data['stock_quantity'] ?? 0) as num).toDouble();
+
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        subtitle: Text('₹$price • ${t('In Stock', 'स्टॉक', 'Stock')}: $stock', style: const TextStyle(fontSize: 12, color: Color(0xFF0C831F))),
+                        trailing: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(pickerCtx, {
+                              'id': doc.id,
+                              'name': name,
+                              'price': price,
+                              'unit': data['unit'],
+                              'is_loose': data['is_loose'],
+                              'image_url': data['image_url'],
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0C831F),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            minimumSize: Size.zero,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Text(t('+ Add', '+ जोड़ें', '+ Add'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showCancelDialog(
     BuildContext context,
     String orderId,
@@ -1976,98 +2696,248 @@ class AdminOrderCard extends StatelessWidget {
     Map<String, dynamic> data, {
     bool isRejection = false,
   }) {
-    String selectedReason = isRejection ? 'Item Out of Stock' : 'Out of Stock';
+    String selectedReason = isRejection ? 'Out of Stock' : 'Out of Stock';
+    final otherReasonController = TextEditingController();
+
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
+    final reasonOptions = [
+      ('Out of Stock', Icons.remove_shopping_cart_outlined, t('Out of Stock', 'सामान का स्टॉक खत्म हो गया', 'Item Out of Stock')),
+      ('Shop is Closed', Icons.storefront_outlined, t('Shop is Closed', 'दुकान बंद है', 'Shop Closed Hai')),
+      ('Outside Delivery Area', Icons.near_me_disabled_outlined, t('Outside Delivery Area', 'डिलीवरी क्षेत्र से बाहर है', 'Delivery Area se Bahar')),
+      ('Customer Requested', Icons.person_remove_outlined, t('Customer Requested', 'ग्राहक ने मना किया', 'Customer Requested')),
+      ('Other', Icons.edit_note_rounded, t('Other Reason', 'अन्य कारण', 'Other Reason')),
+    ];
 
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setState) => Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          title: Row(
-            children: [
-              const Icon(Icons.warning_amber_rounded, color: AppColors.error),
-              const SizedBox(width: 8),
-              Text(
-                isRejection ? 'Reject Order' : 'Cancel Order',
-                style: AppTextStyles.heading2(color: AppColors.textDark),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isRejection
-                    ? 'Select a reason for rejecting order:'
-                    : 'Select a reason for cancellation:',
-                style: AppTextStyles.bodyMedium(color: AppColors.textMid),
-              ),
-              const SizedBox(height: 12),
-              RadioGroup<String>(
-                groupValue: selectedReason,
-                onChanged: (val) => setState(() => selectedReason = val!),
-                child: Column(
-                  children: [
-                    ...[
-                      'Out of Stock',
-                      'Shop is Closed',
-                      'Outside Delivery Area',
-                      'Customer Requested',
-                      'Other',
-                    ].map((reason) {
-                      return RadioListTile<String>(
-                        title: Text(
-                          reason,
-                          style: AppTextStyles.bodyMedium(
-                            color: AppColors.textDark,
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Warning Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: const Icon(
+                          Icons.cancel_rounded,
+                          color: Color(0xFFDC2626),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isRejection
+                                  ? t('Reject Order', 'ऑर्डर अस्वीकार करें', 'Order Reject Karein')
+                                  : t('Cancel Order', 'ऑर्डर रद्द करें', 'Order Cancel Karein'),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${t('Order', 'ऑर्डर', 'Order')} #${orderId.length > 8 ? orderId.substring(0, 8) : orderId}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    isRejection
+                        ? t('Select reason for rejecting order:', 'ऑर्डर अस्वीकार करने का कारण चुनें:', 'Reject karne ka reason chunein:')
+                        : t('Select reason for cancellation:', 'ऑर्डर रद्द करने का कारण चुनें:', 'Cancel karne ka reason chunein:'),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Reason Selectable Cards
+                  Column(
+                    children: reasonOptions.map((item) {
+                      final key = item.$1;
+                      final icon = item.$2;
+                      final label = item.$3;
+                      final isSelected = selectedReason == key;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => selectedReason = key);
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFFDC2626) : const Color(0xFFE2E8F0),
+                                width: isSelected ? 1.8 : 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  icon,
+                                  size: 18,
+                                  color: isSelected ? const Color(0xFFDC2626) : const Color(0xFF64748B),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                      color: isSelected ? const Color(0xFF991B1B) : const Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected ? const Color(0xFFDC2626) : const Color(0xFFCBD5E1),
+                                      width: isSelected ? 5.5 : 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        value: reason,
-                        activeColor: AppColors.error,
-                        contentPadding: EdgeInsets.zero,
                       );
-                    }),
+                    }).toList(),
+                  ),
+
+                  // Optional Text Input if "Other" is selected
+                  if (selectedReason == 'Other') ...[
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: otherReasonController,
+                      decoration: InputDecoration(
+                        hintText: t('Type custom reason here...', 'यहाँ अपना कारण लिखें...', 'Yahan custom reason likhein...'),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                   ],
-                ),
+
+                  const SizedBox(height: 16),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFCBD5E1)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: Text(
+                            t('Keep Order', 'ऑर्डर रखें', 'Order Rakhein'),
+                            style: const TextStyle(
+                              color: Color(0xFF475569),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final finalReason = selectedReason == 'Other' &&
+                                    otherReasonController.text.trim().isNotEmpty
+                                ? otherReasonController.text.trim()
+                                : selectedReason;
+
+                            Navigator.pop(dialogContext);
+                            _executeCancellation(
+                              context,
+                              orderId,
+                              data,
+                              finalReason,
+                              totalAmount,
+                              targetStatus: isRejection
+                                  ? OrderStatus.rejected
+                                  : OrderStatus.cancelled,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            isRejection
+                                ? t('Reject Order', 'अस्वीकार करें', 'Reject Karein')
+                                : t('Cancel Order', 'रद्द करें', 'Cancel Karein'),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'No, Keep It',
-                style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-                _executeCancellation(
-                  context,
-                  orderId,
-                  data,
-                  selectedReason,
-                  totalAmount,
-                  targetStatus: isRejection
-                      ? OrderStatus.rejected
-                      : OrderStatus.cancelled,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: Text(isRejection ? 'Reject Order' : 'Cancel Order'),
-            ),
-          ],
         ),
       ),
     );

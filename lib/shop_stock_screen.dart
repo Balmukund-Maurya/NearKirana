@@ -1,15 +1,15 @@
-import 'package:near_kirana/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'admin_product_details_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:simple_barcode_scanner/simple_barcode_scanner.dart';
 
-import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'shop_provider.dart';
+import 'sound_service.dart';
+import 'language_provider.dart';
 import 'utils/product_image_widget.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'widgets/admin_top_header.dart';
@@ -38,6 +38,7 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
   final int _limit = 20;
   DocumentSnapshot? _lastDocument;
   bool _showLowStockOnly = false;
+  int _selectedFilterIndex = 0; // 0 = All, 1 = Low Stock (<=5), 2 = Out of Stock (0)
 
   @override
   void initState() {
@@ -129,6 +130,60 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
     await _fetchProducts();
   }
 
+  Future<void> _scanBarcodeForSearch() async {
+    HapticFeedback.lightImpact();
+    final res = await SimpleBarcodeScanner.scanBarcode(
+      context,
+      barcodeAppBar: const BarcodeAppBar(
+        appBarTitle: 'Scan Barcode',
+        centerTitle: true,
+        enableBackButton: true,
+        backButtonIcon: Icon(Icons.arrow_back_ios_new_rounded),
+      ),
+      isShowFlashIcon: true,
+      delayMillis: 200,
+      cameraFace: CameraFace.back,
+    );
+    if (res != null && res != '-1' && res.trim().isNotEmpty) {
+      final code = res.trim();
+      setState(() {
+        _searchController.text = code;
+        _searchQuery = code.toLowerCase();
+      });
+      _refresh();
+    }
+  }
+
+  Future<void> _adjustProductStock(DocumentSnapshot doc, double delta) async {
+    HapticFeedback.lightImpact();
+    final data = doc.data() as Map<String, dynamic>;
+    final isLoose = data['is_loose'] ?? false;
+    final currentStock = ((data['stock_quantity'] ?? 0.0) as num).toDouble();
+    final step = isLoose ? (delta > 0 ? 0.5 : -0.5) : delta;
+    final newStock = (currentStock + step).clamp(0.0, 99999.0);
+
+    // Optimistic local update
+    setState(() {
+      final index = _products.indexWhere((p) => p.id == doc.id);
+      if (index != -1) {
+        final existingData = Map<String, dynamic>.from(data);
+        existingData['stock_quantity'] = newStock;
+        // Keep in list
+      }
+    });
+
+    try {
+      await doc.reference.update({
+        'stock_quantity': newStock,
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+      SoundService().success();
+      _refresh();
+    } catch (e) {
+      debugPrint('Error adjusting stock: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_selectedProductBarcode != null) {
@@ -141,326 +196,587 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
         }),
       );
     }
+
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 800) {
           return _buildDesktopLayout(context);
         }
+
+        // Calculate quick stock metrics
+        int lowStockCount = 0;
+        int outOfStockCount = 0;
+        for (final doc in _products) {
+          final data = doc.data() as Map<String, dynamic>;
+          final stock = (data['stock_quantity'] as num?)?.toDouble() ?? 0.0;
+          final isLoose = data['is_loose'] ?? false;
+          final threshold = isLoose ? 2.0 : 5.0;
+          if (stock <= 0) {
+            outOfStockCount++;
+          } else if (stock <= threshold) {
+            lowStockCount++;
+          }
+        }
+
         return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text(AppLocalizations.of(context)!.shop_stock),
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdminBatchExpiryScreen()),
-              ).then((_) => _refresh());
-            },
-            icon: const Icon(Icons.event_busy_rounded, size: 18),
-            label: const Text('Expiry', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdminSuppliersScreen()),
-              ).then((_) => _refresh());
-            },
-            icon: const Icon(Icons.local_shipping_rounded, size: 18),
-            label: const Text('Purchases', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Filter & Search Bar
-          Container(
-            color: AppColors.white,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
+          backgroundColor: const Color(0xFFF8FAFC),
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            elevation: 0,
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            titleSpacing: 16,
+            title: Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Low Stock Only',
-                      style: AppTextStyles.bodySemiBold(
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    Switch(
-                      value: _showLowStockOnly,
-                      onChanged: (val) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _showLowStockOnly = val);
-                        // FIX-15: Refresh list when filter is toggled
-                        _refresh();
-                      },
-                      activeThumbColor: AppColors.error,
-                      inactiveTrackColor: AppColors.bgTint,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    if (_debounce?.isActive ?? false) _debounce!.cancel();
-                    _debounce = Timer(const Duration(milliseconds: 500), () {
-                      if (mounted) {
-                        setState(() => _searchQuery = value.trim().toLowerCase());
-                        _refresh();
-                      }
-                    });
-                  },
-                  style: AppTextStyles.bodyMedium(color: AppColors.textDark),
-                  decoration: InputDecoration(
-                    hintText: 'Search inventory...',
-                    hintStyle: AppTextStyles.bodyMedium(
-                      color: AppColors.textMid,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.search_rounded,
-                      color: AppColors.primaryDark,
-                    ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: AppColors.textMid,
-                            ),
-                            onPressed: () {
-                              HapticFeedback.selectionClick();
-                              _searchController.clear();
-                              if (_debounce?.isActive ?? false) _debounce!.cancel();
-                              setState(() => _searchQuery = '');
-                              _refresh();
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.inventory_2_rounded,
+                    color: Color(0xFF0C831F),
+                    size: 20,
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          // List
-          Expanded(
-            child: _products.isEmpty && _isLoading
-                ? const Center(
-                    child: ModernLoader(color: AppColors.primaryDark,
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t('Store Inventory', 'स्टोर इन्वेंटरी', 'Store Inventory'),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                  )
-                : _products.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Row(
                       children: [
-                        Icon(
-                          Icons.inventory_2_rounded,
-                          size: 80,
-                          color: AppColors.bgTint,
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF16A34A),
+                          ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(width: 4),
                         Text(
-                          'No products found.',
-                          style: AppTextStyles.bodySemiBold(
-                            color: AppColors.textMid,
+                          t('Live Catalog', 'लाइव स्टॉक', 'Live Catalog'),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF16A34A),
                           ),
                         ),
                       ],
                     ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _refresh,
-                    color: AppColors.primaryDark,
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.only(
-                        top: 12,
-                        left: 16,
-                        right: 16,
-                        bottom: 100,
-                      ),
-                      itemCount: _products.length + (_hasMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == _products.length) {
-                          return const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Center(
-                              child: ModernLoader(color: AppColors.primaryDark,
-                              ),
-                            ),
-                          );
-                        }
-
-                        final product = _products[index];
-                        final data = product.data() as Map<String, dynamic>;
-                        final String name = data['name'] ?? 'Unknown';
-                        final double stock =
-                            (data['stock_quantity'] as num?)?.toDouble() ?? 0.0;
-                        final bool isLoose = data['is_loose'] ?? false;
-                        final double price =
-                            (data['price'] as num?)?.toDouble() ?? 0.0;
-                        final String unit = isLoose ? 'kg/L' : 'pc';
-                        final String imageUrl = data['image_url'] ?? '';
-
-                        final bool isLowStock = stock <= (isLoose ? 2.0 : 5.0);
-
-                        if (_showLowStockOnly && !isLowStock) {
-                          return const SizedBox.shrink();
-                        }
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isLowStock
-                                  ? AppColors.error.withValues(alpha: 0.3)
-                                  : AppColors.bgTint,
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.02),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                                                        onTap: () {
-                              HapticFeedback.lightImpact();
-                              setState(() {
-                                _selectedProductBarcode = product.id;
-                                _selectedProductName = product['name'];
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.bgTint,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isLowStock ? AppColors.error : AppColors.primaryLight,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: ClipOval(
-                                      child: imageUrl.isNotEmpty
-                                          ? ProductImageWidget(imageUrl: imageUrl, width: 48, height: 48)
-                                          : Icon(
-                                              isLoose ? Icons.scale_rounded : Icons.inventory_rounded,
-                                              color: isLowStock ? AppColors.error : AppColors.primaryDark,
-                                            ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          name,
-                                          style: AppTextStyles.heading2(
-                                            color: AppColors.textDark,
-                                          ).copyWith(fontSize: 16),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '₹$price / $unit',
-                                          style: AppTextStyles.bodyMedium(
-                                            color: AppColors.textMid,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isLowStock
-                                          ? AppColors.error.withValues(
-                                              alpha: 0.1,
-                                            )
-                                          : AppColors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: isLowStock
-                                            ? AppColors.error
-                                            : AppColors.bgTint,
-                                      ),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          'Stock',
-                                          style: AppTextStyles.captionMedium(
-                                            color: isLowStock
-                                                ? AppColors.error
-                                                : AppColors.textMid,
-                                          ).copyWith(fontSize: 10),
-                                        ),
-                                        Text(
-                                          stock.toStringAsFixed(isLoose ? 1 : 0),
-                                          style: AppTextStyles.bodySemiBold(
-                                            color: isLowStock
-                                                ? AppColors.error
-                                                : AppColors.primaryDark,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ).animate().fadeIn(
-                          delay: Duration(milliseconds: 30 * (index % 10)),
-                        );
-                      },
-                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              // Expiry Tracker Action
+              InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminBatchExpiryScreen()),
+                  ).then((_) => _refresh());
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFECACA)),
                   ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.event_busy_rounded, size: 14, color: Color(0xFFDC2626)),
+                      const SizedBox(width: 4),
+                      Text(
+                        t('Expiry', 'एक्सपायरी', 'Expiry'),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFDC2626),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              // Purchases Action
+              InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminSuppliersScreen()),
+                  ).then((_) => _refresh());
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.local_shipping_rounded, size: 14, color: Color(0xFF2563EB)),
+                      const SizedBox(width: 4),
+                      Text(
+                        t('Purchases', 'खरीदारी', 'Purchases'),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2563EB),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'fab_shop_stock_screen',
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAddProductScreen())).then((_) => _refresh());
-        },
-        backgroundColor: AppColors.primaryDark,
-        icon: const Icon(Icons.add_rounded, color: AppColors.white),
-        label: const Text('Add Product', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
-      ).animate().scale(delay: 200.ms, curve: Curves.easeOutBack),
-    );
-      }
+          body: Column(
+            children: [
+              // Search & Barcode Scan Card
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        if (_debounce?.isActive ?? false) _debounce!.cancel();
+                        _debounce = Timer(const Duration(milliseconds: 500), () {
+                          if (mounted) {
+                            setState(() => _searchQuery = value.trim().toLowerCase());
+                            _refresh();
+                          }
+                        });
+                      },
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                      decoration: InputDecoration(
+                        hintText: t('Search product, brand, barcode...', 'सामान, ब्रांड या बारकोड खोजें...', 'Product, brand, barcode search karein...'),
+                        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                        prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF0C831F), size: 20),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_searchQuery.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B), size: 18),
+                                onPressed: () {
+                                  HapticFeedback.selectionClick();
+                                  _searchController.clear();
+                                  if (_debounce?.isActive ?? false) _debounce!.cancel();
+                                  setState(() => _searchQuery = '');
+                                  _refresh();
+                                },
+                              ),
+                            IconButton(
+                              icon: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF0C831F), size: 20),
+                              tooltip: t('Scan Barcode', 'बारकोड स्कैन करें', 'Scan Barcode'),
+                              onPressed: _scanBarcodeForSearch,
+                            ),
+                          ],
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF1F5F9),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Filter Segment Pills
+                    Row(
+                      children: [
+                        (0, t('All Items', 'सभी सामान', 'All Items'), _products.length, const Color(0xFF0C831F)),
+                        (1, t('Low Stock', 'कम स्टॉक', 'Low Stock'), lowStockCount, const Color(0xFFD97706)),
+                        (2, t('Out of Stock', 'स्टॉक खत्म', 'Out of Stock'), outOfStockCount, const Color(0xFFDC2626)),
+                      ].map((item) {
+                        final index = item.$1;
+                        final title = item.$2;
+                        final count = item.$3;
+                        final color = item.$4;
+                        final isSelected = _selectedFilterIndex == index;
+
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: InkWell(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  _selectedFilterIndex = index;
+                                  _showLowStockOnly = index == 1;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? color.withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isSelected ? color : const Color(0xFFE2E8F0),
+                                    width: isSelected ? 1.6 : 1.0,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      title,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                        color: isSelected ? color : const Color(0xFF475569),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? color : const Color(0xFFE2E8F0),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        count.toString(),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: isSelected ? Colors.white : const Color(0xFF475569),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Product List
+              Expanded(
+                child: _products.isEmpty && _isLoading
+                    ? const Center(child: ModernLoader(color: Color(0xFF0C831F)))
+                    : _products.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF1F5F9),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.inventory_2_outlined,
+                                    size: 54,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                Text(
+                                  t('No products found', 'कोई सामान नहीं मिला', 'No products found'),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF334155),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  t('Tap "+ Add Product" to add items to your store.', 'अपनी दुकान में सामान जोड़ने के लिए "+ Add Product" दबाएं।', 'Dukan me saman add karne ke liye "+ Add Product" dabayein.'),
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _refresh,
+                            color: const Color(0xFF0C831F),
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.only(top: 10, left: 14, right: 14, bottom: 90),
+                              itemCount: _products.length + (_hasMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == _products.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Center(child: ModernLoader(color: Color(0xFF0C831F))),
+                                  );
+                                }
+
+                                final product = _products[index];
+                                final data = product.data() as Map<String, dynamic>;
+                                final String name = data['name'] ?? 'Unknown';
+                                final double stock = (data['stock_quantity'] as num?)?.toDouble() ?? 0.0;
+                                final bool isLoose = data['is_loose'] ?? false;
+                                final double price = (data['price'] as num?)?.toDouble() ?? 0.0;
+                                final double? mrp = (data['mrp'] as num?)?.toDouble();
+                                final String unit = isLoose ? 'kg' : (data['unit'] ?? 'pc');
+                                final String imageUrl = data['image_url'] ?? '';
+
+                                final bool isOutOfStock = stock <= 0;
+                                final bool isLowStock = stock > 0 && stock <= (isLoose ? 2.0 : 5.0);
+
+                                // Filter check
+                                if (_selectedFilterIndex == 1 && !isLowStock) {
+                                  return const SizedBox.shrink();
+                                }
+                                if (_selectedFilterIndex == 2 && !isOutOfStock) {
+                                  return const SizedBox.shrink();
+                                }
+
+                                final Color stockColor = isOutOfStock
+                                    ? const Color(0xFFDC2626)
+                                    : isLowStock
+                                        ? const Color(0xFFD97706)
+                                        : const Color(0xFF0C831F);
+
+                                final String stockLabel = isOutOfStock
+                                    ? t('Out of Stock', 'स्टॉक खत्म', 'Out of Stock')
+                                    : isLowStock
+                                        ? t('Low Stock', 'कम स्टॉक', 'Low Stock')
+                                        : t('In Stock', 'उपलब्ध', 'In Stock');
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isOutOfStock
+                                          ? const Color(0xFFFECACA)
+                                          : isLowStock
+                                              ? const Color(0xFFFDE68A)
+                                              : const Color(0xFFE2E8F0),
+                                      width: isOutOfStock || isLowStock ? 1.5 : 1.0,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.03),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      setState(() {
+                                        _selectedProductBarcode = product.id;
+                                        _selectedProductName = name;
+                                      });
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Row(
+                                        children: [
+                                          // Product Thumbnail
+                                          Container(
+                                            width: 54,
+                                            height: 54,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF8FAFC),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(12),
+                                              child: imageUrl.isNotEmpty
+                                                  ? ProductImageWidget(imageUrl: imageUrl, width: 54, height: 54)
+                                                  : Icon(
+                                                      isLoose ? Icons.scale_rounded : Icons.inventory_2_outlined,
+                                                      color: stockColor,
+                                                      size: 26,
+                                                    ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+
+                                          // Product Details
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  name,
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Color(0xFF0F172A),
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 3),
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      '₹${price.toStringAsFixed(0)}',
+                                                      style: const TextStyle(
+                                                        fontSize: 15,
+                                                        fontWeight: FontWeight.w800,
+                                                        color: Color(0xFF0C831F),
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      ' / $unit',
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color: Color(0xFF64748B),
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                    if (mrp != null && mrp > price) ...[
+                                                      const SizedBox(width: 6),
+                                                      Text(
+                                                        '₹${mrp.toStringAsFixed(0)}',
+                                                        style: const TextStyle(
+                                                          fontSize: 12,
+                                                          color: Color(0xFF94A3B8),
+                                                          decoration: TextDecoration.lineThrough,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                // Status Pill
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: stockColor.withValues(alpha: 0.1),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    '$stockLabel: ${stock.toStringAsFixed(isLoose ? 1 : 0)} $unit',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: stockColor,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                          // Quick Stock Increment / Decrement Stepper
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                InkWell(
+                                                  onTap: stock > 0
+                                                      ? () => _adjustProductStock(product, -1.0)
+                                                      : null,
+                                                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                                    child: Icon(
+                                                      Icons.remove_rounded,
+                                                      size: 16,
+                                                      color: stock > 0 ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                                                    ),
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  color: Colors.white,
+                                                  child: Text(
+                                                    stock.toStringAsFixed(isLoose ? 1 : 0),
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: stockColor,
+                                                    ),
+                                                  ),
+                                                ),
+                                                InkWell(
+                                                  onTap: () => _adjustProductStock(product, 1.0),
+                                                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                                    child: Icon(
+                                                      Icons.add_rounded,
+                                                      size: 16,
+                                                      color: Color(0xFF0C831F),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+              ),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            heroTag: 'fab_shop_stock_screen',
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminAddProductScreen()),
+              ).then((_) => _refresh());
+            },
+            backgroundColor: const Color(0xFF0C831F),
+            icon: const Icon(Icons.add_rounded, color: Colors.white),
+            label: Text(
+              t('+ Add Product', '+ सामान जोड़ें', '+ Add Product'),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+            ),
+          ),
+        );
+      },
     );
   }
 

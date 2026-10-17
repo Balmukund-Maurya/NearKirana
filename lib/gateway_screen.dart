@@ -784,47 +784,48 @@ class _GatewayScreenState extends State<GatewayScreen> {
   Widget _buildAuthCard(BuildContext context, bool isDesktop) {
     LanguageProvider? langProvider;
     try {
-      langProvider = Provider.of<LanguageProvider>(context, listen: false);
+      langProvider = Provider.of<LanguageProvider>(context);
     } catch (_) {}
-    final lang = langProvider?.currentLanguage ?? 'en';
+    final isHindi = langProvider?.isHindi ?? false;
+    final isHinglish = langProvider?.isHinglish ?? false;
 
-    final String brandSubtitle = lang == 'hi'
+    final String brandSubtitle = isHindi
         ? 'ताज़ा किराना व सामान आपके दरवाज़े पर'
-        : (lang == 'hinglish'
+        : (isHinglish
             ? 'Fresh groceries aur daily items seedhe ghar par'
             : 'Fresh Groceries & Daily Essentials');
 
-    final String featDelivery = lang == 'hi'
+    final String featDelivery = isHindi
         ? '10-25 मिनट'
-        : (lang == 'hinglish' ? '10-25 Mins' : '10-25 Mins');
+        : (isHinglish ? '10-25 Mins' : '10-25 Mins');
 
-    final String featPrice = lang == 'hi'
+    final String featPrice = isHindi
         ? 'किफायती दाम'
-        : (lang == 'hinglish' ? 'Best Prices' : 'Best Prices');
+        : (isHinglish ? 'Best Prices' : 'Best Prices');
 
-    final String featSafety = lang == 'hi'
+    final String featSafety = isHindi
         ? 'सुरक्षित व आसान'
-        : (lang == 'hinglish' ? '100% Safe' : '100% Safe');
+        : (isHinglish ? '100% Safe' : '100% Safe');
 
-    final String phoneLabel = lang == 'hi'
+    final String phoneLabel = isHindi
         ? 'अपना मोबाइल नंबर दर्ज करें'
-        : (lang == 'hinglish'
+        : (isHinglish
             ? 'Apna mobile number daalein'
             : 'Enter your mobile number');
 
-    final String phoneHint = lang == 'hi'
+    final String phoneHint = isHindi
         ? '10 अंकों का नंबर'
-        : (lang == 'hinglish'
+        : (isHinglish
             ? '10-digit mobile number'
             : 'Enter 10-digit mobile number');
 
-    final String continueBtnText = lang == 'hi'
+    final String continueBtnText = isHindi
         ? 'आगे बढ़ें'
-        : (lang == 'hinglish' ? 'Continue Karein' : 'Continue');
+        : (isHinglish ? 'Continue Karein' : 'Continue');
 
-    final String termsText = lang == 'hi'
+    final String termsText = isHindi
         ? 'जारी रखकर आप हमारी सेवा की शर्तों और गोपनीयता नीति से सहमत हैं'
-        : (lang == 'hinglish'
+        : (isHinglish
             ? 'Continue karke aap hamari Terms of Service & Privacy Policy se agree karte hain'
             : 'By continuing, you agree to our Terms of Service & Privacy Policy');
 

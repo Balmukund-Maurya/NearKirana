@@ -67,15 +67,6 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
 
-  final List<String> _quickPrompts = [
-    '2 kilo atta aur 1 litre doodh',
-    '1 packet bread aur 2 packet doodh',
-    '500 gram paneer aur aadha kilo tamatar',
-    '2 packet maggi aur 1 kg cheeni',
-    '2 kg aloo aur 1 kg pyaaz',
-    'teen packet surf excel aur ek packet namak',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -506,8 +497,16 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
               // Status message
               Text(
                 isListening
-                    ? 'Listening... Speak now (हम सुन रहे हैं...)'
-                    : 'Tap mic to speak (बोलने के लिए माइक दबाएं)',
+                    ? (Provider.of<LanguageProvider>(context, listen: false).isHindi
+                        ? 'सुन रहे हैं... बोलिए'
+                        : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                            ? 'Sun rahe hain... Abhi bolein'
+                            : 'Listening... Speak now')
+                    : (Provider.of<LanguageProvider>(context, listen: false).isHindi
+                        ? 'बोलने के लिए माइक दबाएं'
+                        : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                            ? 'Bolne ke liye mic dabayein'
+                            : 'Tap mic to speak'),
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -516,7 +515,11 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
               ),
               const SizedBox(height: 4),
               Text(
-                'Example: "Do kilo atta aur ek litre doodh add karo"',
+                Provider.of<LanguageProvider>(context, listen: false).isHindi
+                    ? 'उदाहरण: "२ किलो आटा और १ लीटर दूध जोड़ें"'
+                    : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                        ? 'Example: "Do kilo atta aur ek litre doodh add karo"'
+                        : 'Example: "Add 2 kg flour and 1 litre milk"',
                 style: GoogleFonts.poppins(
                   fontSize: 11,
                   color: AppColors.textLight,
@@ -610,6 +613,43 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
   }
 
   Widget _buildQuickPromptChips() {
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final isHindi = langProvider.isHindi;
+    final isHinglish = langProvider.isHinglish;
+
+    final headerText = isHindi
+        ? 'बोलकर देखने के उदाहरण:'
+        : isHinglish
+            ? 'Quick Bolkar Dekhein:'
+            : 'Quick Sample Voice Prompts:';
+
+    final prompts = isHindi
+        ? [
+            '२ किलो आटा और १ लीटर दूध',
+            '१ पैकेट ब्रेड और २ पैकेट दूध',
+            '५०० ग्राम पनीर और आधा किलो टमाटर',
+            '२ पैकेट मैगी और १ किलो चीनी',
+            '२ किलो आलू और १ किलो प्याज',
+            'एक पैकेट नमक और चाय पत्ती',
+          ]
+        : isHinglish
+            ? [
+                '2 kilo atta aur 1 litre doodh',
+                '1 packet bread aur 2 packet doodh',
+                '500 gram paneer aur aadha kilo tamatar',
+                '2 packet maggi aur 1 kg cheeni',
+                '2 kg aloo aur 1 kg pyaaz',
+                'ek packet surf excel aur ek packet namak',
+              ]
+            : [
+                '2 kg flour and 1 litre milk',
+                '1 packet bread and 2 packets milk',
+                '500g paneer and half kg tomatoes',
+                '2 packets maggi and 1 kg sugar',
+                '2 kg potatoes and 1 kg onions',
+                '1 packet salt and tea powder',
+              ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -618,7 +658,7 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
             const Icon(Icons.tips_and_updates_rounded, color: Colors.amber, size: 16),
             const SizedBox(width: 6),
             Text(
-              'Quick Sample Voice Prompts (क्विक बोलकर देखें):',
+              headerText,
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -631,7 +671,7 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _quickPrompts.map((p) {
+          children: prompts.map((p) {
             return ActionChip(
               avatar: const Icon(Icons.volume_up_rounded, size: 14, color: AppColors.primaryDark),
               label: Text(
@@ -1015,13 +1055,24 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
             if (result.hasAmbiguity) ...[
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  '⚠️ Please pick brand choice for items above',
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: Colors.amber.shade900,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.warning_amber_rounded, size: 16, color: Colors.amber.shade900),
+                    const SizedBox(width: 6),
+                    Text(
+                      Provider.of<LanguageProvider>(context, listen: false).isHindi
+                          ? 'कृपया ऊपर से अपने ब्रांड का चुनाव करें'
+                          : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                              ? 'Kripya upar se brand choice chunein'
+                              : 'Please pick brand choice for items above',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1033,7 +1084,11 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '${result.readyCount} items ready',
+                        Provider.of<LanguageProvider>(context, listen: false).isHindi
+                            ? '${result.readyCount} सामान तैयार'
+                            : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                                ? '${result.readyCount} items ready'
+                                : '${result.readyCount} items ready',
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           color: AppColors.textLight,
@@ -1066,7 +1121,11 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                   ),
                   icon: const Icon(Icons.add_shopping_cart_rounded, color: Colors.white),
                   label: Text(
-                    'Confirm & Add to Cart',
+                    Provider.of<LanguageProvider>(context, listen: false).isHindi
+                        ? 'पुष्टि करें और जोड़ें'
+                        : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                            ? 'Confirm & Cart me Dalein'
+                            : 'Confirm & Add to Cart',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,

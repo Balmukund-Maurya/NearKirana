@@ -672,58 +672,60 @@ class _LoginScreenState extends State<LoginScreen> {
     bool isDesktop,
   ) {
     final lang = langProvider.currentLanguage;
+    final isHindi = langProvider.isHindi;
+    final isHinglish = langProvider.isHinglish;
 
-    final String brandSubtitle = lang == 'hi'
+    final String brandSubtitle = isHindi
         ? 'ताज़ा किराना व सामान आपके दरवाज़े पर'
-        : (lang == 'hinglish'
+        : (isHinglish
             ? 'Fresh groceries aur daily items seedhe ghar par'
             : 'Fresh Groceries & Daily Essentials');
 
-    final String featDelivery = lang == 'hi'
+    final String featDelivery = isHindi
         ? '10-25 मिनट'
-        : (lang == 'hinglish' ? '10-25 Mins' : '10-25 Mins');
+        : (isHinglish ? '10-25 Mins' : '10-25 Mins');
 
-    final String featPrice = lang == 'hi'
+    final String featPrice = isHindi
         ? 'सर्वोत्तम दाम'
-        : (lang == 'hinglish' ? 'Best Prices' : 'Best Prices');
+        : (isHinglish ? 'Best Prices' : 'Best Prices');
 
-    final String featSafety = lang == 'hi'
+    final String featSafety = isHindi
         ? '100% सुरक्षित'
-        : (lang == 'hinglish' ? '100% Safe' : '100% Safe');
+        : (isHinglish ? '100% Safe' : '100% Safe');
 
-    final String phoneLabel = lang == 'hi'
+    final String phoneLabel = isHindi
         ? 'अपना मोबाइल नंबर दर्ज करें'
-        : (lang == 'hinglish'
+        : (isHinglish
             ? 'Apna mobile number dalein'
             : 'Enter your mobile number');
 
-    final String phoneHint = lang == 'hi'
+    final String phoneHint = isHindi
         ? '10 अंकों का नंबर'
-        : (lang == 'hinglish'
+        : (isHinglish
             ? '10-digit mobile number'
             : 'Enter 10-digit number');
 
-    final String continueBtnText = lang == 'hi'
+    final String continueBtnText = isHindi
         ? 'आगे बढ़ें (Continue)'
-        : (lang == 'hinglish' ? 'Aage Badhein' : 'Continue');
+        : (isHinglish ? 'Aage Badhein' : 'Continue');
 
-    final String termsText = lang == 'hi'
+    final String termsText = isHindi
         ? 'जारी रखकर आप हमारी सेवा की शर्तों और गोपनीयता नीति से सहमत हैं'
-        : (lang == 'hinglish'
+        : (isHinglish
             ? 'Continue karke aap hamari Terms of Service & Privacy Policy se agree karte hain'
             : 'By continuing, you agree to our Terms of Service & Privacy Policy');
 
-    final String orDivider = lang == 'hi'
+    final String orDivider = isHindi
         ? 'या'
-        : (lang == 'hinglish' ? 'ya' : 'or');
+        : (isHinglish ? 'ya' : 'or');
 
-    final String ownerLoginText = lang == 'hi'
+    final String ownerLoginText = isHindi
         ? 'दुकानदार लॉगिन'
-        : (lang == 'hinglish' ? 'Shop Owner Login' : 'Shop Owner Login');
+        : (isHinglish ? 'Shop Owner Login' : 'Shop Owner Login');
 
-    final String changeShopText = lang == 'hi'
+    final String changeShopText = isHindi
         ? 'दुकान बदलें'
-        : (lang == 'hinglish' ? 'Change Shop' : 'Change Shop');
+        : (isHinglish ? 'Change Shop' : 'Change Shop');
 
     return Container(
       padding: EdgeInsets.symmetric(

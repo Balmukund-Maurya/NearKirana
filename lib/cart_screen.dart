@@ -8,14 +8,13 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lottie/lottie.dart';
 
 import 'cart_provider.dart';
 import 'user_provider.dart';
 import 'app_theme.dart';
 import 'sound_service.dart';
 import 'shop_provider.dart';
+import 'language_provider.dart';
 
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -136,6 +135,17 @@ class _CartScreenState extends State<CartScreen> {
         automaticallyImplyLeading: !widget.isTab,
         title: Text(AppLocalizations.of(context)!.cart_title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.mic_rounded, color: AppColors.primaryDark),
+            tooltip: 'Order by Voice',
+            onPressed: () {
+              final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+              VoiceOrderSheet.show(
+                context,
+                shopId: shopProvider.currentShopId ?? '',
+              );
+            },
+          ),
           Consumer<CartProvider>(
             builder: (context, cart, _) {
               if (cart.items.isEmpty) return const SizedBox.shrink();
@@ -153,66 +163,146 @@ class _CartScreenState extends State<CartScreen> {
           final cartItems = cartProvider.itemsList;
 
           if (cartItems.isEmpty) {
+            final langProvider = Provider.of<LanguageProvider>(context);
+            final isHindi = langProvider.isHindi;
+            final isHinglish = langProvider.isHinglish;
+
+            final emptyTitle = isHindi
+                ? 'आपकी कार्ट अभी खाली है'
+                : isHinglish
+                    ? 'Aapki cart abhi khali hai'
+                    : 'Your Cart is Empty';
+
+            final emptySubtitle = isHindi
+                ? 'माइक दबाकर बोलें और झटपट सामान जोड़ें, या स्टोर से ताज़ा सामान चुनें।'
+                : isHinglish
+                    ? 'Bolkar grocery items add karein ya store se fresh items browse karein.'
+                    : "Speak your items to add instantly or explore store products.";
+
+            final voiceBtnText = isHindi
+                ? 'बोलकर ऑर्डर करें'
+                : isHinglish
+                    ? 'Order by Voice'
+                    : 'Order by Voice';
+
+            final browseBtnText = isHindi
+                ? 'स्टोर ब्राउज़ करें'
+                : isHinglish
+                    ? 'Browse Store'
+                    : 'Browse Store';
+
             return Center(
-              child:
-                  Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Lottie.asset(
-                            'assets/lottie/empty_cart.json',
-                            width: 250,
-                            height: 250,
-                            repeat: true,
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            AppLocalizations.of(context)?.empty_cart_title ??
-                                AppLocalizations.of(context)!.cart_empty,
-                            style: AppTextStyles.heading2(
-                              color: AppColors.textDark,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            AppLocalizations.of(context)?.empty_cart_subtitle ??
-                                "Looks like you haven't added anything to your cart yet.",
-                            style: AppTextStyles.bodyMedium(
-                              color: AppColors.textMid,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              final shopProvider = Provider.of<ShopProvider>(context, listen: false);
-                              VoiceOrderSheet.show(
-                                context,
-                                shopId: shopProvider.currentShopId ?? '',
-                              );
-                            },
-                            icon: const Icon(Icons.mic_rounded, color: Colors.white, size: 20),
-                            label: Text(
-                              AppLocalizations.of(context)?.order_by_voice_btn ?? "Order by Voice",
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryDark,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                        ],
-                      )
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .fadeIn(duration: 400.ms)
-                      .slideY(begin: 0.1, end: 0)
-                      .scaleXY(
-                        begin: 1.0,
-                        end: 1.05,
-                        duration: 1500.ms,
-                        curve: Curves.easeInOut,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryDark.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.shopping_bag_outlined,
+                          size: 46,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        emptyTitle,
+                        style: GoogleFonts.outfit(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        emptySubtitle,
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+                            VoiceOrderSheet.show(
+                              context,
+                              shopId: shopProvider.currentShopId ?? '',
+                            );
+                          },
+                          icon: const Icon(Icons.mic_rounded, color: Colors.white, size: 20),
+                          label: Text(
+                            voiceBtnText,
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryDark,
+                            elevation: 2,
+                            shadowColor: AppColors.primaryDark.withValues(alpha: 0.35),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            if (!widget.isTab && Navigator.canPop(context)) {
+                              Navigator.pop(context);
+                            }
+                          },
+                          icon: const Icon(Icons.storefront_rounded, size: 18, color: AppColors.primaryDark),
+                          label: Text(
+                            browseBtnText,
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryDark,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.primaryDark, width: 1.2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             );
           }
 

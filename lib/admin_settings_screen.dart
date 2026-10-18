@@ -878,35 +878,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     );
   }
 
-  Widget _buildCategoriesTab(String Function(String, String, String) t) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
   Future<void> _pickCategoryImage(String cat) async {
     HapticFeedback.lightImpact();
     final picker = ImagePicker();
@@ -917,10 +888,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       maxHeight: 600,
     );
     if (pickedFile != null) {
+      if (!mounted) return;
+      final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       final bytes = await pickedFile.readAsBytes();
       final base64String = base64Encode(bytes);
       final finalUrl = 'data:image/jpeg;base64,$base64String';
-      final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
       if (shopId != null && shopId.isNotEmpty) {
         await FirebaseUtils.firestore.collection('shops').doc(shopId).update({
           'category_images.$cat': finalUrl,
@@ -1074,7 +1046,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _categories.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final cat = _categories[i];
                 final catImg = _categoryImages[cat] ?? '';

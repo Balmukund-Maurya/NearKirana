@@ -28,7 +28,6 @@ class AdminProductForms {
     bool isLoose = false;
     bool isFoodItem = true;
     bool isVegetarian = true;
-    File? pickedImage;
     String? fetchedImageUrl;
     List<String> productImages = [];
     bool isFetching = true;
@@ -1129,14 +1128,7 @@ class AdminProductForms {
                                     try {
                                       String? finalImageUrl = productImages.isNotEmpty ? productImages.first : fetchedImageUrl;
 
-                                      if (pickedImage != null) {
-                                        final bytes = await pickedImage!.readAsBytes();
-                                        final base64String = base64Encode(bytes);
-                                        finalImageUrl = 'data:image/jpeg;base64,$base64String';
-                                        if (!productImages.contains(finalImageUrl)) {
-                                          productImages.insert(0, finalImageUrl);
-                                        }
-                                      }
+
 
                                       Map<String, dynamic> extraData = {};
                                       if (fetchedExtraDetails != null) {

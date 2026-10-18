@@ -21,7 +21,10 @@ class AdminShopBoysScreen extends StatefulWidget {
 
 class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
   final DeliveryPartnerService _service = DeliveryPartnerService();
+  final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  String _searchQuery = '';
+  int _selectedFilter = 0; // 0: All, 1: Available, 2: On Delivery, 3: Offline
   Stream<List<DeliveryPartner>>? _partnersStream;
   String? _lastShopId;
 

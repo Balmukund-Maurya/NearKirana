@@ -669,6 +669,12 @@ class _AdminDataExportBackupScreenState extends State<AdminDataExportBackupScree
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 18),
+                tooltip: t('Delete Snapshot', 'स्नैपशॉट हटाएं', 'Delete Snapshot'),
+                onPressed: () => _confirmDeleteBackup(context, backup, t),
+              ),
+              const SizedBox(width: 4),
               OutlinedButton.icon(
                 onPressed: () => RestoreTestDialog.show(context, backup: backup, service: _service),
                 icon: const Icon(Icons.health_and_safety_rounded, size: 15, color: Color(0xFF0C831F)),
@@ -689,6 +695,54 @@ class _AdminDataExportBackupScreenState extends State<AdminDataExportBackupScree
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteBackup(BuildContext context, BackupSnapshot backup, String Function(String, String, String) t) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('Delete Backup?', 'बैकअप हटाएं?', 'Delete Backup?')),
+        content: Text(t(
+          'Are you sure you want to delete backup snapshot from ${backup.formattedDate}?',
+          'क्या आप वाकई ${backup.formattedDate} का बैकअप स्नैपशॉट हटाना चाहते हैं?',
+          'Are you sure you want to delete backup snapshot from ${backup.formattedDate}?',
+        )),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('Cancel', 'रद्द करें', 'Cancel')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('Delete', 'हटाएं', 'Delete')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _service.firestore.collection('backups').doc(backup.id).delete();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(t('Backup deleted', 'बैकअप हटा दिया गया', 'Backup deleted')),
+              backgroundColor: const Color(0xFF0C831F),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(t('Failed to delete backup: $e', 'बैकअप हटाने में विफल: $e', 'Failed to delete backup: $e')),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _showInfoDialog(BuildContext context, String Function(String, String, String) t) {

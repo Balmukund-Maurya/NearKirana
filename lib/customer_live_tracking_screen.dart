@@ -213,7 +213,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               (orderData['driver_lng'] as num?)?.toDouble();
 
           // If rider hasn't broadcasted explicit coordinates yet, position rider on the active route
-          if ((partnerLat == null || partnerLng == null) && customerLat != null && shopLat != null) {
+          if ((partnerLat == null || partnerLng == null) && customerLat != null && shopLat != null && customerLng != null && shopLng != null) {
             final statusStr = (orderData['status'] ?? session?.status.label ?? '').toString().toLowerCase();
             final isDispatched = statusStr.contains('delivery') ||
                 statusStr.contains('transit') ||
@@ -228,16 +228,16 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
           }
 
           // Safe coordinate fallbacks
-          final finalCustomerLat = customerLat ?? 28.6139;
-          final finalCustomerLng = customerLng ?? 77.2090;
-          final finalShopLat = shopLat ?? (finalCustomerLat - 0.0075);
-          final finalShopLng = shopLng ?? (finalCustomerLng - 0.0065);
-          final finalPartnerLat = partnerLat ?? (finalShopLat + (finalCustomerLat - finalShopLat) * 0.45);
-          final finalPartnerLng = partnerLng ?? (finalShopLng + (finalCustomerLng - finalShopLng) * 0.45);
+          final double finalCustomerLat = customerLat ?? 28.6139;
+          final double finalCustomerLng = customerLng ?? 77.2090;
+          final double finalShopLat = shopLat ?? (finalCustomerLat - 0.0075);
+          final double finalShopLng = shopLng ?? (finalCustomerLng - 0.0065);
+          final double finalPartnerLat = partnerLat ?? (finalShopLat + (finalCustomerLat - finalShopLat) * 0.45);
+          final double finalPartnerLng = partnerLng ?? (finalShopLng + (finalCustomerLng - finalShopLng) * 0.45);
 
-          final partnerPoint = LatLng(finalPartnerLat, finalPartnerLng);
-          final customerPoint = LatLng(finalCustomerLat, finalCustomerLng);
-          final storePoint = LatLng(finalShopLat, finalShopLng);
+          final LatLng partnerPoint = LatLng(finalPartnerLat, finalPartnerLng);
+          final LatLng customerPoint = LatLng(finalCustomerLat, finalCustomerLng);
+          final LatLng storePoint = LatLng(finalShopLat, finalShopLng);
 
           final partnerHeading = session?.currentLocation?.heading ?? 45.0;
 
@@ -253,18 +253,14 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
 
           // Build route polyline points
           final List<LatLng> polylinePoints = [];
-          if (storePoint != null) polylinePoints.add(storePoint);
+          polylinePoints.add(storePoint);
           if (session != null && session.breadcrumbs.isNotEmpty) {
             for (final b in session.breadcrumbs) {
               polylinePoints.add(LatLng(b.latitude, b.longitude));
             }
           }
-          if (partnerPoint != null) {
-            polylinePoints.add(partnerPoint);
-          }
-          if (customerPoint != null) {
-            polylinePoints.add(customerPoint);
-          }
+          polylinePoints.add(partnerPoint);
+          polylinePoints.add(customerPoint);
 
           return Stack(
             children: [
@@ -299,53 +295,49 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                     ),
 
                   // Proximity circle around customer destination
-                  if (customerPoint != null)
-                    CircleLayer(
-                      circles: [
-                        CircleMarker(
-                          point: customerPoint,
-                          radius: 120,
-                          useRadiusInMeter: true,
-                          color: Colors.blue.withValues(alpha: 0.08),
-                          borderColor: Colors.blue.withValues(alpha: 0.35),
-                          borderStrokeWidth: 1.5,
-                        ),
-                      ],
-                    ),
+                  CircleLayer(
+                    circles: [
+                      CircleMarker(
+                        point: customerPoint,
+                        radius: 120,
+                        useRadiusInMeter: true,
+                        color: Colors.blue.withValues(alpha: 0.08),
+                        borderColor: Colors.blue.withValues(alpha: 0.35),
+                        borderStrokeWidth: 1.5,
+                      ),
+                    ],
+                  ),
 
                   // Markers Layer
                   MarkerLayer(
                     markers: [
                       // Store Marker
-                      if (storePoint != null)
-                        Marker(
-                          point: storePoint,
-                          width: 50,
-                          height: 50,
-                          child: _buildStoreMarker(),
-                        ),
+                      Marker(
+                        point: storePoint,
+                        width: 50,
+                        height: 50,
+                        child: _buildStoreMarker(),
+                      ),
 
                       // Customer Destination Marker
-                      if (customerPoint != null)
-                        Marker(
-                          point: customerPoint,
-                          width: 80,
-                          height: 75,
-                          child: _buildDestinationMarker(),
-                        ),
+                      Marker(
+                        point: customerPoint,
+                        width: 80,
+                        height: 75,
+                        child: _buildDestinationMarker(),
+                      ),
 
                       // Live Delivery Partner Marker
-                      if (partnerPoint != null)
-                        Marker(
-                          point: partnerPoint,
-                          width: 90,
-                          height: 85,
-                          child: _buildPartnerMarker(
-                            partnerName,
-                            partnerHeading,
-                            session?.isNearby ?? false,
-                          ),
+                      Marker(
+                        point: partnerPoint,
+                        width: 90,
+                        height: 85,
+                        child: _buildPartnerMarker(
+                          partnerName,
+                          partnerHeading,
+                          session?.isNearby ?? false,
                         ),
+                      ),
                     ],
                   ),
                 ],
@@ -375,21 +367,19 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                       },
                     ),
                     const SizedBox(height: 10),
-                    if (partnerPoint != null)
-                      _buildMapControlButton(
-                        icon: Icons.two_wheeler_rounded,
-                        tooltip: 'Center Partner',
-                        color: AppColors.primaryDark,
-                        iconColor: Colors.white,
-                        onTap: () => _centerOn(partnerPoint),
-                      ),
+                    _buildMapControlButton(
+                      icon: Icons.two_wheeler_rounded,
+                      tooltip: 'Center Partner',
+                      color: AppColors.primaryDark,
+                      iconColor: Colors.white,
+                      onTap: () => _centerOn(partnerPoint),
+                    ),
                     const SizedBox(height: 10),
-                    if (customerPoint != null)
-                      _buildMapControlButton(
-                        icon: Icons.home_rounded,
-                        tooltip: 'Center Destination',
-                        onTap: () => _centerOn(customerPoint),
-                      ),
+                    _buildMapControlButton(
+                      icon: Icons.home_rounded,
+                      tooltip: 'Center Destination',
+                      onTap: () => _centerOn(customerPoint),
+                    ),
                     const SizedBox(height: 10),
                     _buildMapControlButton(
                       icon: Icons.zoom_out_map_rounded,

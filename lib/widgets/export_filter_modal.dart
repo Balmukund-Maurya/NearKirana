@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../app_theme.dart';
+import '../language_provider.dart';
 import '../data_export_backup_models.dart';
 import '../data_export_backup_service.dart';
 
@@ -61,7 +63,7 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
     _endDate = range.end;
   }
 
-  Future<void> _handleExport() async {
+  Future<void> _handleExport(String Function(String, String, String) t) async {
     setState(() {
       _isExporting = true;
       _lastResult = null;
@@ -89,13 +91,16 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
       if (mounted) {
         setState(() => _isExporting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(t('Export failed: $e', 'एक्सपोर्ट विफल: $e', 'Export failed: $e')),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
-  Future<void> _handleShare() async {
+  Future<void> _handleShare(String Function(String, String, String) t) async {
     if (_lastResult == null) return;
     final service = widget.service ?? DataExportBackupService();
     try {
@@ -103,7 +108,10 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Share failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(t('Share failed: $e', 'शेयर विफल: $e', 'Share failed: $e')),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -111,6 +119,13 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
@@ -137,10 +152,10 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                           child: Icon(_selectedDomain.icon, color: _selectedDomain.color, size: 22),
                         ),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Export Business Records\n(डेटा निर्यात करें)',
-                            style: TextStyle(
+                            t('Export Business Records', 'डेटा निर्यात करें', 'Export Business Records'),
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textDark,
@@ -166,9 +181,9 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Domain Selection
-                      const Text(
-                        '1. Select Record Domain (डेटा श्रेणी) *',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      Text(
+                        t('1. Select Record Domain *', '1. डेटा श्रेणी चुनें *', '1. Select Category *'),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -176,10 +191,25 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                         runSpacing: 8,
                         children: ExportDomain.values.map((d) {
                           final isSelected = _selectedDomain == d;
+                          String domainTitle;
+                          switch (d) {
+                            case ExportDomain.salesReport:
+                              domainTitle = t('Sales Report', 'बिक्री रिपोर्ट', 'Sales Report');
+                              break;
+                            case ExportDomain.inventoryCatalog:
+                              domainTitle = t('Inventory Catalog', 'स्टॉक सूची', 'Inventory Catalog');
+                              break;
+                            case ExportDomain.khataStatements:
+                              domainTitle = t('Khata Ledger', 'खाता बही', 'Khata Ledger');
+                              break;
+                            case ExportDomain.auditLogs:
+                              domainTitle = t('Audit Trail', 'ऑडिट लॉग्स', 'Audit Trail');
+                              break;
+                          }
                           return ChoiceChip(
                             avatar: Icon(d.icon, size: 16, color: isSelected ? Colors.white : d.color),
                             label: Text(
-                              d.label.split('(').first.trim(),
+                              domainTitle,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -198,9 +228,9 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                       const SizedBox(height: 16),
 
                       // Format Selection
-                      const Text(
-                        '2. Choose Export Format (फ़ाइल फॉर्मेट) *',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      Text(
+                        t('2. Choose Export Format *', '2. फ़ाइल फॉर्मेट चुनें *', '2. Export Format *'),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -229,7 +259,9 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                                       const SizedBox(width: 6),
                                       Flexible(
                                         child: Text(
-                                          f == ExportFormat.csv ? 'CSV (Excel/Tally)' : 'PDF (Printable)',
+                                          f == ExportFormat.csv
+                                              ? t('CSV (Excel)', 'CSV (एक्सेल)', 'CSV (Excel)')
+                                              : t('PDF (Printable)', 'PDF (प्रिंट योग्य)', 'PDF (Printable)'),
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
@@ -249,9 +281,9 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                       const SizedBox(height: 16),
 
                       // Date Presets
-                      const Text(
-                        '3. Date Range (अवधि / टाइमफ़्रेम) *',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      Text(
+                        t('3. Date Range *', '3. समयावधि चुनें *', '3. Date Range *'),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -265,9 +297,29 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                           DateRangePreset.allTime,
                         ].map((preset) {
                           final isSelected = _selectedPreset == preset;
+                          String label;
+                          switch (preset) {
+                            case DateRangePreset.thisMonth:
+                              label = t('This Month (CA Special)', 'इस महीने (CA स्पेशल)', 'This Month');
+                              break;
+                            case DateRangePreset.lastMonth:
+                              label = t('Last Month', 'पिछला महीना', 'Last Month');
+                              break;
+                            case DateRangePreset.thisWeek:
+                              label = t('This Week', 'इस हफ्ते', 'This Week');
+                              break;
+                            case DateRangePreset.today:
+                              label = t('Today', 'आज', 'Today');
+                              break;
+                            case DateRangePreset.allTime:
+                              label = t('All Time', 'शुरुआत से अब तक', 'All Time');
+                              break;
+                            default:
+                              label = preset.name;
+                          }
                           return ChoiceChip(
                             label: Text(
-                              preset == DateRangePreset.thisMonth ? 'Month-End (CA Special)' : preset.label.split('(').first.trim(),
+                              label,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -326,7 +378,7 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Generated ${_lastResult!.fileName}',
+                                      '${t('Generated', 'तैयार किया', 'Generated')} ${_lastResult!.fileName}',
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -335,14 +387,14 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Total Records: ${_lastResult!.recordCount} | Size: ${_lastResult!.formattedSize}',
+                                '${t('Total Records', 'कुल रिकॉर्ड', 'Total Records')}: ${_lastResult!.recordCount} | ${t('Size', 'साइज़', 'Size')}: ${_lastResult!.formattedSize}',
                                 style: TextStyle(fontSize: 12, color: Colors.green.shade900),
                               ),
                               const SizedBox(height: 10),
                               ElevatedButton.icon(
-                                onPressed: _handleShare,
+                                onPressed: () => _handleShare(t),
                                 icon: const Icon(Icons.share_rounded, size: 16),
-                                label: const Text('Share File (WhatsApp, Email, Drive)'),
+                                label: Text(t('Share File (WhatsApp, Email)', 'फ़ाइल शेयर करें (व्हाट्सएप/ईमेल)', 'Share File')),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green.shade700,
                                   foregroundColor: Colors.white,
@@ -362,7 +414,7 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
 
               // Action Buttons
               ElevatedButton.icon(
-                onPressed: _isExporting ? null : _handleExport,
+                onPressed: _isExporting ? null : () => _handleExport(t),
                 icon: _isExporting
                     ? const SizedBox(
                         height: 18,
@@ -371,7 +423,9 @@ class _ExportFilterModalState extends State<ExportFilterModal> {
                       )
                     : const Icon(Icons.download_rounded, size: 18),
                 label: Text(
-                  _isExporting ? 'Generating Report...' : 'Generate ${_selectedFormat.name.toUpperCase()} Export',
+                  _isExporting
+                      ? t('Generating Report...', 'रिपोर्ट तैयार हो रही है...', 'Generating Report...')
+                      : '${t('Generate', 'डाउनलोड करें', 'Generate')} ${_selectedFormat.name.toUpperCase()}',
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../app_theme.dart';
+import '../language_provider.dart';
 import '../data_export_backup_models.dart';
 import '../data_export_backup_service.dart';
 
@@ -49,7 +51,7 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
     _result = widget.backup.lastRestoreTestResult;
   }
 
-  Future<void> _executeRestoreTest() async {
+  Future<void> _executeRestoreTest(String Function(String, String, String) t) async {
     setState(() => _isRunningTest = true);
     try {
       final service = widget.service ?? DataExportBackupService();
@@ -67,36 +69,43 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
       if (mounted) {
         setState(() => _isRunningTest = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Test execution failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(t('Test execution failed: $e', 'टेस्ट विफल हुआ: $e', 'Test execution failed: $e')),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
-  Future<void> _handleSafeRestore() async {
+  Future<void> _handleSafeRestore(String Function(String, String, String) t) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.deepOrange),
-            SizedBox(width: 8),
-            Text('Confirm Safe Restore?'),
+            const Icon(Icons.warning_amber_rounded, color: Colors.deepOrange),
+            const SizedBox(width: 8),
+            Text(t('Confirm Safe Restore?', 'सुरक्षित रिस्टोर की पुष्टि करें?', 'Confirm Safe Restore?')),
           ],
         ),
-        content: const Text(
-          'This will safely recover and sync products and customer records from this verified cloud snapshot. Are you sure you wish to proceed?',
-          style: TextStyle(fontSize: 13),
+        content: Text(
+          t(
+            'This will safely recover and sync products and customer records from this verified cloud snapshot. Are you sure you wish to proceed?',
+            'यह इस क्लाउड स्नैपशॉट से उत्पादों और ग्राहकों के खातों को सुरक्षित रूप से पुनर्प्राप्त करेगा। क्या आप जारी रखना चाहते हैं?',
+            'This will safely recover products and customer records from this verified cloud snapshot. Proceed?',
+          ),
+          style: const TextStyle(fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t('Cancel', 'रद्द करें', 'Cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
-            child: const Text('Proceed with Recovery'),
+            child: Text(t('Proceed with Recovery', 'रिकवरी शुरू करें', 'Proceed with Recovery')),
           ),
         ],
       ),
@@ -116,8 +125,8 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
         setState(() => _isRestoring = false);
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Data successfully restored and verified from snapshot!'),
+            SnackBar(
+              content: Text(t('Data successfully restored and verified from snapshot!', 'स्नैपशॉट से डेटा सफलतापूर्वक रिस्टोर हो गया!', 'Data successfully restored from snapshot!')),
               backgroundColor: Colors.green,
             ),
           );
@@ -128,7 +137,10 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
       if (mounted) {
         setState(() => _isRestoring = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Restore failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(t('Restore failed: $e', 'रिस्टोर विफल: $e', 'Restore failed: $e')),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -137,6 +149,12 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
   @override
   Widget build(BuildContext context) {
     final hasResult = _result != null;
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -164,10 +182,10 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
                           child: const Icon(Icons.health_and_safety_rounded, color: Colors.deepPurple, size: 22),
                         ),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Restore Testing & Integrity\n(डेटा रिकवरी टेस्ट रिपोर्ट)',
-                            style: TextStyle(
+                            t('Restore Testing & Integrity', 'डेटा रिकवरी टेस्ट रिपोर्ट', 'Restore Testing & Integrity'),
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textDark,
@@ -208,7 +226,7 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    'Snapshot: ${widget.backup.formattedDate}',
+                                    '${t('Snapshot', 'स्नैपशॉट', 'Snapshot')}: ${widget.backup.formattedDate}',
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -227,105 +245,71 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
                               ],
                             ),
                             const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                const Icon(Icons.fingerprint_rounded, size: 14, color: AppColors.textLight),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    'SHA-256: ${widget.backup.shortChecksum}',
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textLight, fontFamily: 'monospace'),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Text(
-                                  'Retention: ${widget.backup.retentionDays} days',
-                                  style: const TextStyle(fontSize: 11, color: AppColors.textLight),
-                                ),
-                              ],
+                            Text(
+                              'SHA-256: ${widget.backup.checksumSha256}',
+                              style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: AppColors.textLight),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // If no test has run yet
-                      if (!hasResult && !_isRunningTest) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.purple.shade200),
-                          ),
-                          child: Column(
-                            children: [
-                              const Icon(Icons.published_with_changes_rounded, size: 40, color: Colors.purple),
-                              const SizedBox(height: 10),
-                              const Text(
-                                'Run Dry-Run Restore Test',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.purple),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Simulates disaster recovery in a safe sandbox without altering active store records. Validates archive integrity, database schema, and reference consistency.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 12, color: Colors.purple.shade900),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
-                      // Test In Progress
-                      if (_isRunningTest) ...[
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
-                          child: Center(
+                      // Verification Steps & Status
+                      if (!hasResult) ...[
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
                             child: Column(
                               children: [
-                                CircularProgressIndicator(color: Colors.deepPurple),
-                                SizedBox(height: 16),
+                                Icon(Icons.verified_outlined, size: 48, color: Colors.grey.shade400),
+                                const SizedBox(height: 10),
                                 Text(
-                                  'Executing Restore Test...\nVerifying SHA-256 Checksum and Schemas',
+                                  t('No dry-run test performed yet.', 'अभी तक कोई टेस्ट नहीं चलाया गया।', 'No test performed yet.'),
+                                  style: const TextStyle(color: AppColors.textLight, fontSize: 13),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  t(
+                                    'Run an automated restore simulation to verify cryptographic integrity.',
+                                    'क्रिप्टोग्राफिक सुरक्षा और डेटा अखंडता जांचने के लिए टेस्ट चलाएं।',
+                                    'Run restore simulation to verify data integrity.',
+                                  ),
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(color: AppColors.textLight, fontSize: 11),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                      ],
-
-                      // Test Results
-                      if (hasResult && !_isRunningTest) ...[
-                        // Health Score Banner
+                      ] else ...[
+                        // Health Score Badge
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: _result!.status.color.withValues(alpha: 0.12),
+                            color: _result!.status.color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _result!.status.color),
+                            border: Border.all(color: _result!.status.color.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
-                              Icon(_result!.status.icon, color: _result!.status.color, size: 36),
+                              Icon(_result!.status.icon, color: _result!.status.color, size: 28),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _result!.status.label,
+                                      '${t('Health Score', 'स्वास्थ्य स्कोर', 'Health Score')}: ${_result!.healthScorePercent.toStringAsFixed(0)}%',
                                       style: TextStyle(
+                                        fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 15,
                                         color: _result!.status.color,
                                       ),
                                     ),
                                     Text(
-                                      'Health Score: ${_result!.healthScorePercent.toStringAsFixed(0)}% • Duration: ${_result!.executionDurationMs}ms',
-                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+                                      '${_result!.status.label} • ${_result!.executionDurationMs}ms execution',
+                                      style: TextStyle(fontSize: 11, color: _result!.status.color),
                                     ),
                                   ],
                                 ),
@@ -333,36 +317,14 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-
-                        // Verified Record Counts
-                        const Text(
-                          'Verified Domain Data Counts:',
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _result!.verifiedCounts.entries.map((e) {
-                            return Chip(
-                              backgroundColor: AppColors.surface,
-                              side: BorderSide(color: Colors.grey.shade300),
-                              label: Text(
-                                '${e.key.toUpperCase()}: ${e.value}',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            );
-                          }).toList(),
-                        ),
                         const SizedBox(height: 14),
 
-                        // Passed Verification Steps
-                        const Text(
-                          'Integrity Checks Passed:',
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        Text(
+                          t('Integrity Verification Steps', 'सत्यापन के चरण', 'Verification Steps'),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
+
                         ..._result!.stepsPassed.map((step) => Padding(
                               padding: const EdgeInsets.only(bottom: 6),
                               child: Row(
@@ -424,9 +386,13 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _isRunningTest || _isRestoring ? null : _executeRestoreTest,
+                      onPressed: _isRunningTest || _isRestoring ? null : () => _executeRestoreTest(t),
                       icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: Text(hasResult ? 'Re-Run Test' : 'Run Restore Test'),
+                      label: Text(
+                        hasResult
+                            ? t('Re-Run Test', 'पुनः टेस्ट करें', 'Re-Run Test')
+                            : t('Run Restore Test', 'रिस्टोर टेस्ट चलाएं', 'Run Restore Test'),
+                      ),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -437,7 +403,7 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: _isRunningTest || _isRestoring ? null : _handleSafeRestore,
+                        onPressed: _isRunningTest || _isRestoring ? null : () => _handleSafeRestore(t),
                         icon: _isRestoring
                             ? const SizedBox(
                                 height: 16,
@@ -445,7 +411,11 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.restore_page_rounded, size: 18),
-                        label: Text(_isRestoring ? 'Restoring...' : 'Safe Restore'),
+                        label: Text(
+                          _isRestoring
+                              ? t('Restoring...', 'रिस्टोर हो रहा है...', 'Restoring...')
+                              : t('Safe Restore', 'सुरक्षित रिस्टोर', 'Safe Restore'),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.deepOrange,
                           foregroundColor: Colors.white,

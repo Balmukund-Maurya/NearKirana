@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../app_theme.dart';
+import '../language_provider.dart';
 import '../data_export_backup_models.dart';
 import '../data_export_backup_service.dart';
 
@@ -41,7 +43,7 @@ class _CreateBackupModalState extends State<CreateBackupModal> {
   int _selectedRetentionDays = 30;
   bool _isCreating = false;
 
-  Future<void> _handleCreate() async {
+  Future<void> _handleCreate(String Function(String, String, String) t) async {
     setState(() => _isCreating = true);
     try {
       final service = widget.service ?? DataExportBackupService();
@@ -59,7 +61,10 @@ class _CreateBackupModalState extends State<CreateBackupModal> {
       if (mounted) {
         setState(() => _isCreating = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create backup: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(t('Failed to create backup: $e', 'बैकअप बनाने में विफल: $e', 'Failed to create backup: $e')),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -67,6 +72,13 @@ class _CreateBackupModalState extends State<CreateBackupModal> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
@@ -93,10 +105,10 @@ class _CreateBackupModalState extends State<CreateBackupModal> {
                           child: const Icon(Icons.cloud_upload_rounded, color: Colors.teal, size: 22),
                         ),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Create Cloud Backup\n(नया बैकअप स्नैपशॉट लें)',
-                            style: TextStyle(
+                            t('Create Cloud Backup', 'क्लाउड बैकअप लें', 'Create Cloud Backup'),
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textDark,
@@ -122,25 +134,29 @@ class _CreateBackupModalState extends State<CreateBackupModal> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Description
-                      const Text(
-                        'This creates a full encrypted snapshot of your store catalog, customer ledger, orders, and audit trail with cryptographic SHA-256 verification.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textLight),
+                      Text(
+                        t(
+                          'This creates a full encrypted snapshot of your store catalog, customer ledger, orders, and audit trail with cryptographic SHA-256 verification.',
+                          'यह आपकी दुकान के सभी प्रॉडक्ट्स, ग्राहकों के खाते, ऑर्डर्स और ऑडिट का सुरक्षित स्नैपशॉट बनाता है।',
+                          'This creates a verified cloud snapshot of catalog, customer ledger, orders, and audit trail.',
+                        ),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textLight),
                       ),
                       const SizedBox(height: 16),
 
                       // Retention Policy Selector
-                      const Text(
-                        'Select Retention Lifespan (बैकअप अवधि) *',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      Text(
+                        t('Select Retention Lifespan *', 'बैकअप की सुरक्षित अवधि चुनें *', 'Select Retention Lifespan *'),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          _retentionCard(7, '7 Days', 'Weekly Cycle'),
+                          _retentionCard(7, t('7 Days', '7 दिन', '7 Days'), t('Weekly Cycle', 'साप्ताहिक चक्र', 'Weekly Cycle')),
                           const SizedBox(width: 8),
-                          _retentionCard(30, '30 Days', 'Recommended (महीना)'),
+                          _retentionCard(30, t('30 Days', '30 दिन', '30 Days'), t('Recommended', 'अनुशंसित (1 महीना)', 'Recommended')),
                           const SizedBox(width: 8),
-                          _retentionCard(90, '90 Days', 'Quarterly Audit'),
+                          _retentionCard(90, t('90 Days', '90 दिन', '90 Days'), t('Quarterly Audit', 'तिमाही ऑडिट', 'Quarterly Audit')),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -153,15 +169,15 @@ class _CreateBackupModalState extends State<CreateBackupModal> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.grey.shade200),
                         ),
-                        child: const Column(
+                        child: Column(
                           children: [
-                            _IncludedRow(Icons.inventory_2_rounded, 'Products & Stock Inventory (उत्पाद सूची)'),
-                            SizedBox(height: 6),
-                            _IncludedRow(Icons.menu_book_rounded, 'Customers & Khata Balances (खाता व उधारी)'),
-                            SizedBox(height: 6),
-                            _IncludedRow(Icons.shopping_bag_rounded, 'Order History & Statuses (ऑर्डर्स)'),
-                            SizedBox(height: 6),
-                            _IncludedRow(Icons.verified_user_rounded, 'Immutable Audit Logs (ऑडिट ट्रेल)'),
+                            _IncludedRow(Icons.inventory_2_rounded, t('Products & Stock Inventory', 'उत्पाद व स्टॉक सूची', 'Products & Inventory')),
+                            const SizedBox(height: 6),
+                            _IncludedRow(Icons.menu_book_rounded, t('Customers & Khata Balances', 'ग्राहक व उधारी बहीखाता', 'Customers & Khata Ledger')),
+                            const SizedBox(height: 6),
+                            _IncludedRow(Icons.shopping_bag_rounded, t('Order History & Statuses', 'ऑर्डर इतिहास व विवरण', 'Order History & Status')),
+                            const SizedBox(height: 6),
+                            _IncludedRow(Icons.verified_user_rounded, t('Immutable Audit Logs', 'सुरक्षित ऑडिट लॉग्स', 'Immutable Audit Logs')),
                           ],
                         ),
                       ),
@@ -173,7 +189,7 @@ class _CreateBackupModalState extends State<CreateBackupModal> {
 
               // Submit Button
               ElevatedButton.icon(
-                onPressed: _isCreating ? null : _handleCreate,
+                onPressed: _isCreating ? null : () => _handleCreate(t),
                 icon: _isCreating
                     ? const SizedBox(
                         height: 18,
@@ -182,7 +198,9 @@ class _CreateBackupModalState extends State<CreateBackupModal> {
                       )
                     : const Icon(Icons.cloud_done_rounded, size: 18),
                 label: Text(
-                  _isCreating ? 'Creating Snapshot...' : 'Create Snapshot Now (बैकअप लें)',
+                  _isCreating
+                      ? t('Creating Snapshot...', 'स्नैपशॉट बन रहा है...', 'Creating Snapshot...')
+                      : t('Create Snapshot Now', 'अभी बैकअप लें', 'Create Snapshot Now'),
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(

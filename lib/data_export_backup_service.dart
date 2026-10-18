@@ -262,21 +262,40 @@ class DataExportBackupService {
     String actorName,
     String actorRole,
   ) async {
-    final snapshot = await firestore
-        .collection('customers')
-        .where('shop_id', isEqualTo: filter.shopId)
-        .get();
+    QuerySnapshot snapshot;
+    try {
+      snapshot = await firestore
+          .collection('customers')
+          .where('shop_ids', arrayContains: filter.shopId)
+          .get();
+      if (snapshot.docs.isEmpty) {
+        snapshot = await firestore
+            .collection('customers')
+            .where('shop_id', isEqualTo: filter.shopId)
+            .get();
+      }
+    } catch (_) {
+      snapshot = await firestore
+          .collection('customers')
+          .where('shop_id', isEqualTo: filter.shopId)
+          .get();
+    }
 
     final List<Map<String, dynamic>> customers = [];
     double totalOutstandingCredit = 0;
     int debtorsCount = 0;
 
     for (final doc in snapshot.docs) {
-      final data = Map<String, dynamic>.from(doc.data());
+      final data = Map<String, dynamic>.from(doc.data() as Map);
       data['id'] = doc.id;
+      final balance = ((data['shop_balances']?[filter.shopId] ??
+              data['khata_balance'] ??
+              data['total_udhaar'] ??
+              0) as num)
+          .toDouble();
+      data['resolved_balance'] = balance;
       customers.add(data);
 
-      final balance = (data['khata_balance'] as num?)?.toDouble() ?? 0.0;
       if (balance > 0) {
         totalOutstandingCredit += balance;
         debtorsCount++;
@@ -284,8 +303,8 @@ class DataExportBackupService {
     }
 
     customers.sort((a, b) {
-      final bBal = (b['khata_balance'] as num?)?.toDouble() ?? 0.0;
-      final aBal = (a['khata_balance'] as num?)?.toDouble() ?? 0.0;
+      final bBal = (b['resolved_balance'] as num?)?.toDouble() ?? 0.0;
+      final aBal = (a['resolved_balance'] as num?)?.toDouble() ?? 0.0;
       return bBal.compareTo(aBal);
     });
 
@@ -300,8 +319,8 @@ class DataExportBackupService {
     for (final c in customers) {
       final cid = c['id']?.toString() ?? '';
       final name = c['name']?.toString() ?? 'Customer';
-      final phone = c['phone']?.toString() ?? '';
-      final balance = (c['khata_balance'] as num?)?.toDouble() ?? 0.0;
+      final phone = (c['mobile'] ?? c['phone'] ?? '').toString();
+      final balance = (c['resolved_balance'] as num?)?.toDouble() ?? 0.0;
       final limit = (c['khata_limit'] as num?)?.toDouble() ?? 0.0;
       final status = balance > 0 ? 'Due (उधार बाकी)' : 'Settled (चुक्ता)';
 
@@ -435,14 +454,24 @@ class DataExportBackupService {
   }) async {
     // 1. Fetch data across core domains
     final productsSnap = await firestore.collection('products').where('shop_id', isEqualTo: shopId).get();
-    final customersSnap = await firestore.collection('customers').where('shop_id', isEqualTo: shopId).get();
+    
+    QuerySnapshot customersSnap;
+    try {
+      customersSnap = await firestore.collection('customers').where('shop_ids', arrayContains: shopId).get();
+      if (customersSnap.docs.isEmpty) {
+        customersSnap = await firestore.collection('customers').where('shop_id', isEqualTo: shopId).get();
+      }
+    } catch (_) {
+      customersSnap = await firestore.collection('customers').where('shop_id', isEqualTo: shopId).get();
+    }
+
     final ordersSnap = await firestore.collection('orders').where('shop_id', isEqualTo: shopId).get();
     final auditLogsSnap = await firestore.collection('audit_logs').where('shop_id', isEqualTo: shopId).get();
 
-    final List<Map<String, dynamic>> productsList = productsSnap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
-    final List<Map<String, dynamic>> customersList = customersSnap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
-    final List<Map<String, dynamic>> ordersList = ordersSnap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
-    final List<Map<String, dynamic>> auditLogsList = auditLogsSnap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+    final List<Map<String, dynamic>> productsList = productsSnap.docs.map((d) => {'id': d.id, ...Map<String, dynamic>.from(d.data() as Map)}).toList();
+    final List<Map<String, dynamic>> customersList = customersSnap.docs.map((d) => {'id': d.id, ...Map<String, dynamic>.from(d.data() as Map)}).toList();
+    final List<Map<String, dynamic>> ordersList = ordersSnap.docs.map((d) => {'id': d.id, ...Map<String, dynamic>.from(d.data() as Map)}).toList();
+    final List<Map<String, dynamic>> auditLogsList = auditLogsSnap.docs.map((d) => {'id': d.id, ...Map<String, dynamic>.from(d.data() as Map)}).toList();
 
     final countsByDomain = {
       'products': productsList.length,
@@ -453,7 +482,7 @@ class DataExportBackupService {
 
     final totalRecords = productsList.length + customersList.length + ordersList.length + auditLogsList.length;
 
-    // 2. Compile full snapshot payload
+    // 2. Compile full snapshot payload with safe Firestore to JSON serialization
     final payloadMap = {
       'shop_id': shopId,
       'snapshot_version': '1.0',
@@ -465,7 +494,21 @@ class DataExportBackupService {
       'audit_logs': auditLogsList,
     };
 
-    final payloadJson = jsonEncode(payloadMap);
+    final payloadJson = jsonEncode(payloadMap, toEncodable: (nonEncodable) {
+      if (nonEncodable is Timestamp) {
+        return nonEncodable.toDate().toIso8601String();
+      }
+      if (nonEncodable is DateTime) {
+        return nonEncodable.toIso8601String();
+      }
+      if (nonEncodable is GeoPoint) {
+        return {'latitude': nonEncodable.latitude, 'longitude': nonEncodable.longitude};
+      }
+      if (nonEncodable is DocumentReference) {
+        return nonEncodable.path;
+      }
+      return nonEncodable.toString();
+    });
     final payloadBytes = utf8.encode(payloadJson);
 
     // 3. Compute cryptographic SHA-256 checksum for tamper-proof restore testing
@@ -610,7 +653,7 @@ class DataExportBackupService {
     verifiedCounts['products'] = products.length;
     int validProducts = 0;
     for (final p in products) {
-      if (p is Map && p.containsKey('name') && (p.containsKey('price') || p.containsKey('selling_price'))) {
+      if (p is Map && p.containsKey('name') && (p.containsKey('price') || p.containsKey('selling_price') || p.containsKey('mrp'))) {
         validProducts++;
       }
     }
@@ -625,14 +668,14 @@ class DataExportBackupService {
     verifiedCounts['customers'] = customers.length;
     int validCustomers = 0;
     for (final c in customers) {
-      if (c is Map && c.containsKey('phone')) {
+      if (c is Map && (c.containsKey('mobile') || c.containsKey('phone') || c.containsKey('phone_number') || c.containsKey('name'))) {
         validCustomers++;
       }
     }
     if (validCustomers == customers.length) {
       stepsPassed.add('Customer & Khata Ledger integrity verified ($validCustomers records)');
     } else {
-      warnings.add('Found ${customers.length - validCustomers} customer records with incomplete phone metadata');
+      warnings.add('Found ${customers.length - validCustomers} customer records with incomplete phone/profile metadata');
     }
 
     // STEP 5: Order Records & Audit Trail verification

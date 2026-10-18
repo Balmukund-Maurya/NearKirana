@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,18 +24,25 @@ enum NotificationPermissionStatus {
   notSupported,
 }
 
-/// Representation of a stored in-app / push notification
+/// Representation of a stored in-app / push notification with multi-language support and Flutter Icons
 class NotificationItem {
   final String id;
   final String title;
   final String body;
   final String? orderId;
+  final String status;
   final String type; // 'order_status', 'new_order', 'general', 'alert'
   final String? recipientPhone;
   final String? recipientUid;
   final String? shopId;
   final DateTime createdAt;
   final bool isRead;
+  final String titleEn;
+  final String titleHi;
+  final String titleHinglish;
+  final String bodyEn;
+  final String bodyHi;
+  final String bodyHinglish;
   final Map<String, dynamic> data;
 
   const NotificationItem({
@@ -42,25 +50,113 @@ class NotificationItem {
     required this.title,
     required this.body,
     this.orderId,
+    this.status = '',
     this.type = 'order_status',
     this.recipientPhone,
     this.recipientUid,
     this.shopId,
     required this.createdAt,
     this.isRead = false,
+    this.titleEn = '',
+    this.titleHi = '',
+    this.titleHinglish = '',
+    this.bodyEn = '',
+    this.bodyHi = '',
+    this.bodyHinglish = '',
     this.data = const {},
   });
 
+  /// Strips unicode emojis from any string
+  static String cleanEmoji(String text) {
+    if (text.isEmpty) return text;
+    final emojiRegex = RegExp(
+      r'[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}]',
+      unicode: true,
+    );
+    return text.replaceAll(emojiRegex, '').replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  /// Resolves the title dynamically based on active language callback `t(en, hi, hinglish)`
+  String getLocalizedTitle(String Function(String, String, String) t) {
+    if (titleHi.isNotEmpty || titleHinglish.isNotEmpty || titleEn.isNotEmpty) {
+      final en = titleEn.isNotEmpty ? titleEn : (cleanEmoji(title).isNotEmpty ? cleanEmoji(title) : 'Order Update');
+      final hi = titleHi.isNotEmpty ? titleHi : (cleanEmoji(title).isNotEmpty ? cleanEmoji(title) : 'ऑर्डर अपडेट');
+      final hinglish = titleHinglish.isNotEmpty ? titleHinglish : (cleanEmoji(title).isNotEmpty ? cleanEmoji(title) : 'Order Update');
+      return t(en, hi, hinglish);
+    }
+    final clean = cleanEmoji(title);
+    return clean.isNotEmpty ? clean : 'Order Update';
+  }
+
+  /// Resolves the body dynamically based on active language callback `t(en, hi, hinglish)`
+  String getLocalizedBody(String Function(String, String, String) t) {
+    if (bodyHi.isNotEmpty || bodyHinglish.isNotEmpty || bodyEn.isNotEmpty) {
+      final en = bodyEn.isNotEmpty ? bodyEn : cleanEmoji(body);
+      final hi = bodyHi.isNotEmpty ? bodyHi : cleanEmoji(body);
+      final hinglish = bodyHinglish.isNotEmpty ? bodyHinglish : cleanEmoji(body);
+      return t(en, hi, hinglish);
+    }
+    return cleanEmoji(body);
+  }
+
+  /// Official Flutter Material Icon representing the notification type/status
+  IconData get icon {
+    final s = status.toLowerCase();
+    if (s.contains('pending')) return Icons.shopping_bag_outlined;
+    if (s.contains('accept')) return Icons.check_circle_outline_rounded;
+    if (s.contains('packing') || s.contains('packed')) return Icons.inventory_2_outlined;
+    if (s.contains('ready')) return Icons.done_all_rounded;
+    if (s.contains('out') || (s.contains('delivery') && !s.contains('fail') && !s.contains('deliver'))) {
+      return Icons.two_wheeler_rounded;
+    }
+    if (s.contains('deliver')) return Icons.verified_rounded;
+    if (s.contains('fail')) return Icons.warning_amber_rounded;
+    if (s.contains('cancel') || s.contains('reject')) return Icons.cancel_outlined;
+
+    final t = type.toLowerCase();
+    if (t.contains('accept')) return Icons.check_circle_outline_rounded;
+    if (t.contains('reject') || t.contains('decline')) return Icons.cancel_outlined;
+    if (t.contains('substitution') || t.contains('swap')) return Icons.swap_horiz_rounded;
+    if (t.contains('order')) return Icons.receipt_long_outlined;
+    return Icons.notifications_none_rounded;
+  }
+
+  /// Theme-consistent accent color matching the Flutter icon
+  Color get iconColor {
+    final s = status.toLowerCase();
+    if (s.contains('pending')) return const Color(0xFF2563EB); // Royal Blue
+    if (s.contains('accept')) return const Color(0xFF16A34A); // Emerald Green
+    if (s.contains('packing') || s.contains('packed')) return const Color(0xFFD97706); // Amber
+    if (s.contains('ready')) return const Color(0xFF0D9488); // Teal
+    if (s.contains('out')) return const Color(0xFFEA580C); // Orange
+    if (s.contains('delivered')) return const Color(0xFF059669); // Green
+    if (s.contains('fail')) return const Color(0xFFDC2626); // Crimson Red
+    if (s.contains('cancel') || s.contains('reject')) return const Color(0xFFE11D48); // Rose Red
+
+    final t = type.toLowerCase();
+    if (t.contains('accept')) return const Color(0xFF16A34A);
+    if (t.contains('reject')) return const Color(0xFFE11D48);
+    if (t.contains('substitution')) return const Color(0xFF7C3AED); // Purple
+    return const Color(0xFF4B5563);
+  }
+
   Map<String, dynamic> toMap() => {
-    'title': title,
-    'body': body,
+    'title': cleanEmoji(title),
+    'body': cleanEmoji(body),
     'order_id': orderId,
+    'status': status,
     'type': type,
     if (recipientPhone != null) 'recipient_phone': recipientPhone,
     if (recipientUid != null) 'recipient_uid': recipientUid,
     if (shopId != null) 'shop_id': shopId,
     'created_at': Timestamp.fromDate(createdAt),
     'is_read': isRead,
+    'title_en': titleEn,
+    'title_hi': titleHi,
+    'title_hinglish': titleHinglish,
+    'body_en': bodyEn,
+    'body_hi': bodyHi,
+    'body_hinglish': bodyHinglish,
     'data': data,
   };
 
@@ -73,18 +169,39 @@ class NotificationItem {
       date = DateTime.tryParse(rawTime) ?? DateTime.now();
     }
 
+    final dataMap = map['data'] is Map ? Map<String, dynamic>.from(map['data']) : <String, dynamic>{};
+
+    final title = cleanEmoji(map['title']?.toString() ?? '');
+    final body = cleanEmoji(map['body']?.toString() ?? '');
+    final status = map['status']?.toString() ?? (dataMap['status']?.toString() ?? '');
+
+    final titleEn = cleanEmoji(map['title_en']?.toString() ?? (dataMap['title_en']?.toString() ?? ''));
+    final titleHi = cleanEmoji(map['title_hi']?.toString() ?? (dataMap['title_hi']?.toString() ?? ''));
+    final titleHinglish = cleanEmoji(map['title_hinglish']?.toString() ?? (dataMap['title_hinglish']?.toString() ?? ''));
+
+    final bodyEn = cleanEmoji(map['body_en']?.toString() ?? (dataMap['body_en']?.toString() ?? ''));
+    final bodyHi = cleanEmoji(map['body_hi']?.toString() ?? (dataMap['body_hi']?.toString() ?? ''));
+    final bodyHinglish = cleanEmoji(map['body_hinglish']?.toString() ?? (dataMap['body_hinglish']?.toString() ?? ''));
+
     return NotificationItem(
       id: id,
-      title: map['title']?.toString() ?? '',
-      body: map['body']?.toString() ?? '',
-      orderId: map['order_id']?.toString(),
-      type: map['type']?.toString() ?? 'order_status',
-      recipientPhone: map['recipient_phone']?.toString(),
-      recipientUid: map['recipient_uid']?.toString(),
-      shopId: map['shop_id']?.toString(),
+      title: title,
+      body: body,
+      orderId: map['order_id']?.toString() ?? dataMap['order_id']?.toString(),
+      status: status,
+      type: map['type']?.toString() ?? (dataMap['type']?.toString() ?? 'order_status'),
+      recipientPhone: map['recipient_phone']?.toString() ?? dataMap['customer_phone']?.toString(),
+      recipientUid: map['recipient_uid']?.toString() ?? dataMap['customer_uid']?.toString(),
+      shopId: map['shop_id']?.toString() ?? dataMap['shop_id']?.toString(),
       createdAt: date,
       isRead: map['is_read'] == true,
-      data: map['data'] is Map ? Map<String, dynamic>.from(map['data']) : {},
+      titleEn: titleEn,
+      titleHi: titleHi,
+      titleHinglish: titleHinglish,
+      bodyEn: bodyEn,
+      bodyHi: bodyHi,
+      bodyHinglish: bodyHinglish,
+      data: dataMap,
     );
   }
 }

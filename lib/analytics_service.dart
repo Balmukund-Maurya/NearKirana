@@ -40,28 +40,62 @@ class AnalyticsService {
       // 1. Fetch products for catalog lookup (to resolve purchase_price and category)
       final productCatalog = await _fetchProductCatalog(shopId);
 
-      // 2. Fetch orders in the timeframe
-      final ordersSnap = await _firestore
-          .collection('orders')
-          .where('shop_id', isEqualTo: shopId)
-          .where('created_at', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-          .get();
+      // Helper to parse dates from various formats (Timestamp, DateTime, String, int)
+      DateTime? parseDate(dynamic val) {
+        if (val == null) return null;
+        if (val is Timestamp) return val.toDate();
+        if (val is DateTime) return val;
+        if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+        if (val is String) {
+          final parsed = DateTime.tryParse(val);
+          if (parsed != null) return parsed;
+        }
+        return null;
+      }
 
-      // 3. Fetch expenses in the timeframe
-      final expensesSnap = await _firestore
-          .collection('expenses')
-          .where('shop_id', isEqualTo: shopId)
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-          .get();
+      // 2. Fetch orders in the timeframe (with safe fallback if composite index is missing)
+      QuerySnapshot<Map<String, dynamic>> ordersSnap;
+      try {
+        ordersSnap = await _firestore
+            .collection('orders')
+            .where('shop_id', isEqualTo: shopId)
+            .where('created_at', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+            .get();
+      } catch (e) {
+        debugPrint('Compound order query failed ($e). Falling back to shop_id query.');
+        ordersSnap = await _firestore
+            .collection('orders')
+            .where('shop_id', isEqualTo: shopId)
+            .get();
+      }
+
+      // 3. Fetch expenses in the timeframe (with safe fallback if composite index is missing)
+      QuerySnapshot<Map<String, dynamic>> expensesSnap;
+      try {
+        expensesSnap = await _firestore
+            .collection('expenses')
+            .where('shop_id', isEqualTo: shopId)
+            .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+            .get();
+      } catch (e) {
+        debugPrint('Compound expenses query failed ($e). Falling back to shop_id query.');
+        expensesSnap = await _firestore
+            .collection('expenses')
+            .where('shop_id', isEqualTo: shopId)
+            .get();
+      }
 
       final List<ShopExpense> expensesList = [];
       double totalExpenses = 0.0;
       for (var doc in expensesSnap.docs) {
-        final exp = ShopExpense.fromFirestore(doc);
-        if (exp.date.isBefore(endDate) || exp.date.isAtSameMomentAs(endDate)) {
-          expensesList.add(exp);
-          totalExpenses += exp.amount;
-        }
+        try {
+          final exp = ShopExpense.fromFirestore(doc);
+          if ((exp.date.isAfter(startDate) || exp.date.isAtSameMomentAs(startDate)) &&
+              (exp.date.isBefore(endDate) || exp.date.isAtSameMomentAs(endDate))) {
+            expensesList.add(exp);
+            totalExpenses += exp.amount;
+          }
+        } catch (_) {}
       }
 
       // 4. Process Orders and Items
@@ -92,41 +126,46 @@ class AnalyticsService {
 
       for (var doc in ordersSnap.docs) {
         final data = doc.data();
-        final createdAtTs = data['created_at'] as Timestamp?;
-        final orderDate = createdAtTs?.toDate() ?? DateTime.now();
+        final orderDate = parseDate(data['created_at']) ??
+            parseDate(data['createdAt']) ??
+            parseDate(data['order_date']) ??
+            parseDate(data['timestamp']) ??
+            parseDate(data['date']) ??
+            DateTime.now();
 
-        if (orderDate.isAfter(endDate)) continue;
+        if (orderDate.isBefore(startDate) || orderDate.isAfter(endDate)) continue;
 
         totalOrders++;
-        final status = (data['status']?.toString() ?? 'Pending').trim();
+        final rawStatus = (data['status']?.toString() ?? 'Pending').trim();
+        final statusLower = rawStatus.toLowerCase();
 
-        if (status == 'Delivered' || status == 'Completed') {
+        if (statusLower == 'delivered' || statusLower == 'completed') {
           deliveredOrders++;
-        } else if (status == 'Cancelled') {
+        } else if (statusLower == 'cancelled' || statusLower == 'rejected') {
           cancelledOrders++;
           continue; // Cancelled orders do not contribute to revenue or COGS
-        } else if (status == 'Returned') {
+        } else if (statusLower == 'returned') {
           returnedOrders++;
           continue; // Returned orders do not contribute to net sales
         } else {
           processingOrders++;
         }
 
-        // Active revenue-earning orders
-        final bool isRevenueStatus = [
-          'Delivered',
-          'Completed',
-          'Packed',
-          'Ready',
-          'Out for Delivery',
-          'Confirmed',
-          'Pending',
-        ].contains(status);
+        // Active revenue-earning orders: all orders that are not cancelled or returned
+        final double orderAmount = (data['total_amount'] as num?)?.toDouble() ??
+            double.tryParse(data['total_amount']?.toString() ?? '') ??
+            (data['total'] as num?)?.toDouble() ??
+            double.tryParse(data['total']?.toString() ?? '') ??
+            (data['order_total'] as num?)?.toDouble() ??
+            (data['grand_total'] as num?)?.toDouble() ??
+            (data['final_amount'] as num?)?.toDouble() ??
+            (data['amount'] as num?)?.toDouble() ??
+            0.0;
 
-        if (!isRevenueStatus) continue;
-
-        final double orderAmount = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
-        final double discount = (data['discount_amount'] as num?)?.toDouble() ?? 0.0;
+        final double discount = (data['discount_amount'] as num?)?.toDouble() ??
+            double.tryParse(data['discount_amount']?.toString() ?? '') ??
+            (data['discount'] as num?)?.toDouble() ??
+            0.0;
         totalDiscounts += discount;
 
         // Daily bucket

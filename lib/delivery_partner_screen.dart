@@ -1599,6 +1599,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                             viewerRole: 'rider',
                           );
                         },
+                        onLongPress: () => _launchDirections(task),
                         icon: const Icon(Icons.near_me_rounded, size: 17),
                         label: Text(
                           t('Directions', 'मैप नेविगेशन', 'Directions'),

@@ -254,6 +254,7 @@ class DeliveryOrderTask {
   final List<String> itemsSummary;
   final String? deliveryNotes;
   final String deliveryPin;
+  final Map<String, dynamic> rawFirestoreData;
 
   const DeliveryOrderTask({
     required this.orderId,
@@ -283,6 +284,7 @@ class DeliveryOrderTask {
     this.itemsSummary = const [],
     this.deliveryNotes,
     this.deliveryPin = '',
+    this.rawFirestoreData = const {},
   });
 
   bool get isCOD => paymentMode.toUpperCase() == 'COD' || paymentStatus.toLowerCase() == 'unpaid';
@@ -375,6 +377,7 @@ class DeliveryOrderTask {
       itemsSummary: summary,
       deliveryNotes: data['delivery_notes']?.toString(),
       deliveryPin: data['delivery_pin']?.toString() ?? '',
+      rawFirestoreData: data,
     );
   }
 }

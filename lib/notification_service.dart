@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_utils.dart';
 import 'sound_service.dart';
+import 'language_provider.dart';
 
 /// Top-level background message handler invoked by OS when app is terminated or in background.
 @pragma('vm:entry-point')
@@ -84,6 +85,11 @@ class NotificationItem {
       final hinglish = titleHinglish.isNotEmpty ? titleHinglish : (cleanEmoji(title).isNotEmpty ? cleanEmoji(title) : 'Order Update');
       return t(en, hi, hinglish);
     }
+    // Synthesize from status if direct translations were not persisted
+    if (status.isNotEmpty) {
+      final syn = NotificationService.getLocalizedStatusStrings(status, orderId: orderId);
+      return t(syn['title_en']!, syn['title_hi']!, syn['title_hinglish']!);
+    }
     final clean = cleanEmoji(title);
     return clean.isNotEmpty ? clean : 'Order Update';
   }
@@ -96,7 +102,48 @@ class NotificationItem {
       final hinglish = bodyHinglish.isNotEmpty ? bodyHinglish : cleanEmoji(body);
       return t(en, hi, hinglish);
     }
+    // Synthesize from status if direct translations were not persisted
+    if (status.isNotEmpty) {
+      final syn = NotificationService.getLocalizedStatusStrings(status, orderId: orderId);
+      return t(syn['body_en']!, syn['body_hi']!, syn['body_hinglish']!);
+    }
     return cleanEmoji(body);
+  }
+
+  /// Returns localized title according to the active language in [lang]
+  String localizedTitle(LanguageProvider lang) {
+    return getLocalizedTitle((en, hi, hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    });
+  }
+
+  /// Returns localized body according to the active language in [lang]
+  String localizedBody(LanguageProvider lang) {
+    return getLocalizedBody((en, hi, hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    });
+  }
+
+  /// Returns localized title according to language code ('en', 'hi', 'hinglish')
+  String getLocalizedTitleForCode(String langCode) {
+    return getLocalizedTitle((en, hi, hinglish) {
+      if (langCode == 'hi') return hi;
+      if (langCode == 'hinglish' || langCode == 'hi_Latn') return hinglish;
+      return en;
+    });
+  }
+
+  /// Returns localized body according to language code ('en', 'hi', 'hinglish')
+  String getLocalizedBodyForCode(String langCode) {
+    return getLocalizedBody((en, hi, hinglish) {
+      if (langCode == 'hi') return hi;
+      if (langCode == 'hinglish' || langCode == 'hi_Latn') return hinglish;
+      return en;
+    });
   }
 
   /// Official Flutter Material Icon representing the notification type/status
@@ -529,12 +576,159 @@ class NotificationService {
     }
   }
 
-  /// Shows instant local high-priority heads-up notification (Backwards compatible)
+  /// Generates full 3-language localized dictionaries for any order status
+  static Map<String, String> getLocalizedStatusStrings(
+    String status, {
+    String? orderId,
+    double? orderTotal,
+    String? deliveryBoyName,
+    String? failureReason,
+  }) {
+    final cleanStatus = status.trim();
+    final shortOrderId = (orderId != null && orderId.length >= 6)
+        ? orderId.substring(0, 6)
+        : (orderId ?? '');
+    final orderPrefix = shortOrderId.isNotEmpty ? ' #$shortOrderId' : '';
+    final totalFormatted = orderTotal != null && orderTotal > 0
+        ? ' (₹${orderTotal.toStringAsFixed(0)})'
+        : '';
+
+    final s = cleanStatus.toLowerCase();
+
+    if (s.contains('pending')) {
+      return {
+        'title_en': 'New Order Placed$orderPrefix',
+        'title_hi': 'नया ऑर्डर प्राप्त हुआ$orderPrefix!',
+        'title_hinglish': 'Naya Order Place Hua$orderPrefix!',
+        'body_en': 'Order$orderPrefix$totalFormatted received. Awaiting store confirmation.',
+        'body_hi': 'ऑर्डर$orderPrefix$totalFormatted प्राप्त हुआ है। दुकान द्वारा पुष्टि की प्रतीक्षा है।',
+        'body_hinglish': 'Order$orderPrefix$totalFormatted receive ho gaya hai. Dukan dwara confirm hone ki pratiksha hai.',
+      };
+    } else if (s.contains('accept')) {
+      return {
+        'title_en': 'Order Accepted$orderPrefix',
+        'title_hi': 'ऑर्डर स्वीकार किया गया$orderPrefix!',
+        'title_hinglish': 'Order Accept Ho Gaya$orderPrefix!',
+        'body_en': 'The store has accepted your order$orderPrefix.',
+        'body_hi': 'दुकानदार ने आपका ऑर्डर$orderPrefix स्वीकार कर लिया है।',
+        'body_hinglish': 'Dukandar ne aapka order$orderPrefix accept kar liya hai.',
+      };
+    } else if (s == 'packing' || s.contains('packing')) {
+      return {
+        'title_en': 'Order Packing in Progress$orderPrefix',
+        'title_hi': 'ऑर्डर पैक हो रहा है$orderPrefix!',
+        'title_hinglish': 'Order Pack Ho Raha Hai$orderPrefix!',
+        'body_en': 'Your items are being packed at the store.',
+        'body_hi': 'आपका सामान दुकान पर पैक किया जा रहा है।',
+        'body_hinglish': 'Aapka saman dukan par pack ho raha hai.',
+      };
+    } else if (s == 'packed' || s.contains('packed')) {
+      return {
+        'title_en': 'Order Packed$orderPrefix',
+        'title_hi': 'ऑर्डर पैक हो चुका है$orderPrefix!',
+        'title_hinglish': 'Order Pack Ho Chuka Hai$orderPrefix!',
+        'body_en': 'Your order$orderPrefix is packed and ready for dispatch.',
+        'body_hi': 'आपका ऑर्डर$orderPrefix पैक हो चुका है और भेजने के लिए तैयार है।',
+        'body_hinglish': 'Aapka order$orderPrefix pack ho chuka hai aur dispatch ke liye taiyar hai.',
+      };
+    } else if (s.contains('ready')) {
+      return {
+        'title_en': 'Order Ready$orderPrefix',
+        'title_hi': 'ऑर्डर तैयार है$orderPrefix!',
+        'title_hinglish': 'Order Taiyar Hai$orderPrefix!',
+        'body_en': 'Your order$orderPrefix is ready for pickup or dispatch.',
+        'body_hi': 'आपका ऑर्डर$orderPrefix पिकअप या डिलीवरी के लिए तैयार है।',
+        'body_hinglish': 'Aapka order$orderPrefix pickup ya delivery ke liye taiyar hai.',
+      };
+    } else if (s.contains('out') || s.contains('dispatch')) {
+      final rider = (deliveryBoyName != null && deliveryBoyName.isNotEmpty)
+          ? deliveryBoyName
+          : null;
+      return {
+        'title_en': 'Order Out for Delivery$orderPrefix',
+        'title_hi': 'ऑर्डर डिलीवरी के लिए निकल चुका है$orderPrefix!',
+        'title_hinglish': 'Order Raste Mein Hai (Out for Delivery)$orderPrefix!',
+        'body_en': rider != null
+            ? 'Order$orderPrefix is out for delivery with $rider.'
+            : 'Order$orderPrefix is out for delivery and will reach you shortly.',
+        'body_hi': rider != null
+            ? 'ऑर्डर$orderPrefix निकल चुका है! डिलीवरी पार्टनर: $rider।'
+            : 'ऑर्डर$orderPrefix निकल चुका है और जल्द ही आप तक पहुंचेगा।',
+        'body_hinglish': rider != null
+            ? 'Order$orderPrefix delivery partner $rider ke sath nikal chuka hai.'
+            : 'Order$orderPrefix nikal chuka hai aur jald aap tak pahunchega.',
+      };
+    } else if (s.contains('deliver') && !s.contains('fail')) {
+      return {
+        'title_en': 'Order Delivered Successfully$orderPrefix',
+        'title_hi': 'ऑर्डर सफलतापूर्वक डिलीवर हो गया$orderPrefix!',
+        'title_hinglish': 'Order Safaltapoorvak Deliver Ho Gaya$orderPrefix!',
+        'body_en': 'Order$orderPrefix has been delivered. Thank you for shopping with NearKirana!',
+        'body_hi': 'ऑर्डर$orderPrefix डिलीवर हो चुका है। NearKirana से खरीदारी करने के लिए धन्यवाद!',
+        'body_hinglish': 'Order$orderPrefix deliver ho chuka hai. NearKirana se shopping ke liye dhanyawad!',
+      };
+    } else if (s.contains('fail')) {
+      final reason = (failureReason != null && failureReason.isNotEmpty)
+          ? failureReason
+          : null;
+      return {
+        'title_en': 'Delivery Unsuccessful$orderPrefix',
+        'title_hi': 'डिलीवरी असफल रही$orderPrefix',
+        'title_hinglish': 'Delivery Asafal Rahi$orderPrefix',
+        'body_en': reason != null
+            ? 'Order$orderPrefix could not be delivered: $reason. Please contact the store.'
+            : 'Order$orderPrefix could not be delivered. Delivery partner will retry soon.',
+        'body_hi': reason != null
+            ? 'ऑर्डर$orderPrefix डिलीवर नहीं हो सका: $reason। कृपया दुकान से संपर्क करें।'
+            : 'ऑर्डर$orderPrefix डिलीवर नहीं हो सका। डिलीवरी पार्टनर दोबारा प्रयास करेगा।',
+        'body_hinglish': reason != null
+            ? 'Order$orderPrefix deliver nahi ho saka: $reason. Kripya dukan se sampark karein.'
+            : 'Order$orderPrefix deliver nahi ho saka. Delivery partner dobara koshish karega.',
+      };
+    } else if (s.contains('cancel') || s.contains('reject')) {
+      final isRejected = s.contains('reject') || cleanStatus == 'Rejected';
+      final reason = (failureReason != null && failureReason.isNotEmpty)
+          ? failureReason
+          : null;
+      return {
+        'title_en': isRejected ? 'Order Declined$orderPrefix' : 'Order Cancelled$orderPrefix',
+        'title_hi': isRejected ? 'ऑर्डर अस्वीकार किया गया$orderPrefix' : 'ऑर्डर रद्द हुआ$orderPrefix',
+        'title_hinglish': isRejected ? 'Order Decline Hua$orderPrefix' : 'Order Cancel Hua$orderPrefix',
+        'body_en': reason != null
+            ? 'Order$orderPrefix was ${isRejected ? 'declined' : 'cancelled'}. Reason: $reason.'
+            : 'Order$orderPrefix has been ${isRejected ? 'declined' : 'cancelled'}.',
+        'body_hi': reason != null
+            ? 'ऑर्डर$orderPrefix ${isRejected ? 'अस्वीकार' : 'रद्द'} कर दिया गया है। कारण: $reason।'
+            : 'ऑर्डर$orderPrefix ${isRejected ? 'अस्वीकार' : 'रद्द'} कर दिया गया है।',
+        'body_hinglish': reason != null
+            ? 'Order$orderPrefix ${isRejected ? 'decline' : 'cancel'} kar diya gaya hai. Karan: $reason.'
+            : 'Order$orderPrefix ${isRejected ? 'decline' : 'cancel'} ho gaya hai.',
+      };
+    }
+
+    return {
+      'title_en': 'Order Update$orderPrefix',
+      'title_hi': 'ऑर्डर अपडेट$orderPrefix',
+      'title_hinglish': 'Order Update$orderPrefix',
+      'body_en': 'Your order$orderPrefix status is $cleanStatus.',
+      'body_hi': 'आपके ऑर्डर$orderPrefix का स्टेटस $cleanStatus है।',
+      'body_hinglish': 'Aapke order$orderPrefix ka status $cleanStatus hai.',
+    };
+  }
+
+  /// Shows instant local high-priority heads-up notification in the user's selected language
   static Future<void> showOrderNotification(
     String title,
     String body, {
     String? orderId,
     Map<String, dynamic>? payload,
+    String? titleEn,
+    String? titleHi,
+    String? titleHinglish,
+    String? bodyEn,
+    String? bodyHi,
+    String? bodyHinglish,
+    String? language,
   }) async {
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
@@ -564,14 +758,63 @@ class NotificationService {
       100000,
     );
 
+    // Resolve target language from parameters or SharedPreferences
+    final selectedLang = language ?? await getSelectedLanguage();
+
+    String? tEn = titleEn ?? payload?['title_en']?.toString();
+    String? tHi = titleHi ?? payload?['title_hi']?.toString();
+    String? tHinglish = titleHinglish ?? payload?['title_hinglish']?.toString();
+
+    String? bEn = bodyEn ?? payload?['body_en']?.toString();
+    String? bHi = bodyHi ?? payload?['body_hi']?.toString();
+    String? bHinglish = bodyHinglish ?? payload?['body_hinglish']?.toString();
+
+    // Synthesize from status if direct translations were not supplied
+    final status = payload?['status']?.toString();
+    if ((tHi == null || tHi.isEmpty) && status != null && status.isNotEmpty) {
+      final syn = getLocalizedStatusStrings(
+        status,
+        orderId: orderId ?? payload?['order_id']?.toString(),
+        orderTotal: (payload?['total_amount'] as num?)?.toDouble(),
+        deliveryBoyName: payload?['delivery_boy']?.toString(),
+        failureReason: payload?['failure_reason']?.toString(),
+      );
+      tEn ??= syn['title_en'];
+      tHi = syn['title_hi'];
+      tHinglish = syn['title_hinglish'];
+      bEn ??= syn['body_en'];
+      bHi = syn['body_hi'];
+      bHinglish = syn['body_hinglish'];
+    }
+
+    String displayTitle = title;
+    String displayBody = body;
+
+    if (selectedLang == 'hi') {
+      if (tHi != null && tHi.isNotEmpty) displayTitle = tHi;
+      if (bHi != null && bHi.isNotEmpty) displayBody = bHi;
+    } else if (selectedLang == 'hinglish' || selectedLang == 'hi_Latn') {
+      if (tHinglish != null && tHinglish.isNotEmpty) displayTitle = tHinglish;
+      if (bHinglish != null && bHinglish.isNotEmpty) displayBody = bHinglish;
+    } else {
+      if (tEn != null && tEn.isNotEmpty) displayTitle = tEn;
+      if (bEn != null && bEn.isNotEmpty) displayBody = bEn;
+    }
+
     final String jsonPayload = json.encode({
       'order_id': ?orderId,
+      'title_en': ?tEn,
+      'title_hi': ?tHi,
+      'title_hinglish': ?tHinglish,
+      'body_en': ?bEn,
+      'body_hi': ?bHi,
+      'body_hinglish': ?bHinglish,
       ...?payload,
     });
 
     try {
-      final cleanTitle = NotificationItem.cleanEmoji(title);
-      final cleanBody = NotificationItem.cleanEmoji(body);
+      final cleanTitle = NotificationItem.cleanEmoji(displayTitle);
+      final cleanBody = NotificationItem.cleanEmoji(displayBody);
       await _notificationsPlugin.show(
         id: notificationId,
         title: cleanTitle,
@@ -613,127 +856,28 @@ class NotificationService {
     final db = firestore ?? FirebaseUtils.firestore;
     final selectedLang = language ?? await getSelectedLanguage();
 
-    final shortOrderId = orderId.length >= 6
-        ? orderId.substring(0, 6)
-        : orderId;
-    final totalFormatted = (orderTotal ?? 0).toStringAsFixed(0);
+    final syn = getLocalizedStatusStrings(
+      newStatus,
+      orderId: orderId,
+      orderTotal: orderTotal,
+      deliveryBoyName: deliveryBoyName,
+      failureReason: failureReason,
+    );
 
-    String titleEn = 'Order Update';
-    String titleHi = 'ऑर्डर अपडेट';
-    String titleHinglish = 'Order Update';
+    final String titleEn = syn['title_en']!;
+    final String titleHi = syn['title_hi']!;
+    final String titleHinglish = syn['title_hinglish']!;
 
-    String bodyEn = 'Your order #$shortOrderId status has been updated to $newStatus.';
-    String bodyHi = 'आपके ऑर्डर #$shortOrderId का स्टेटस $newStatus कर दिया गया है।';
-    String bodyHinglish = 'Aapke order #$shortOrderId ka status $newStatus ho gaya hai.';
-
-    switch (newStatus) {
-      case 'Pending':
-        titleEn = 'New Order Placed';
-        titleHi = 'नया ऑर्डर प्राप्त हुआ!';
-        titleHinglish = 'Naya Order Place Hua!';
-        bodyEn = 'Order #$shortOrderId (₹$totalFormatted) received. Awaiting store confirmation.';
-        bodyHi = 'ऑर्डर #$shortOrderId (₹$totalFormatted) प्राप्त हुआ है। दुकान द्वारा पुष्टि की प्रतीक्षा है।';
-        bodyHinglish = 'Order #$shortOrderId (₹$totalFormatted) prapt hua hai. Dukan dwara confirm hone ki pratiksha hai.';
-        break;
-
-      case 'Accepted':
-        titleEn = 'Order Accepted';
-        titleHi = 'ऑर्डर स्वीकार किया गया!';
-        titleHinglish = 'Order Sweekar Hua!';
-        bodyEn = 'The store has accepted your order #$shortOrderId.';
-        bodyHi = 'दुकानदार ने आपका ऑर्डर #$shortOrderId स्वीकार कर लिया है।';
-        bodyHinglish = 'Dukandar ne aapka order #$shortOrderId accept kar liya hai.';
-        break;
-
-      case 'Packing':
-        titleEn = 'Order Packing in Progress';
-        titleHi = 'ऑर्डर पैक हो रहा है!';
-        titleHinglish = 'Order Pack Ho Raha Hai!';
-        bodyEn = 'Your items are being packed at the store.';
-        bodyHi = 'आपका सामान दुकान पर पैक किया जा रहा है।';
-        bodyHinglish = 'Aapka saman dukan par pack kiya ja raha hai.';
-        break;
-
-      case 'Packed':
-        titleEn = 'Order Packed';
-        titleHi = 'ऑर्डर पैक हो चुका है!';
-        titleHinglish = 'Order Pack Ho Chuka Hai!';
-        bodyEn = 'Your order #$shortOrderId is packed and ready for dispatch.';
-        bodyHi = 'आपका ऑर्डर #$shortOrderId पैक हो चुका है और भेजने के लिए तैयार है।';
-        bodyHinglish = 'Aapka order #$shortOrderId pack ho chuka hai aur dispatch ke liye taiyar hai.';
-        break;
-
-      case 'Ready':
-        titleEn = 'Order Ready';
-        titleHi = 'ऑर्डर तैयार है!';
-        titleHinglish = 'Order Taiyar Hai!';
-        bodyEn = 'Your order #$shortOrderId is ready for pickup or dispatch.';
-        bodyHi = 'आपका ऑर्डर #$shortOrderId तैयार है।';
-        bodyHinglish = 'Aapka order #$shortOrderId pack ho chuka hai aur dispatch ke liye taiyar hai.';
-        break;
-
-      case 'Out for Delivery':
-        titleEn = 'Order Out for Delivery';
-        titleHi = 'ऑर्डर डिलीवरी के लिए निकल चुका है!';
-        titleHinglish = 'Order Raste Mein Hai (Out for Delivery)!';
-        if (deliveryBoyName != null && deliveryBoyName.isNotEmpty) {
-          bodyEn = 'Order #$shortOrderId is out for delivery with $deliveryBoyName.';
-          bodyHi = 'ऑर्डर #$shortOrderId निकल चुका है! डिलीवरी पार्टनर: $deliveryBoyName.';
-          bodyHinglish = 'Order #$shortOrderId nikal chuka hai! Delivery Partner: $deliveryBoyName.';
-        } else {
-          bodyEn = 'Order #$shortOrderId is out for delivery and will reach you shortly.';
-          bodyHi = 'ऑर्डर #$shortOrderId निकल चुका है और जल्द ही आप तक पहुंचेगा।';
-          bodyHinglish = 'Order #$shortOrderId nikal chuka hai aur jald aap tak pahunchega.';
-        }
-        break;
-
-      case 'Delivered':
-        titleEn = 'Order Delivered Successfully';
-        titleHi = 'ऑर्डर सफलतापूर्वक डिलीवर हो गया!';
-        titleHinglish = 'Order Safaltapoorvak Deliver Ho Gaya!';
-        bodyEn = 'Order #$shortOrderId has been delivered. Thank you for shopping with NearKirana!';
-        bodyHi = 'ऑर्डर #$shortOrderId डिलीवर हो चुका है। NearKirana से खरीदारी करने के लिए धन्यवाद!';
-        bodyHinglish = 'Order #$shortOrderId deliver ho chuka hai. NearKirana se shopping karne ke liye dhanyawad!';
-        break;
-
-      case 'Delivery_Failed':
-        titleEn = 'Delivery Unsuccessful';
-        titleHi = 'डिलीवरी असफल रही';
-        titleHinglish = 'Delivery Asafal Rahi';
-        if (failureReason != null && failureReason.isNotEmpty) {
-          bodyEn = 'Order #$shortOrderId could not be delivered: $failureReason. Please contact the store.';
-          bodyHi = 'ऑर्डर #$shortOrderId डिलीवर नहीं हो सका: $failureReason. कृपया दुकान से संपर्क करें।';
-          bodyHinglish = 'Order deliver nahi ho saka: $failureReason. Kripya dukan par sampark karein.';
-        } else {
-          bodyEn = 'Order #$shortOrderId could not be delivered. The delivery partner will retry soon.';
-          bodyHi = 'ऑर्डर डिलीवर नहीं हो सका। डिलीवरी पार्टनर दोबारा प्रयास करेगा।';
-          bodyHinglish = 'Order deliver nahi ho saka. Delivery partner dobara koshish karega.';
-        }
-        break;
-
-      case 'Cancelled':
-      case 'Rejected':
-        titleEn = newStatus == 'Rejected' ? 'Order Declined' : 'Order Cancelled';
-        titleHi = newStatus == 'Rejected' ? 'ऑर्डर अस्वीकार किया गया' : 'ऑर्डर रद्द हुआ';
-        titleHinglish = newStatus == 'Rejected' ? 'Order Asweekar Hua' : 'Order Cancel Hua';
-        if (failureReason != null && failureReason.isNotEmpty) {
-          bodyEn = 'Order #$shortOrderId was $newStatus. Reason: $failureReason.';
-          bodyHi = 'ऑर्डर #$shortOrderId $newStatus कर दिया गया है। कारण: $failureReason.';
-          bodyHinglish = 'Order #$shortOrderId cancel kar diya gaya hai. Karan: $failureReason.';
-        } else {
-          bodyEn = 'Order #$shortOrderId has been $newStatus.';
-          bodyHi = 'ऑर्डर #$shortOrderId रद्द कर दिया गया है।';
-          bodyHinglish = 'Order #$shortOrderId cancel kar diya gaya hai.';
-        }
-        break;
-    }
+    final String bodyEn = syn['body_en']!;
+    final String bodyHi = syn['body_hi']!;
+    final String bodyHinglish = syn['body_hinglish']!;
 
     String activeTitle = titleEn;
     String activeBody = bodyEn;
     if (selectedLang == 'hi') {
       activeTitle = titleHi;
       activeBody = bodyHi;
-    } else if (selectedLang == 'hinglish') {
+    } else if (selectedLang == 'hinglish' || selectedLang == 'hi_Latn') {
       activeTitle = titleHinglish;
       activeBody = bodyHinglish;
     }
@@ -744,6 +888,8 @@ class NotificationService {
       'shop_id': shopId,
       'customer_phone': customerPhone,
       'delivery_boy': ?deliveryBoyName,
+      'failure_reason': ?failureReason,
+      'total_amount': ?orderTotal,
       'timestamp': DateTime.now().toIso8601String(),
       'title_en': titleEn,
       'title_hi': titleHi,
@@ -753,20 +899,28 @@ class NotificationService {
       'body_hinglish': bodyHinglish,
     };
 
-    // 1. Show instant local notification on active device
+    // 1. Show instant local notification on active device in selected language
     await showOrderNotification(
       activeTitle,
       activeBody,
       orderId: orderId,
+      titleEn: titleEn,
+      titleHi: titleHi,
+      titleHinglish: titleHinglish,
+      bodyEn: bodyEn,
+      bodyHi: bodyHi,
+      bodyHinglish: bodyHinglish,
+      language: selectedLang,
       payload: payloadData,
     );
 
     // 2. Play contextual sound alert
-    if (newStatus == 'Out for Delivery') {
+    final s = newStatus.toLowerCase();
+    if (s.contains('out') || s.contains('dispatch')) {
       SoundService().orderDispatched();
-    } else if (newStatus == 'Delivered') {
+    } else if (s.contains('deliver') && !s.contains('fail')) {
       SoundService().orderDelivered();
-    } else if (newStatus == 'Cancelled' || newStatus == 'Rejected') {
+    } else if (s.contains('cancel') || s.contains('reject')) {
       SoundService().orderCancelled();
     } else {
       SoundService().statusUpdated();
@@ -845,29 +999,44 @@ class NotificationService {
     final selectedLang = language ?? await getSelectedLanguage();
     final shortOrderId =
         orderId.length >= 6 ? orderId.substring(0, 6) : orderId;
+    final cleanMsg = NotificationItem.cleanEmoji(message);
 
     String titleEn = 'Alternative Item Proposed (#$shortOrderId)';
     String titleHi = 'वैकल्पिक सामान प्रस्तावित (#$shortOrderId)';
     String titleHinglish = 'Alternative Item Proposed (#$shortOrderId)';
 
+    String bodyEn = 'Alternative item proposed for order #$shortOrderId ($cleanMsg). Please review and approve.';
+    String bodyHi = 'ऑर्डर #$shortOrderId के लिए सामान का विकल्प प्रस्तावित किया गया है: $cleanMsg। कृपया चेक करें।';
+    String bodyHinglish = 'Order #$shortOrderId ke liye alternative item suggest kiya gaya hai: $cleanMsg. Kripya check karein.';
+
     if (type == 'accepted') {
       titleEn = 'Alternative Item Approved (#$shortOrderId)';
       titleHi = 'वैकल्पिक सामान स्वीकृत (#$shortOrderId)';
       titleHinglish = 'Alternative Item Accept Hua (#$shortOrderId)';
+
+      bodyEn = 'Alternative item was approved for order #$shortOrderId ($cleanMsg).';
+      bodyHi = 'ऑर्डर #$shortOrderId के लिए वैकल्पिक सामान स्वीकार कर लिया गया: $cleanMsg।';
+      bodyHinglish = 'Order #$shortOrderId ke liye alternative item accept kar liya gaya: $cleanMsg.';
     } else if (type == 'rejected') {
       titleEn = 'Alternative Item Declined (#$shortOrderId)';
       titleHi = 'वैकल्पिक सामान अस्वीकृत (#$shortOrderId)';
       titleHinglish = 'Alternative Item Decline Hua (#$shortOrderId)';
+
+      bodyEn = 'Alternative item was declined for order #$shortOrderId ($cleanMsg).';
+      bodyHi = 'ऑर्डर #$shortOrderId के लिए वैकल्पिक सामान अस्वीकार कर दिया गया: $cleanMsg।';
+      bodyHinglish = 'Order #$shortOrderId ke liye alternative item decline ho gaya: $cleanMsg.';
     }
 
     String activeTitle = titleEn;
+    String activeBody = bodyEn;
     if (selectedLang == 'hi') {
       activeTitle = titleHi;
-    } else if (selectedLang == 'hinglish') {
+      activeBody = bodyHi;
+    } else if (selectedLang == 'hinglish' || selectedLang == 'hi_Latn') {
       activeTitle = titleHinglish;
+      activeBody = bodyHinglish;
     }
 
-    final cleanMsg = NotificationItem.cleanEmoji(message);
     final notificationRef = db.collection('notifications').doc();
     final now = FieldValue.serverTimestamp();
 
@@ -877,13 +1046,13 @@ class NotificationService {
       'type': 'substitution_$type',
       'status': type,
       'title': activeTitle,
-      'body': cleanMsg,
+      'body': activeBody,
       'title_en': titleEn,
       'title_hi': titleHi,
       'title_hinglish': titleHinglish,
-      'body_en': cleanMsg,
-      'body_hi': cleanMsg,
-      'body_hinglish': cleanMsg,
+      'body_en': bodyEn,
+      'body_hi': bodyHi,
+      'body_hinglish': bodyHinglish,
       'customer_phone': customerPhone ?? '',
       'customer_uid': ?customerUid,
       'shop_id': shopId,
@@ -893,6 +1062,12 @@ class NotificationService {
         'order_id': orderId,
         'type': 'substitution_$type',
         'status': type,
+        'title_en': titleEn,
+        'title_hi': titleHi,
+        'title_hinglish': titleHinglish,
+        'body_en': bodyEn,
+        'body_hi': bodyHi,
+        'body_hinglish': bodyHinglish,
       },
     };
 
@@ -904,8 +1079,15 @@ class NotificationService {
 
     await showOrderNotification(
       activeTitle,
-      cleanMsg,
+      activeBody,
       orderId: orderId,
+      titleEn: titleEn,
+      titleHi: titleHi,
+      titleHinglish: titleHinglish,
+      bodyEn: bodyEn,
+      bodyHi: bodyHi,
+      bodyHinglish: bodyHinglish,
+      language: selectedLang,
       payload: notificationDoc,
     );
 
@@ -940,6 +1122,27 @@ class NotificationService {
         return NotificationItem.fromMap(doc.id, doc.data() as Map<String, dynamic>);
       }).toList();
     });
+  }
+
+  /// Real-time stream of unread notifications count
+  static Stream<int> unreadCountStream({
+    String? shopId,
+    String? recipientPhone,
+    String? recipientUid,
+    FirebaseFirestore? firestore,
+  }) {
+    final db = firestore ?? FirebaseUtils.firestore;
+    Query query = db.collection('notifications').where('is_read', isEqualTo: false);
+
+    if (shopId != null && shopId.isNotEmpty) {
+      query = query.where('shop_id', isEqualTo: shopId);
+    } else if (recipientPhone != null && recipientPhone.isNotEmpty) {
+      query = query.where('recipient_phone', isEqualTo: recipientPhone);
+    } else if (recipientUid != null && recipientUid.isNotEmpty) {
+      query = query.where('recipient_uid', isEqualTo: recipientUid);
+    }
+
+    return query.snapshots().map((snapshot) => snapshot.docs.length);
   }
 
   /// Marks a specific notification as read
@@ -1031,19 +1234,29 @@ class NotificationService {
   }
 
   /// Internal handler for messages received while app is open
-  static void _handleForegroundMessage(RemoteMessage message) {
+  static Future<void> _handleForegroundMessage(RemoteMessage message) async {
     final notification = message.notification;
+    final data = message.data;
+    final selectedLang = await getSelectedLanguage();
+
     final title =
         notification?.title ??
-        message.data['title'] ??
+        data['title'] ??
         'NearKirana Notification';
-    final body = notification?.body ?? message.data['body'] ?? '';
+    final body = notification?.body ?? data['body'] ?? '';
 
-    showOrderNotification(
+    await showOrderNotification(
       title,
       body,
-      orderId: message.data['order_id'],
-      payload: message.data,
+      orderId: data['order_id']?.toString(),
+      payload: data,
+      titleEn: data['title_en']?.toString(),
+      titleHi: data['title_hi']?.toString(),
+      titleHinglish: data['title_hinglish']?.toString(),
+      bodyEn: data['body_en']?.toString(),
+      bodyHi: data['body_hi']?.toString(),
+      bodyHinglish: data['body_hinglish']?.toString(),
+      language: selectedLang,
     );
   }
 

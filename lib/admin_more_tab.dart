@@ -20,6 +20,8 @@ import 'shop_provider.dart';
 import 'language_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'notification_service.dart';
+import 'widgets/notifications_bottom_sheet.dart';
 
 class AdminMoreTab extends StatefulWidget {
   const AdminMoreTab({super.key});
@@ -82,6 +84,8 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
   @override
   Widget build(BuildContext context) {
     final lang = Provider.of<LanguageProvider>(context);
+    final shopProvider = Provider.of<ShopProvider>(context);
+    final shopId = shopProvider.currentShopId;
     String t(String en, String hi, String hinglish) {
       if (lang.isHindi) return hi;
       if (lang.isHinglish) return hinglish;
@@ -134,6 +138,65 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
             ),
           ],
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                showNotificationsSheet(context, shopId: shopId);
+              },
+              child: StreamBuilder<int>(
+                stream: NotificationService.unreadCountStream(shopId: shopId),
+                builder: (context, snapshot) {
+                  final count = snapshot.data ?? 0;
+                  return Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        const Icon(
+                          Icons.notifications_outlined,
+                          color: Color(0xFF334155),
+                          size: 20,
+                        ),
+                        if (count > 0)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFEF4444),
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                              child: Center(
+                                child: Text(
+                                  count > 9 ? '9+' : '$count',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -318,6 +381,16 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                       context,
                       MaterialPageRoute(builder: (_) => const AdminComplaintsScreen()),
                     );
+                  },
+                ),
+                _buildModernTile(
+                  icon: Icons.notifications_active_rounded,
+                  color: const Color(0xFFF59E0B),
+                  title: t('Notifications & Alerts', 'सूचनाएं व अलर्ट संदेश', 'Notifications & Alerts'),
+                  subtitle: t('All order alerts & shop notification messages', 'दुकान और ऑर्डर के सभी नोटिफिकेशन संदेश', 'View order alerts and notifications'),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    showNotificationsSheet(context, shopId: shopId);
                   },
                 ),
                 _buildModernTile(

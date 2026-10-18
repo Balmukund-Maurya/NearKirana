@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../shop_provider.dart';
+import 'notifications_bottom_sheet.dart';
 
 class AdminTopHeader extends StatelessWidget {
   const AdminTopHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final shopId = Provider.of<ShopProvider>(context).currentShopId;
     return Container(
       height: 80,
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -57,7 +61,11 @@ class AdminTopHeader extends StatelessWidget {
           ),
           const Spacer(),
           // Actions
-          _buildHeaderIcon(Icons.notifications_none_rounded, showBadge: true),
+          _buildHeaderIcon(
+            Icons.notifications_none_rounded,
+            showBadge: true,
+            onTap: () => showNotificationsSheet(context, shopId: shopId),
+          ),
           const SizedBox(width: 16),
           _buildHeaderIcon(Icons.chat_bubble_outline_rounded),
           const SizedBox(width: 16),
@@ -82,32 +90,36 @@ class AdminTopHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, {bool showBadge = false}) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Icon(icon, color: Colors.grey.shade700, size: 20),
-          if (showBadge)
-            Positioned(
-              right: -2,
-              top: -2,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
+  Widget _buildHeaderIcon(IconData icon, {bool showBadge = false, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icon, color: Colors.grey.shade700, size: 20),
+            if (showBadge)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

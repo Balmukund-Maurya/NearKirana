@@ -20,6 +20,7 @@ import 'wishlist_provider.dart';
 import 'animation_helpers.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'widgets/voice_order_sheet.dart';
+import 'widgets/notifications_bottom_sheet.dart';
 
 class CustomerShopTab extends StatefulWidget {
   const CustomerShopTab({super.key});
@@ -441,6 +442,34 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                             ),
                           );
                         },
+                      ),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          showNotificationsSheet(
+                            context,
+                            recipientPhone: userProvider.customerPhone,
+                            recipientUid: userProvider.customerUid,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_none_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Container(

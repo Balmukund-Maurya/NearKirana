@@ -56,6 +56,8 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String get customerName => _customerName;
   String get phoneNumber => _phoneNumber;
+  String get customerPhone => _phoneNumber;
+  String? get customerUid => FirebaseUtils.auth.currentUser?.uid;
   String get email => _email;
   String get deliveryAddress => _deliveryAddress;
   String get customerHouseNo => _customerHouseNo;

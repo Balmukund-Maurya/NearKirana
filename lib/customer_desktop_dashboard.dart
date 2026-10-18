@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'user_provider.dart';
 import 'cart_provider.dart';
 import 'app_theme.dart';
+import 'widgets/notifications_bottom_sheet.dart';
 
 class DesktopCustomerDashboard extends StatefulWidget {
   final int selectedIndex;
@@ -414,7 +415,13 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
           // Actions
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {},
+            onPressed: () {
+              showNotificationsSheet(
+                context,
+                recipientPhone: userProvider.customerPhone,
+                recipientUid: userProvider.customerUid,
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline_rounded),

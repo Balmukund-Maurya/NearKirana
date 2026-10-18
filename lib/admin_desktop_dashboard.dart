@@ -7,6 +7,7 @@ import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/widgets/weekly_sales_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:near_kirana/gateway_screen.dart';
+import 'package:near_kirana/widgets/notifications_bottom_sheet.dart';
 
 class AdminDesktopDashboard extends StatelessWidget {
   final int selectedIndex;
@@ -345,7 +346,16 @@ class AdminDesktopHome extends StatelessWidget {
           ),
           const Spacer(),
           // Actions
-          _buildHeaderIcon(Icons.notifications_none_rounded, showBadge: true),
+          Builder(
+            builder: (ctx) {
+              final shopId = Provider.of<ShopProvider>(ctx).currentShopId;
+              return _buildHeaderIcon(
+                Icons.notifications_none_rounded,
+                showBadge: true,
+                onTap: () => showNotificationsSheet(ctx, shopId: shopId),
+              );
+            },
+          ),
           const SizedBox(width: 16),
           _buildHeaderIcon(Icons.chat_bubble_outline_rounded),
           const SizedBox(width: 16),
@@ -377,29 +387,33 @@ class AdminDesktopHome extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, {bool showBadge = false}) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Icon(icon, color: Colors.black87, size: 20),
-          if (showBadge)
-            Positioned(
-              right: -2,
-              top: -2,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+  Widget _buildHeaderIcon(IconData icon, {bool showBadge = false, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icon, color: Colors.black87, size: 20),
+            if (showBadge)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

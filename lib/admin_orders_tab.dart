@@ -286,6 +286,12 @@ class _LiveOrdersTabState extends State<_LiveOrdersTab>
             NotificationService.showOrderNotification(
               t('New Order Received!', 'नया ऑर्डर आया है!', 'Naya Order Aaya Hai!'),
               t('Total $currentCount pending orders. Check immediately.', 'कुल $currentCount ऑर्डर्स पेंडिंग हैं। तुरंत चेक करें।', 'Total $currentCount pending orders hai. Jaldi check karein.'),
+              titleEn: 'New Order Received!',
+              titleHi: 'नया ऑर्डर आया है!',
+              titleHinglish: 'Naya Order Aaya Hai!',
+              bodyEn: 'Total $currentCount pending orders. Check immediately.',
+              bodyHi: 'कुल $currentCount ऑर्डर्स पेंडिंग हैं। तुरंत चेक करें।',
+              bodyHinglish: 'Total $currentCount pending orders hai. Jaldi check karein.',
             );
           }
           _previousPendingCount = currentCount;

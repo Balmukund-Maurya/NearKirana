@@ -331,49 +331,350 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredCategories = _categories.where((c) => c.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    final isMobile = MediaQuery.of(context).size.width < 800;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
+      appBar: isMobile
+          ? AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
+                onPressed: () => Navigator.maybePop(context),
+              ),
+              title: Text(
+                'Product Categories',
+                style: GoogleFonts.poppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
+                  tooltip: 'Refresh',
+                  onPressed: _fetchData,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_rounded, color: Color(0xFF0C831F)),
+                  tooltip: 'Add Category',
+                  onPressed: _addCategory,
+                ),
+              ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Container(color: const Color(0xFFF1F5F9), height: 1),
+              ),
+            )
+          : null,
+      floatingActionButton: isMobile
+          ? FloatingActionButton.extended(
+              onPressed: _addCategory,
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text('Add Category', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+              backgroundColor: const Color(0xFF0C831F),
+            )
+          : null,
       body: Column(
         children: [
-          const AdminTopHeader(),
+          if (!isMobile) const AdminTopHeader(),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildPageHeader(),
-                        const SizedBox(height: 24),
-                        _buildSearchRow(),
-                        const SizedBox(height: 24),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                : isMobile
+                    ? _buildMobileBody(filteredCategories)
+                    : _buildDesktopBody(filteredCategories),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileBody(List<String> filteredCategories) {
+    final withImagesCount = _categories.where((c) => _categoryImages[c] != null && _categoryImages[c]!.isNotEmpty).length;
+
+    return RefreshIndicator(
+      onRefresh: _fetchData,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+        children: [
+          // Search Field
+          TextField(
+            onChanged: (v) => setState(() => _searchQuery = v),
+            decoration: InputDecoration(
+              hintText: 'Search categories...',
+              hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+              prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 18),
+                      onPressed: () => setState(() => _searchQuery = ''),
+                    )
+                  : null,
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF0C831F), width: 1.5)),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Quick Stat Chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildMobileStatChip(
+                  icon: Icons.category_rounded,
+                  label: '${_categories.length} Categories',
+                  color: const Color(0xFF0C831F),
+                ),
+                const SizedBox(width: 8),
+                _buildMobileStatChip(
+                  icon: Icons.inventory_2_outlined,
+                  label: '$_totalProducts Products',
+                  color: const Color(0xFF2563EB),
+                ),
+                const SizedBox(width: 8),
+                _buildMobileStatChip(
+                  icon: Icons.photo_library_outlined,
+                  label: '$withImagesCount Photos Set',
+                  color: const Color(0xFF7C3AED),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Categories List
+          if (filteredCategories.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF94A3B8)),
+                    const SizedBox(height: 12),
+                    Text(
+                      _searchQuery.isEmpty ? 'No categories yet' : 'No categories found for "$_searchQuery"',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF475569)),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _addCategory,
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('Add Category'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0C831F),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredCategories.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                final cat = filteredCategories[i];
+                final catImg = _categoryImages[cat] ?? '';
+                final hasImg = catImg.isNotEmpty;
+                final count = _productCounts[cat] ?? 0;
+
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Photo thumbnail with camera button
+                      InkWell(
+                        onTap: () => _editCategoryImage(cat),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
                           children: [
-                            Expanded(
-                              flex: 7,
-                              child: _buildCategoriesCard(filteredCategories),
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              clipBehavior: Clip.hardEdge,
+                              child: hasImg
+                                  ? ProductImageWidget(imageUrl: catImg, fit: BoxFit.cover)
+                                  : const Icon(Icons.category_rounded, color: Color(0xFF94A3B8), size: 24),
                             ),
-                            const SizedBox(width: 24),
-                            Expanded(
-                              flex: 3,
-                              child: Column(
-                                children: [
-                                  _buildCategorySummary(),
-                                  const SizedBox(height: 24),
-                                  _buildQuickActions(),
-                                  const SizedBox(height: 24),
-                                  _buildCategoryTips(),
-                                ],
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF0C831F),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt_rounded, size: 10, color: Colors.white),
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cat,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14.5,
+                                color: Color(0xFF0F172A),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0C831F).withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '$count Products',
+                                    style: const TextStyle(
+                                      color: Color(0xFF0C831F),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  hasImg ? '• Photo set' : '• No photo',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: hasImg ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Actions
+                      IconButton(
+                        icon: const Icon(Icons.add_a_photo_outlined, size: 19, color: Color(0xFF0C831F)),
+                        tooltip: 'Change Photo',
+                        onPressed: () => _editCategoryImage(cat),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 19, color: Color(0xFF64748B)),
+                        tooltip: 'Edit Name',
+                        onPressed: () => _editCategory(cat),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 19, color: Color(0xFFDC2626)),
+                        tooltip: 'Delete',
+                        onPressed: () => _deleteCategory(cat),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
                   ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileStatChip({required IconData icon, required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopBody(List<String> filteredCategories) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildPageHeader(),
+          const SizedBox(height: 24),
+          _buildSearchRow(),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 7,
+                child: _buildCategoriesCard(filteredCategories),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 3,
+                child: Column(
+                  children: [
+                    _buildCategorySummary(),
+                    const SizedBox(height: 24),
+                    _buildQuickActions(),
+                    const SizedBox(height: 24),
+                    _buildCategoryTips(),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -385,14 +686,17 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Categories', style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28, fontFamily: GoogleFonts.inter().fontFamily, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text('Manage product categories and organize your catalog', style: AppTextStyles.bodyMedium(color: AppColors.textMid).copyWith(fontSize: 15)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Categories', style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28, fontFamily: GoogleFonts.inter().fontFamily, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text('Manage product categories and organize your catalog', style: AppTextStyles.bodyMedium(color: AppColors.textMid).copyWith(fontSize: 15)),
+            ],
+          ),
         ),
+        const SizedBox(width: 16),
         ElevatedButton.icon(
           onPressed: _addCategory,
           icon: const Icon(Icons.add_circle_outline, size: 18),
@@ -670,12 +974,14 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                 );
               },
             ),
-          Padding(
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(24),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Showing 1-${cats.length} of ${cats.length} categories', style: const TextStyle(color: AppColors.textMid, fontSize: 13)),
+                const SizedBox(width: 24),
                 Row(
                   children: [
                     Container(

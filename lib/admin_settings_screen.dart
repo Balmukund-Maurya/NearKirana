@@ -469,18 +469,20 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 child: const Icon(Icons.storefront_rounded, color: Color(0xFF0C831F), size: 20),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t('Store Profile', 'दुकान की मुख्य जानकारी', 'Store Profile'),
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                  ),
-                  Text(
-                    t('Shop name, owner & open status', 'नाम, मालिक व चालू/बंद स्थिति', 'Shop name & status'),
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t('Store Profile', 'दुकान की मुख्य जानकारी', 'Store Profile'),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                    ),
+                    Text(
+                      t('Shop name, owner & open status', 'नाम, मालिक व चालू/बंद स्थिति', 'Shop name & status'),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -490,56 +492,63 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
           // Open/Close toggle banner
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: _isStoreOpen ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _isStoreOpen ? const Color(0xFFA5D6A7) : const Color(0xFFFECACA)),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _isStoreOpen ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _isStoreOpen
-                              ? t('Store is Online (Accepting Orders)', 'दुकान खुली है (ऑर्डर चालू)', 'Store Online (Orders ON)')
-                              : t('Store is Closed (Offline)', 'दुकान बंद है (ऑर्डर बंद)', 'Store Closed (Offline)'),
-                          style: TextStyle(
-                            color: _isStoreOpen ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          _isStoreOpen
-                              ? t('Customers can order from your shop', 'ग्राहक ऐप से सामान ऑर्डर कर सकते हैं', 'Customers can place orders')
-                              : t('Ordering is temporarily paused', 'ग्राहक अभी ऑर्डर नहीं दे सकते', 'Orders temporarily paused'),
-                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                        ),
-                      ],
-                    ),
-                  ],
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _isStoreOpen ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                  ),
                 ),
-                Switch(
-                  value: _isStoreOpen,
-                  activeThumbColor: const Color(0xFF0C831F),
-                  onChanged: (val) {
-                    setState(() => _isStoreOpen = val);
-                    HapticFeedback.lightImpact();
-                  },
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _isStoreOpen
+                            ? t('Store is Online (Accepting Orders)', 'दुकान खुली है (ऑर्डर चालू)', 'Store Online (Orders ON)')
+                            : t('Store is Closed (Offline)', 'दुकान बंद है (ऑर्डर बंद)', 'Store Closed (Offline)'),
+                        style: TextStyle(
+                          color: _isStoreOpen ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _isStoreOpen
+                            ? t('Customers can order from your shop', 'ग्राहक ऐप से सामान ऑर्डर कर सकते हैं', 'Customers can place orders')
+                            : t('Ordering is temporarily paused', 'ग्राहक अभी ऑर्डर नहीं दे सकते', 'Orders temporarily paused'),
+                        style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Transform.scale(
+                  scale: 0.85,
+                  child: Switch(
+                    value: _isStoreOpen,
+                    activeThumbColor: const Color(0xFF0C831F),
+                    onChanged: (val) {
+                      setState(() => _isStoreOpen = val);
+                      HapticFeedback.lightImpact();
+                    },
+                  ),
                 ),
               ],
             ),
@@ -609,18 +618,20 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 child: const Icon(Icons.two_wheeler_rounded, color: Color(0xFFEA580C), size: 20),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t('Delivery & Timings', 'डिलीवरी फीस व समय', 'Delivery & Timings'),
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                  ),
-                  Text(
-                    t('Radius, fee, min order & pack time', 'डिलीवरी दायरा, न्यूनतम ऑर्डर व पैकिंग समय', 'Radius, fees & prep time'),
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t('Delivery & Timings', 'डिलीवरी फीस व समय', 'Delivery & Timings'),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                    ),
+                    Text(
+                      t('Radius, fee, min order & pack time', 'डिलीवरी दायरा, न्यूनतम ऑर्डर व पैकिंग समय', 'Radius, fees & prep time'),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -728,18 +739,20 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 child: const Icon(Icons.payment_rounded, color: Color(0xFF2563EB), size: 20),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t('UPI & Payments Setup', 'यूपीआई व पेमेंट सेटिंग्स', 'UPI & Payments Setup'),
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                  ),
-                  Text(
-                    t('Direct QR, Razorpay key & Udhaar limit', 'दुकान का QR, रेज़रपे व उधार सीमा', 'Direct QR, Razorpay & Udhaar'),
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t('UPI & Payments Setup', 'यूपीआई व पेमेंट सेटिंग्स', 'UPI & Payments Setup'),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                    ),
+                    Text(
+                      t('Direct QR, Razorpay key & Udhaar limit', 'दुकान का QR, रेज़रपे व उधार सीमा', 'Direct QR, Razorpay & Udhaar'),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -813,18 +826,20 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 child: const Icon(Icons.pin_drop_rounded, color: Color(0xFF0D9488), size: 20),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t('Location & WhatsApp Support', 'दुकान की लोकेशन व व्हाट्सएप', 'Location & WhatsApp'),
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                  ),
-                  Text(
-                    t('GPS Coordinates & automated message', 'दुकान के जीपीएस निर्देशांक व मैसेज', 'GPS coordinates & templates'),
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t('Location & WhatsApp Support', 'दुकान की लोकेशन व व्हाट्सएप', 'Location & WhatsApp'),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                    ),
+                    Text(
+                      t('GPS Coordinates & automated message', 'दुकान के जीपीएस निर्देशांक व मैसेज', 'GPS coordinates & templates'),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

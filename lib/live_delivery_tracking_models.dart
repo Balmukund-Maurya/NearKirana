@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Status of the live delivery tracking session
 enum LiveTrackingStatus {
+  headingToStore('heading_to_store', 'दुकान आ रहे हैं (Heading to Store)'),
+  arrivedAtStore('arrived_at_store', 'दुकान पहुंच गए (Arrived at Store)'),
   transit('in_transit', 'रास्ते में है (On the Way)'),
   nearby('nearby', 'आस-पास पहुंच गए हैं (Arrived Nearby)'),
   delivered('delivered', 'डिलीवरी पूरी हुई (Delivered)'),
@@ -13,6 +15,12 @@ enum LiveTrackingStatus {
 
   static LiveTrackingStatus fromString(String? key) {
     switch (key?.toLowerCase().trim()) {
+      case 'heading_to_store':
+      case 'to_store':
+        return LiveTrackingStatus.headingToStore;
+      case 'arrived_at_store':
+      case 'at_store':
+        return LiveTrackingStatus.arrivedAtStore;
       case 'nearby':
       case 'arrived_nearby':
         return LiveTrackingStatus.nearby;
@@ -94,6 +102,8 @@ class LiveTrackingSession {
   final String customerAddress;
   final double? customerLat;
   final double? customerLng;
+  final String currentPhase; // 'to_store' or 'to_customer'
+  final String? targetLabel;
   final DeliveryLocationPoint? currentLocation;
   final List<DeliveryLocationPoint> breadcrumbs;
   final bool isActive;
@@ -119,6 +129,8 @@ class LiveTrackingSession {
     required this.customerAddress,
     this.customerLat,
     this.customerLng,
+    this.currentPhase = 'to_customer',
+    this.targetLabel,
     this.currentLocation,
     this.breadcrumbs = const [],
     this.isActive = true,
@@ -129,6 +141,15 @@ class LiveTrackingSession {
     required this.lastUpdatedAt,
     this.sessionEndedAt,
   });
+
+  /// True if partner is heading to the store to pick up parcel
+  bool get isHeadingToStore =>
+      currentPhase == 'to_store' ||
+      status == LiveTrackingStatus.headingToStore ||
+      status == LiveTrackingStatus.arrivedAtStore;
+
+  /// True if partner has arrived at the store
+  bool get isArrivedAtStore => status == LiveTrackingStatus.arrivedAtStore;
 
   /// True if partner is within proximity threshold (e.g. 180 meters)
   bool get isNearby =>
@@ -149,6 +170,9 @@ class LiveTrackingSession {
   String get formattedEta {
     if (status == LiveTrackingStatus.delivered) {
       return 'Delivered';
+    }
+    if (isArrivedAtStore) {
+      return 'दुकान पर पहुंच गए';
     }
     if (isNearby) {
       return 'पहुंचने वाले हैं (1-2 mins)';
@@ -178,6 +202,8 @@ class LiveTrackingSession {
       'customer_address': customerAddress,
       'customer_lat': customerLat,
       'customer_lng': customerLng,
+      'current_phase': currentPhase,
+      'target_label': targetLabel,
       'current_location': currentLocation?.toMap(),
       'breadcrumbs': breadcrumbs.map((b) => b.toMap()).toList(),
       'is_active': isActive,
@@ -245,6 +271,11 @@ class LiveTrackingSession {
       customerAddress: map['customer_address']?.toString() ?? '',
       customerLat: (map['customer_lat'] as num?)?.toDouble(),
       customerLng: (map['customer_lng'] as num?)?.toDouble(),
+      currentPhase: map['current_phase']?.toString() ??
+          (map['status'] == 'heading_to_store' || map['status'] == 'arrived_at_store'
+              ? 'to_store'
+              : 'to_customer'),
+      targetLabel: map['target_label']?.toString(),
       currentLocation: loc,
       breadcrumbs: crumbsList,
       isActive: map['is_active'] as bool? ?? false,
@@ -260,6 +291,8 @@ class LiveTrackingSession {
   }
 
   LiveTrackingSession copyWith({
+    String? currentPhase,
+    String? targetLabel,
     DeliveryLocationPoint? currentLocation,
     List<DeliveryLocationPoint>? breadcrumbs,
     bool? isActive,
@@ -284,6 +317,8 @@ class LiveTrackingSession {
       customerAddress: customerAddress,
       customerLat: customerLat,
       customerLng: customerLng,
+      currentPhase: currentPhase ?? this.currentPhase,
+      targetLabel: targetLabel ?? this.targetLabel,
       currentLocation: currentLocation ?? this.currentLocation,
       breadcrumbs: breadcrumbs ?? this.breadcrumbs,
       isActive: isActive ?? this.isActive,

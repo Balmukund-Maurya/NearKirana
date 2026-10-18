@@ -229,6 +229,10 @@ class DeliveryPartner {
 class DeliveryOrderTask {
   final String orderId;
   final String shopId;
+  final String shopName;
+  final String shopAddress;
+  final double? shopLat;
+  final double? shopLng;
   final String partnerId;
   final String partnerName;
   final String partnerPhone;
@@ -253,6 +257,10 @@ class DeliveryOrderTask {
   const DeliveryOrderTask({
     required this.orderId,
     required this.shopId,
+    this.shopName = '',
+    this.shopAddress = '',
+    this.shopLat,
+    this.shopLng,
     required this.partnerId,
     this.partnerName = '',
     this.partnerPhone = '',
@@ -320,6 +328,16 @@ class DeliveryOrderTask {
     return DeliveryOrderTask(
       orderId: id,
       shopId: data['shop_id']?.toString() ?? '',
+      shopName: data['shop_name']?.toString() ?? data['store_name']?.toString() ?? '',
+      shopAddress: data['shop_address']?.toString() ?? data['store_address']?.toString() ?? '',
+      shopLat: (data['shop_lat'] as num?)?.toDouble() ??
+          (data['store_lat'] as num?)?.toDouble() ??
+          (data['shop_latitude'] as num?)?.toDouble() ??
+          (data['store_latitude'] as num?)?.toDouble(),
+      shopLng: (data['shop_lng'] as num?)?.toDouble() ??
+          (data['store_lng'] as num?)?.toDouble() ??
+          (data['shop_longitude'] as num?)?.toDouble() ??
+          (data['store_longitude'] as num?)?.toDouble(),
       partnerId: data['delivery_boy_id']?.toString() ?? '',
       partnerName: data['delivery_boy_name']?.toString() ?? '',
       partnerPhone: data['delivery_boy_phone']?.toString() ?? '',

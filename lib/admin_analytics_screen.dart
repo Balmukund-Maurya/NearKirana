@@ -10,6 +10,7 @@ import 'shop_provider.dart';
 import 'widgets/admin_top_header.dart';
 import 'widgets/add_expense_dialog.dart';
 import 'utils/snackbar_helper.dart';
+import 'language_provider.dart';
 
 class AdminAnalyticsScreen extends StatefulWidget {
   const AdminAnalyticsScreen({super.key});
@@ -221,26 +222,45 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final canPop = Navigator.canPop(context);
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: canPop
           ? AppBar(
               backgroundColor: Colors.white,
-              elevation: 0.5,
+              elevation: 0,
+              surfaceTintColor: Colors.transparent,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+                icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
                 onPressed: () => Navigator.pop(context),
               ),
-              title: Text(
-                'Sales & Profit Analytics',
-                style: AppTextStyles.heading2(color: AppColors.textDark),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('Sales & Profit Analytics', 'बिक्री व मुनाफा विश्लेषण', 'Sales & Profit Analytics'),
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                  Text(
+                    t('Gross Profit, Margins & Expenses', 'सकल मुनाफा, मार्जिन व खर्चे', 'Gross Profit, Margins & Expenses'),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                  ),
+                ],
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.refresh, color: AppColors.primaryDark),
-                  tooltip: 'Refresh Analytics',
-                  onPressed: _loadAnalytics,
+                  icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0C831F)),
+                  tooltip: t('Refresh', 'रिफ्रेश', 'Refresh'),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    _loadAnalytics();
+                  },
                 ),
               ],
             )
@@ -250,13 +270,16 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
           if (!canPop) const AdminTopHeader(),
           Expanded(
             child: _isLoading
-                ? const Center(
+                ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircularProgressIndicator(color: AppColors.primaryDark),
-                        SizedBox(height: 16),
-                        Text('Calculating sales, COGS & margins...'),
+                        const CircularProgressIndicator(color: Color(0xFF0C831F)),
+                        const SizedBox(height: 16),
+                        Text(
+                          t('Calculating sales, COGS & margins...', 'कमाई व मुनाफे की गणना की जा रही है...', 'Calculating sales, COGS & margins...'),
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                        ),
                       ],
                     ),
                   )
@@ -267,29 +290,34 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                              const Icon(Icons.error_outline_rounded, size: 48, color: Color(0xFFDC2626)),
                               const SizedBox(height: 12),
-                              Text(_errorMessage!, textAlign: TextAlign.center),
+                              Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFFDC2626))),
                               const SizedBox(height: 16),
                               ElevatedButton(
                                 onPressed: _loadAnalytics,
-                                child: const Text('Try Again'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0C831F),
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: Text(t('Try Again', 'पुनः प्रयास करें', 'Try Again')),
                               ),
                             ],
                           ),
                         ),
                       )
-                    : _buildDashboardContent(isDesktop),
+                    : _buildDashboardContent(isDesktop, t),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDashboardContent(bool isDesktop) {
+  Widget _buildDashboardContent(bool isDesktop, String Function(String, String, String) t) {
     final summary = _summary ?? AdvancedAnalyticsSummary.empty(period: _selectedPeriod);
 
     return RefreshIndicator(
+      color: const Color(0xFF0C831F),
       onRefresh: _loadAnalytics,
       child: SingleChildScrollView(
         padding: EdgeInsets.all(isDesktop ? 24 : 16),
@@ -297,7 +325,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Page header with Timeframe selectors
-            _buildPageHeader(isDesktop),
+            _buildPageHeader(isDesktop, t),
             const SizedBox(height: 16),
 
             // Low-margin or Missing purchase prices alert banner
@@ -310,7 +338,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
             const SizedBox(height: 16),
 
             // Executive KPI Cards (Revenue, Gross Profit, Expenses, Net Profit, Orders, AOV)
-            _buildExecutiveKpiSection(summary, isDesktop),
+            _buildExecutiveKpiSection(summary, isDesktop, t),
             const SizedBox(height: 24),
 
             // Tab Bar
@@ -318,31 +346,31 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.bgTint),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: TabBar(
                 controller: _tabController,
-                labelColor: AppColors.primaryDark,
-                unselectedLabelColor: AppColors.textMid,
-                indicatorColor: AppColors.primaryDark,
+                labelColor: const Color(0xFF0C831F),
+                unselectedLabelColor: const Color(0xFF64748B),
+                indicatorColor: const Color(0xFF0C831F),
                 indicatorWeight: 3,
                 isScrollable: !isDesktop,
                 tabs: [
-                  const Tab(
-                    icon: Icon(Icons.trending_up, size: 20),
-                    text: 'Overview & Trends',
+                  Tab(
+                    icon: const Icon(Icons.trending_up, size: 20),
+                    text: t('Overview & Trends', 'बिक्री व ट्रेंड', 'Overview & Trends'),
                   ),
-                  const Tab(
-                    icon: Icon(Icons.pie_chart_outline, size: 20),
-                    text: 'Profit & Margins',
+                  Tab(
+                    icon: const Icon(Icons.pie_chart_outline, size: 20),
+                    text: t('Profit & Margins', 'मुनाफा व मार्जिन', 'Profit & Margins'),
                   ),
                   Tab(
                     icon: const Icon(Icons.warning_amber_rounded, size: 20),
-                    text: 'Best Sellers & Alerts (${summary.lowMarginProducts.length})',
+                    text: '${t("Best Sellers & Alerts", "टॉप बिक्री व अलर्ट", "Best Sellers & Alerts")} (${summary.lowMarginProducts.length})',
                   ),
                   Tab(
                     icon: const Icon(Icons.receipt_long_outlined, size: 20),
-                    text: 'Expenses Ledger (${summary.expenses.length})',
+                    text: '${t("Expenses Ledger", "दुकान के खर्चे", "Expenses Ledger")} (${summary.expenses.length})',
                   ),
                 ],
               ),
@@ -368,7 +396,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
     );
   }
 
-  Widget _buildPageHeader(bool isDesktop) {
+  Widget _buildPageHeader(bool isDesktop, String Function(String, String, String) t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -380,7 +408,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Sales & Profit Analytics',
+                    t('Sales & Profit Analytics', 'बिक्री व मुनाफा एनालिटिक्स', 'Sales & Profit Analytics'),
                     style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(
                       fontSize: isDesktop ? 26 : 20,
                       fontWeight: FontWeight.w800,
@@ -388,7 +416,11 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Analyze actual business performance, cost of goods sold (COGS) & store net profit',
+                    t(
+                      'Analyze actual business performance, cost of goods sold (COGS) & store net profit',
+                      'वास्तविक व्यापार प्रदर्शन, बेचे गए सामान की लागत (COGS) व शुद्ध मुनाफा देखें',
+                      'Analyze actual business performance, cost of goods sold (COGS) & store net profit',
+                    ),
                     style: AppTextStyles.bodyMedium(color: AppColors.textMid).copyWith(
                       fontSize: isDesktop ? 14 : 12,
                     ),
@@ -401,7 +433,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
               ElevatedButton.icon(
                 onPressed: _openAddExpense,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('+ Add Store Expense'),
+                label: Text(t('+ Add Store Expense', '+ दुकान का खर्च जोड़ें', '+ Add Store Expense')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryDark,
                   foregroundColor: Colors.white,
@@ -418,20 +450,23 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _buildTimeChip(AnalyticsTimePeriod.today),
+              _buildTimeChip(AnalyticsTimePeriod.today, t('Today', 'आज', 'Today')),
               const SizedBox(width: 8),
-              _buildTimeChip(AnalyticsTimePeriod.thisWeek),
+              _buildTimeChip(AnalyticsTimePeriod.thisWeek, t('This Week', 'इस हफ्ते', 'This Week')),
               const SizedBox(width: 8),
-              _buildTimeChip(AnalyticsTimePeriod.thisMonth),
+              _buildTimeChip(AnalyticsTimePeriod.thisMonth, t('This Month', 'इस महीने', 'This Month')),
               const SizedBox(width: 8),
-              _buildTimeChip(AnalyticsTimePeriod.last30Days),
+              _buildTimeChip(AnalyticsTimePeriod.last30Days, t('Last 30 Days', 'पिछले 30 दिन', 'Last 30 Days')),
               const SizedBox(width: 8),
-              _buildTimeChip(AnalyticsTimePeriod.allTime),
+              _buildTimeChip(AnalyticsTimePeriod.allTime, t('All Time', 'कुल समय', 'All Time')),
               if (!isDesktop) ...[
                 const SizedBox(width: 12),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 16, color: Colors.white),
-                  label: const Text('Add Expense', style: TextStyle(color: Colors.white)),
+                  label: Text(
+                    t('Add Expense', 'खर्च जोड़ें', 'Add Expense'),
+                    style: const TextStyle(color: Colors.white),
+                  ),
                   backgroundColor: AppColors.primaryDark,
                   onPressed: _openAddExpense,
                 ),
@@ -443,10 +478,10 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
     );
   }
 
-  Widget _buildTimeChip(AnalyticsTimePeriod period) {
+  Widget _buildTimeChip(AnalyticsTimePeriod period, [String? customLabel]) {
     final isSelected = _selectedPeriod == period;
     return ChoiceChip(
-      label: Text(period.displayName),
+      label: Text(customLabel ?? period.displayName),
       selected: isSelected,
       onSelected: (_) => _onPeriodChanged(period),
       selectedColor: AppColors.primaryDark,
@@ -535,55 +570,55 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
     );
   }
 
-  Widget _buildExecutiveKpiSection(AdvancedAnalyticsSummary summary, bool isDesktop) {
+  Widget _buildExecutiveKpiSection(AdvancedAnalyticsSummary summary, bool isDesktop, String Function(String, String, String) t) {
     final cards = [
       _buildExecutiveKpiCard(
-        title: 'Total Revenue',
+        title: t('Total Revenue', 'कुल बिक्री', 'Total Revenue'),
         value: '₹${_currencyFormat.format(summary.totalRevenue)}',
-        badge: '${summary.deliveredOrders} delivered',
+        badge: '${summary.deliveredOrders} ${t("delivered", "डिलीवर", "delivered")}',
         badgeColor: Colors.blue,
         icon: Icons.currency_rupee,
-        subtitle: 'From ${summary.totalOrders} total orders',
+        subtitle: '${t("From", "कुल", "From")} ${summary.totalOrders} ${t("total orders", "ऑर्डर्स से", "total orders")}',
       ),
       _buildExecutiveKpiCard(
-        title: 'Gross Profit',
+        title: t('Gross Profit', 'सकल मुनाफा', 'Gross Profit'),
         value: '₹${_currencyFormat.format(summary.grossProfit)}',
         badge: '${summary.grossMarginPercent.toStringAsFixed(1)}% margin',
         badgeColor: summary.grossMarginPercent >= 15 ? Colors.green : Colors.orange,
         icon: Icons.bar_chart,
-        subtitle: 'Revenue minus COGS (₹${_currencyFormat.format(summary.totalCOGS)})',
+        subtitle: '${t("Revenue minus COGS", "बिक्री में से खरीद लागत घटाकर", "Revenue minus COGS")} (₹${_currencyFormat.format(summary.totalCOGS)})',
       ),
       _buildExecutiveKpiCard(
-        title: 'Store Expenses',
+        title: t('Store Expenses', 'दुकान के खर्चे', 'Store Expenses'),
         value: '₹${_currencyFormat.format(summary.totalExpenses)}',
         badge: '${summary.expenses.length} records',
         badgeColor: Colors.purple,
         icon: Icons.receipt_long_outlined,
-        subtitle: 'Operating costs deducted',
+        subtitle: t('Operating costs deducted', 'दुकान खर्च घटाया गया', 'Operating costs deducted'),
       ),
       _buildExecutiveKpiCard(
-        title: 'Net Profit',
+        title: t('Net Profit', 'शुद्ध मुनाफा', 'Net Profit'),
         value: '₹${_currencyFormat.format(summary.netProfit)}',
         badge: '${summary.netMarginPercent.toStringAsFixed(1)}% net',
         badgeColor: summary.netProfit >= 0 ? Colors.teal : Colors.red,
         icon: Icons.account_balance_wallet_outlined,
-        subtitle: 'Gross profit minus expenses',
+        subtitle: t('Gross profit minus expenses', 'मुनाफे में से खर्चे घटाकर', 'Gross profit minus expenses'),
       ),
       _buildExecutiveKpiCard(
-        title: 'Total Orders',
+        title: t('Total Orders', 'कुल ऑर्डर्स', 'Total Orders'),
         value: '${summary.totalOrders}',
-        badge: '${summary.deliveredOrders} done',
+        badge: '${summary.deliveredOrders} ${t("done", "सफल", "done")}',
         badgeColor: Colors.indigo,
         icon: Icons.shopping_bag_outlined,
-        subtitle: '${summary.processingOrders} active | ${summary.cancelledOrders} cancelled',
+        subtitle: '${summary.processingOrders} ${t("active", "सक्रिय", "active")} | ${summary.cancelledOrders} ${t("cancelled", "रद्द", "cancelled")}',
       ),
       _buildExecutiveKpiCard(
-        title: 'Avg Order Value',
+        title: t('Avg Order Value', 'औसत ऑर्डर मूल्य', 'Avg Order Value'),
         value: '₹${_currencyFormat.format(summary.averageOrderValue)}',
         badge: 'AOV',
         badgeColor: Colors.brown,
         icon: Icons.shopping_cart_outlined,
-        subtitle: 'Discounts: ₹${_currencyFormat.format(summary.totalDiscounts)}',
+        subtitle: '${t("Discounts", "छूट", "Discounts")}: ₹${_currencyFormat.format(summary.totalDiscounts)}',
       ),
     ];
 

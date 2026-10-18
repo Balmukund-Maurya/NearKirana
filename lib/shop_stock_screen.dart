@@ -14,8 +14,6 @@ import 'utils/product_image_widget.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'widgets/admin_top_header.dart';
 import 'admin_add_product_screen.dart';
-import 'admin_suppliers_screen.dart';
-import 'admin_batch_expiry_screen.dart';
 
 class ShopStockScreen extends StatefulWidget {
   const ShopStockScreen({super.key});
@@ -284,76 +282,6 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
                 ),
               ],
             ),
-            actions: [
-              // Expiry Tracker Action
-              InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AdminBatchExpiryScreen()),
-                  ).then((_) => _refresh());
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFECACA)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.event_busy_rounded, size: 14, color: Color(0xFFDC2626)),
-                      const SizedBox(width: 4),
-                      Text(
-                        t('Expiry', 'एक्सपायरी', 'Expiry'),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFDC2626),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              // Purchases Action
-              InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AdminSuppliersScreen()),
-                  ).then((_) => _refresh());
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.local_shipping_rounded, size: 14, color: Color(0xFF2563EB)),
-                      const SizedBox(width: 4),
-                      Text(
-                        t('Purchases', 'खरीदारी', 'Purchases'),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF2563EB),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-            ],
           ),
           body: Column(
             children: [
@@ -769,9 +697,11 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
               ).then((_) => _refresh());
             },
             backgroundColor: const Color(0xFF0C831F),
-            icon: const Icon(Icons.add_rounded, color: Colors.white),
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            icon: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
             label: Text(
-              t('+ Add Product', '+ सामान जोड़ें', '+ Add Product'),
+              t('Add Product', 'सामान जोड़ें', 'Add Product'),
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
             ),
           ),

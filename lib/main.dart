@@ -225,12 +225,11 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-
-
   void _promptForNameAndRegister(String phone) {
     String newName = '';
     showDialog(
       context: context,
+
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
@@ -562,69 +561,45 @@ class _LoginScreenState extends State<LoginScreen> {
     LanguageProvider langProvider,
     String shopName,
   ) {
-    final isHindi = langProvider.isHindi;
-    final isHinglish = langProvider.isHinglish;
-
-    final deliveryBadgeText = isHindi
-        ? '10-25 मिनट में तेज़ डिलीवरी'
-        : (isHinglish ? '10-25 Mins me Tez Delivery' : '10-25 MINS DELIVERY');
-
-    return Column(
-      children: [
-        // Top Bar with Speed Badge & Language Pill (Zepto/Blinkit style)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF047857).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF047857).withValues(alpha: 0.2),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Illustration Half
+          SizedBox(
+            height: size.height * 0.35,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  'assets/images/kirana_web_hero.jpg',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.surface,
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.3),
+                      ],
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                    ),
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.bolt_rounded,
-                      color: Color(0xFF047857),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      deliveryBadgeText,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF047857),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const LanguageTogglePill(),
-            ],
-          ),
-        ),
-
-        // Auth Card Centered & Scrollable
-        Expanded(
-          child: Center(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: _buildAuthCard(context, langProvider, shopName, false),
-              ),
+              ],
             ),
           ),
-        ),
-      ],
+
+          // Auth Half
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: _buildAuthCard(context, langProvider, shopName, false),
+          ),
+        ],
+      ),
     );
   }
 
@@ -702,8 +677,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final String brandSubtitle = isHindi
         ? 'ताज़ा किराना व सामान आपके दरवाज़े पर'
         : (isHinglish
-            ? 'Fresh groceries aur daily items seedhe ghar par'
-            : 'Fresh Groceries & Daily Essentials');
+              ? 'Fresh groceries aur daily items seedhe ghar par'
+              : 'Fresh Groceries & Daily Essentials');
 
     final String featDelivery = isHindi
         ? '10-25 मिनट'
@@ -720,14 +695,12 @@ class _LoginScreenState extends State<LoginScreen> {
     final String phoneLabel = isHindi
         ? 'अपना मोबाइल नंबर दर्ज करें'
         : (isHinglish
-            ? 'Apna mobile number dalein'
-            : 'Enter your mobile number');
+              ? 'Apna mobile number dalein'
+              : 'Enter your mobile number');
 
     final String phoneHint = isHindi
         ? '10 अंकों का नंबर'
-        : (isHinglish
-            ? '10-digit mobile number'
-            : 'Enter 10-digit number');
+        : (isHinglish ? '10-digit mobile number' : 'Enter 10-digit number');
 
     final String continueBtnText = isHindi
         ? 'आगे बढ़ें (Continue)'
@@ -736,12 +709,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final String termsText = isHindi
         ? 'जारी रखकर आप हमारी सेवा की शर्तों और गोपनीयता नीति से सहमत हैं'
         : (isHinglish
-            ? 'Continue karke aap hamari Terms of Service & Privacy Policy se agree karte hain'
-            : 'By continuing, you agree to our Terms of Service & Privacy Policy');
+              ? 'Continue karke aap hamari Terms of Service & Privacy Policy se agree karte hain'
+              : 'By continuing, you agree to our Terms of Service & Privacy Policy');
 
-    final String orDivider = isHindi
-        ? 'या'
-        : (isHinglish ? 'ya' : 'or');
+    final String orDivider = isHindi ? 'या' : (isHinglish ? 'ya' : 'or');
 
     final String ownerLoginText = isHindi
         ? 'दुकानदार लॉगिन'
@@ -774,13 +745,12 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (isDesktop) ...[
-            Align(
-              alignment: Alignment.topRight,
-              child: const LanguageTogglePill(),
-            ),
-            const SizedBox(height: 6),
-          ],
+          // Top Language Toggle Pill
+          Align(
+            alignment: Alignment.topRight,
+            child: const LanguageTogglePill(),
+          ),
+          const SizedBox(height: 6),
 
           // Zepto Brand Header
           Row(
@@ -907,15 +877,15 @@ class _LoginScreenState extends State<LoginScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFFCBD5E1),
-                width: 1.2,
-              ),
+              border: Border.all(color: const Color(0xFFCBD5E1), width: 1.2),
             ),
             child: Row(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 13,
+                  ),
                   child: Row(
                     children: [
                       const Icon(
@@ -989,8 +959,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         lang == 'hi'
                             ? 'कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें'
                             : (lang == 'hinglish'
-                                ? 'Kripya 10-digit ka valid mobile number dalein'
-                                : 'Please enter a valid 10-digit mobile number'),
+                                  ? 'Kripya 10-digit ka valid mobile number dalein'
+                                  : 'Please enter a valid 10-digit mobile number'),
                       ),
                       backgroundColor: const Color(0xFFDC2626),
                       behavior: SnackBarBehavior.floating,
@@ -1070,7 +1040,9 @@ class _LoginScreenState extends State<LoginScreen> {
           // Divider
           Row(
             children: [
-              const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1)),
+              const Expanded(
+                child: Divider(color: Color(0xFFE2E8F0), thickness: 1),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
@@ -1082,7 +1054,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1)),
+              const Expanded(
+                child: Divider(color: Color(0xFFE2E8F0), thickness: 1),
+              ),
             ],
           ).animate().fadeIn(delay: 550.ms),
 
@@ -1119,15 +1093,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   title: Text(
                     lang == 'hi'
                         ? 'दुकान बदलें?'
-                        : (lang == 'hinglish' ? 'Shop badlein?' : 'Change Shop?'),
+                        : (lang == 'hinglish'
+                              ? 'Shop badlein?'
+                              : 'Change Shop?'),
                     style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
                   ),
                   content: Text(
                     lang == 'hi'
                         ? 'क्या आप इस दुकान से बाहर निकलकर दूसरी दुकान चुनना चाहते हैं? आपकी कार्ट खाली हो जाएगी।'
                         : (lang == 'hinglish'
-                            ? 'Kya aap doosri shop choose karna chahte hain? Aapka cart khali ho jayega.'
-                            : 'Do you want to leave this shop and choose another? Your cart will be cleared.'),
+                              ? 'Kya aap doosri shop choose karna chahte hain? Aapka cart khali ho jayega.'
+                              : 'Do you want to leave this shop and choose another? Your cart will be cleared.'),
                     style: GoogleFonts.poppins(fontSize: 13),
                   ),
                   actions: [
@@ -1180,7 +1156,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 color: const Color(0xFF047857),
               ),
             ),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF047857)),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF047857),
+            ),
           ).animate().fadeIn(delay: 650.ms),
         ],
       ),

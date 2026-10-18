@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:near_kirana/firebase_utils.dart';
 import '../app_theme.dart';
 import '../delivery_partner_models.dart';
 import '../delivery_partner_service.dart';
 import '../sound_service.dart';
+import '../order_state_machine.dart';
+import '../notification_service.dart';
 
 /// Modal dialog allowing a shopkeeper to assign an eligible order to a delivery partner
 class AssignDeliveryPartnerDialog extends StatefulWidget {
@@ -147,6 +151,25 @@ class _AssignDeliveryPartnerDialogState
         notes: _notesController.text.trim(),
       );
 
+      if (widget.nextStatus != null && widget.nextStatus!.isNotEmpty) {
+        await FirebaseUtils.firestore.collection('orders').doc(widget.orderId).update({
+          'status': widget.nextStatus,
+          if (widget.nextStatus == OrderStatus.outForDelivery) ...{
+            'dispatched_at': FieldValue.serverTimestamp(),
+            'delivery_status': 'out_for_delivery',
+          },
+        });
+        NotificationService.dispatchOrderStatusNotification(
+          orderId: widget.orderId,
+          newStatus: widget.nextStatus!,
+          customerPhone: widget.orderData['phone_number']?.toString() ?? '',
+          customerUid: widget.orderData['customer_uid']?.toString(),
+          shopId: widget.shopId,
+          orderTotal: (widget.orderData['total_amount'] as num?)?.toDouble(),
+          deliveryBoyName: _selectedPartner!.name,
+        );
+      }
+
       try {
         SoundService().orderDispatched();
       } catch (_) {}
@@ -158,7 +181,9 @@ class _AssignDeliveryPartnerDialogState
             backgroundColor: AppColors.primaryDark,
             behavior: SnackBarBehavior.floating,
             content: Text(
-              'Order assigned to ${_selectedPartner!.name} successfully!',
+              widget.nextStatus == OrderStatus.outForDelivery
+                  ? 'Order dispatched with ${_selectedPartner!.name}!'
+                  : 'Order assigned to ${_selectedPartner!.name} successfully!',
             ),
           ),
         );

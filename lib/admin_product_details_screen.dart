@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
 import 'package:near_kirana/admin_product_forms.dart';
 import 'package:near_kirana/utils/product_image_widget.dart';
 import 'package:near_kirana/firebase_utils.dart';
+import 'package:near_kirana/sound_service.dart';
 
 class AdminProductDetailsScreen extends StatefulWidget {
   final String barcode;
@@ -89,21 +91,688 @@ class _AdminProductDetailsScreenState extends State<AdminProductDetailsScreen> {
     );
   }
 
+  Future<void> _quickAdjustStock(double delta) async {
+    final currentStock = (productData?['stock_quantity'] as num?)?.toDouble() ?? 0.0;
+    final newStock = (currentStock + delta).clamp(0.0, 99999.0);
+    HapticFeedback.lightImpact();
+    setState(() {
+      if (productData != null) {
+        productData!['stock_quantity'] = newStock;
+      }
+    });
+
+    try {
+      await FirebaseUtils.firestore.collection('products').doc(widget.barcode).update({
+        'stock_quantity': newStock,
+      });
+      SoundService().success();
+    } catch (e) {
+      debugPrint('Error updating stock: $e');
+      _fetchProductDetails();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
-      body: Column(
-        children: [
-          const AdminTopHeader(),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF136633)))
-                : productData == null
-                    ? const Center(child: Text('Product not found'))
-                    : _buildBody(context),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth <= 800;
+        if (isMobile) {
+          return _buildMobileProductDetails(context);
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF0F2F5),
+          body: Column(
+            children: [
+              const AdminTopHeader(),
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF136633)))
+                    : productData == null
+                        ? const Center(child: Text('Product not found'))
+                        : _buildBody(context),
+              ),
+            ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileProductDetails(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 18),
+            onPressed: widget.onBack,
+          ),
+          title: const Text('Product Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+        ),
+        body: const Center(child: CircularProgressIndicator(color: Color(0xFF0C831F))),
+      );
+    }
+
+    if (productData == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 18),
+            onPressed: widget.onBack,
+          ),
+          title: const Text('Product Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.inventory_2_outlined, size: 56, color: Color(0xFF94A3B8)),
+              const SizedBox(height: 12),
+              const Text('Product not found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: widget.onBack,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0C831F),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Back to Inventory'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final name = productData?['name'] ?? widget.productName;
+    final barcode = productData?['barcode'] ?? widget.barcode;
+    final imageUrl = productData?['image_url'];
+    final quantity = productData?['quantity']?.toString() ?? '';
+    final isLoose = productData?['is_loose'] ?? false;
+    final unit = isLoose ? 'kg' : 'pcs';
+    final categories = productData?['categories'] as List<dynamic>? ?? [];
+    final category = categories.isNotEmpty ? categories.first.toString() : 'General';
+    final stock = (productData?['stock_quantity'] as num?)?.toDouble() ?? 0.0;
+    final isVeg = productData?['isVegetarian'] ?? true;
+    final isFoodItem = productData?['isFoodItem'] ?? true;
+
+    final priceStr = productData?['price']?.toString() ?? '0';
+    final mrpStr = productData?['mrp']?.toString();
+    final priceVal = double.tryParse(priceStr) ?? 0.0;
+    final mrpVal = mrpStr != null ? double.tryParse(mrpStr) : null;
+
+    int? discountPercent;
+    double? savingsVal;
+    if (mrpVal != null && mrpVal > priceVal && priceVal > 0) {
+      discountPercent = ((mrpVal - priceVal) / mrpVal * 100).round();
+      savingsVal = mrpVal - priceVal;
+    }
+
+    final threshold = isLoose ? 2.0 : 5.0;
+    String status = 'In Stock';
+    Color statusColor = const Color(0xFF16A34A);
+    Color statusBg = const Color(0xFFDCFCE7);
+    Color statusBorder = const Color(0xFFBBF7D0);
+    if (stock <= 0) {
+      status = 'Out of Stock';
+      statusColor = const Color(0xFFDC2626);
+      statusBg = const Color(0xFFFEE2E2);
+      statusBorder = const Color(0xFFFECACA);
+    } else if (stock <= threshold) {
+      status = 'Low Stock';
+      statusColor = const Color(0xFFEA580C);
+      statusBg = const Color(0xFFFFEDD5);
+      statusBorder = const Color(0xFFFED7AA);
+    }
+
+    final stockDisplay = isLoose ? stock.toStringAsFixed(1) : stock.toInt().toString();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 18),
+          onPressed: widget.onBack,
+        ),
+        title: Text(
+          name,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.edit_rounded, color: Color(0xFF0C831F), size: 18),
+            ),
+            tooltip: 'Edit Product',
+            onPressed: () {
+              AdminProductForms.showEditProductDialog(context, widget.barcode);
+            },
+          ),
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 18),
+            ),
+            tooltip: 'Delete Product',
+            onPressed: _deleteProduct,
+          ),
+          const SizedBox(width: 8),
         ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 36),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Zepto Hero Product Image Card
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  Container(
+                    height: 220,
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: ProductImageWidget(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  // Stock Status Badge
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: statusBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: statusColor),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            status,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Veg / Non-Veg Indicator
+                  if (isFoodItem)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4),
+                          ],
+                        ),
+                        child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                              width: 1.5,
+                            ),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // 2. Product Information Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  if (quantity.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '$quantity $unit',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0C831F).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF0C831F).withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.category_rounded, size: 13, color: Color(0xFF0C831F)),
+                            const SizedBox(width: 4),
+                            Text(
+                              category,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0C831F),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.qr_code_rounded, size: 13, color: Color(0xFF475569)),
+                            const SizedBox(width: 4),
+                            Text(
+                              barcode,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF475569),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isLoose)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.scale_rounded, size: 13, color: Color(0xFFB45309)),
+                              SizedBox(width: 4),
+                              Text(
+                                'Loose Item',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFB45309),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // 3. Pricing & Savings Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Price & Margins',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        '₹$priceStr',
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      if (mrpStr != null && mrpStr.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '₹$mrpStr',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF94A3B8),
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      ],
+                      if (discountPercent != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$discountPercent% OFF',
+                            style: const TextStyle(
+                              color: Color(0xFF16A34A),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (savingsVal != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.savings_rounded, color: Color(0xFF16A34A), size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Customer saves ₹${savingsVal.toStringAsFixed(0)} per unit',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF15803D),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // 4. Stock & Quick Controls Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Stock Level',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => AdminProductForms.showEditProductDialog(context, widget.barcode),
+                        icon: const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFF0C831F)),
+                        label: const Text('Update', style: TextStyle(color: Color(0xFF0C831F), fontWeight: FontWeight.w700, fontSize: 13)),
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                stockDisplay,
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                unit,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'Low stock alert at $threshold $unit',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                      // Quick Adjust +/- stepper
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_rounded, color: Color(0xFF0F172A), size: 18),
+                              onPressed: () => _quickAdjustStock(-1.0),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                stockDisplay,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_rounded, color: Color(0xFF0C831F), size: 18),
+                              onPressed: () => _quickAdjustStock(1.0),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 5. Actions: Edit, Out of Stock, Delete
+            ElevatedButton.icon(
+              onPressed: () {
+                AdminProductForms.showEditProductDialog(context, widget.barcode);
+              },
+              icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.white),
+              label: const Text('Edit Product Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0C831F),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _markOutOfStock,
+                    icon: const Icon(Icons.block_rounded, size: 16, color: Color(0xFFEA580C)),
+                    label: const Text('Mark Out of Stock', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFEA580C))),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Color(0xFFFED7AA)),
+                      backgroundColor: const Color(0xFFFFF7ED),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _deleteProduct,
+                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFDC2626)),
+                    label: const Text('Delete Product', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFDC2626))),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Color(0xFFFECACA)),
+                      backgroundColor: const Color(0xFFFEF2F2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

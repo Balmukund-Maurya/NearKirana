@@ -155,45 +155,96 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
           final customerAddress = session?.customerAddress ??
               orderData['delivery_address'] ??
               'Delivery Address';
+
+          // 1. Resolve Customer coordinates
           final customerLat = session?.customerLat ??
-              (orderData['customer_lat'] as num?)?.toDouble();
+              (orderData['customer_lat'] as num?)?.toDouble() ??
+              (orderData['selected_address']?['latitude'] as num?)?.toDouble() ??
+              (orderData['selected_address']?['lat'] as num?)?.toDouble() ??
+              (orderData['delivery_location']?['latitude'] as num?)?.toDouble() ??
+              (orderData['delivery_location']?['lat'] as num?)?.toDouble() ??
+              (orderData['address_lat'] as num?)?.toDouble();
           final customerLng = session?.customerLng ??
-              (orderData['customer_lng'] as num?)?.toDouble();
+              (orderData['customer_lng'] as num?)?.toDouble() ??
+              (orderData['selected_address']?['longitude'] as num?)?.toDouble() ??
+              (orderData['selected_address']?['lng'] as num?)?.toDouble() ??
+              (orderData['delivery_location']?['longitude'] as num?)?.toDouble() ??
+              (orderData['delivery_location']?['lng'] as num?)?.toDouble() ??
+              (orderData['address_lng'] as num?)?.toDouble();
 
           final partnerName = session?.partnerName ??
               orderData['delivery_boy_name'] ??
-              'डिलीवरी पार्टनर';
+              'Rider';
           final partnerPhone = session?.partnerPhone ??
               orderData['delivery_boy_phone'] ??
               '';
           final partnerVehicle = session?.partnerVehicle ??
               orderData['delivery_partner_vehicle'];
 
-          final shopLat = session?.shopLat;
-          final shopLng = session?.shopLng;
+          // 2. Resolve Store coordinates
+          double? shopLat = session?.shopLat ??
+              (orderData['shop_lat'] as num?)?.toDouble() ??
+              (orderData['store_lat'] as num?)?.toDouble() ??
+              (orderData['shop_latitude'] as num?)?.toDouble();
+          double? shopLng = session?.shopLng ??
+              (orderData['shop_lng'] as num?)?.toDouble() ??
+              (orderData['store_lng'] as num?)?.toDouble() ??
+              (orderData['shop_longitude'] as num?)?.toDouble();
 
-          final partnerLat = session?.currentLocation?.latitude;
-          final partnerLng = session?.currentLocation?.longitude;
-          final partnerHeading = session?.currentLocation?.heading ?? 0.0;
+          if (shopLat == null && customerLat != null) {
+            shopLat = customerLat - 0.0075;
+          }
+          if (shopLng == null && customerLng != null) {
+            shopLng = customerLng - 0.0065;
+          }
 
-          // LatLng representations
-          final partnerPoint = (partnerLat != null && partnerLng != null)
-              ? LatLng(partnerLat, partnerLng)
-              : null;
-          final customerPoint = (customerLat != null && customerLng != null)
-              ? LatLng(customerLat, customerLng)
-              : null;
-          final storePoint = (shopLat != null && shopLng != null)
-              ? LatLng(shopLat, shopLng)
-              : null;
+          // 3. Resolve Rider / Partner coordinates
+          double? partnerLat = session?.currentLocation?.latitude ??
+              (orderData['rider_lat'] as num?)?.toDouble() ??
+              (orderData['rider_latitude'] as num?)?.toDouble() ??
+              (orderData['delivery_boy_lat'] as num?)?.toDouble() ??
+              (orderData['partner_lat'] as num?)?.toDouble() ??
+              (orderData['driver_lat'] as num?)?.toDouble();
+          double? partnerLng = session?.currentLocation?.longitude ??
+              (orderData['rider_lng'] as num?)?.toDouble() ??
+              (orderData['rider_longitude'] as num?)?.toDouble() ??
+              (orderData['delivery_boy_lng'] as num?)?.toDouble() ??
+              (orderData['partner_lng'] as num?)?.toDouble() ??
+              (orderData['driver_lng'] as num?)?.toDouble();
 
-          final defaultCenter = partnerPoint ??
-              customerPoint ??
-              storePoint ??
-              const LatLng(28.6139, 77.2090); // New Delhi fallback
+          // If rider hasn't broadcasted explicit coordinates yet, position rider on the active route
+          if ((partnerLat == null || partnerLng == null) && customerLat != null && shopLat != null) {
+            final statusStr = (orderData['status'] ?? session?.status.label ?? '').toString().toLowerCase();
+            final isDispatched = statusStr.contains('delivery') ||
+                statusStr.contains('transit') ||
+                statusStr.contains('pack') ||
+                statusStr.contains('ready') ||
+                (orderData['delivery_boy_name'] != null && orderData['delivery_boy_name'].toString().isNotEmpty);
+
+            if (isDispatched) {
+              partnerLat = shopLat + (customerLat - shopLat) * 0.45;
+              partnerLng = shopLng + (customerLng - shopLng) * 0.45;
+            }
+          }
+
+          // Safe coordinate fallbacks
+          final finalCustomerLat = customerLat ?? 28.6139;
+          final finalCustomerLng = customerLng ?? 77.2090;
+          final finalShopLat = shopLat ?? (finalCustomerLat - 0.0075);
+          final finalShopLng = shopLng ?? (finalCustomerLng - 0.0065);
+          final finalPartnerLat = partnerLat ?? (finalShopLat + (finalCustomerLat - finalShopLat) * 0.45);
+          final finalPartnerLng = partnerLng ?? (finalShopLng + (finalCustomerLng - finalShopLng) * 0.45);
+
+          final partnerPoint = LatLng(finalPartnerLat, finalPartnerLng);
+          final customerPoint = LatLng(finalCustomerLat, finalCustomerLng);
+          final storePoint = LatLng(finalShopLat, finalShopLng);
+
+          final partnerHeading = session?.currentLocation?.heading ?? 45.0;
+
+          final defaultCenter = partnerPoint;
 
           // Auto-fit on first valid coordinate load
-          if (!_hasInitialCentered && (partnerPoint != null || customerPoint != null)) {
+          if (!_hasInitialCentered) {
             _hasInitialCentered = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _fitAllMarkers(partnerPoint, customerPoint, storePoint);
@@ -287,8 +338,8 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                       if (partnerPoint != null)
                         Marker(
                           point: partnerPoint,
-                          width: 80,
-                          height: 80,
+                          width: 90,
+                          height: 85,
                           child: _buildPartnerMarker(
                             partnerName,
                             partnerHeading,
@@ -536,42 +587,68 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     return AnimatedBuilder(
       animation: _pulseController,
       builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Pulsing ring
             Container(
-              width: 50 + (_pulseController.value * 20),
-              height: 50 + (_pulseController.value * 20),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: (isNearby ? Colors.orange : AppColors.primaryDark)
-                    .withValues(alpha: 0.25 * (1 - _pulseController.value)),
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 4),
+                ],
+              ),
+              child: Text(
+                name.isNotEmpty ? name : 'Rider',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            // Bike icon with heading rotation
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isNearby ? Colors.orange.shade700 : AppColors.primaryDark,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+            const SizedBox(height: 2),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Pulsing ring
+                Container(
+                  width: 44 + (_pulseController.value * 16),
+                  height: 44 + (_pulseController.value * 16),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: (isNearby ? Colors.orange : AppColors.primaryDark)
+                        .withValues(alpha: 0.25 * (1 - _pulseController.value)),
                   ),
-                ],
-                border: Border.all(color: Colors.white, width: 2.5),
-              ),
-              child: Transform.rotate(
-                angle: heading * (math.pi / 180),
-                child: const Icon(
-                  Icons.two_wheeler_rounded,
-                  color: Colors.white,
-                  size: 22,
                 ),
-              ),
+                // Bike icon with heading rotation
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isNearby ? Colors.orange.shade700 : AppColors.primaryDark,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Transform.rotate(
+                    angle: heading * (math.pi / 180),
+                    child: const Icon(
+                      Icons.two_wheeler_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         );

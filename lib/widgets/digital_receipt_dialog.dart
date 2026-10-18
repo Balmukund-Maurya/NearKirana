@@ -480,12 +480,6 @@ class _DigitalReceiptDialogState extends State<DigitalReceiptDialog> {
                             inv.deliveryFee == 0 ? (l10n?.free_delivery_label ?? 'FREE') : '₹${inv.deliveryFee.toStringAsFixed(2)}',
                             textColor: inv.deliveryFee == 0 ? const Color(0xFF16A34A) : null,
                           ),
-                          const SizedBox(height: 6),
-                          _buildCostRow(
-                            'Taxes (GST ${inv.taxRate.toStringAsFixed(0)}% incl.)',
-                            '₹${inv.taxAmount.toStringAsFixed(2)}',
-                            subtitle: 'CGST: ₹${inv.cgstAmount.toStringAsFixed(2)} | SGST: ₹${inv.sgstAmount.toStringAsFixed(2)}',
-                          ),
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 8),
                             child: Divider(height: 1),

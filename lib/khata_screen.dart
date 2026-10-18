@@ -510,22 +510,6 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
               ],
             ),
           ],
-        ),
-        actions: [
-          // Bulk Reminder Action
-          IconButton(
-            icon: const Icon(Icons.send_rounded, color: Color(0xFF2563EB), size: 20),
-            tooltip: t('WhatsApp Reminders', 'तगादा / रिमाइंडर्स', 'WhatsApp Reminders'),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdminWhatsappReminderScreen()),
-              );
-            },
-          ),
-          const SizedBox(width: 6),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Container(
@@ -539,12 +523,15 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
               ),
               child: TabBar(
                 controller: _tabController,
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                indicatorPadding: const EdgeInsets.all(3),
                 indicator: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),
@@ -567,30 +554,44 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
         heroTag: 'fab_khata_screen',
         onPressed: () => _showAddOfflineKhataEntryDialog(context),
         backgroundColor: const Color(0xFF0C831F),
-        elevation: 3,
-        icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
         label: Text(
-          t('+ Add Khata', '+ नया उधार जोड़ें', '+ Add Khata'),
+          t('Add Khata', 'खाता जोड़ें', 'Add Khata'),
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseUtils.firestore
-            .collection('customers')
-            .where('shop_ids', arrayContains: shopId)
-            .orderBy('name')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Color(0xFFDC2626))),
-            );
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: ModernLoader(color: Color(0xFF0C831F)));
-          }
+      body: shopId == null || shopId.isEmpty
+          ? Center(
+              child: Text(
+                t('Shop account not loaded', 'दुकान खाता लोड नहीं हुआ', 'Shop account not loaded'),
+                style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              ),
+            )
+          : StreamBuilder<QuerySnapshot>(
+              stream: FirebaseUtils.firestore
+                  .collection('customers')
+                  .where('shop_ids', arrayContains: shopId)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Color(0xFFDC2626))),
+                  );
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: ModernLoader(color: Color(0xFF0C831F)));
+                }
 
-          final allDocs = snapshot.data!.docs;
+                final allDocs = List<DocumentSnapshot>.from(snapshot.data!.docs);
+                allDocs.sort((a, b) {
+                  final dataA = a.data() as Map<String, dynamic>;
+                  final dataB = b.data() as Map<String, dynamic>;
+                  final nameA = (dataA['name'] ?? '').toString().toLowerCase();
+                  final nameB = (dataB['name'] ?? '').toString().toLowerCase();
+                  return nameA.compareTo(nameB);
+                });
 
           // Filter by search query
           final filteredDocs = allDocs.where((doc) {
@@ -809,7 +810,7 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
                             const Icon(Icons.add_rounded, size: 16, color: Colors.white),
                             const SizedBox(width: 4),
                             Text(
-                              t('+ New Udhaar', '+ नया उधार', '+ New Udhaar'),
+                              t('New Udhaar', 'नया उधार जोड़ें', 'New Udhaar'),
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
                             ),
                           ],

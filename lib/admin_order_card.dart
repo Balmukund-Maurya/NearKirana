@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -999,7 +998,31 @@ class AdminOrderCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        if (status != OrderStatus.delivered && status != OrderStatus.cancelled) ...[
+                          TextButton(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              AssignDeliveryPartnerDialog.show(
+                                context: context,
+                                orderId: orderDoc.id,
+                                shopId: data['shop_id']?.toString() ?? '',
+                                orderData: data,
+                                nextStatus: null,
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF2563EB),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              t('Change', 'बदलें', 'Change'),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
                         TextButton.icon(
                           onPressed: () {
                             HapticFeedback.lightImpact();
@@ -2052,119 +2075,62 @@ class AdminOrderCard extends StatelessWidget {
     Map<String, dynamic> data,
     String nextStatus,
   ) async {
-    final assigned = await AssignDeliveryPartnerDialog.show(
+    final existingRider = (data['delivery_boy_name'] ?? '').toString().trim();
+    if (existingRider.isNotEmpty) {
+      // The delivery partner is ALREADY ASSIGNED (e.g. Vansh)!
+      // Dispatch immediately with existing rider without re-prompting.
+      HapticFeedback.mediumImpact();
+      try {
+        await FirebaseUtils.firestore.collection('orders').doc(orderId).update({
+          'status': nextStatus,
+          'dispatched_at': FieldValue.serverTimestamp(),
+          'delivery_status': 'out_for_delivery',
+        });
+        NotificationService.dispatchOrderStatusNotification(
+          orderId: orderId,
+          newStatus: nextStatus,
+          customerPhone: data['phone_number']?.toString() ?? '',
+          customerUid: data['customer_uid']?.toString(),
+          shopId: data['shop_id']?.toString() ?? '',
+          orderTotal: (data['total_amount'] as num?)?.toDouble(),
+          deliveryBoyName: existingRider,
+        );
+        SoundService().orderDispatched();
+        if (context.mounted) {
+          final lang = Provider.of<LanguageProvider>(context, listen: false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF0C831F),
+              content: Text(
+                lang.isHindi
+                    ? 'ऑर्डर $existingRider के साथ रवाना कर दिया गया!'
+                    : 'Order dispatched with $existingRider successfully!',
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.error,
+              content: Text('Error: $e'),
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    // No rider assigned yet -> Show AssignDeliveryPartnerDialog
+    await AssignDeliveryPartnerDialog.show(
       context: context,
       orderId: orderId,
       shopId: data['shop_id']?.toString() ?? '',
       orderData: data,
       nextStatus: nextStatus,
-    );
-
-    if (assigned == true) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final boyNameController = TextEditingController(
-      text: prefs.getString('last_delivery_boy_name') ?? '',
-    );
-    final boyPhoneController = TextEditingController(
-      text: prefs.getString('last_delivery_boy_phone') ?? '',
-    );
-
-    if (!context.mounted) return;
-
-    await showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          'Assign Delivery',
-          style: AppTextStyles.heading2(color: AppColors.textDark),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: boyNameController,
-              decoration: InputDecoration(
-                labelText: 'Delivery Boy Name (e.g. Raju)',
-                labelStyle: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: boyPhoneController,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'Phone Number (Optional)',
-                labelStyle: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.bodySemiBold(color: AppColors.textMid),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = boyNameController.text.trim();
-              final phone = boyPhoneController.text.trim();
-              if (name.isEmpty) {
-                HapticFeedback.heavyImpact();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    behavior: SnackBarBehavior.floating,
-                    content: Text('Please enter a name.'),
-                  ),
-                );
-                return;
-              }
-
-              await prefs.setString('last_delivery_boy_name', name);
-              await prefs.setString('last_delivery_boy_phone', phone);
-
-              await FirebaseUtils.firestore
-                  .collection('orders')
-                  .doc(orderId)
-                  .update({
-                    'status': nextStatus,
-                    'delivery_boy_name': name,
-                    'delivery_boy_phone': phone,
-                  });
-              NotificationService.dispatchOrderStatusNotification(
-                orderId: orderId,
-                newStatus: nextStatus,
-                customerPhone: data['phone_number']?.toString() ?? '',
-                customerUid: data['customer_uid']?.toString(),
-                shopId: data['shop_id']?.toString() ?? '',
-                orderTotal: (data['total_amount'] as num?)?.toDouble(),
-                deliveryBoyName: name,
-              );
-              SoundService().orderDispatched();
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-            ),
-            child: const Text('Dispatch Order'),
-          ),
-        ],
-      ),
     );
   }
 

@@ -358,26 +358,18 @@ class InvoiceService {
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Text(
-                            'GST & TAX DETAILS:',
+                            'PAYMENT & STORE DETAILS:',
                             style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: darkTextColor),
                           ),
                           pw.SizedBox(height: 4),
                           pw.Text(
-                            '- Applicable GST Rate: ${invoice.taxRate.toStringAsFixed(1)}% (Inclusive)',
+                            'Payment Mode: ${invoice.paymentMethod} (${invoice.paymentStatus.toUpperCase()})',
                             style: pw.TextStyle(fontSize: 8, color: mutedTextColor),
                           ),
-                          pw.Text(
-                            '- CGST (${(invoice.taxRate / 2).toStringAsFixed(1)}%): Rs. ${invoice.cgstAmount.toStringAsFixed(2)}',
-                            style: pw.TextStyle(fontSize: 8, color: mutedTextColor),
-                          ),
-                          pw.Text(
-                            '- SGST (${(invoice.taxRate / 2).toStringAsFixed(1)}%): Rs. ${invoice.sgstAmount.toStringAsFixed(2)}',
-                            style: pw.TextStyle(fontSize: 8, color: mutedTextColor),
-                          ),
-                          pw.SizedBox(height: 6),
                           if (invoice.shop.upiId != null) ...[
+                            pw.SizedBox(height: 4),
                             pw.Text(
-                              'Pay via UPI: ${invoice.shop.upiId}',
+                              'UPI ID: ${invoice.shop.upiId}',
                               style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: primaryColor),
                             ),
                           ],
@@ -522,12 +514,12 @@ class InvoiceService {
     buffer.writeln('🆔 *Order ID:* #${invoice.orderId}');
     buffer.writeln('📅 *Date:* ${invoice.formattedDate}');
     buffer.writeln('👤 *Customer:* ${invoice.customer.customerName} (${invoice.customer.customerPhone})');
-    buffer.writeln('📍 *Delivery:* ${invoice.customer.deliveryAddress}');
+    buffer.writeln('*Delivery:* ${invoice.customer.deliveryAddress}');
     if (invoice.customer.deliveryPin != null) {
-      buffer.writeln('🔑 *Delivery PIN:* ${invoice.customer.deliveryPin}');
+      buffer.writeln('*Delivery PIN:* ${invoice.customer.deliveryPin}');
     }
     buffer.writeln('--------------------------------');
-    buffer.writeln('🛒 *ITEMS ORDERED:*');
+    buffer.writeln('*ITEMS ORDERED:*');
 
     for (int i = 0; i < invoice.items.length; i++) {
       final item = invoice.items[i];
@@ -538,17 +530,16 @@ class InvoiceService {
     }
 
     buffer.writeln('--------------------------------');
-    buffer.writeln('💰 Subtotal: ₹${invoice.subtotal.toStringAsFixed(2)}');
+    buffer.writeln('Subtotal: ₹${invoice.subtotal.toStringAsFixed(2)}');
     if (invoice.discount > 0) {
-      buffer.writeln('🏷️ Discount (${invoice.couponCode ?? "Coupon"}): -₹${invoice.discount.toStringAsFixed(2)}');
+      buffer.writeln('Discount (${invoice.couponCode ?? "Coupon"}): -₹${invoice.discount.toStringAsFixed(2)}');
     }
-    buffer.writeln('🚚 Delivery Fee: ${invoice.deliveryFee == 0 ? "FREE" : "₹${invoice.deliveryFee.toStringAsFixed(2)}"}');
-    buffer.writeln('🏛️ Taxes (GST ${invoice.taxRate.toStringAsFixed(0)}% incl.): ₹${invoice.taxAmount.toStringAsFixed(2)}');
+    buffer.writeln('Delivery Fee: ${invoice.deliveryFee == 0 ? "FREE" : "₹${invoice.deliveryFee.toStringAsFixed(2)}"}');
     buffer.writeln('--------------------------------');
-    buffer.writeln('💳 *GRAND TOTAL: ₹${invoice.finalTotal.toStringAsFixed(2)}*');
-    buffer.writeln('💵 Payment: ${invoice.paymentMethod} (${invoice.paymentStatus.toUpperCase()})');
+    buffer.writeln('*GRAND TOTAL: ₹${invoice.finalTotal.toStringAsFixed(2)}*');
+    buffer.writeln('Payment: ${invoice.paymentMethod} (${invoice.paymentStatus.toUpperCase()})');
     buffer.writeln('--------------------------------');
-    buffer.writeln('🙏 *Thank you for shopping local with ${invoice.shop.shopName}!*');
+    buffer.writeln('*Thank you for shopping local with ${invoice.shop.shopName}!*');
 
     return buffer.toString();
   }

@@ -282,8 +282,20 @@ class _AdminAddProductScreenState extends State<AdminAddProductScreen> {
         }
         
         return Scaffold(
-          backgroundColor: const Color(0xFFF8F9FA),
-          appBar: AppBar(title: Text(widget.barcode == null ? 'Add Product' : 'Edit Product')),
+          backgroundColor: const Color(0xFFF8FAFC),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 18),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              widget.barcode == null ? 'Add New Product' : 'Edit Product',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF0F172A)),
+            ),
+          ),
           body: content,
         );
       },

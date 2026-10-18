@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'app_theme.dart';
 import 'loyalty_referral_models.dart';
 import 'loyalty_referral_service.dart';
-import 'l10n/app_localizations.dart';
+import 'shop_provider.dart';
+import 'language_provider.dart';
+import 'sound_service.dart';
 
-/// Admin control hub for managing loyalty points rules, viewing customer point passbooks,
-/// auditing referral conversions, and adjusting customer point balances with reason notes.
+/// Zepto/Blinkit merchant loyalty & referral hub
 class AdminLoyaltyScreen extends StatefulWidget {
   final String? shopId;
   final LoyaltyReferralService? service;
@@ -19,8 +19,7 @@ class AdminLoyaltyScreen extends StatefulWidget {
   State<AdminLoyaltyScreen> createState() => _AdminLoyaltyScreenState();
 }
 
-class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
-    with SingleTickerProviderStateMixin {
+class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen> with SingleTickerProviderStateMixin {
   late final LoyaltyReferralService _service;
   late TabController _tabController;
   String _effectiveShopId = 'primary_shop';
@@ -71,10 +70,15 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
     if (widget.shopId != null && widget.shopId!.isNotEmpty) {
       _effectiveShopId = widget.shopId!;
     } else {
-      final prefs = await SharedPreferences.getInstance();
-      _effectiveShopId = prefs.getString('current_shop_id') ??
-          prefs.getString('shop_id') ??
-          'primary_shop';
+      final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+      if (shopProvider.currentShopId != null && shopProvider.currentShopId!.isNotEmpty) {
+        _effectiveShopId = shopProvider.currentShopId!;
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        _effectiveShopId = prefs.getString('current_shop_id') ??
+            prefs.getString('shop_id') ??
+            'primary_shop';
+      }
     }
 
     final config = await _service.getProgramConfig(_effectiveShopId);
@@ -96,7 +100,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
     }
   }
 
-  Future<void> _saveSettings() async {
+  Future<void> _saveSettings(String Function(String, String, String) t) async {
     HapticFeedback.mediumImpact();
     final config = LoyaltyProgramConfig(
       shopId: _effectiveShopId,
@@ -116,124 +120,278 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
     await _service.updateProgramConfig(config);
 
     if (mounted) {
-      final l10n = AppLocalizations.of(context);
+      SoundService().success();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n?.settings_saved_snack ?? 'Loyalty & referral settings saved'),
-          backgroundColor: AppColors.success,
+          content: Text(t('Loyalty & referral settings saved', 'लॉयल्टी व रेफरल सेटिंग्स सुरक्षित हो गईं', 'Loyalty & referral settings saved')),
+          backgroundColor: const Color(0xFF0C831F),
           behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
 
-  void _showAdjustPointsDialog(CustomerLoyaltyAccount account) {
-    final l10n = AppLocalizations.of(context);
+  void _showAdjustPointsBottomSheet(CustomerLoyaltyAccount account, String Function(String, String, String) t) {
     final pointsController = TextEditingController();
     final reasonController = TextEditingController();
     bool isCredit = true;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (dialogCtx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Text(
-                '${l10n?.adjust_points_title ?? "Adjust Points"}\n${account.customerName}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              content: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.stars_rounded, color: Color(0xFF0C831F), size: 22),
+                        ),
+                        const SizedBox(width: 12),
                         Expanded(
-                          child: ChoiceChip(
-                            label: Text(l10n?.add_points_chip ?? '+ Add'),
-                            selected: isCredit,
-                            selectedColor: Colors.green.shade100,
-                            onSelected: (val) => setModalState(() => isCredit = true),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t('Adjust Customer Coins', 'ग्राहक पॉइंट्स में बदलाव', 'Adjust Customer Points'),
+                                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                              ),
+                              Text(
+                                '${account.customerName} • ${t('Current', 'मौजूदा', 'Current')}: ${account.currentPoints} pts',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ChoiceChip(
-                            label: Text(l10n?.deduct_points_chip ?? '- Deduct'),
-                            selected: !isCredit,
-                            selectedColor: Colors.red.shade100,
-                            onSelected: (val) => setModalState(() => isCredit = false),
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                          onPressed: () => Navigator.pop(dialogCtx),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    const SizedBox(height: 16),
+
+                    Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setModalState(() => isCredit = true),
+                              borderRadius: BorderRadius.circular(9),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: isCredit ? Colors.white : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(9),
+                                  boxShadow: isCredit
+                                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4, offset: const Offset(0, 1))]
+                                      : null,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_circle_outline_rounded,
+                                      size: 16,
+                                      color: isCredit ? const Color(0xFF0C831F) : const Color(0xFF64748B),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      t('+ Add Coins', '+ पॉइंट्स जोड़ें', '+ Add Points'),
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: isCredit ? const Color(0xFF0C831F) : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setModalState(() => isCredit = false),
+                              borderRadius: BorderRadius.circular(9),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: !isCredit ? Colors.white : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(9),
+                                  boxShadow: !isCredit
+                                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4, offset: const Offset(0, 1))]
+                                      : null,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.remove_circle_outline_rounded,
+                                      size: 16,
+                                      color: !isCredit ? const Color(0xFFDC2626) : const Color(0xFF64748B),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      t('- Deduct', '- पॉइंट्स घटाएं', '- Deduct'),
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: !isCredit ? const Color(0xFFDC2626) : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     TextField(
                       controller: pointsController,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        labelText: l10n?.points_amount_label ?? 'Points amount',
-                        prefixIcon: const Icon(Icons.stars_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        labelText: t('Points Amount', 'पॉइंट्स संख्या', 'Points Amount'),
+                        prefixIcon: const Icon(Icons.stars_rounded, color: Color(0xFF0C831F)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
                       ),
                     ),
                     const SizedBox(height: 12),
+
                     TextField(
                       controller: reasonController,
                       decoration: InputDecoration(
-                        labelText: l10n?.adjust_reason_label ?? 'Reason / Note',
-                        hintText: l10n?.adjust_reason_hint ?? 'e.g. Birthday gift, Goodwill credit',
-                        prefixIcon: const Icon(Icons.edit_note_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        labelText: t('Reason / Note', 'कारण व विवरण', 'Reason / Note'),
+                        hintText: t('e.g. Festival gift, Goodwill compensation', 'उदा. त्योहार का गिफ्ट, असुविधा पर भरपाई', 'e.g. Goodwill bonus, store gift'),
+                        prefixIcon: const Icon(Icons.notes_rounded, color: Color(0xFF64748B)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Quick suggestion chips
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ActionChip(
+                          avatar: const Icon(Icons.card_giftcard_rounded, size: 14, color: Color(0xFF0C831F)),
+                          label: Text(t('Store Goodwill', 'सद्भावना बोनस', 'Store Goodwill'), style: const TextStyle(fontSize: 11)),
+                          onPressed: () => setModalState(() => reasonController.text = 'Customer Goodwill'),
+                        ),
+                        ActionChip(
+                          avatar: const Icon(Icons.sync_problem_rounded, size: 14, color: Color(0xFFEA580C)),
+                          label: Text(t('Delay Compensation', 'देरी की भरपाई', 'Delay Compensation'), style: const TextStyle(fontSize: 11)),
+                          onPressed: () => setModalState(() => reasonController.text = 'Delivery Delay Compensation'),
+                        ),
+                        ActionChip(
+                          avatar: const Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF7C3AED)),
+                          label: Text(t('Festival Bonus', 'त्योहार का उपहार', 'Festival Bonus'), style: const TextStyle(fontSize: 11)),
+                          onPressed: () => setModalState(() => reasonController.text = 'Festival Reward'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final amount = int.tryParse(pointsController.text.trim()) ?? 0;
+                          final reason = reasonController.text.trim();
+                          if (amount <= 0 || reason.isEmpty) return;
+
+                          final delta = isCredit ? amount : -amount;
+                          final messenger = ScaffoldMessenger.of(context);
+                          Navigator.pop(dialogCtx);
+                          HapticFeedback.mediumImpact();
+
+                          await _service.adminAdjustPoints(
+                            shopId: account.shopId,
+                            customerPhone: account.customerPhone,
+                            pointsDelta: delta,
+                            reason: reason,
+                            adminName: 'Store Partner',
+                          );
+
+                          if (mounted) {
+                            SoundService().success();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('${account.customerName}: ${delta > 0 ? "+$delta" : "$delta"} pts ($reason)'),
+                                backgroundColor: const Color(0xFF0C831F),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isCredit ? const Color(0xFF0C831F) : const Color(0xFFDC2626),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          isCredit
+                              ? t('Confirm Add Points', 'पॉइंट्स जोड़ें', 'Confirm Add Points')
+                              : t('Confirm Deduct Points', 'पॉइंट्स घटाएं', 'Confirm Deduct Points'),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx),
-                  child: Text(l10n?.cancel ?? 'Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final amount = int.tryParse(pointsController.text.trim()) ?? 0;
-                    final reason = reasonController.text.trim();
-                    if (amount <= 0 || reason.isEmpty) return;
-
-                    final delta = isCredit ? amount : -amount;
-                    final messenger = ScaffoldMessenger.of(context);
-                    await _service.adminAdjustPoints(
-                      shopId: account.shopId,
-                      customerPhone: account.customerPhone,
-                      pointsDelta: delta,
-                      reason: reason,
-                      adminName: 'Store Owner',
-                    );
-
-                    if (dialogCtx.mounted) {
-                      Navigator.pop(dialogCtx);
-                    }
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('${account.customerName}: $delta pts ($reason)'),
-                          backgroundColor: AppColors.primaryDark,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isCredit ? Colors.green : Colors.red,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: Text(l10n?.apply_btn ?? 'Apply'),
-                ),
-              ],
             );
           },
         );
@@ -243,46 +401,67 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primaryDark)),
+        backgroundColor: Color(0xFFF8FAFC),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF0C831F))),
       );
     }
 
-    final l10n = AppLocalizations.of(context);
-
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(
-          l10n?.admin_loyalty_title ?? 'Loyalty & Referrals',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textDark,
         elevation: 0,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t('Loyalty & Referrals', 'लॉयल्टी व रेफरल प्रोग्राम', 'Loyalty & Referrals'),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            ),
+            Text(
+              t('Rewards & Customer Coins', 'रिवॉर्ड्स व ग्राहक कॉइन्स', 'Rewards & Coins Hub'),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.primaryDark,
-          labelColor: AppColors.primaryDark,
-          unselectedLabelColor: AppColors.textMid,
+          indicatorColor: const Color(0xFF0C831F),
+          indicatorWeight: 3,
+          labelColor: const Color(0xFF0C831F),
+          unselectedLabelColor: const Color(0xFF64748B),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
           tabs: [
-            Tab(text: l10n?.admin_tab_customers ?? 'Customers'),
-            Tab(text: l10n?.admin_tab_referrals ?? 'Referrals'),
-            Tab(text: l10n?.admin_tab_settings ?? 'Settings'),
+            Tab(text: t('Passbook', 'पासबुक', 'Passbook')),
+            Tab(text: t('Referrals', 'रेफरल्स', 'Referrals')),
+            Tab(text: t('Rules & Setup', 'नियम व सेटिंग्स', 'Rules & Setup')),
           ],
         ),
       ),
       body: Column(
         children: [
-          _buildKpiSummaryBar(),
+          _buildKpiSummaryBar(t),
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildCustomersTab(),
-                _buildReferralsTab(),
-                _buildSettingsTab(),
+                _buildCustomersTab(t),
+                _buildReferralsTab(t),
+                _buildSettingsTab(t),
               ],
             ),
           ),
@@ -291,8 +470,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
     );
   }
 
-  Widget _buildKpiSummaryBar() {
-    final l10n = AppLocalizations.of(context);
+  Widget _buildKpiSummaryBar(String Function(String, String, String) t) {
     return FutureBuilder(
       future: _service.getShopAnalytics(_effectiveShopId),
       builder: (context, snap) {
@@ -303,19 +481,14 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
         final discountGiven = data?.totalDiscountGivenRupees ?? 0.0;
 
         return Container(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Row(
             children: [
-              _buildMiniKpi(l10n?.kpi_total_issued ?? 'Total Issued', '$issued', Icons.stars_rounded, Colors.amber.shade700),
-              _buildMiniKpi(l10n?.kpi_total_redeemed ?? 'Total Redeemed', '$redeemed', Icons.redeem_rounded, Colors.purple),
-              _buildMiniKpi(l10n?.kpi_successful_referrals ?? 'Successful Referrals', '$referrals', Icons.people_rounded, Colors.blue),
-              _buildMiniKpi(l10n?.kpi_total_discount_given ?? 'Discounts Given', '₹${discountGiven.toStringAsFixed(0)}', Icons.savings_rounded, Colors.green),
+              _buildMiniKpi(t('Issued', 'जारी', 'Issued'), '$issued', Icons.stars_rounded, const Color(0xFFD97706)),
+              _buildMiniKpi(t('Redeemed', 'खर्च', 'Redeemed'), '$redeemed', Icons.redeem_rounded, const Color(0xFF7C3AED)),
+              _buildMiniKpi(t('Referrals', 'रेफरल', 'Referrals'), '$referrals', Icons.people_alt_rounded, const Color(0xFF2563EB)),
+              _buildMiniKpi(t('Savings', 'छूट राशि', 'Savings'), '₹${discountGiven.toStringAsFixed(0)}', Icons.savings_rounded, const Color(0xFF0C831F)),
             ],
           ),
         );
@@ -325,40 +498,50 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
 
   Widget _buildMiniKpi(String label, String value, IconData icon, Color color) {
     return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark),
-          ),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 10, color: AppColors.textMid),
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 16),
+            const SizedBox(height: 3),
+            Text(
+              value,
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: color),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCustomersTab() {
-    final l10n = AppLocalizations.of(context);
-    final isHindi = l10n?.localeName.startsWith('hi') ?? false;
+  Widget _buildCustomersTab(String Function(String, String, String) t) {
     return Column(
       children: [
+        // Search bar
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: TextField(
             controller: _searchController,
             onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
             decoration: InputDecoration(
-              hintText: l10n?.search_customer_hint ?? 'Search customer name or phone...',
-              prefixIcon: const Icon(Icons.search_rounded),
+              hintText: t('Search customer name, phone, code...', 'ग्राहक का नाम, फोन या कोड खोजें...', 'Search name, phone, code...'),
+              prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B)),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear),
+                      icon: const Icon(Icons.clear_rounded, size: 18),
                       onPressed: () {
                         _searchController.clear();
                         setState(() => _searchQuery = '');
@@ -368,10 +551,14 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
           ),
         ),
@@ -380,7 +567,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
             stream: _service.streamShopAccounts(_effectiveShopId),
             builder: (context, snap) {
               if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: AppColors.primaryDark));
+                return const Center(child: CircularProgressIndicator(color: Color(0xFF0C831F)));
               }
 
               final accounts = (snap.data ?? []).where((a) {
@@ -395,11 +582,18 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.person_off_rounded, size: 48, color: Colors.grey.shade400),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+                        ),
+                        child: const Icon(Icons.person_off_rounded, size: 40, color: Color(0xFF94A3B8)),
+                      ),
                       const SizedBox(height: 12),
                       Text(
-                        l10n?.no_customers_found ?? 'No customer accounts found',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
+                        t('No customer passbooks found', 'कोई ग्राहक रिकॉर्ड नहीं मिला', 'No customer passbooks found'),
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF475569)),
                       ),
                     ],
                   ),
@@ -407,7 +601,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
               }
 
               return ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 itemCount: accounts.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
@@ -417,13 +611,26 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          backgroundColor: acc.tier.color.withValues(alpha: 0.15),
-                          child: Icon(Icons.stars_rounded, color: acc.tier.color, size: 22),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: acc.tier.color.withValues(alpha: 0.15),
+                            border: Border.all(color: acc.tier.color.withValues(alpha: 0.4), width: 1.5),
+                          ),
+                          child: Icon(Icons.stars_rounded, color: acc.tier.color, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -432,18 +639,33 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                             children: [
                               Text(
                                 acc.customerName,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
                               ),
+                              const SizedBox(height: 2),
                               Text(
-                                isHindi
-                                    ? '${acc.customerPhone} • कोड: ${acc.referralCode}'
-                                    : '${acc.customerPhone} • Code: ${acc.referralCode}',
-                                style: const TextStyle(fontSize: 12, color: AppColors.textMid),
+                                '${acc.customerPhone} • ${t('Code', 'कोड', 'Code')}: ${acc.referralCode}',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                '${acc.tier.localizedLabel(context)} • ${l10n?.total_earned_label ?? "Total Earned"}: ${acc.lifetimeEarnedPoints} pts',
-                                style: const TextStyle(fontSize: 11, color: AppColors.textLight),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: acc.tier.color.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      acc.tier.simpleName.toUpperCase(),
+                                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: acc.tier.color),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${t('Earned', 'कुल कमाई', 'Earned')}: ${acc.lifetimeEarnedPoints} pts',
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -451,22 +673,38 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text(
-                              '${acc.currentPoints} pts',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: AppColors.primaryDark,
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${acc.currentPoints} pts',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                  color: Color(0xFF0C831F),
+                                ),
                               ),
                             ),
-                            TextButton.icon(
-                              onPressed: () => _showAdjustPointsDialog(acc),
-                              icon: const Icon(Icons.tune_rounded, size: 14),
-                              label: Text(l10n?.modify_btn ?? 'Modify', style: const TextStyle(fontSize: 12)),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            const SizedBox(height: 6),
+                            InkWell(
+                              onTap: () => _showAdjustPointsBottomSheet(acc, t),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.tune_rounded, size: 14, color: Color(0xFF2563EB)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      t('Adjust', 'बदलें', 'Adjust'),
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF2563EB)),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -483,15 +721,12 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
     );
   }
 
-  Widget _buildReferralsTab() {
-    final l10n = AppLocalizations.of(context);
-    final isHindi = l10n?.localeName.startsWith('hi') ?? false;
-
+  Widget _buildReferralsTab(String Function(String, String, String) t) {
     return StreamBuilder<List<ReferralRecord>>(
       stream: _service.streamShopReferrals(_effectiveShopId),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primaryDark));
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF0C831F)));
         }
 
         final referrals = snap.data ?? [];
@@ -500,11 +735,18 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.share_outlined, size: 48, color: Colors.grey.shade400),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+                  ),
+                  child: const Icon(Icons.share_outlined, size: 40, color: Color(0xFF94A3B8)),
+                ),
                 const SizedBox(height: 12),
                 Text(
-                  isHindi ? 'कोई रेफरल रिकॉर्ड नहीं मिला' : 'No referral records found',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
+                  t('No referral conversions yet', 'अभी तक कोई रेफरल नहीं हुआ', 'No referral conversions yet'),
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF475569)),
                 ),
               ],
             ),
@@ -512,7 +754,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           itemCount: referrals.length,
           separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
@@ -524,7 +766,7 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isCompleted ? Colors.green.shade200 : Colors.grey.shade200),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,23 +774,31 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isHindi ? 'रेफरल कोड: ${ref.referralCode}' : 'Code: ${ref.referralCode}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      Row(
+                        children: [
+                          const Icon(Icons.qr_code_rounded, size: 16, color: Color(0xFF0C831F)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${t('Code', 'रेफरल कोड', 'Code')}: ${ref.referralCode}',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A)),
+                          ),
+                        ],
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: isCompleted ? Colors.green.shade50 : Colors.amber.shade50,
+                          color: isCompleted ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: isCompleted ? Colors.green : Colors.amber),
+                          border: Border.all(color: isCompleted ? const Color(0xFF86EFAC) : const Color(0xFFFDE68A)),
                         ),
                         child: Text(
-                          ref.status.localizedLabel(context),
+                          isCompleted
+                              ? t('Completed', 'सफल रेफरल', 'Completed')
+                              : t('Pending 1st Order', 'पहले ऑर्डर का इंतज़ार', 'Pending 1st Order'),
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isCompleted ? Colors.green.shade800 : Colors.amber.shade900,
+                            fontWeight: FontWeight.w800,
+                            color: isCompleted ? const Color(0xFF15803D) : const Color(0xFFB45309),
                           ),
                         ),
                       ),
@@ -558,48 +808,26 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          isHindi ? 'रेफरर: ${ref.referrerName} (${ref.referrerPhone})' : 'Referrer: ${ref.referrerName} (${ref.referrerPhone})',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textDark),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t('Referred By (Inviter)', 'आमंत्रित करने वाला', 'Inviter'), style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                            Text(ref.referrerPhone, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                          ],
                         ),
                       ),
-                      const Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.textMid),
+                      const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF94A3B8)),
                       Expanded(
-                        child: Text(
-                          isHindi ? 'मित्र: ${ref.refereeName} (${ref.refereePhone})' : 'Friend: ${ref.refereeName} (${ref.refereePhone})',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textDark),
-                          textAlign: TextAlign.end,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(t('New Friend', 'नया ग्राहक', 'New Customer'), style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                            Text(ref.refereePhone, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  if (isCompleted && ref.qualifyingOrderAmount != null) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            isHindi
-                                ? 'पात्र ऑर्डर: ₹${ref.qualifyingOrderAmount!.toStringAsFixed(0)} (#${ref.qualifyingOrderId})'
-                                : 'Qualifying Order: ₹${ref.qualifyingOrderAmount!.toStringAsFixed(0)} (#${ref.qualifyingOrderId})',
-                            style: TextStyle(fontSize: 11, color: Colors.green.shade800),
-                          ),
-                          Text(
-                            isHindi
-                                ? '+${ref.referrerPointsAwarded} pts (रेफरर) • +${ref.refereePointsAwarded} pts (मित्र)'
-                                : '+${ref.referrerPointsAwarded} pts (Referrer) • +${ref.refereePointsAwarded} pts (Friend)',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green.shade800),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ],
               ),
             );
@@ -609,111 +837,213 @@ class _AdminLoyaltyScreenState extends State<AdminLoyaltyScreen>
     );
   }
 
-  Widget _buildSettingsTab() {
-    final l10n = AppLocalizations.of(context);
+  Widget _buildSettingsTab(String Function(String, String, String) t) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Loyalty Switch
+          // Section 1: Loyalty Program
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Material(
-                  color: Colors.transparent,
-                  child: SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n?.enable_loyalty_switch ?? 'Enable Loyalty Program', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(l10n?.loyalty_program_desc ?? 'Customers earn reward points on purchases'),
-                    value: _programEnabled,
-                    activeThumbColor: AppColors.primaryDark,
-                    onChanged: (val) => setState(() => _programEnabled = val),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.stars_rounded, color: Color(0xFF0C831F), size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          t('Loyalty Points Program', 'लॉयल्टी पॉइंट्स प्रोग्राम', 'Loyalty Points Program'),
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A)),
+                        ),
+                      ],
+                    ),
+                    Switch(
+                      value: _programEnabled,
+                      activeThumbColor: const Color(0xFF0C831F),
+                      onChanged: (val) => setState(() => _programEnabled = val),
+                    ),
+                  ],
+                ),
+                Text(
+                  t(
+                    'Reward frequent buyers with cashback points for every purchase.',
+                    'हर खरीदारी पर ग्राहकों को कैशबैकिंग पॉइंट्स दें ताकि वे बार-बार आएं।',
+                    'Reward customers with points on every order.',
+                  ),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 14),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 14),
+
+                TextField(
+                  controller: _pointsPerHundredController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: t('Points per ₹100 spent', 'हर ₹100 की खरीदारी पर पॉइंट्स', 'Points per ₹100 spent'),
+                    hintText: '10',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
-                const Divider(),
-                _buildTextField(l10n?.points_per_hundred_spend_label ?? 'Points per ₹100 spend', _pointsPerHundredController),
                 const SizedBox(height: 12),
-                _buildTextField(l10n?.point_rupee_value_label ?? '1 Point value in ₹', _pointValueController),
+                TextField(
+                  controller: _pointValueController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: t('Value of 1 Point in ₹', '1 पॉइंट का रुपया मूल्य', 'Value of 1 Point in ₹'),
+                    hintText: '0.10',
+                    prefixText: '₹ ',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
                 const SizedBox(height: 12),
-                _buildTextField(l10n?.min_points_redeem_label ?? 'Min points to redeem', _minPointsRedeemController),
+                TextField(
+                  controller: _minPointsRedeemController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: t('Minimum Points to Redeem', 'छूट पाने के लिए न्यूनतम पॉइंट्स', 'Minimum Points to Redeem'),
+                    hintText: '50',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
                 const SizedBox(height: 12),
-                _buildTextField(l10n?.max_discount_percent_label ?? 'Max discount % on order', _maxRedeemPercentController),
-                const SizedBox(height: 12),
-                _buildTextField(l10n?.min_order_points_label ?? 'Min order for points (₹)', _minOrderPointsController),
-                const SizedBox(height: 12),
-                _buildTextField(l10n?.welcome_bonus_label ?? 'Welcome Bonus Points', _welcomeBonusController),
+                TextField(
+                  controller: _welcomeBonusController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: t('Welcome Bonus Points (New Customer)', 'नए ग्राहक को वेलकम बोनस पॉइंट्स', 'Welcome Bonus Points'),
+                    hintText: '20',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Referral Switch
+          // Section 2: Referral Setup
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Material(
-                  color: Colors.transparent,
-                  child: SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n?.enable_referral_switch ?? 'Enable Refer & Earn Program', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(l10n?.referral_program_desc ?? 'Rewards for friend & referrer on first order'),
-                    value: _referralEnabled,
-                    activeThumbColor: AppColors.primaryDark,
-                    onChanged: (val) => setState(() => _referralEnabled = val),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.share_rounded, color: Color(0xFF2563EB), size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          t('Refer & Earn Program', 'रेफर और कमाओ प्रोग्राम', 'Refer & Earn Setup'),
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A)),
+                        ),
+                      ],
+                    ),
+                    Switch(
+                      value: _referralEnabled,
+                      activeThumbColor: const Color(0xFF2563EB),
+                      onChanged: (val) => setState(() => _referralEnabled = val),
+                    ),
+                  ],
+                ),
+                Text(
+                  t(
+                    'Encourage customers to share store QR with neighborhood friends.',
+                    'ग्राहकों को अपनी दुकान का लिंक पड़ोसियों के साथ साझा करने पर इनाम दें।',
+                    'Reward customers when their friends place their 1st order.',
+                  ),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 14),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 14),
+
+                TextField(
+                  controller: _referrerRewardController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: t('Referrer Reward Points (Friend)', 'रेफर करने वाले को पॉइंट्स', 'Referrer Reward Points'),
+                    hintText: '100',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
-                const Divider(),
-                _buildTextField(l10n?.referrer_reward_label ?? 'Referrer Reward Points', _referrerRewardController),
                 const SizedBox(height: 12),
-                _buildTextField(l10n?.referee_reward_label ?? 'Friend Welcome Points', _refereeRewardController),
+                TextField(
+                  controller: _refereeRewardController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: t('New Customer Reward Points', 'नए आने वाले दोस्त को पॉइंट्स', 'Referee Reward Points'),
+                    hintText: '50',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
                 const SizedBox(height: 12),
-                _buildTextField(l10n?.min_order_referral_label ?? 'Min qualifying order (₹)', _minOrderReferralController),
+                TextField(
+                  controller: _minOrderReferralController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: t('Min Qualifying Order for Referral (₹)', 'रेफरल मान्य होने का न्यूनतम ऑर्डर (₹)', 'Min Order for Referral (₹)'),
+                    prefixText: '₹ ',
+                    hintText: '100',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
+          // Save Button
           SizedBox(
             width: double.infinity,
-            height: 50,
+            height: 48,
             child: ElevatedButton.icon(
-              onPressed: _saveSettings,
-              icon: const Icon(Icons.check_circle_rounded),
-              label: Text(l10n?.save_settings_btn ?? 'Save Settings', style: const TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () => _saveSettings(t),
+              icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+              label: Text(
+                t('Save Program Settings', 'सेटिंग्स सुरक्षित करें', 'Save Program Settings'),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryDark,
+                backgroundColor: const Color(0xFF0C831F),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
     );
   }

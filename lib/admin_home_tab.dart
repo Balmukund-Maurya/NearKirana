@@ -14,7 +14,15 @@ import 'shop_provider.dart';
 import 'language_provider.dart';
 import 'admin_dashboard.dart';
 import 'package:near_kirana/firebase_utils.dart';
-import 'widgets/weekly_sales_chart.dart';
+import 'widgets/home_analytics_charts.dart';
+import 'admin_customers_screen.dart';
+import 'admin_shop_boys_screen.dart';
+import 'admin_complaints_screen.dart';
+import 'admin_loyalty_screen.dart';
+import 'delivery_partner_service.dart';
+import 'delivery_partner_models.dart';
+import 'complaint_service.dart';
+import 'complaint_model.dart';
 
 class AdminHomeTab extends StatefulWidget {
   const AdminHomeTab({super.key});
@@ -441,15 +449,20 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
 
             const SizedBox(height: 20),
 
-            // Weekly Sales Line Chart
-            const WeeklySalesChart().animate().fadeIn(delay: 150.ms).slideY(begin: 0.05, end: 0),
+            // Horizontal Scroll Multi-Charts Carousel
+            const HomeAnalyticsChartsCarousel().animate().fadeIn(delay: 150.ms).slideY(begin: 0.05, end: 0),
 
             const SizedBox(height: 20),
 
             // Quick POS Scanner Banner (Zepto / Blinkit merchant partner aesthetic)
             _buildQuickPOSCard(context, t).animate().fadeIn(delay: 250.ms).slideY(begin: 0.05, end: 0),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 18),
+
+            // More Services Operations & Fleet Hub Analytics
+            _buildMoreFeaturesHub(context, shopId, t).animate().fadeIn(delay: 300.ms).slideY(begin: 0.05, end: 0),
+
+            const SizedBox(height: 18),
 
             // Operations Quick Buttons Row
             Row(
@@ -828,6 +841,322 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // More Features Operations & Analytics Hub (Customers, Fleet, Complaints, Loyalty)
+  Widget _buildMoreFeaturesHub(
+    BuildContext context,
+    String? shopId,
+    String Function(String, String, String) t,
+  ) {
+    if (shopId == null || shopId.isEmpty) return const SizedBox.shrink();
+
+    final customersQuery = FirebaseUtils.firestore
+        .collection('customers')
+        .where('shop_ids', arrayContains: shopId);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.hub_rounded,
+                      color: Color(0xFF0C831F),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t('Store Hub & Operations', 'दुकान ऑपरेशन्स व डिलीवरी हब', 'Store Hub & Operations'),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      Text(
+                        t('Live metrics from More services', 'मोर सेक्शन की मुख्य रिपोर्ट', 'Live metrics from More services'),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  AdminDashboard.navCallback?.call(4); // Switches to More Tab
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        t('View More', 'सभी देखें', 'View More'),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0C831F),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFF0C831F)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // 2x2 Grid of More Features Analytics
+          Row(
+            children: [
+              // 1. Customer Directory
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: customersQuery.snapshots(),
+                  builder: (context, snap) {
+                    final count = snap.data?.docs.length ?? 0;
+                    return _buildHubTile(
+                      icon: Icons.people_alt_rounded,
+                      color: const Color(0xFF2563EB),
+                      bg: const Color(0xFFEFF6FF),
+                      title: t('Customers', 'ग्राहक सूची', 'Customers'),
+                      value: '$count',
+                      subtitle: t('Registered', 'अकाउंट जुड़े', 'Registered'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AdminCustomersScreen()),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 2. Delivery Partners Fleet
+              Expanded(
+                child: StreamBuilder<List<DeliveryPartner>>(
+                  stream: DeliveryPartnerService().streamShopPartners(shopId),
+                  builder: (context, snap) {
+                    final list = snap.data ?? [];
+                    final activeCount = list.where((p) => p.isOnline).length;
+                    final total = list.length;
+                    return _buildHubTile(
+                      icon: Icons.two_wheeler_rounded,
+                      color: const Color(0xFFEA580C),
+                      bg: const Color(0xFFFFF7ED),
+                      title: t('Delivery Fleet', 'डिलीवरी स्टाफ', 'Delivery Fleet'),
+                      value: total > 0 ? '$activeCount/$total' : '0',
+                      subtitle: t('Active Riders', 'ड्यूटी पर', 'Active Riders'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AdminShopBoysScreen()),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          Row(
+            children: [
+              // 3. Complaints & Returns
+              Expanded(
+                child: StreamBuilder<List<ComplaintModel>>(
+                  stream: ComplaintService().streamShopComplaints(shopId),
+                  builder: (context, snap) {
+                    final list = snap.data ?? [];
+                    final pendingCount = list.where((c) =>
+                        c.status == ComplaintStatus.pending ||
+                        c.status == ComplaintStatus.inReview).length;
+                    return _buildHubTile(
+                      icon: Icons.assignment_return_rounded,
+                      color: const Color(0xFF7C3AED),
+                      bg: const Color(0xFFFAF5FF),
+                      title: t('Complaints', 'शिकायतें', 'Complaints'),
+                      value: '$pendingCount',
+                      subtitle: pendingCount > 0
+                          ? t('Action Required', 'समाधान करें', 'Needs Action')
+                          : t('All Resolved', 'सब हल हुए', 'All Clear'),
+                      isAlert: pendingCount > 0,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AdminComplaintsScreen()),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 4. Loyalty & Referrals
+              Expanded(
+                child: _buildHubTile(
+                  icon: Icons.card_giftcard_rounded,
+                  color: const Color(0xFFD97706),
+                  bg: const Color(0xFFFEF3C7),
+                  title: t('Loyalty Club', 'लॉयल्टी रिवॉर्ड', 'Loyalty Club'),
+                  value: t('Active', 'चालू', 'Active'),
+                  subtitle: t('Coins & Coupons', 'कैशबैक व छूट', 'Coins & Coupons'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AdminLoyaltyScreen()),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHubTile({
+    required IconData icon,
+    required Color color,
+    required Color bg,
+    required String title,
+    required String value,
+    required String subtitle,
+    bool isAlert = false,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isAlert ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0),
+            width: isAlert ? 1.4 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(icon, color: color, size: 17),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: isAlert ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isAlert) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          width: 5,
+                          height: 5,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFFEF4444),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                      color: isAlert ? const Color(0xFFDC2626) : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 15,
+              color: Color(0xFFCBD5E1),
+            ),
+          ],
         ),
       ),
     );

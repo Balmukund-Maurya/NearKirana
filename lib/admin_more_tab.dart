@@ -8,8 +8,6 @@ import 'admin_settings_screen.dart';
 import 'admin_customers_screen.dart';
 import 'admin_complaints_screen.dart';
 import 'admin_analytics_screen.dart';
-import 'admin_suppliers_screen.dart';
-import 'admin_batch_expiry_screen.dart';
 import 'admin_staff_audit_screen.dart';
 import 'admin_data_export_backup_screen.dart';
 import 'admin_shop_boys_screen.dart';
@@ -321,19 +319,6 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                     );
                   },
                 ),
-                _buildModernTile(
-                  icon: Icons.event_busy_rounded,
-                  color: const Color(0xFFDC2626),
-                  title: t('Expiry & Batch Tracking', 'एक्सपायरी व बैच ट्रैकर', 'Expiry & Batch Tracking'),
-                  subtitle: t('Near-expiry alerts, damaged items & logs', 'खराब होने वाले सामान की समय रहते सूचना', 'Near expiry alerts and batch audit'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AdminBatchExpiryScreen()),
-                    );
-                  },
-                ),
               ],
             ).animate().fadeIn(delay: 60.ms).slideY(begin: 0.05, end: 0),
 
@@ -341,7 +326,7 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
 
             // Section 2: Finances & Reports (मुनाफा, थोक खरीद व रिपोर्ट)
             _buildModernSection(
-              title: t('Finances & Purchases', 'फाइनेंस, खरीद व हिसाब', 'Finances & Purchases'),
+              title: t('Finances & Analytics', 'फाइनेंस, मुनाफा व रिपोर्ट', 'Finances & Analytics'),
               icon: Icons.currency_rupee_rounded,
               children: [
                 _buildModernTile(
@@ -354,19 +339,6 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const AdminAnalyticsScreen()),
-                    );
-                  },
-                ),
-                _buildModernTile(
-                  icon: Icons.local_shipping_rounded,
-                  color: const Color(0xFF0284C7),
-                  title: t('Suppliers & Wholesalers', 'सप्लायर व थोक खरीदारी', 'Suppliers & Wholesalers'),
-                  subtitle: t('Manage distributors, wholesale bills & payments', 'सप्लायर बिल, पेंडिंग भुगतान व स्टॉक इनवर्ड', 'Wholesale distributors and purchase bills'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AdminSuppliersScreen()),
                     );
                   },
                 ),

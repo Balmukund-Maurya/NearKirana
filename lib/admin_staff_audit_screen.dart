@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'app_theme.dart';
 import 'shop_provider.dart';
+import 'language_provider.dart';
 import 'staff_audit_models.dart';
 import 'staff_audit_service.dart';
 import 'widgets/add_edit_staff_dialog.dart';
 import 'widgets/audit_log_details_dialog.dart';
 import 'widgets/quick_stock_adjustment_dialog.dart';
 
-/// Main Admin Screen for Staff Accounts and Immutable Audit Trail.
-/// Allows shop owners to manage employee accounts, assign granular permissions,
-/// and review a comprehensive audit log of who changed what, when, and why.
+/// Zepto/Blinkit merchant staff accounts & immutable audit trail
 class AdminStaffAuditScreen extends StatefulWidget {
   final StaffAuditService? service;
 
@@ -20,8 +19,7 @@ class AdminStaffAuditScreen extends StatefulWidget {
   State<AdminStaffAuditScreen> createState() => _AdminStaffAuditScreenState();
 }
 
-class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
-    with SingleTickerProviderStateMixin {
+class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen> with SingleTickerProviderStateMixin {
   late StaffAuditService _service;
   late TabController _tabController;
 
@@ -101,7 +99,7 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
       context,
       shopId: shopId,
       service: _service,
-      actorName: 'Store Owner',
+      actorName: 'Store Partner',
       actorRole: 'owner',
     );
     if (result == true) {
@@ -111,63 +109,78 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     final shopId = _resolveShopId();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Column(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Staff & Audit Logs',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              t('Staff & Audit Logs', 'स्टाफ खाते व ऑडिट लॉग', 'Staff & Audit Logs'),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
             ),
             Text(
-              'कर्मचारी खाते और गतिविधि ऑडिट',
-              style: TextStyle(fontSize: 12, color: Colors.white70),
+              t('Roles, PINs & Activity Audit', 'अधिकार, पिन व गतिविधि ऑडिट', 'Roles, PINs & Audit Trail'),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
             ),
           ],
         ),
-        backgroundColor: AppColors.primaryDark,
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh analytics',
-            onPressed: _loadAnalytics,
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
+            tooltip: t('Refresh', 'रिफ्रेश', 'Refresh'),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _loadAnalytics();
+            },
           ),
           IconButton(
-            icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Quick Stock Adjustment',
+            icon: const Icon(Icons.tune_rounded, color: Color(0xFF0C831F)),
+            tooltip: t('Quick Stock Adjustment', 'त्वरित स्टॉक बदलाव', 'Quick Stock Adjustment'),
             onPressed: () => _openQuickStockAdjustment(shopId),
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
+          indicatorColor: const Color(0xFF0C831F),
           indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          tabs: const [
-            Tab(icon: Icon(Icons.people_alt_rounded), text: 'Staff Accounts'),
-            Tab(icon: Icon(Icons.history_edu_rounded), text: 'Audit Trail'),
+          labelColor: const Color(0xFF0C831F),
+          unselectedLabelColor: const Color(0xFF64748B),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          tabs: [
+            Tab(text: t('Staff Accounts', 'कर्मचारी खाते', 'Staff Accounts')),
+            Tab(text: t('Audit Trail', 'ऑडिट गतिविधि', 'Audit Trail')),
           ],
         ),
       ),
       body: Column(
         children: [
           // KPI Metric Header
-          _buildKpiHeader(),
+          _buildKpiHeader(t),
 
           // Tab Views
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildStaffTab(shopId),
-                _buildAuditTrailTab(shopId),
+                _buildStaffTab(shopId, t),
+                _buildAuditTrailTab(shopId, t),
               ],
             ),
           ),
@@ -176,52 +189,57 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton.extended(
               onPressed: () => _openAddStaffDialog(shopId),
-              backgroundColor: AppColors.primaryDark,
+              backgroundColor: const Color(0xFF0C831F),
               foregroundColor: Colors.white,
-              icon: const Icon(Icons.person_add_rounded),
-              label: const Text('Add Staff (कर्मचारी जोड़ें)'),
+              elevation: 2,
+              icon: const Icon(Icons.person_add_rounded, size: 20),
+              label: Text(
+                t('Add Staff Member', 'नया कर्मचारी जोड़ें', 'Add Staff Member'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+              ),
             )
           : FloatingActionButton.extended(
               onPressed: () => _openQuickStockAdjustment(shopId),
-              backgroundColor: Colors.indigo.shade800,
+              backgroundColor: const Color(0xFF4338CA),
               foregroundColor: Colors.white,
-              icon: const Icon(Icons.edit_note_rounded),
-              label: const Text('Adjust Stock (स्टॉक बदलें)'),
+              elevation: 2,
+              icon: const Icon(Icons.edit_note_rounded, size: 20),
+              label: Text(
+                t('Adjust Stock', 'स्टॉक बदलें', 'Adjust Stock'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+              ),
             ),
     );
   }
 
-  // ===========================================================================
-  // KPI METRICS HEADER
-  // ===========================================================================
-  Widget _buildKpiHeader() {
+  Widget _buildKpiHeader(String Function(String, String, String) t) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
           _buildKpiCard(
-            title: 'Active Staff',
-            subtitle: 'सक्रिय कर्मचारी',
+            title: t('Active Staff', 'सक्रिय कर्मचारी', 'Active Staff'),
+            subtitle: t('On Duty', 'कार्यरत', 'On Duty'),
             value: _isLoadingAnalytics ? '...' : '${_analytics.activeStaff}/${_analytics.totalStaff}',
             icon: Icons.people_outline_rounded,
-            color: Colors.teal,
+            color: const Color(0xFF0C831F),
           ),
           const SizedBox(width: 8),
           _buildKpiCard(
-            title: 'Today Logs',
-            subtitle: 'आज के कार्य',
+            title: t('Today Logs', 'आज के कार्य', 'Today Logs'),
+            subtitle: t('Audit entries', 'ऑडिट रिकॉर्ड्स', 'Audit entries'),
             value: _isLoadingAnalytics ? '...' : '${_analytics.todayLogCount}',
             icon: Icons.assignment_turned_in_rounded,
-            color: Colors.blue,
+            color: const Color(0xFF2563EB),
           ),
           const SizedBox(width: 8),
           _buildKpiCard(
-            title: 'Critical Changes',
-            subtitle: 'स्टॉक/कीमत बदलाव',
+            title: t('Critical Edits', 'महत्वपूर्ण बदलाव', 'Critical Edits'),
+            subtitle: t('Stock/Price changes', 'स्टॉक या मूल्य', 'Stock/Price edits'),
             value: _isLoadingAnalytics ? '...' : '${_analytics.criticalChangesCount}',
-            icon: Icons.warning_amber_rounded,
-            color: Colors.deepOrange,
+            icon: Icons.security_rounded,
+            color: const Color(0xFFEA580C),
           ),
         ],
       ),
@@ -237,7 +255,7 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
   }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
@@ -248,25 +266,25 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
           children: [
             Row(
               children: [
-                Icon(icon, size: 16, color: color),
+                Icon(icon, size: 15, color: color),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               value,
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.grey.shade900),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
             ),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
+              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -275,15 +293,12 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
     );
   }
 
-  // ===========================================================================
-  // TAB 1: STAFF ACCOUNTS
-  // ===========================================================================
-  Widget _buildStaffTab(String shopId) {
+  Widget _buildStaffTab(String shopId, String Function(String, String, String) t) {
     return StreamBuilder<List<StaffMember>>(
       stream: _service.streamShopStaff(shopId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primaryDark));
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF0C831F)));
         }
 
         final staffList = snapshot.data ?? [];
@@ -296,33 +311,37 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withValues(alpha: 0.3),
+                      color: const Color(0xFF0C831F).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.people_outline_rounded, size: 54, color: AppColors.primaryDark),
+                    child: const Icon(Icons.people_outline_rounded, size: 48, color: Color(0xFF0C831F)),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'No Staff Accounts Added Yet',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                  Text(
+                    t('No Staff Accounts Added Yet', 'कोई कर्मचारी खाता नहीं है', 'No Staff Accounts Added Yet'),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Create employee logins for Cashier or Manager to delegate tasks with controlled permissions.',
+                    t(
+                      'Create employee logins for Cashier or Stock Clerk with granular permissions.',
+                      'कैशियर या स्टोर क्लर्क के लिए अलग लॉगिन पिन बनाएं।',
+                      'Create employee logins with specific access permissions.',
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () => _openAddStaffDialog(shopId),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add First Staff Member'),
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: Text(t('Add Staff Member', 'कर्मचारी जोड़ें', 'Add Staff Member')),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryDark,
+                      backgroundColor: const Color(0xFF0C831F),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ],
@@ -332,58 +351,62 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
           itemCount: staffList.length,
           itemBuilder: (context, index) {
             final staff = staffList[index];
-            return _buildStaffCard(shopId, staff);
+            return _buildStaffCard(shopId, staff, t);
           },
         );
       },
     );
   }
 
-  Widget _buildStaffCard(String shopId, StaffMember staff) {
+  Widget _buildStaffCard(String shopId, StaffMember staff, String Function(String, String, String) t) {
     Color roleBadgeColor;
     switch (staff.role) {
       case StaffRole.manager:
-        roleBadgeColor = Colors.purple;
+        roleBadgeColor = const Color(0xFF7C3AED);
         break;
       case StaffRole.cashier:
-        roleBadgeColor = Colors.green.shade800;
+        roleBadgeColor = const Color(0xFF0C831F);
         break;
       case StaffRole.stockClerk:
-        roleBadgeColor = Colors.indigo;
+        roleBadgeColor = const Color(0xFF2563EB);
         break;
       case StaffRole.custom:
-        roleBadgeColor = Colors.blueGrey;
+        roleBadgeColor = const Color(0xFFEA580C);
         break;
     }
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: staff.isActive ? Colors.grey.shade200 : Colors.red.shade100,
-          width: 1,
+        border: Border.all(
+          color: staff.isActive ? const Color(0xFFE2E8F0) : const Color(0xFFFECACA),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      elevation: 0,
-      color: staff.isActive ? Colors.white : Colors.grey.shade50,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Row: Avatar, Name, Role, Switch
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: roleBadgeColor.withValues(alpha: 0.15),
+                  backgroundColor: roleBadgeColor.withValues(alpha: 0.12),
                   child: Text(
                     staff.name.isNotEmpty ? staff.name[0].toUpperCase() : 'S',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: roleBadgeColor),
+                    style: TextStyle(fontWeight: FontWeight.w800, color: roleBadgeColor),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -396,12 +419,12 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                           Expanded(
                             child: Text(
                               staff.name,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
                               color: roleBadgeColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
@@ -409,33 +432,33 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                             child: Text(
                               staff.role.label,
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
                                 color: roleBadgeColor,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Row(
                         children: [
-                          Icon(Icons.phone_android_rounded, size: 13, color: Colors.grey.shade600),
+                          const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF64748B)),
                           const SizedBox(width: 4),
                           Text(
-                            '+91 ${staff.phone}',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                            staff.phone,
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(width: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text(
+                            child: const Text(
                               'PIN: ****',
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
+                              style: TextStyle(fontSize: 9, color: Color(0xFF475569), fontWeight: FontWeight.w700),
                             ),
                           ),
                         ],
@@ -443,11 +466,11 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                     ],
                   ),
                 ),
-                // Toggle active
                 Switch(
                   value: staff.isActive,
-                  activeThumbColor: AppColors.primaryDark,
+                  activeThumbColor: const Color(0xFF0C831F),
                   onChanged: (val) async {
+                    HapticFeedback.lightImpact();
                     await _service.toggleStaffStatus(
                       staffId: staff.id,
                       shopId: shopId,
@@ -465,16 +488,16 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
               spacing: 6,
               runSpacing: 4,
               children: staff.permissions.map((p) {
-                return Chip(
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: EdgeInsets.zero,
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  backgroundColor: AppColors.surface,
-                  side: BorderSide(color: Colors.grey.shade300),
-                  label: Text(
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Text(
                     p.label.split('(').first.trim(),
-                    style: const TextStyle(fontSize: 10, color: AppColors.textDark),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
                   ),
                 );
               }).toList(),
@@ -487,22 +510,16 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
               children: [
                 TextButton.icon(
                   onPressed: () => _openEditStaffDialog(shopId, staff),
-                  icon: const Icon(Icons.edit_outlined, size: 15),
-                  label: const Text('Edit (संपादित करें)', style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primaryDark,
-                    visualDensity: VisualDensity.compact,
-                  ),
+                  icon: const Icon(Icons.edit_outlined, size: 14),
+                  label: Text(t('Edit', 'बदलें', 'Edit'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF2563EB)),
                 ),
                 const SizedBox(width: 6),
                 TextButton.icon(
-                  onPressed: () => _confirmDeleteStaff(shopId, staff),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 15),
-                  label: const Text('Delete (हटाएं)', style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.red.shade700,
-                    visualDensity: VisualDensity.compact,
-                  ),
+                  onPressed: () => _confirmDeleteStaff(shopId, staff, t),
+                  icon: const Icon(Icons.delete_outline_rounded, size: 14),
+                  label: Text(t('Delete', 'हटाएं', 'Delete'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFDC2626)),
                 ),
               ],
             ),
@@ -512,62 +529,77 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
     );
   }
 
-  void _confirmDeleteStaff(String shopId, StaffMember staff) {
+  void _confirmDeleteStaff(String shopId, StaffMember staff, String Function(String, String, String) t) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Staff Account?'),
-        content: Text('Are you sure you want to delete ${staff.name}\'s login account? This action will be recorded in the audit trail.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          t('Delete Staff Account?', 'कर्मचारी खाता हटाएं?', 'Delete Staff Account?'),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          t(
+            'Are you sure you want to remove ${staff.name}? This action will be recorded in the audit trail.',
+            'क्या आप निश्चित रूप से ${staff.name} का खाता हटाना चाहते हैं? यह क्रिया ऑडिट लॉग में दर्ज होगी।',
+            'Kya aap ${staff.name} ka account delete karna chahte hain?',
+          ),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(t('Cancel', 'रद्द करें', 'Cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
+              HapticFeedback.mediumImpact();
               await _service.deleteStaff(staffId: staff.id, shopId: shopId);
               _loadAnalytics();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(t('Delete', 'हटाएं', 'Delete')),
           ),
         ],
       ),
     );
   }
 
-  // ===========================================================================
-  // TAB 2: AUDIT TRAIL
-  // ===========================================================================
-  Widget _buildAuditTrailTab(String shopId) {
+  Widget _buildAuditTrailTab(String shopId, String Function(String, String, String) t) {
     return Column(
       children: [
         // Filter & Search bar
         Container(
           color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
           child: Column(
             children: [
-              // Search field
               TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search by actor, product or order...',
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  hintText: t('Search by staff, product or order...', 'कर्मचारी, सामान या ऑर्डर खोजें...', 'Search staff, product or order...'),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF64748B)),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
+                          icon: const Icon(Icons.clear_rounded, size: 18),
                           onPressed: () => setState(() => _searchQuery = ''),
                         )
                       : null,
-                  isDense: true,
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
                 onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
               ),
@@ -578,18 +610,20 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildFilterChip('All Actions', null),
-                    _buildFilterChip('Stock Changes', AuditActionType.stockAdjustment),
-                    _buildFilterChip('Price Changes', AuditActionType.priceChange),
-                    _buildFilterChip('Orders', AuditActionType.orderStatusChanged),
-                    _buildFilterChip('Staff Changes', AuditActionType.staffCreated),
-                    _buildFilterChip('Write-Offs', AuditActionType.stockWriteOff),
+                    _buildFilterChip(t('All Actions', 'सभी कार्य', 'All Actions'), null),
+                    _buildFilterChip(t('Stock Changes', 'स्टॉक बदलाव', 'Stock Changes'), AuditActionType.stockAdjustment),
+                    _buildFilterChip(t('Price Changes', 'कीमत बदलाव', 'Price Changes'), AuditActionType.priceChange),
+                    _buildFilterChip(t('Orders', 'ऑर्डर्स', 'Orders'), AuditActionType.orderStatusChanged),
+                    _buildFilterChip(t('Staff Changes', 'स्टाफ बदलाव', 'Staff Changes'), AuditActionType.staffCreated),
+                    _buildFilterChip(t('Write-Offs', 'खराब सामान', 'Write-Offs'), AuditActionType.stockWriteOff),
                   ],
                 ),
               ),
             ],
           ),
         ),
+
+        const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
         // Logs Stream
         Expanded(
@@ -600,12 +634,11 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
             ),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: AppColors.primaryDark));
+                return const Center(child: CircularProgressIndicator(color: Color(0xFF0C831F)));
               }
 
               var logs = snapshot.data ?? [];
 
-              // Local text search
               if (_searchQuery.isNotEmpty) {
                 logs = logs.where((l) {
                   return l.actorName.toLowerCase().contains(_searchQuery) ||
@@ -622,17 +655,28 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.history_edu_rounded, size: 54, color: Colors.grey.shade400),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+                          ),
+                          child: const Icon(Icons.history_edu_rounded, size: 40, color: Color(0xFF94A3B8)),
+                        ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'No Audit Records Found',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                        Text(
+                          t('No Audit Records Found', 'कोई ऑडिट रिकॉर्ड नहीं मिला', 'No Audit Records Found'),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Actions like stock adjustments, price changes, and staff updates will appear here automatically.',
+                          t(
+                            'Actions like stock adjustments and price edits will appear here automatically.',
+                            'स्टॉक व कीमत बदलाव यहां अपने आप दर्ज होते रहेंगे।',
+                            'Stock and price modifications will be logged here automatically.',
+                          ),
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                         ),
                       ],
                     ),
@@ -641,7 +685,7 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 80),
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 80),
                 itemCount: logs.length,
                 itemBuilder: (context, index) {
                   final log = logs[index];
@@ -662,23 +706,41 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
       child: FilterChip(
         selected: isSelected,
         visualDensity: VisualDensity.compact,
-        label: Text(label, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : AppColors.textDark)),
-        selectedColor: AppColors.primaryDark,
-        backgroundColor: AppColors.surface,
+        label: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+          ),
+        ),
+        selectedColor: const Color(0xFF0C831F),
+        backgroundColor: const Color(0xFFF1F5F9),
+        showCheckmark: false,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: isSelected ? const Color(0xFF0C831F) : Colors.transparent),
+        ),
         onSelected: (_) => setState(() => _selectedActionFilter = action),
       ),
     );
   }
 
   Widget _buildAuditLogCard(AuditLogEntry log) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.shade200),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      elevation: 0,
-      color: Colors.white,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () => AuditLogDetailsDialog.show(context, log),
@@ -687,7 +749,6 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: Action badge + Actor + Timestamp
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -695,12 +756,12 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(6),
+                          padding: const EdgeInsets.all(5),
                           decoration: BoxDecoration(
                             color: log.actionType.color.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(7),
                           ),
-                          child: Icon(log.actionType.icon, color: log.actionType.color, size: 16),
+                          child: Icon(log.actionType.icon, color: log.actionType.color, size: 15),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -708,7 +769,7 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                             log.actionType.label.split('(').first.trim(),
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w800,
                               color: log.actionType.color,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -719,37 +780,32 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                   ),
                   Text(
                     log.formattedTime,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-
-              // Description
+              const SizedBox(height: 6),
               Text(
                 log.description,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
               ),
               const SizedBox(height: 6),
-
-              // Actor + Reason Tag Row
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.grey.shade300),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.person_pin_rounded, size: 12, color: Colors.grey),
+                        const Icon(Icons.person_pin_rounded, size: 12, color: Color(0xFF64748B)),
                         const SizedBox(width: 4),
                         Text(
                           log.actorName,
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade800, fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF334155), fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -760,13 +816,12 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
+                          color: const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.amber.shade200),
                         ),
                         child: Text(
-                          'Reason: ${log.reason!}',
-                          style: TextStyle(fontSize: 10, color: Colors.amber.shade900, fontWeight: FontWeight.w600),
+                          log.reason!,
+                          style: const TextStyle(fontSize: 10, color: Color(0xFFB45309), fontWeight: FontWeight.w700),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

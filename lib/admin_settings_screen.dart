@@ -1,19 +1,16 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
-import 'package:near_kirana/app_theme.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:near_kirana/sound_service.dart';
 import 'package:near_kirana/modern_loader.dart';
 import 'package:near_kirana/shop_provider.dart';
-import 'dart:convert';
-import 'package:image_picker/image_picker.dart';
+import 'package:near_kirana/language_provider.dart';
 import 'package:near_kirana/utils/product_image_widget.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
-import 'package:near_kirana/l10n/app_localizations.dart';
-import 'package:near_kirana/admin_language_theme_screen.dart';
-import 'package:near_kirana/admin_dashboard.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -24,7 +21,7 @@ class AdminSettingsScreen extends StatefulWidget {
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   int _activeTabIndex = 0;
-  
+
   final _shopNameController = TextEditingController();
   final _ownerNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -103,7 +100,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         if (data['categories'] != null) {
           _categories = List<String>.from(data['categories']);
         } else if (data['product_categories'] != null) {
-          // Fallback if it was stored as product_categories
           _categories = List<String>.from(data['product_categories']);
         }
       }
@@ -114,7 +110,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-  Future<void> _saveSettings() async {
+  Future<void> _saveSettings(String Function(String, String, String) t) async {
     if (_isSaving) return;
     HapticFeedback.mediumImpact();
     setState(() => _isSaving = true);
@@ -129,7 +125,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       if (deliveryFee < 0 || minOrder < 0 || freeDeliveryThreshold < 0 || maxUdhaar < 0 || pickupRadius < 0 || deliveryRadius < 0) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.err_negative_values), backgroundColor: AppColors.error),
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(t('Negative values are not allowed', 'नकारात्मक मान की अनुमति नहीं है', 'Negative values allow nahi hain')),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
           );
           setState(() => _isSaving = false);
         }
@@ -164,13 +164,21 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       SoundService().productSaved();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text(AppLocalizations.of(context)!.settings_saved), backgroundColor: AppColors.primaryDark),
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(t('Settings saved successfully', 'सेटिंग्स सुरक्षित हो गईं', 'Settings successfully save ho gayi')),
+            backgroundColor: const Color(0xFF0C831F),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(behavior: SnackBarBehavior.floating, content: Text('Error saving settings: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Error saving settings: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
         );
       }
     } finally {
@@ -180,634 +188,869 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth > 900;
-        
+
         if (isDesktop) {
           return Scaffold(
-            backgroundColor: const Color(0xFFF8F9FA),
+            backgroundColor: const Color(0xFFF8FAFC),
             body: Column(
               children: [
                 const AdminTopHeader(),
                 Expanded(
-                  child: _isLoading 
-                      ? const Center(child: ModernLoader(color: AppColors.primaryDark))
-                      : _buildDesktopLayout(),
+                  child: _isLoading
+                      ? const Center(child: ModernLoader(color: Color(0xFF0C831F)))
+                      : _buildDesktopLayout(t),
                 ),
               ],
             ),
           );
         }
-        
+
         return Scaffold(
-          backgroundColor: const Color(0xFFF8F9FA),
+          backgroundColor: const Color(0xFFF8FAFC),
           appBar: AppBar(
-            title: Text(AppLocalizations.of(context)!.store_settings),
-            backgroundColor: AppColors.primaryDark,
-            foregroundColor: Colors.white,
             elevation: 0,
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t('Store Settings', 'दुकान की सेटिंग्स', 'Store Settings'),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
+                Text(
+                  t('Partner Configuration', 'पार्टनर संचालन नियम', 'Partner Configuration'),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+            actions: [
+              IconButton(
+                onPressed: _isSaving ? null : () => _saveSettings(t),
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0C831F)),
+                      )
+                    : const Icon(Icons.check_rounded, color: Color(0xFF0C831F), size: 24),
+                tooltip: t('Save Settings', 'सुरक्षित करें', 'Save Settings'),
+              ),
+            ],
           ),
-          body: _isLoading 
-              ? const Center(child: ModernLoader(color: AppColors.primaryDark))
-              : _buildMobileLayout(),
+          body: _isLoading
+              ? const Center(child: ModernLoader(color: Color(0xFF0C831F)))
+              : _buildMobileLayout(t),
         );
       },
     );
   }
 
-  Widget _buildMobileLayout() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildPageHeader(isMobile: true),
-          const SizedBox(height: 16),
-          _buildTabs(),
-          const SizedBox(height: 20),
-          _buildQuickActionsCard(isMobile: true),
-          const SizedBox(height: 16),
-          _buildAccountInfoCard(isMobile: true),
-          const SizedBox(height: 16),
-          _buildShopBusinessCard(isMobile: true),
-          const SizedBox(height: 16),
-          _buildFinancialRulesCard(isMobile: true),
-          const SizedBox(height: 16),
-          _buildCategoriesCard(isMobile: true),
-          const SizedBox(height: 16),
-          _buildAppInfoCard(isMobile: true),
-          const SizedBox(height: 24),
-        ],
-      ),
+  Widget _buildMobileLayout(String Function(String, String, String) t) {
+    return Column(
+      children: [
+        // Tabs
+        _buildTabs(t),
+        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+        // Tab Content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_activeTabIndex == 0) _buildGeneralTab(t),
+                if (_activeTabIndex == 1) _buildDeliveryTab(t),
+                if (_activeTabIndex == 2) _buildPaymentsTab(t),
+                if (_activeTabIndex == 3) _buildLocationWhatsAppTab(t),
+                if (_activeTabIndex == 4) _buildCategoriesTab(t),
+                const SizedBox(height: 24),
+
+                // Save button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSaving ? null : () => _saveSettings(t),
+                    icon: _isSaving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.save_rounded, size: 20),
+                    label: Text(
+                      _isSaving
+                          ? t('Saving...', 'सुरक्षित किया जा रहा है...', 'Saving...')
+                          : t('Save All Settings', 'सभी सेटिंग्स सुरक्षित करें', 'Save All Settings'),
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0C831F),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildDesktopLayout() {
+  Widget _buildDesktopLayout(String Function(String, String, String) t) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildPageHeader(),
-          const SizedBox(height: 24),
-          _buildTabs(),
-          const SizedBox(height: 32),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Left Content
-              Expanded(
-                flex: 7,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildAccountInfoCard(),
-                    const SizedBox(height: 24),
-                    _buildShopBusinessCard(),
-                    const SizedBox(height: 24),
-                    _buildFinancialRulesCard(),
-                    const SizedBox(height: 24),
-                    _buildCategoriesCard(),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              // Right Content
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildAppInfoCard(),
-                    const SizedBox(height: 24),
-                    _buildQuickActionsCard(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPageHeader({bool isMobile = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Settings', style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: isMobile ? 24 : 28)),
-        const SizedBox(height: 4),
-        Text('Manage your store, account, and application preferences', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
-      ],
-    );
-  }
-
-  Widget _buildTabs() {
-    final tabs = ['General', 'Shop & Business', 'Notifications', 'Users & Staff', 'Security', 'System'];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: tabs.asMap().entries.map((entry) {
-          final index = entry.key;
-          final label = entry.value;
-          final isActive = _activeTabIndex == index;
-          
-          IconData icon;
-          switch (label) {
-            case 'General': icon = Icons.settings_outlined; break;
-            case 'Shop & Business': icon = Icons.storefront_outlined; break;
-            case 'Notifications': icon = Icons.notifications_none_outlined; break;
-            case 'Users & Staff': icon = Icons.people_outline; break;
-            case 'Security': icon = Icons.shield_outlined; break;
-            case 'System': icon = Icons.storage_outlined; break;
-            default: icon = Icons.circle_outlined;
-          }
-
-          return GestureDetector(
-            onTap: () {
-              if (index == 0) setState(() => _activeTabIndex = index);
-            },
-            child: Container(
-              margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: isActive ? AppColors.primaryLight.withValues(alpha: 0.1) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isActive ? AppColors.primaryDark : AppColors.bgTint,
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(icon, size: 18, color: isActive ? AppColors.primaryDark : AppColors.textMid),
-                  const SizedBox(width: 8),
                   Text(
-                    label,
-                    style: TextStyle(
-                      color: isActive ? AppColors.primaryDark : AppColors.textDark,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                      fontSize: 14,
+                    t('Store Settings', 'दुकान की सेटिंग्स', 'Store Settings'),
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    t(
+                      'Manage delivery radius, timings, UPI, and store profile',
+                      'दुकान का विवरण, डिलीवरी दूरी और यूपीआई भुगतान प्रबंधित करें',
+                      'Manage delivery radius, timings, UPI and store profile',
                     ),
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
                   ),
                 ],
               ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildAccountInfoCard({bool isMobile = false}) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: AppColors.bgTint),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Account Information', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
-          const SizedBox(height: 4),
-          Text('Update your admin account details', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
-          const SizedBox(height: 24),
-          if (isMobile) ...[
-            Center(
-              child: _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
-            ),
-            const SizedBox(height: 20),
-            _buildHDField('Full Name *', _ownerNameController, Icons.person_outline, 'Admin User'),
-            const SizedBox(height: 16),
-            _buildHDField('Phone Number', _phoneController, Icons.phone_outlined, 'N/A', readOnly: true),
-          ] else ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
-                const SizedBox(width: 32),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(child: _buildHDField('Full Name *', _ownerNameController, Icons.person_outline, 'Admin User')),
-                          const SizedBox(width: 16),
-                          Expanded(child: _buildHDField('Phone Number', _phoneController, Icons.phone_outlined, 'N/A', readOnly: true)),
-                        ],
-                      ),
-                    ],
-                  ),
+              ElevatedButton.icon(
+                onPressed: _isSaving ? null : () => _saveSettings(t),
+                icon: const Icon(Icons.check_rounded, size: 18),
+                label: Text(t('Save Settings', 'सुरक्षित करें', 'Save Settings')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0C831F),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShopBusinessCard({bool isMobile = false}) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: AppColors.bgTint),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isMobile) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Shop & Business Settings', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: 18)),
-                      const SizedBox(height: 4),
-                      Text('Manage your shop and business information', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: _isStoreOpen ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _isStoreOpen ? const Color(0xFFA5D6A7) : const Color(0xFFFECACA)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _isStoreOpen ? 'Store Open' : 'Store Closed',
-                    style: TextStyle(
-                      color: _isStoreOpen ? AppColors.primaryDark : AppColors.error,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Switch(
-                    value: _isStoreOpen,
-                    activeThumbColor: Colors.white,
-                    activeTrackColor: AppColors.primaryDark,
-                    onChanged: (val) {
-                      setState(() => _isStoreOpen = val);
-                      HapticFeedback.lightImpact();
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Shop & Business Settings', style: AppTextStyles.heading2(color: AppColors.textDark)),
-                      const SizedBox(height: 4),
-                      Text('Manage your shop and business information', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_isStoreOpen ? 'Store Open' : 'Store Closed', style: TextStyle(color: _isStoreOpen ? AppColors.primaryDark : AppColors.error, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
-                    Switch(
-                      value: _isStoreOpen,
-                      activeThumbColor: AppColors.primaryDark,
-                      onChanged: (val) {
-                        setState(() => _isStoreOpen = val);
-                        HapticFeedback.lightImpact();
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 24),
-          if (isMobile) ...[
-            _buildHDField('Shop Name *', _shopNameController, Icons.storefront_outlined, 'NearKirana General Store'),
-            const SizedBox(height: 16),
-            _buildHDField('Contact Number *', _supportPhoneController, Icons.phone_outlined, '98765 43210', prefixText: '+91 '),
-          ] else ...[
-            Row(
-              children: [
-                Expanded(child: _buildHDField('Shop Name *', _shopNameController, Icons.storefront_outlined, 'NearKirana General Store')),
-                const SizedBox(width: 16),
-                Expanded(child: _buildHDField('Contact Number *', _supportPhoneController, Icons.phone_outlined, '98765 43210', prefixText: '+91 ')),
-              ],
-            ),
-          ],
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _buildHDField('Store Latitude', _storeLatController, Icons.location_on_outlined, '28.7041')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildHDField('Store Longitude', _storeLngController, Icons.location_on_outlined, '77.1025')),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildHDField('WhatsApp Support Message', _whatsappMessageController, Icons.message_outlined, 'Message', maxLines: 2),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFinancialRulesCard({bool isMobile = false}) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: AppColors.bgTint),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Financial & Delivery Rules', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
-          const SizedBox(height: 4),
-          Text('Configure delivery fees, minimum order limits, and radius', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: _buildHDField('Delivery Fee (₹)', _deliveryFeeController, Icons.moped_outlined, '20')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildHDField('Minimum Order (₹)', _minOrderController, Icons.shopping_basket_outlined, '300')),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (isMobile) ...[
-            _buildHDField('Free Delivery Threshold (₹)', _freeDeliveryThresholdController, Icons.card_giftcard_outlined, '500'),
-            const SizedBox(height: 16),
-            _buildHDField('Max Udhaar Limit (₹)', _maxUdhaarController, Icons.account_balance_wallet_outlined, '2000'),
-          ] else ...[
-            Row(
-              children: [
-                Expanded(child: _buildHDField('Free Delivery Threshold (₹)', _freeDeliveryThresholdController, Icons.card_giftcard_outlined, '500')),
-                const SizedBox(width: 16),
-                Expanded(child: _buildHDField('Max Udhaar Limit (₹)', _maxUdhaarController, Icons.account_balance_wallet_outlined, '2000')),
-              ],
-            ),
-          ],
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _buildHDField('Delivery Radius (km)', _deliveryRadiusController, Icons.map_outlined, '5')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildHDField('Order Prep Time (mins)', _basePrepTimeController, Icons.timer_outlined, '15')),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildHDField('Pickup Radius (km)', _pickupRadiusController, Icons.storefront_outlined, '25'),
-          const SizedBox(height: 16),
-          _buildHDField('Store UPI ID / VPA', _upiIdController, Icons.payment_outlined, 'merchant@upi'),
-          const SizedBox(height: 16),
-          _buildHDField('Razorpay Key ID (Online Payment Gateway)', _razorpayKeyIdController, Icons.vpn_key_outlined, 'rzp_live_... or rzp_test_...'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategoriesCard({bool isMobile = false}) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: AppColors.bgTint),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Product Categories', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
-          const SizedBox(height: 4),
-          Text('Manage categories shown to customers', style: AppTextStyles.bodyMedium(color: AppColors.textMid)),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ..._categories.map((cat) {
-                return Chip(
-                  label: Text(cat, style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.bold)),
-                  backgroundColor: AppColors.primaryLight.withValues(alpha: 0.1),
-                  deleteIcon: const Icon(Icons.close, size: 16, color: Colors.red),
-                  onDeleted: () => setState(() => _categories.remove(cat)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: AppColors.primaryLight.withValues(alpha: 0.3))),
-                );
-              }),
-              ActionChip(
-                label: const Text('Add Category'),
-                avatar: const Icon(Icons.add, size: 16),
-                onPressed: _showAddCategoryDialog,
-              )
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAppInfoCard({bool isMobile = false}) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: AppColors.bgTint),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.widgets_outlined, size: 20, color: AppColors.textDark),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('App Information', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          _buildInfoRow('App Version', 'v1.0.0'),
-          const SizedBox(height: 14),
-          _buildInfoRow('Last Updated', '15 Aug 2024'),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(child: Text('Environment', style: AppTextStyles.bodyMedium(color: AppColors.textMid))),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text('Production', style: TextStyle(color: AppColors.primaryDark, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _buildInfoRow('Platform', 'Web Admin Panel'),
+          _buildTabs(t),
+          const SizedBox(height: 24),
+          if (_activeTabIndex == 0) _buildGeneralTab(t),
+          if (_activeTabIndex == 1) _buildDeliveryTab(t),
+          if (_activeTabIndex == 2) _buildPaymentsTab(t),
+          if (_activeTabIndex == 3) _buildLocationWhatsAppTab(t),
+          if (_activeTabIndex == 4) _buildCategoriesTab(t),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActionsCard({bool isMobile = false}) {
+  Widget _buildTabs(String Function(String, String, String) t) {
+    final tabs = [
+      {'label': t('General', 'सामान्य', 'General'), 'icon': Icons.storefront_rounded},
+      {'label': t('Delivery & Prep', 'डिलीवरी व समय', 'Delivery & Prep'), 'icon': Icons.two_wheeler_rounded},
+      {'label': t('Payments & UPI', 'यूपीआई व भुगतान', 'Payments & UPI'), 'icon': Icons.payment_rounded},
+      {'label': t('Location & Chat', 'लोकेशन व व्हाट्सएप', 'Location & Chat'), 'icon': Icons.pin_drop_rounded},
+      {'label': t('Categories', 'कैटेगरी', 'Categories'), 'icon': Icons.category_rounded},
+    ];
+
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: tabs.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            final isActive = _activeTabIndex == index;
+            final icon = item['icon'] as IconData;
+            final label = item['label'] as String;
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                avatar: Icon(
+                  icon,
+                  size: 16,
+                  color: isActive ? Colors.white : const Color(0xFF64748B),
+                ),
+                label: Text(label),
+                selected: isActive,
+                selectedColor: const Color(0xFF0C831F),
+                backgroundColor: const Color(0xFFF1F5F9),
+                labelStyle: TextStyle(
+                  color: isActive ? Colors.white : const Color(0xFF334155),
+                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                  fontSize: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(
+                    color: isActive ? const Color(0xFF0C831F) : Colors.transparent,
+                  ),
+                ),
+                showCheckmark: false,
+                onSelected: (selected) {
+                  if (selected) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _activeTabIndex = index);
+                  }
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGeneralTab(String Function(String, String, String) t) {
+    return Container(
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: AppColors.bgTint),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.bolt_outlined, size: 20, color: AppColors.textDark),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('Quick Actions', style: AppTextStyles.heading2(color: AppColors.textDark).copyWith(fontSize: isMobile ? 18 : 20)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.storefront_rounded, color: Color(0xFF0C831F), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('Store Profile', 'दुकान की मुख्य जानकारी', 'Store Profile'),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                  Text(
+                    t('Shop name, owner & open status', 'नाम, मालिक व चालू/बंद स्थिति', 'Shop name & status'),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: _isSaving ? null : _saveSettings,
-            icon: _isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.save_outlined),
-            label: Text(
-              _isSaving ? 'Saving...' : 'Save Settings',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 16),
+
+          // Open/Close toggle banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _isStoreOpen ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _isStoreOpen ? const Color(0xFFA5D6A7) : const Color(0xFFFECACA)),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryDark,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _isStoreOpen ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _isStoreOpen
+                              ? t('Store is Online (Accepting Orders)', 'दुकान खुली है (ऑर्डर चालू)', 'Store Online (Orders ON)')
+                              : t('Store is Closed (Offline)', 'दुकान बंद है (ऑर्डर बंद)', 'Store Closed (Offline)'),
+                          style: TextStyle(
+                            color: _isStoreOpen ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          _isStoreOpen
+                              ? t('Customers can order from your shop', 'ग्राहक ऐप से सामान ऑर्डर कर सकते हैं', 'Customers can place orders')
+                              : t('Ordering is temporarily paused', 'ग्राहक अभी ऑर्डर नहीं दे सकते', 'Orders temporarily paused'),
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Switch(
+                  value: _isStoreOpen,
+                  activeThumbColor: const Color(0xFF0C831F),
+                  onChanged: (val) {
+                    setState(() => _isStoreOpen = val);
+                    HapticFeedback.lightImpact();
+                  },
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => _importLanguageTheme(context),
-            icon: const Icon(Icons.language, size: 18),
-            label: const Text('Language & Theme', style: TextStyle(fontSize: 14)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryDark,
-              side: const BorderSide(color: AppColors.primaryDark),
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+          const SizedBox(height: 18),
+
+          // Shop Avatar
+          Center(
+            child: _ShopAvatar(shopProvider: Provider.of<ShopProvider>(context)),
+          ),
+          const SizedBox(height: 18),
+
+          _buildZeptoField(
+            label: t('Store Name *', 'दुकान का नाम *', 'Store Name *'),
+            controller: _shopNameController,
+            icon: Icons.storefront_rounded,
+            hint: 'Ravi Kirana Store',
+          ),
+          const SizedBox(height: 14),
+
+          _buildZeptoField(
+            label: t('Owner / Merchant Name *', 'मालिक का नाम *', 'Owner Name *'),
+            controller: _ownerNameController,
+            icon: Icons.person_rounded,
+            hint: 'Ravi Verma',
+          ),
+          const SizedBox(height: 14),
+
+          _buildZeptoField(
+            label: t('Registered Mobile Number', 'पंजीकृत मोबाइल नंबर', 'Registered Phone Number'),
+            controller: _phoneController,
+            icon: Icons.phone_rounded,
+            hint: '9876543210',
+            readOnly: true,
           ),
         ],
       ),
     );
   }
 
-  void _importLanguageTheme(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 900;
-    if (isDesktop && AdminDashboard.navCallback != null) {
-      AdminDashboard.navCallback!(11);
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AdminLanguageThemeScreen()),
-      );
-    }
-  }
+  Widget _buildDeliveryTab(String Function(String, String, String) t) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEA580C).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.two_wheeler_rounded, color: Color(0xFFEA580C), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('Delivery & Timings', 'डिलीवरी फीस व समय', 'Delivery & Timings'),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                  Text(
+                    t('Radius, fee, min order & pack time', 'डिलीवरी दायरा, न्यूनतम ऑर्डर व पैकिंग समय', 'Radius, fees & prep time'),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 16),
 
+          Row(
+            children: [
+              Expanded(
+                child: _buildZeptoField(
+                  label: t('Delivery Fee (₹)', 'डिलीवरी शुल्क (₹)', 'Delivery Fee (₹)'),
+                  controller: _deliveryFeeController,
+                  icon: Icons.currency_rupee_rounded,
+                  hint: '20',
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildZeptoField(
+                  label: t('Min Order (₹)', 'न्यूनतम ऑर्डर (₹)', 'Min Order (₹)'),
+                  controller: _minOrderController,
+                  icon: Icons.shopping_bag_rounded,
+                  hint: '100',
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
 
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(child: Text(label, style: AppTextStyles.bodyMedium(color: AppColors.textMid))),
-        const SizedBox(width: 8),
-        Text(value, style: AppTextStyles.bodySemiBold(color: AppColors.textDark)),
-      ],
+          _buildZeptoField(
+            label: t('Free Delivery Above (₹)', 'मुफ़्त डिलीवरी कितने रुपये पर (₹)', 'Free Delivery Above (₹)'),
+            controller: _freeDeliveryThresholdController,
+            icon: Icons.local_offer_rounded,
+            hint: '500',
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 14),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildZeptoField(
+                  label: t('Delivery Radius (km)', 'डिलीवरी दायरा (किमी)', 'Delivery Radius (km)'),
+                  controller: _deliveryRadiusController,
+                  icon: Icons.map_rounded,
+                  hint: '5',
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildZeptoField(
+                  label: t('Prep Time (minutes)', 'पैकिंग समय (मिनट)', 'Prep Time (mins)'),
+                  controller: _basePrepTimeController,
+                  icon: Icons.timer_rounded,
+                  hint: '15',
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          _buildZeptoField(
+            label: t('Pickup Radius Limit (km)', 'पिकअप अधिकतम दायरा (किमी)', 'Pickup Radius Limit (km)'),
+            controller: _pickupRadiusController,
+            icon: Icons.storefront_rounded,
+            hint: '25',
+            keyboardType: TextInputType.number,
+          ),
+        ],
+      ),
     );
   }
 
-  void _showAddCategoryDialog() {
+  Widget _buildPaymentsTab(String Function(String, String, String) t) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.payment_rounded, color: Color(0xFF2563EB), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('UPI & Payments Setup', 'यूपीआई व पेमेंट सेटिंग्स', 'UPI & Payments Setup'),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                  Text(
+                    t('Direct QR, Razorpay key & Udhaar limit', 'दुकान का QR, रेज़रपे व उधार सीमा', 'Direct QR, Razorpay & Udhaar'),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 16),
+
+          _buildZeptoField(
+            label: t('Store UPI ID / VPA', 'दुकान की UPI आईडी / VPA', 'Store UPI ID / VPA'),
+            controller: _upiIdController,
+            icon: Icons.qr_code_2_rounded,
+            hint: 'merchant@okhdfcbank',
+          ),
+          const SizedBox(height: 8),
+          Text(
+            t(
+              'Customers scanning your shop QR or paying via UPI will credit directly to this ID.',
+              'ग्राहक आपके दुकान के क्यूआर या यूपीआई से सीधे इस खाते में भुगतान करेंगे।',
+              'Direct payments from customers will settle to this UPI VPA.',
+            ),
+            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 16),
+
+          _buildZeptoField(
+            label: t('Max Udhaar Limit Per Customer (₹)', 'प्रति ग्राहक अधिकतम उधार सीमा (₹)', 'Max Udhaar Limit (₹)'),
+            controller: _maxUdhaarController,
+            icon: Icons.account_balance_wallet_rounded,
+            hint: '2000',
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 16),
+
+          _buildZeptoField(
+            label: t('Razorpay Key ID (Online Payment Gateway)', 'रेज़रपे की आईडी (ऑनलाइन कार्ड/नेटबैंकिंग)', 'Razorpay Key ID'),
+            controller: _razorpayKeyIdController,
+            icon: Icons.vpn_key_rounded,
+            hint: 'rzp_live_... or rzp_test_...',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationWhatsAppTab(String Function(String, String, String) t) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D9488).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.pin_drop_rounded, color: Color(0xFF0D9488), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('Location & WhatsApp Support', 'दुकान की लोकेशन व व्हाट्सएप', 'Location & WhatsApp'),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                  Text(
+                    t('GPS Coordinates & automated message', 'दुकान के जीपीएस निर्देशांक व मैसेज', 'GPS coordinates & templates'),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 16),
+
+          _buildZeptoField(
+            label: t('Customer Support Number', 'कस्टमर सपोर्ट मोबाइल नंबर', 'Support Phone Number'),
+            controller: _supportPhoneController,
+            icon: Icons.headset_mic_rounded,
+            hint: '9876543210',
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 14),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildZeptoField(
+                  label: t('Store Latitude', 'दुकान अक्षांश (Lat)', 'Store Latitude'),
+                  controller: _storeLatController,
+                  icon: Icons.location_on_rounded,
+                  hint: '28.7041',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildZeptoField(
+                  label: t('Store Longitude', 'दुकान देशांतर (Lng)', 'Store Longitude'),
+                  controller: _storeLngController,
+                  icon: Icons.location_on_rounded,
+                  hint: '77.1025',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          _buildZeptoField(
+            label: t('WhatsApp Support Template', 'व्हाट्सएप सपोर्ट मैसेज प्रारूप', 'WhatsApp Support Message'),
+            controller: _whatsappMessageController,
+            icon: Icons.chat_rounded,
+            hint: 'नमस्ते {shopName}...',
+            maxLines: 3,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoriesTab(String Function(String, String, String) t) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.category_rounded, color: Color(0xFF7C3AED), size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t('Product Categories', 'सामान की श्रेणियां', 'Product Categories'),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                      ),
+                      Text(
+                        t('Organize items on customer catalog', 'ग्राहकों को दिखने वाली कैटेगरी', 'Catalog category pills'),
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              IconButton.filledTonal(
+                onPressed: () => _showAddCategoryDialog(t),
+                icon: const Icon(Icons.add_rounded, size: 20, color: Color(0xFF0C831F)),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                ),
+                tooltip: t('Add Category', 'नई कैटेगरी जोड़ें', 'Add Category'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 16),
+
+          if (_categories.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  t('No categories configured. Tap + to add.', 'कोई कैटेगरी नहीं है। + दबाकर जोड़ें।', 'No categories. Tap + to add.'),
+                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                ),
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _categories.map((cat) {
+                return Chip(
+                  label: Text(
+                    cat,
+                    style: const TextStyle(color: Color(0xFF0C831F), fontWeight: FontWeight.w700, fontSize: 12),
+                  ),
+                  backgroundColor: const Color(0xFF0C831F).withValues(alpha: 0.08),
+                  deleteIcon: const Icon(Icons.cancel_rounded, size: 16, color: Color(0xFFDC2626)),
+                  onDeleted: () => setState(() => _categories.remove(cat)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(color: const Color(0xFF0C831F).withValues(alpha: 0.2)),
+                  ),
+                );
+              }).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddCategoryDialog(String Function(String, String, String) t) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Category'),
-        content: TextField(controller: controller, decoration: const InputDecoration(hintText: 'Category Name')),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          t('Add New Category', 'नई कैटेगरी जोड़ें', 'Add New Category'),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: t('e.g. Dairy & Eggs, Snacks', 'उदा. दूध व डेयरी, स्नैक्स', 'e.g. Dairy, Snacks'),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(t('Cancel', 'रद्द करें', 'Cancel')),
+          ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0C831F),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
                 setState(() => _categories.add(controller.text.trim()));
                 Navigator.pop(context);
               }
             },
-            child: const Text('Add'),
+            child: Text(t('Add', 'जोड़ें', 'Add')),
           ),
         ],
       ),
     ).then((_) => controller.dispose());
   }
 
-  Widget _buildHDField(String label, TextEditingController controller, IconData icon, String hint, {String? prefixText, bool readOnly = false, int maxLines = 1}) {
+  Widget _buildZeptoField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required String hint,
+    bool readOnly = false,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: AppTextStyles.bodySemiBold(color: AppColors.textDark).copyWith(fontSize: 13),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF334155),
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextField(
           controller: controller,
           readOnly: readOnly,
           maxLines: maxLines,
-          style: AppTextStyles.bodyMedium(color: AppColors.textDark),
+          keyboardType: keyboardType,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
           decoration: InputDecoration(
             hintText: hint,
-            prefixText: prefixText,
-            prefixIcon: Icon(icon, color: AppColors.textMid, size: 20),
+            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+            prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20),
             filled: true,
-            fillColor: readOnly ? AppColors.bgTint.withValues(alpha: 0.5) : Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.bgTint)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.bgTint)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primaryDark)),
+            fillColor: readOnly ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF0C831F), width: 1.5),
+            ),
           ),
         ),
       ],
@@ -850,20 +1093,29 @@ class _ShopAvatarState extends State<_ShopAvatar> {
         alignment: Alignment.bottomRight,
         children: [
           Container(
-            width: 100, height: 100,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.bgTint),
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+              border: Border.all(color: const Color(0xFF0C831F).withValues(alpha: 0.3), width: 2),
+            ),
             child: ClipOval(
               child: _isUploading
-                  ? const Center(child: ModernLoader(color: AppColors.primaryDark))
+                  ? const Center(child: ModernLoader(color: Color(0xFF0C831F)))
                   : (widget.shopProvider.shopProfilePic != null && widget.shopProvider.shopProfilePic!.isNotEmpty)
-                      ? ProductImageWidget(imageUrl: widget.shopProvider.shopProfilePic, width: 100, height: 100)
-                      : const Icon(Icons.person, size: 50, color: AppColors.textMid),
+                      ? ProductImageWidget(imageUrl: widget.shopProvider.shopProfilePic, width: 90, height: 90)
+                      : const Icon(Icons.storefront_rounded, size: 44, color: Color(0xFF0C831F)),
             ),
           ),
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
-            child: const Icon(Icons.camera_alt_outlined, size: 16, color: AppColors.textDark),
+            decoration: const BoxDecoration(
+              color: Color(0xFF0C831F),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+            ),
+            child: const Icon(Icons.camera_alt_rounded, size: 15, color: Colors.white),
           ),
         ],
       ),

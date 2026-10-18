@@ -11,13 +11,26 @@ enum StaffRole {
   String get label {
     switch (this) {
       case StaffRole.manager:
-        return 'Manager (मैनेजर)';
+        return 'Manager';
       case StaffRole.cashier:
-        return 'Cashier (कैशियर)';
+        return 'Cashier';
       case StaffRole.stockClerk:
-        return 'Stock Clerk (स्टॉक क्लर्क)';
+        return 'Stock Clerk';
       case StaffRole.custom:
-        return 'Custom (कस्टम)';
+        return 'Custom';
+    }
+  }
+
+  String localizedLabel(String Function(String, String, String) t) {
+    switch (this) {
+      case StaffRole.manager:
+        return t('Manager', 'मैनेजर', 'Manager');
+      case StaffRole.cashier:
+        return t('Cashier', 'कैशियर', 'Cashier');
+      case StaffRole.stockClerk:
+        return t('Stock Clerk', 'स्टॉक क्लर्क', 'Stock Clerk');
+      case StaffRole.custom:
+        return t('Custom', 'कस्टम', 'Custom');
     }
   }
 
@@ -53,21 +66,42 @@ enum StaffPermission {
   String get label {
     switch (this) {
       case StaffPermission.billing:
-        return 'Billing & POS (बिलिंग और बिक्री)';
+        return 'Billing & POS';
       case StaffPermission.orderManagement:
-        return 'Order Management (ऑर्डर डिलीवरी/स्टेटस)';
+        return 'Order Management';
       case StaffPermission.inventoryAdjustment:
-        return 'Stock Adjustment (स्टॉक घटाना/बढ़ाना)';
+        return 'Stock Adjustment';
       case StaffPermission.catalogEdit:
-        return 'Catalog & Prices (प्रोडक्ट और कीमतें)';
+        return 'Catalog & Prices';
       case StaffPermission.customerKhata:
-        return 'Customer Khata (उधार और पेमेंट)';
+        return 'Customer Khata';
       case StaffPermission.viewReports:
-        return 'Sales & Reports (बिक्री रिपोर्ट)';
+        return 'Sales & Reports';
       case StaffPermission.manageStaff:
-        return 'Staff Management (कर्मचारी जोड़ना)';
+        return 'Staff Management';
       case StaffPermission.discounts:
-        return 'Special Discounts (विशेष छूट)';
+        return 'Special Discounts';
+    }
+  }
+
+  String localizedLabel(String Function(String, String, String) t) {
+    switch (this) {
+      case StaffPermission.billing:
+        return t('Billing & POS', 'बिलिंग और बिक्री', 'Billing & POS');
+      case StaffPermission.orderManagement:
+        return t('Order Management', 'ऑर्डर डिलीवरी/स्टेटस', 'Order Management');
+      case StaffPermission.inventoryAdjustment:
+        return t('Stock Adjustment', 'स्टॉक घटाना/बढ़ाना', 'Stock Adjustment');
+      case StaffPermission.catalogEdit:
+        return t('Catalog & Prices', 'प्रोडक्ट और कीमतें', 'Catalog & Prices');
+      case StaffPermission.customerKhata:
+        return t('Customer Khata', 'उधार और पेमेंट', 'Customer Khata');
+      case StaffPermission.viewReports:
+        return t('Sales & Reports', 'बिक्री रिपोर्ट', 'Sales & Reports');
+      case StaffPermission.manageStaff:
+        return t('Staff Management', 'कर्मचारी प्रबंधन', 'Staff Management');
+      case StaffPermission.discounts:
+        return t('Special Discounts', 'विशेष छूट', 'Special Discounts');
     }
   }
 
@@ -103,37 +137,74 @@ enum AuditActionType {
   String get label {
     switch (this) {
       case AuditActionType.stockAdjustment:
-        return 'Stock Adjustment (स्टॉक बदलाव)';
+        return 'Stock Adjustment';
       case AuditActionType.stockWriteOff:
-        return 'Stock Write-off (नुकसान दर्ज)';
+        return 'Stock Write-off';
       case AuditActionType.priceChange:
-        return 'Price Change (कीमत बदलाव)';
+        return 'Price Change';
       case AuditActionType.orderStatusChanged:
-        return 'Order Status (ऑर्डर स्टेटस)';
+        return 'Order Status';
       case AuditActionType.paymentCollected:
-        return 'Payment Collected (पेमेंट प्राप्त)';
+        return 'Payment Collected';
       case AuditActionType.khataEntryAdded:
-        return 'Khata Entry (खाता एंट्री)';
+        return 'Khata Entry';
       case AuditActionType.productCreated:
-        return 'Product Created (नया प्रोडक्ट)';
+        return 'Product Created';
       case AuditActionType.productDeleted:
-        return 'Product Deleted (प्रोडक्ट हटाया)';
+        return 'Product Deleted';
       case AuditActionType.staffCreated:
-        return 'Staff Created (कर्मचारी जोड़ा)';
+        return 'Staff Created';
       case AuditActionType.staffUpdated:
-        return 'Staff Updated (कर्मचारी अपडेट)';
+        return 'Staff Updated';
       case AuditActionType.staffStatusToggled:
-        return 'Staff Status (एक्टिव/इनएक्टिव)';
+        return 'Staff Status';
       case AuditActionType.discountApplied:
-        return 'Discount Applied (छूट दी)';
+        return 'Discount Applied';
       case AuditActionType.batchCreated:
-        return 'Batch Created (नया बैच)';
+        return 'Batch Created';
       case AuditActionType.dataExported:
-        return 'Data Export (डेटा निर्यात)';
+        return 'Data Export';
       case AuditActionType.backupCreated:
-        return 'Cloud Backup (बैकअप लिया)';
+        return 'Cloud Backup';
       case AuditActionType.restoreTestRun:
-        return 'Restore Test (रिकवरी टेस्ट)';
+        return 'Restore Test';
+    }
+  }
+
+  String localizedLabel(String Function(String, String, String) t) {
+    switch (this) {
+      case AuditActionType.stockAdjustment:
+        return t('Stock Adjustment', 'स्टॉक बदलाव', 'Stock Adjustment');
+      case AuditActionType.stockWriteOff:
+        return t('Stock Write-off', 'नुकसान दर्ज', 'Stock Write-off');
+      case AuditActionType.priceChange:
+        return t('Price Change', 'कीमत बदलाव', 'Price Change');
+      case AuditActionType.orderStatusChanged:
+        return t('Order Status Changed', 'ऑर्डर स्टेटस बदला', 'Order Status Changed');
+      case AuditActionType.paymentCollected:
+        return t('Payment Collected', 'पेमेंट प्राप्त हुआ', 'Payment Collected');
+      case AuditActionType.khataEntryAdded:
+        return t('Khata Entry Added', 'खाता एंट्री दर्ज हुई', 'Khata Entry Added');
+      case AuditActionType.productCreated:
+        return t('Product Created', 'नया उत्पाद जोड़ा', 'Product Created');
+      case AuditActionType.productDeleted:
+        return t('Product Deleted', 'उत्पाद हटाया गया', 'Product Deleted');
+      case AuditActionType.staffCreated:
+        return t('Staff Created', 'कर्मचारी जोड़ा गया', 'Staff Created');
+      case AuditActionType.staffUpdated:
+        return t('Staff Updated', 'कर्मचारी अपडेट हुआ', 'Staff Updated');
+      case AuditActionType.staffStatusToggled:
+        return t('Staff Status Toggled', 'कर्मचारी स्थिति बदली', 'Staff Status Toggled');
+      case AuditActionType.discountApplied:
+        return t('Discount Applied', 'छूट दी गई', 'Discount Applied');
+      case AuditActionType.batchCreated:
+        return t('Batch Created', 'नया बैच बनाया', 'Batch Created');
+      case AuditActionType.dataExported:
+        return t('Data Exported', 'डेटा निर्यात किया', 'Data Exported');
+      case AuditActionType.backupCreated:
+        return t('Cloud Backup Created', 'क्लाउड बैकअप लिया', 'Cloud Backup Created');
+      case AuditActionType.restoreTestRun:
+        return t('Restore Tested', 'बैकअप रीस्टोर टेस्ट किया', 'Restore Tested');
     }
   }
 

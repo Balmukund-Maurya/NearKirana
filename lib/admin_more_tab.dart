@@ -12,6 +12,7 @@ import 'admin_staff_audit_screen.dart';
 import 'admin_data_export_backup_screen.dart';
 import 'admin_shop_boys_screen.dart';
 import 'admin_loyalty_screen.dart';
+import 'admin_categories_screen.dart';
 import 'shop_qr_screen.dart';
 import 'gateway_screen.dart';
 import 'sound_service.dart';
@@ -319,6 +320,19 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
                     );
                   },
                 ),
+                _buildModernTile(
+                  icon: Icons.category_rounded,
+                  color: const Color(0xFF0C831F),
+                  title: t('Product Categories & Photos', 'उत्पाद श्रेणियां व फोटो', 'Product Categories & Photos'),
+                  subtitle: t('Manage categories, upload category banner & icons', 'कैटेगरी जोड़ें व उनकी फोटो लगाएं', 'Add categories and set category photos'),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AdminCategoriesScreen()),
+                    );
+                  },
+                ),
               ],
             ).animate().fadeIn(delay: 60.ms).slideY(begin: 0.05, end: 0),
 
@@ -448,7 +462,11 @@ class _AdminMoreTabState extends State<AdminMoreTab> {
 
             const SizedBox(height: 18),
             Text(
-              'NearKirana Partner • v2.6.4 (Zepto Architecture)',
+              t(
+                'NearKirana Partner • v2.6.4',
+                'नियरकिराना पार्टनर • v2.6.4',
+                'NearKirana Partner • v2.6.4',
+              ),
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
             ),
             const SizedBox(height: 16),

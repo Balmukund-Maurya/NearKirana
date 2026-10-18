@@ -21,13 +21,24 @@ class AdminShopBoysScreen extends StatefulWidget {
 
 class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
   final DeliveryPartnerService _service = DeliveryPartnerService();
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-  int _selectedFilter = 0; // 0: All, 1: Available, 2: On Delivery, 3: Offline
+  final FocusNode _searchFocusNode = FocusNode();
+  Stream<List<DeliveryPartner>>? _partnersStream;
+  String? _lastShopId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final shopId = Provider.of<ShopProvider>(context).currentShopId ?? '';
+    if (_lastShopId != shopId || _partnersStream == null) {
+      _lastShopId = shopId;
+      _partnersStream = _service.streamShopPartners(shopId);
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -285,9 +296,9 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
         ],
       ),
       body: StreamBuilder<List<DeliveryPartner>>(
-        stream: _service.streamShopPartners(shopId),
+        stream: _partnersStream ?? _service.streamShopPartners(shopId),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
             return const Center(child: ModernLoader(color: Color(0xFFEA580C)));
           }
 
@@ -334,6 +345,7 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
                       ),
                       child: TextField(
                         controller: _searchController,
+                        focusNode: _searchFocusNode,
                         onChanged: (val) => setState(() => _searchQuery = val),
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
                         decoration: InputDecoration(

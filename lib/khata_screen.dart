@@ -573,7 +573,6 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseUtils.firestore
                   .collection('customers')
-                  .where('shop_ids', arrayContains: shopId)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
@@ -604,15 +603,28 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
             return name.contains(query) || mobile.contains(query);
           }).toList();
 
-          // Split into Online and Offline
+          // Split into Online App Customers and Offline Store Khata
           final onlineCustomers = filteredDocs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            return data.containsKey('pin');
+            final hasPin = data['pin'] != null && data['pin'].toString().isNotEmpty;
+            final isAppAuth = data['pin'] == 'PHONE_AUTH' ||
+                data['is_online'] == true ||
+                data['auth_type'] != null ||
+                data['saved_addresses'] != null ||
+                hasPin;
+            return isAppAuth;
           }).toList();
 
           final offlineCustomers = filteredDocs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            return !data.containsKey('pin');
+            final hasPin = data['pin'] != null && data['pin'].toString().isNotEmpty;
+            if (hasPin) return false;
+            final shopIds = (data['shop_ids'] as List?)?.map((e) => e.toString()).toList() ?? [];
+            final shopBalances = (data['shop_balances'] as Map?) ?? {};
+            return shopIds.contains(shopId) ||
+                data['shop_id'] == shopId ||
+                shopBalances.containsKey(shopId) ||
+                shopIds.isEmpty;
           }).toList();
 
           return Column(
@@ -1246,23 +1258,34 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
   ) {
     if (customers.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF1F5F9),
-                shape: BoxShape.circle,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0C831F).withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.phone_android_rounded, size: 48, color: Color(0xFF0C831F)),
               ),
-              child: const Icon(Icons.devices_rounded, size: 44, color: Color(0xFF94A3B8)),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              t('No app registered customers yet', 'कोई ऑनलाइन ऐप ग्राहक नहीं मिला', 'No app registered customers yet'),
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                t('No app registered customers yet', 'कोई ऑनलाइन ऐप ग्राहक नहीं मिला', 'No app registered customers yet'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                t('Customers who download NearKirana and register with their phone will appear here.',
+                  'जो ग्राहक नियरकिराना ऐप डाउनलोड कर फोन नंबर से रजिस्टर करेंगे वे यहाँ दिखेंगे।',
+                  'NearKirana app par register hone wale customers yahan dikhenge.'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -1276,6 +1299,7 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
         final String name = (data['name'] ?? 'Customer').toString();
         final String mobile = (data['mobile'] ?? '').toString();
         final bool isBanned = data['is_banned'] ?? false;
+        final double balance = ((data['shop_balances']?[shopId] ?? data['total_udhaar'] ?? 0) as num).toDouble();
 
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
@@ -1285,94 +1309,193 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
             border: Border.all(color: const Color(0xFFE2E8F0)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF0C831F).withValues(alpha: 0.1),
-                  radius: 22,
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0C831F)),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => KhataStatementScreen(
+                      customerId: doc.id,
+                      customerName: name,
+                      isAdmin: true,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                          radius: 22,
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0C831F)),
                           ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0C831F).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              t('App User', 'ऑनलाइन ग्राहक', 'App User'),
-                              style: const TextStyle(fontSize: 9, color: Color(0xFF0C831F), fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        mobile.isNotEmpty ? '+91 $mobile' : t('No phone', 'फोन नंबर नहीं', 'No phone'),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                  ),
-                ),
-                if (mobile.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.phone_rounded, color: Color(0xFF0C831F), size: 20),
-                    tooltip: t('Call', 'कॉल', 'Call'),
-                    onPressed: () => _makePhoneCall(mobile),
-                  ),
-                PopupMenuButton<String>(
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(Icons.more_vert_rounded, size: 18, color: Color(0xFF94A3B8)),
-                  onSelected: (val) {
-                    if (val == 'ban') _toggleBanStatus(doc);
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'ban',
-                      child: Text(
-                        isBanned
-                            ? t('Unblock Customer', 'ग्राहक अनब्लॉक करें', 'Unblock Customer')
-                            : t('Block Customer', 'ग्राहक ब्लॉक करें', 'Block Customer'),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isBanned ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.verified_rounded, size: 10, color: Color(0xFF0C831F)),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          t('App User', 'ऐप ग्राहक', 'App User'),
+                                          style: const TextStyle(fontSize: 9, color: Color(0xFF0C831F), fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isBanned) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDC2626),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        t('Blocked', 'ब्लॉक', 'Blocked'),
+                                        style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                mobile.isNotEmpty ? '+91 $mobile' : t('No phone', 'फोन नंबर नहीं', 'No phone'),
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (balance > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.2)),
+                            ),
+                            child: Text(
+                              '₹${balance.toStringAsFixed(0)} ${t('Due', 'बाकी', 'Due')}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFDC2626)),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (mobile.isNotEmpty)
+                          TextButton.icon(
+                            onPressed: () => _makePhoneCall(mobile),
+                            icon: const Icon(Icons.phone_rounded, color: Color(0xFF0C831F), size: 16),
+                            label: Text(
+                              t('Call', 'कॉल करें', 'Call'),
+                              style: const TextStyle(color: Color(0xFF0C831F), fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => KhataStatementScreen(
+                                  customerId: doc.id,
+                                  customerName: name,
+                                  isAdmin: true,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.menu_book_rounded, color: Color(0xFF2563EB), size: 16),
+                          label: Text(
+                            t('Khata Ledger', 'खाता बही', 'Khata Ledger'),
+                            style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.w700, fontSize: 12),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.more_vert_rounded, size: 18, color: Color(0xFF94A3B8)),
+                          onSelected: (val) {
+                            if (val == 'ban') _toggleBanStatus(doc);
+                          },
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'ban',
+                              child: Text(
+                                isBanned
+                                    ? t('Unblock Customer', 'ग्राहक अनब्लॉक करें', 'Unblock Customer')
+                                    : t('Block Customer', 'ग्राहक ब्लॉक करें', 'Block Customer'),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isBanned ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         );

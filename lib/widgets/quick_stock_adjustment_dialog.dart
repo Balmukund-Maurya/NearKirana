@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import '../app_theme.dart';
+import '../language_provider.dart';
 import '../staff_audit_service.dart';
 
 /// Interactive modal allowing authorized users to adjust product stock with a mandatory audit reason.
@@ -137,11 +139,32 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
     }
   }
 
-  Future<void> _submitAdjustment() async {
+  String _localizedReason(String reasonKey, String Function(String, String, String) t) {
+    switch (reasonKey) {
+      case 'Physical stock audit discrepancy':
+        return t('Physical stock audit discrepancy', 'शारीरिक स्टॉक मिलान में अंतर', 'Physical stock audit discrepancy');
+      case 'Damaged / Broken goods':
+        return t('Damaged / Broken goods', 'टूटा-फूटा / खराब सामान', 'Damaged / Broken goods');
+      case 'Customer return / Exchange':
+        return t('Customer return / Exchange', 'ग्राहक वापसी / एक्सचेंज', 'Customer return / Exchange');
+      case 'Direct supplier restock':
+        return t('Direct supplier restock', 'सप्लायर से सीधा नया माल', 'Direct supplier restock');
+      case 'Direct counter cash sale':
+        return t('Direct counter cash sale', 'काउंटर नकद बिक्री', 'Direct counter cash sale');
+      case 'Spoilage / Expiry write-off':
+        return t('Spoilage / Expiry write-off', 'एक्सपायरी / खराब होने पर हटाना', 'Spoilage / Expiry write-off');
+      case 'Other reason':
+        return t('Other reason', 'अन्य कारण', 'Other reason');
+      default:
+        return reasonKey;
+    }
+  }
+
+  Future<void> _submitAdjustment(String Function(String, String, String) t) async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedProductId == null || _selectedProductId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a product')),
+        SnackBar(content: Text(t('Please select a product', 'कृपया सामान चुनें', 'Please select a product'))),
       );
       return;
     }
@@ -149,7 +172,7 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
     final newStock = double.tryParse(_newStockController.text.trim());
     if (newStock == null || newStock < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid non-negative stock quantity')),
+        SnackBar(content: Text(t('Please enter a valid non-negative stock quantity', 'कृपया सही स्टॉक संख्या दर्ज करें', 'Please enter a valid non-negative stock quantity'))),
       );
       return;
     }
@@ -178,7 +201,11 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Stock adjusted from ${_currentStock.toStringAsFixed(1)} to ${newStock.toStringAsFixed(1)} and logged in Audit Trail!',
+              t(
+                'Stock adjusted from ${_currentStock.toStringAsFixed(1)} to ${newStock.toStringAsFixed(1)} and logged in Audit Trail!',
+                'स्टॉक ${_currentStock.toStringAsFixed(1)} से ${newStock.toStringAsFixed(1)} बदलकर ऑडिट ट्रेल में दर्ज हुआ!',
+                'Stock adjusted from ${_currentStock.toStringAsFixed(1)} to ${newStock.toStringAsFixed(1)} and logged!',
+              ),
             ),
             backgroundColor: AppColors.primaryDark,
           ),
@@ -197,6 +224,13 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: Colors.white,
@@ -227,15 +261,28 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
                             child: Icon(Icons.edit_note_rounded, color: Colors.indigo.shade800, size: 22),
                           ),
                           const SizedBox(width: 10),
-                          const Expanded(
-                            child: Text(
-                              'Adjust Stock & Log Audit\n(स्टॉक समायोजन एवं ऑडिट लॉग)',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t('Adjust Stock & Log Audit', 'स्टॉक समायोजन एवं ऑडिट लॉग', 'Adjust Stock & Log Audit'),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textDark,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  t('Mandatory reason logged for audit', 'ऑडिट के लिए कारण दर्ज होना अनिवार्य है', 'Reason is required for audit'),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textLight,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -256,7 +303,7 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Product selection
-                        const Text('Product (उत्पाद) *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        Text(t('Product *', 'उत्पाद / सामान *', 'Product *'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                         const SizedBox(height: 6),
                         if (widget.initialProductId != null) ...[
                           Container(
@@ -285,7 +332,7 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
                             items: _availableProducts.map((p) {
                               return DropdownMenuItem<String>(
                                 value: p['id'] as String,
-                                child: Text('${p['name']} (Current: ${p['stock']})', overflow: TextOverflow.ellipsis),
+                                child: Text('${p['name']} (${t('Current', 'वर्तमान', 'Current')}: ${p['stock']})', overflow: TextOverflow.ellipsis),
                               );
                             }).toList(),
                             onChanged: (val) {
@@ -315,10 +362,10 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Current Stock', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                    Text(t('Current Stock', 'वर्तमान स्टॉक', 'Current Stock'), style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${_currentStock.toStringAsFixed(1)} units',
+                                      '${_currentStock.toStringAsFixed(1)} ${t('units', 'यूनिट', 'units')}',
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
                                     ),
                                   ],
@@ -330,19 +377,19 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('New Target Stock *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.indigo)),
+                                    Text(t('New Target Stock *', 'नया स्टॉक *', 'New Target Stock *'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.indigo)),
                                     const SizedBox(height: 2),
                                     TextFormField(
                                       controller: _newStockController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: const InputDecoration(
-                                        hintText: 'e.g. 12',
+                                      decoration: InputDecoration(
+                                        hintText: t('e.g. 12', 'उदा. 12', 'e.g. 12'),
                                         isDense: true,
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                       ),
                                       validator: (val) {
-                                        if (val == null || val.trim().isEmpty) return 'Required';
-                                        if (double.tryParse(val) == null) return 'Invalid';
+                                        if (val == null || val.trim().isEmpty) return t('Required', 'आवश्यक', 'Required');
+                                        if (double.tryParse(val) == null) return t('Invalid', 'अमान्य संख्या', 'Invalid');
                                         return null;
                                       },
                                     ),
@@ -355,7 +402,7 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
                         const SizedBox(height: 14),
 
                         // Reason Selector
-                        const Text('Reason for Adjustment (वजह / कारण) *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        Text(t('Reason for Adjustment *', 'समायोजन का कारण *', 'Reason for Adjustment *'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
                           initialValue: _selectedReasonCategory,
@@ -365,7 +412,7 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           ),
                           items: _reasonOptions.map((r) {
-                            return DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontSize: 13)));
+                            return DropdownMenuItem(value: r, child: Text(_localizedReason(r, t), style: const TextStyle(fontSize: 13)));
                           }).toList(),
                           onChanged: (val) {
                             if (val != null) setState(() => _selectedReasonCategory = val);
@@ -374,13 +421,13 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
                         const SizedBox(height: 12),
 
                         // Additional Notes
-                        const Text('Additional Notes (अतिरिक्त टिप्पणी)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        Text(t('Additional Notes (Optional)', 'अतिरिक्त टिप्पणी (वैकल्पिक)', 'Additional Notes (Optional)'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _notesController,
                           maxLines: 2,
                           decoration: InputDecoration(
-                            hintText: 'e.g. Physical inventory audit revealed 8 missing packets',
+                            hintText: t('e.g. Physical inventory audit revealed 8 missing packets', 'उदा. फिजिकल स्टॉक चेक में 8 पैकेट कम मिले', 'e.g. Physical inventory check showed 8 missing units'),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           ),
@@ -393,7 +440,7 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
 
                 // Submit Button
                 ElevatedButton(
-                  onPressed: _isSaving ? null : _submitAdjustment,
+                  onPressed: _isSaving ? null : () => _submitAdjustment(t),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.indigo.shade800,
                     foregroundColor: Colors.white,
@@ -406,9 +453,9 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text(
-                          'Save & Log Adjustment (सेव करें)',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      : Text(
+                          t('Save & Log Adjustment', 'स्टॉक सुरक्षित करें व लॉग करें', 'Save & Log Adjustment'),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                         ),
                 ),
               ],

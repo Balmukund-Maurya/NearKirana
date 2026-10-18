@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../app_theme.dart';
+import '../language_provider.dart';
 import '../staff_audit_models.dart';
 
 /// Modal dialog showing comprehensive audit log details with visual diff comparison.
@@ -18,6 +20,13 @@ class AuditLogDetailsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     final dateFormat = DateFormat('dd MMMM yyyy, hh:mm:ss a');
 
     return Dialog(
@@ -50,7 +59,7 @@ class AuditLogDetailsDialog extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            log.actionType.label,
+                            log.actionType.localizedLabel(t),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -102,7 +111,7 @@ class AuditLogDetailsDialog extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Role: ${log.actorRole.toUpperCase()}${log.actorPhone != null ? ' • +91 ${log.actorPhone}' : ''}',
+                                    '${t('Role', 'पद', 'Role')}: ${log.actorRole.toUpperCase()}${log.actorPhone != null ? ' • +91 ${log.actorPhone}' : ''}',
                                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                                   ),
                                 ],
@@ -114,9 +123,9 @@ class AuditLogDetailsDialog extends StatelessWidget {
                       const SizedBox(height: 14),
 
                       // Description
-                      const Text(
-                        'Action Summary (विवरण)',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      Text(
+                        t('Action Summary', 'गतिविधि का विवरण', 'Action Summary'),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -130,7 +139,7 @@ class AuditLogDetailsDialog extends StatelessWidget {
                         children: [
                           Expanded(
                             child: _buildInfoTile(
-                              'Target Item',
+                              t('Target Item', 'संबंधित सामान / खाता', 'Target Item'),
                               log.entityName.isNotEmpty ? log.entityName : log.entityId,
                               Icons.category_rounded,
                             ),
@@ -138,7 +147,7 @@ class AuditLogDetailsDialog extends StatelessWidget {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _buildInfoTile(
-                              'Entity Type',
+                              t('Entity Type', 'प्रकार', 'Entity Type'),
                               log.entityType.toUpperCase(),
                               Icons.view_in_ar_rounded,
                             ),
@@ -149,14 +158,14 @@ class AuditLogDetailsDialog extends StatelessWidget {
 
                       // Timestamp & Reason
                       _buildInfoTile(
-                        'Exact Timestamp',
+                        t('Exact Timestamp', 'समय व दिनांक', 'Exact Timestamp'),
                         dateFormat.format(log.timestamp),
                         Icons.access_time_rounded,
                       ),
                       if (log.reason != null && log.reason!.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         _buildInfoTile(
-                          'Reported Reason (कारण)',
+                          t('Reported Reason', 'दर्ज कारण', 'Reported Reason'),
                           log.reason!,
                           Icons.help_outline_rounded,
                           highlight: true,
@@ -166,9 +175,9 @@ class AuditLogDetailsDialog extends StatelessWidget {
 
                       // Before vs After Diff Comparison
                       if (log.oldValue != null || log.newValue != null) ...[
-                        const Text(
-                          'Before & After Changes (बदलाव का तुलनात्मक विवरण)',
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        Text(
+                          t('Before & After Changes', 'बदलाव का तुलनात्मक विवरण', 'Before & After Changes'),
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -191,7 +200,7 @@ class AuditLogDetailsDialog extends StatelessWidget {
                                         Icon(Icons.remove_circle_outline, color: Colors.red.shade700, size: 16),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'OLD VALUE',
+                                          t('OLD VALUE', 'पुराना मान', 'OLD VALUE'),
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
@@ -230,7 +239,7 @@ class AuditLogDetailsDialog extends StatelessWidget {
                                         Icon(Icons.check_circle_outline, color: Colors.green.shade700, size: 16),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'NEW VALUE',
+                                          t('NEW VALUE', 'नया मान', 'NEW VALUE'),
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
@@ -266,7 +275,7 @@ class AuditLogDetailsDialog extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text('Close (बंद करें)', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(t('Close', 'बंद करें', 'Close'), style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),

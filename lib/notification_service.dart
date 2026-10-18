@@ -570,10 +570,12 @@ class NotificationService {
     });
 
     try {
+      final cleanTitle = NotificationItem.cleanEmoji(title);
+      final cleanBody = NotificationItem.cleanEmoji(body);
       await _notificationsPlugin.show(
         id: notificationId,
-        title: title,
-        body: body,
+        title: cleanTitle,
+        body: cleanBody,
         notificationDetails: platformDetails,
         payload: jsonPayload,
       );
@@ -582,8 +584,20 @@ class NotificationService {
     }
   }
 
+  /// Resolves the user's saved language preference ('en', 'hi', or 'hinglish')
+  static Future<String> getSelectedLanguage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lang = prefs.getString('app_language');
+      if (lang != null && ['en', 'hi', 'hinglish', 'hi_Latn'].contains(lang)) {
+        return (lang == 'hi_Latn') ? 'hinglish' : lang;
+      }
+    } catch (_) {}
+    return 'en';
+  }
+
   /// Dispatches an order status change notification across backend queue, user notifications, and local alerts.
-  /// Example: Packed -> Out for Delivery triggers instant notification to customer.
+  /// Formatted cleanly without emojis with full dynamic multi-language (en, hi, hinglish) support.
   static Future<Map<String, dynamic>> dispatchOrderStatusNotification({
     required String orderId,
     required String newStatus,
@@ -593,63 +607,135 @@ class NotificationService {
     double? orderTotal,
     String? deliveryBoyName,
     String? failureReason,
+    String? language,
     FirebaseFirestore? firestore,
   }) async {
     final db = firestore ?? FirebaseUtils.firestore;
+    final selectedLang = language ?? await getSelectedLanguage();
 
     final shortOrderId = orderId.length >= 6
         ? orderId.substring(0, 6)
         : orderId;
+    final totalFormatted = (orderTotal ?? 0).toStringAsFixed(0);
 
-    // Generate localized and contextual notification content
-    String title = 'Order Update';
-    String body =
-        'Your order #$shortOrderId status has been updated to $newStatus.';
+    String titleEn = 'Order Update';
+    String titleHi = 'ऑर्डर अपडेट';
+    String titleHinglish = 'Order Update';
+
+    String bodyEn = 'Your order #$shortOrderId status has been updated to $newStatus.';
+    String bodyHi = 'आपके ऑर्डर #$shortOrderId का स्टेटस $newStatus कर दिया गया है।';
+    String bodyHinglish = 'Aapke order #$shortOrderId ka status $newStatus ho gaya hai.';
 
     switch (newStatus) {
       case 'Pending':
-        title = '🛍️ Naya Order Place Hua!';
-        body =
-            'Order #$shortOrderId (₹${(orderTotal ?? 0).toStringAsFixed(0)}) prapt hua hai. Dukan dwara confirm hone ki pratiksha hai.';
+        titleEn = 'New Order Placed';
+        titleHi = 'नया ऑर्डर प्राप्त हुआ!';
+        titleHinglish = 'Naya Order Place Hua!';
+        bodyEn = 'Order #$shortOrderId (₹$totalFormatted) received. Awaiting store confirmation.';
+        bodyHi = 'ऑर्डर #$shortOrderId (₹$totalFormatted) प्राप्त हुआ है। दुकान द्वारा पुष्टि की प्रतीक्षा है।';
+        bodyHinglish = 'Order #$shortOrderId (₹$totalFormatted) prapt hua hai. Dukan dwara confirm hone ki pratiksha hai.';
         break;
+
       case 'Accepted':
-        title = '✅ Order Sweekar Kiya Gaya!';
-        body = 'Dukandar ne aapka order #$shortOrderId accept kar liya hai.';
+        titleEn = 'Order Accepted';
+        titleHi = 'ऑर्डर स्वीकार किया गया!';
+        titleHinglish = 'Order Sweekar Hua!';
+        bodyEn = 'The store has accepted your order #$shortOrderId.';
+        bodyHi = 'दुकानदार ने आपका ऑर्डर #$shortOrderId स्वीकार कर लिया है।';
+        bodyHinglish = 'Dukandar ne aapka order #$shortOrderId accept kar liya hai.';
         break;
+
       case 'Packing':
+        titleEn = 'Order Packing in Progress';
+        titleHi = 'ऑर्डर पैक हो रहा है!';
+        titleHinglish = 'Order Pack Ho Raha Hai!';
+        bodyEn = 'Your items are being packed at the store.';
+        bodyHi = 'आपका सामान दुकान पर पैक किया जा रहा है।';
+        bodyHinglish = 'Aapka saman dukan par pack kiya ja raha hai.';
+        break;
+
       case 'Packed':
-        title = '📦 Order Pack Ho Raha Hai!';
-        body = 'Aapka saman dukan par pack kiya ja raha hai.';
+        titleEn = 'Order Packed';
+        titleHi = 'ऑर्डर पैक हो चुका है!';
+        titleHinglish = 'Order Pack Ho Chuka Hai!';
+        bodyEn = 'Your order #$shortOrderId is packed and ready for dispatch.';
+        bodyHi = 'आपका ऑर्डर #$shortOrderId पैक हो चुका है और भेजने के लिए तैयार है।';
+        bodyHinglish = 'Aapka order #$shortOrderId pack ho chuka hai aur dispatch ke liye taiyar hai.';
         break;
+
       case 'Ready':
-        title = '🎉 Order Taiyar Hai!';
-        body =
-            'Aapka order #$shortOrderId pack ho chuka hai aur dispatch ke liye taiyar hai.';
+        titleEn = 'Order Ready';
+        titleHi = 'ऑर्डर तैयार है!';
+        titleHinglish = 'Order Taiyar Hai!';
+        bodyEn = 'Your order #$shortOrderId is ready for pickup or dispatch.';
+        bodyHi = 'आपका ऑर्डर #$shortOrderId तैयार है।';
+        bodyHinglish = 'Aapka order #$shortOrderId pack ho chuka hai aur dispatch ke liye taiyar hai.';
         break;
+
       case 'Out for Delivery':
-        title = '🛵 Order Raste Mein Hai (Out for Delivery)!';
-        body = deliveryBoyName != null && deliveryBoyName.isNotEmpty
-            ? 'Order #$shortOrderId nikal chuka hai! Delivery Partner: $deliveryBoyName.'
-            : 'Order #$shortOrderId nikal chuka hai aur jald aap tak pahunchega.';
+        titleEn = 'Order Out for Delivery';
+        titleHi = 'ऑर्डर डिलीवरी के लिए निकल चुका है!';
+        titleHinglish = 'Order Raste Mein Hai (Out for Delivery)!';
+        if (deliveryBoyName != null && deliveryBoyName.isNotEmpty) {
+          bodyEn = 'Order #$shortOrderId is out for delivery with $deliveryBoyName.';
+          bodyHi = 'ऑर्डर #$shortOrderId निकल चुका है! डिलीवरी पार्टनर: $deliveryBoyName.';
+          bodyHinglish = 'Order #$shortOrderId nikal chuka hai! Delivery Partner: $deliveryBoyName.';
+        } else {
+          bodyEn = 'Order #$shortOrderId is out for delivery and will reach you shortly.';
+          bodyHi = 'ऑर्डर #$shortOrderId निकल चुका है और जल्द ही आप तक पहुंचेगा।';
+          bodyHinglish = 'Order #$shortOrderId nikal chuka hai aur jald aap tak pahunchega.';
+        }
         break;
+
       case 'Delivered':
-        title = '🌟 Order Safaltapoorvak Deliver Ho Gaya!';
-        body =
-            'Order #$shortOrderId deliver ho chuka hai. NearKirana se shopping karne ke liye dhanyawad!';
+        titleEn = 'Order Delivered Successfully';
+        titleHi = 'ऑर्डर सफलतापूर्वक डिलीवर हो गया!';
+        titleHinglish = 'Order Safaltapoorvak Deliver Ho Gaya!';
+        bodyEn = 'Order #$shortOrderId has been delivered. Thank you for shopping with NearKirana!';
+        bodyHi = 'ऑर्डर #$shortOrderId डिलीवर हो चुका है। NearKirana से खरीदारी करने के लिए धन्यवाद!';
+        bodyHinglish = 'Order #$shortOrderId deliver ho chuka hai. NearKirana se shopping karne ke liye dhanyawad!';
         break;
+
       case 'Delivery_Failed':
-        title = '⚠️ Delivery Asafal Rahi';
-        body = failureReason != null && failureReason.isNotEmpty
-            ? 'Order deliver nahi ho saka: $failureReason. Kripya dukan par sampark karein.'
-            : 'Order deliver nahi ho saka. Delivery partner dobara koshish karega.';
+        titleEn = 'Delivery Unsuccessful';
+        titleHi = 'डिलीवरी असफल रही';
+        titleHinglish = 'Delivery Asafal Rahi';
+        if (failureReason != null && failureReason.isNotEmpty) {
+          bodyEn = 'Order #$shortOrderId could not be delivered: $failureReason. Please contact the store.';
+          bodyHi = 'ऑर्डर #$shortOrderId डिलीवर नहीं हो सका: $failureReason. कृपया दुकान से संपर्क करें।';
+          bodyHinglish = 'Order deliver nahi ho saka: $failureReason. Kripya dukan par sampark karein.';
+        } else {
+          bodyEn = 'Order #$shortOrderId could not be delivered. The delivery partner will retry soon.';
+          bodyHi = 'ऑर्डर डिलीवर नहीं हो सका। डिलीवरी पार्टनर दोबारा प्रयास करेगा।';
+          bodyHinglish = 'Order deliver nahi ho saka. Delivery partner dobara koshish karega.';
+        }
         break;
+
       case 'Cancelled':
       case 'Rejected':
-        title = '❌ Order Cancel Hua';
-        body = failureReason != null && failureReason.isNotEmpty
-            ? 'Order #$shortOrderId cancel kar diya gaya hai. Karan: $failureReason.'
-            : 'Order #$shortOrderId cancel kar diya gaya hai.';
+        titleEn = newStatus == 'Rejected' ? 'Order Declined' : 'Order Cancelled';
+        titleHi = newStatus == 'Rejected' ? 'ऑर्डर अस्वीकार किया गया' : 'ऑर्डर रद्द हुआ';
+        titleHinglish = newStatus == 'Rejected' ? 'Order Asweekar Hua' : 'Order Cancel Hua';
+        if (failureReason != null && failureReason.isNotEmpty) {
+          bodyEn = 'Order #$shortOrderId was $newStatus. Reason: $failureReason.';
+          bodyHi = 'ऑर्डर #$shortOrderId $newStatus कर दिया गया है। कारण: $failureReason.';
+          bodyHinglish = 'Order #$shortOrderId cancel kar diya gaya hai. Karan: $failureReason.';
+        } else {
+          bodyEn = 'Order #$shortOrderId has been $newStatus.';
+          bodyHi = 'ऑर्डर #$shortOrderId रद्द कर दिया गया है।';
+          bodyHinglish = 'Order #$shortOrderId cancel kar diya gaya hai.';
+        }
         break;
+    }
+
+    String activeTitle = titleEn;
+    String activeBody = bodyEn;
+    if (selectedLang == 'hi') {
+      activeTitle = titleHi;
+      activeBody = bodyHi;
+    } else if (selectedLang == 'hinglish') {
+      activeTitle = titleHinglish;
+      activeBody = bodyHinglish;
     }
 
     final payloadData = {
@@ -659,12 +745,18 @@ class NotificationService {
       'customer_phone': customerPhone,
       'delivery_boy': ?deliveryBoyName,
       'timestamp': DateTime.now().toIso8601String(),
+      'title_en': titleEn,
+      'title_hi': titleHi,
+      'title_hinglish': titleHinglish,
+      'body_en': bodyEn,
+      'body_hi': bodyHi,
+      'body_hinglish': bodyHinglish,
     };
 
     // 1. Show instant local notification on active device
     await showOrderNotification(
-      title,
-      body,
+      activeTitle,
+      activeBody,
       orderId: orderId,
       payload: payloadData,
     );
@@ -683,10 +775,17 @@ class NotificationService {
     // 3. Persist to customer's in-app notification center
     final notificationRef = db.collection('notifications').doc();
     final notificationDoc = {
-      'title': title,
-      'body': body,
+      'title': activeTitle,
+      'body': activeBody,
+      'title_en': titleEn,
+      'title_hi': titleHi,
+      'title_hinglish': titleHinglish,
+      'body_en': bodyEn,
+      'body_hi': bodyHi,
+      'body_hinglish': bodyHinglish,
       'order_id': orderId,
       'status': newStatus,
+      'type': 'order_status',
       'recipient_phone': customerPhone,
       'recipient_uid': ?customerUid,
       'shop_id': shopId,
@@ -700,8 +799,14 @@ class NotificationService {
     final queueRef = db.collection('notification_queue').doc();
     final queueDoc = {
       'notification_id': notificationRef.id,
-      'title': title,
-      'body': body,
+      'title': activeTitle,
+      'body': activeBody,
+      'title_en': titleEn,
+      'title_hi': titleHi,
+      'title_hinglish': titleHinglish,
+      'body_en': bodyEn,
+      'body_hi': bodyHi,
+      'body_hinglish': bodyHinglish,
       'target_phone': customerPhone,
       'target_uid': ?customerUid,
       'target_topic': 'order_$orderId',
@@ -719,8 +824,8 @@ class NotificationService {
     return {
       'notification_id': notificationRef.id,
       'queue_id': queueRef.id,
-      'title': title,
-      'body': body,
+      'title': activeTitle,
+      'body': activeBody,
       'status': 'queued',
     };
   }
@@ -733,18 +838,36 @@ class NotificationService {
     String? customerPhone,
     String? customerUid,
     required String shopId,
+    String? language,
     FirebaseFirestore? firestore,
   }) async {
     final db = firestore ?? FirebaseUtils.firestore;
+    final selectedLang = language ?? await getSelectedLanguage();
     final shortOrderId =
         orderId.length >= 6 ? orderId.substring(0, 6) : orderId;
-    String title = '🔄 Alternative Item Proposed (#$shortOrderId)';
+
+    String titleEn = 'Alternative Item Proposed (#$shortOrderId)';
+    String titleHi = 'वैकल्पिक सामान प्रस्तावित (#$shortOrderId)';
+    String titleHinglish = 'Alternative Item Proposed (#$shortOrderId)';
+
     if (type == 'accepted') {
-      title = '✅ Alternative Item Approved (#$shortOrderId)';
+      titleEn = 'Alternative Item Approved (#$shortOrderId)';
+      titleHi = 'वैकल्पिक सामान स्वीकृत (#$shortOrderId)';
+      titleHinglish = 'Alternative Item Accept Hua (#$shortOrderId)';
     } else if (type == 'rejected') {
-      title = '❌ Alternative Item Declined (#$shortOrderId)';
+      titleEn = 'Alternative Item Declined (#$shortOrderId)';
+      titleHi = 'वैकल्पिक सामान अस्वीकृत (#$shortOrderId)';
+      titleHinglish = 'Alternative Item Decline Hua (#$shortOrderId)';
     }
 
+    String activeTitle = titleEn;
+    if (selectedLang == 'hi') {
+      activeTitle = titleHi;
+    } else if (selectedLang == 'hinglish') {
+      activeTitle = titleHinglish;
+    }
+
+    final cleanMsg = NotificationItem.cleanEmoji(message);
     final notificationRef = db.collection('notifications').doc();
     final now = FieldValue.serverTimestamp();
 
@@ -752,13 +875,25 @@ class NotificationService {
       'id': notificationRef.id,
       'order_id': orderId,
       'type': 'substitution_$type',
-      'title': title,
-      'body': message,
+      'status': type,
+      'title': activeTitle,
+      'body': cleanMsg,
+      'title_en': titleEn,
+      'title_hi': titleHi,
+      'title_hinglish': titleHinglish,
+      'body_en': cleanMsg,
+      'body_hi': cleanMsg,
+      'body_hinglish': cleanMsg,
       'customer_phone': customerPhone ?? '',
       'customer_uid': ?customerUid,
       'shop_id': shopId,
       'created_at': now,
       'is_read': false,
+      'data': {
+        'order_id': orderId,
+        'type': 'substitution_$type',
+        'status': type,
+      },
     };
 
     try {
@@ -767,7 +902,90 @@ class NotificationService {
       debugPrint('Failed to dispatch substitution notification: $e');
     }
 
+    await showOrderNotification(
+      activeTitle,
+      cleanMsg,
+      orderId: orderId,
+      payload: notificationDoc,
+    );
+
     return notificationDoc;
+  }
+
+  /// Streams notifications for a given user or shop
+  static Stream<List<NotificationItem>> streamNotifications({
+    String? shopId,
+    String? recipientPhone,
+    String? recipientUid,
+    int limit = 50,
+    FirebaseFirestore? firestore,
+  }) {
+    final db = firestore ?? FirebaseUtils.firestore;
+    Query query = db.collection('notifications');
+
+    if (shopId != null && shopId.isNotEmpty) {
+      query = query.where('shop_id', isEqualTo: shopId);
+    } else if (recipientPhone != null && recipientPhone.isNotEmpty) {
+      query = query.where('recipient_phone', isEqualTo: recipientPhone);
+    } else if (recipientUid != null && recipientUid.isNotEmpty) {
+      query = query.where('recipient_uid', isEqualTo: recipientUid);
+    }
+
+    return query
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return NotificationItem.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+      }).toList();
+    });
+  }
+
+  /// Marks a specific notification as read
+  static Future<void> markAsRead(String notificationId, {FirebaseFirestore? firestore}) async {
+    try {
+      final db = firestore ?? FirebaseUtils.firestore;
+      await db.collection('notifications').doc(notificationId).update({'is_read': true});
+    } catch (e) {
+      debugPrint('markAsRead warning: $e');
+    }
+  }
+
+  /// Marks all notifications for a shop or user as read
+  static Future<void> markAllAsRead({
+    String? shopId,
+    String? recipientPhone,
+    String? recipientUid,
+    FirebaseFirestore? firestore,
+  }) async {
+    try {
+      final db = firestore ?? FirebaseUtils.firestore;
+      Query query = db.collection('notifications').where('is_read', isEqualTo: false);
+      if (shopId != null && shopId.isNotEmpty) {
+        query = query.where('shop_id', isEqualTo: shopId);
+      } else if (recipientPhone != null && recipientPhone.isNotEmpty) {
+        query = query.where('recipient_phone', isEqualTo: recipientPhone);
+      }
+      final snapshot = await query.limit(50).get();
+      final batch = db.batch();
+      for (var doc in snapshot.docs) {
+        batch.update(doc.reference, {'is_read': true});
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('markAllAsRead warning: $e');
+    }
+  }
+
+  /// Deletes a notification from Firestore
+  static Future<void> deleteNotification(String notificationId, {FirebaseFirestore? firestore}) async {
+    try {
+      final db = firestore ?? FirebaseUtils.firestore;
+      await db.collection('notifications').doc(notificationId).delete();
+    } catch (e) {
+      debugPrint('deleteNotification warning: $e');
+    }
   }
 
   /// Failed-delivery retry processor: Inspects failed items in notification_queue and retries

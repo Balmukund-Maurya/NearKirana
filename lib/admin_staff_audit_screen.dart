@@ -430,7 +430,7 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen> with Sing
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              staff.role.label,
+                              staff.role.localizedLabel(t),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
@@ -496,7 +496,7 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen> with Sing
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Text(
-                    p.label.split('(').first.trim(),
+                    p.localizedLabel(t),
                     style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
                   ),
                 );
@@ -689,7 +689,7 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen> with Sing
                 itemCount: logs.length,
                 itemBuilder: (context, index) {
                   final log = logs[index];
-                  return _buildAuditLogCard(log);
+                  return _buildAuditLogCard(log, t);
                 },
               );
             },
@@ -726,7 +726,7 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen> with Sing
     );
   }
 
-  Widget _buildAuditLogCard(AuditLogEntry log) {
+  Widget _buildAuditLogCard(AuditLogEntry log, String Function(String, String, String) t) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -766,7 +766,7 @@ class _AdminStaffAuditScreenState extends State<AdminStaffAuditScreen> with Sing
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            log.actionType.label.split('(').first.trim(),
+                            log.actionType.localizedLabel(t),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,

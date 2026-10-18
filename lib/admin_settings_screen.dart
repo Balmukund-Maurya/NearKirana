@@ -11,6 +11,7 @@ import 'package:near_kirana/language_provider.dart';
 import 'package:near_kirana/utils/product_image_widget.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
+import 'admin_categories_screen.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -40,6 +41,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   final _whatsappMessageController = TextEditingController();
   bool _isStoreOpen = true;
   List<String> _categories = [];
+  Map<String, String> _categoryImages = {};
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -101,6 +103,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           _categories = List<String>.from(data['categories']);
         } else if (data['product_categories'] != null) {
           _categories = List<String>.from(data['product_categories']);
+        }
+
+        if (data.containsKey('category_images') && data['category_images'] is Map) {
+          final rawMap = data['category_images'] as Map<dynamic, dynamic>;
+          _categoryImages = rawMap.map((k, v) => MapEntry(k.toString(), v.toString()));
+        } else if (data.containsKey('categoryImages') && data['categoryImages'] is Map) {
+          final rawMap = data['categoryImages'] as Map<dynamic, dynamic>;
+          _categoryImages = rawMap.map((k, v) => MapEntry(k.toString(), v.toString()));
         }
       }
     } catch (e) {
@@ -897,6 +907,69 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
+  Future<void> _pickCategoryImage(String cat) async {
+    HapticFeedback.lightImpact();
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 60,
+      maxWidth: 600,
+      maxHeight: 600,
+    );
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      final base64String = base64Encode(bytes);
+      final finalUrl = 'data:image/jpeg;base64,$base64String';
+      final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+      if (shopId != null && shopId.isNotEmpty) {
+        await FirebaseUtils.firestore.collection('shops').doc(shopId).update({
+          'category_images.$cat': finalUrl,
+        });
+        setState(() {
+          _categoryImages[cat] = finalUrl;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text('Category photo updated for "$cat"!'),
+              backgroundColor: const Color(0xFF0C831F),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Widget _buildCategoriesTab(String Function(String, String, String) t) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: const Icon(Icons.category_rounded, color: Color(0xFF7C3AED), size: 20),
                   ),
                   const SizedBox(width: 10),
@@ -904,11 +977,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t('Product Categories', 'सामान की श्रेणियां', 'Product Categories'),
+                        t('Product Categories & Photos', 'सामान की श्रेणियां व फोटो', 'Product Categories & Photos'),
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                       ),
                       Text(
-                        t('Organize items on customer catalog', 'ग्राहकों को दिखने वाली कैटेगरी', 'Catalog category pills'),
+                        t('Organize items & set category images', 'ग्राहकों के लिए फोटो व श्रेणियां जोड़ें', 'Catalog category cards & photos'),
                         style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                       ),
                     ],
@@ -927,6 +1000,63 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           ),
           const SizedBox(height: 16),
           const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 14),
+
+          // Studio Banner
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminCategoriesScreen()),
+              ).then((_) => _loadSettings());
+            },
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0C831F), Color(0xFF047857)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0C831F).withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.photo_library_rounded, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t('Open Category & Banner Studio', 'कैटेगरी फोटो स्टूडियो खोलें', 'Open Category Photo Studio'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                        ),
+                        Text(
+                          t('Upload photos, manage icons & organize shelves', 'कैटेगरी की आकर्षक फोटो लगाएं व सजाएं', 'Upload photos & organize catalog'),
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
 
           if (_categories.isEmpty)
@@ -940,24 +1070,103 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               ),
             )
           else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _categories.map((cat) {
-                return Chip(
-                  label: Text(
-                    cat,
-                    style: const TextStyle(color: Color(0xFF0C831F), fontWeight: FontWeight.w700, fontSize: 12),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _categories.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                final cat = _categories[i];
+                final catImg = _categoryImages[cat] ?? '';
+                final hasImg = catImg.isNotEmpty;
+
+                return Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  backgroundColor: const Color(0xFF0C831F).withValues(alpha: 0.08),
-                  deleteIcon: const Icon(Icons.cancel_rounded, size: 16, color: Color(0xFFDC2626)),
-                  onDeleted: () => setState(() => _categories.remove(cat)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: const Color(0xFF0C831F).withValues(alpha: 0.2)),
+                  child: Row(
+                    children: [
+                      // Category Image Thumbnail / Camera Button
+                      InkWell(
+                        onTap: () => _pickCategoryImage(cat),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              clipBehavior: Clip.hardEdge,
+                              child: hasImg
+                                  ? ProductImageWidget(imageUrl: catImg, fit: BoxFit.cover)
+                                  : const Icon(Icons.category_rounded, color: Color(0xFF94A3B8), size: 24),
+                            ),
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0C831F),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(Icons.camera_alt_rounded, size: 10, color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cat,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              hasImg
+                                  ? t('Photo set • Tap to change', 'फोटो लगी है • बदलने के लिए टैप करें', 'Photo set • Tap to change')
+                                  : t('No photo • Tap camera to add', 'फोटो नहीं है • फोटो लगाने के लिए टैप करें', 'No photo • Tap to add'),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: hasImg ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_a_photo_outlined, size: 18, color: Color(0xFF0C831F)),
+                        tooltip: t('Set Photo', 'फोटो लगाएं', 'Set Photo'),
+                        onPressed: () => _pickCategoryImage(cat),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                        tooltip: t('Delete Category', 'कैटेगरी हटाएं', 'Delete Category'),
+                        onPressed: () => setState(() {
+                          _categories.remove(cat);
+                          _categoryImages.remove(cat);
+                        }),
+                      ),
+                    ],
                   ),
                 );
-              }).toList(),
+              },
             ),
         ],
       ),

@@ -71,11 +71,13 @@ class DataExportBackupService {
       final data = Map<String, dynamic>.from(doc.data() as Map);
       data['id'] = doc.id;
 
-      // Filter by date range
+      // Filter by date range (supports Timestamp, int epoch ms, and String ISO)
       final createdAtTs = data['created_at'];
       DateTime orderDate = DateTime.now();
       if (createdAtTs is Timestamp) {
         orderDate = createdAtTs.toDate();
+      } else if (createdAtTs is int) {
+        orderDate = DateTime.fromMillisecondsSinceEpoch(createdAtTs);
       } else if (createdAtTs is String) {
         orderDate = DateTime.tryParse(createdAtTs) ?? DateTime.now();
       }
@@ -280,12 +282,27 @@ class DataExportBackupService {
           .where('shop_id', isEqualTo: filter.shopId)
           .get();
     }
+    List<DocumentSnapshot> customerDocs = snapshot.docs;
+    if (customerDocs.isEmpty) {
+      try {
+        final allSnap = await firestore.collection('customers').get();
+        customerDocs = allSnap.docs.where((d) {
+          final data = d.data();
+          final shopIds = (data['shop_ids'] as List?)?.map((e) => e.toString()).toList() ?? [];
+          final shopBalances = (data['shop_balances'] as Map?) ?? {};
+          return shopIds.contains(filter.shopId) ||
+              data['shop_id'] == filter.shopId ||
+              shopBalances.containsKey(filter.shopId) ||
+              ((data['total_udhaar'] as num?) ?? 0) > 0;
+        }).toList();
+      } catch (_) {}
+    }
 
     final List<Map<String, dynamic>> customers = [];
     double totalOutstandingCredit = 0;
     int debtorsCount = 0;
 
-    for (final doc in snapshot.docs) {
+    for (final doc in customerDocs) {
       final data = Map<String, dynamic>.from(doc.data() as Map);
       data['id'] = doc.id;
       final balance = ((data['shop_balances']?[filter.shopId] ??
@@ -376,6 +393,8 @@ class DataExportBackupService {
       DateTime dt = DateTime.now();
       if (ts is Timestamp) {
         dt = ts.toDate();
+      } else if (ts is int) {
+        dt = DateTime.fromMillisecondsSinceEpoch(ts);
       } else if (ts is String) {
         dt = DateTime.tryParse(ts) ?? DateTime.now();
       }

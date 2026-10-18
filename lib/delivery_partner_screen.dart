@@ -10,10 +10,11 @@ import 'delivery_partner_service.dart';
 import 'live_delivery_tracking_service.dart';
 import 'customer_live_tracking_screen.dart';
 import 'sound_service.dart';
+import 'gateway_screen.dart';
 
-/// Zepto & Blinkit inspired Rider Dashboard for Delivery Partners.
+/// Dedicated Delivery Partner Mode dashboard for NearKirana riders.
 /// Handles real-time order dispatch, store pickup confirmation, live GPS broadcasting,
-/// turn-by-turn navigation, and cash-on-delivery (COD) handoffs in Hindi, English, and Hinglish.
+/// turn-by-turn two-wheeler navigation, and cash-on-delivery (COD) handoffs in Hindi, English, and Hinglish.
 class DeliveryPartnerScreen extends StatefulWidget {
   final String? initialPartnerId;
   final String? initialPhone;
@@ -62,6 +63,20 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     _loginPhoneController.dispose();
     _loginNameController.dispose();
     super.dispose();
+  }
+
+  /// Safe back navigation to prevent black screens when pushed as replacement
+  Future<void> _handleBackNavigation() async {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('app_role');
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const GatewayScreen(forceSelectRole: true)),
+      );
+    }
   }
 
   Future<void> _initializePartner() async {
@@ -265,20 +280,72 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     }
   }
 
-  Future<void> _launchMap(String address) async {
-    final query = Uri.encodeComponent(address);
-    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text('Could not open map navigation for: $address'),
-          ),
-        );
+  /// High accuracy turn-by-turn directions using GPS coordinates or cleaned address
+  Future<void> _launchDirections(DeliveryOrderTask task) async {
+    HapticFeedback.lightImpact();
+    final double? lat = task.customerLat;
+    final double? lng = task.customerLng;
+    final String rawAddress = task.deliveryAddress.trim();
+
+    // 1. If GPS coordinates exist and are non-zero, launch Google Maps Navigation directly
+    if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
+      final navUri = Uri.parse('google.navigation:q=$lat,$lng&mode=d');
+      final webNavUri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=two_wheeler',
+      );
+
+      try {
+        if (await canLaunchUrl(navUri)) {
+          await launchUrl(navUri);
+          return;
+        } else if (await canLaunchUrl(webNavUri)) {
+          await launchUrl(webNavUri, mode: LaunchMode.externalApplication);
+          return;
+        }
+      } catch (_) {}
+    }
+
+    // 2. Clean address string if coordinates are not directly present
+    if (rawAddress.isNotEmpty && rawAddress != 'Address not specified') {
+      String clean = rawAddress
+          .replaceAll(RegExp(r'\[.*?\]'), '')
+          .replaceAll(RegExp(r'House\s*:\s*[—\-\.]*'), '')
+          .replaceAll(RegExp(r'Locality\s*:\s*'), '')
+          .replaceAll(RegExp(r'[\(\)]'), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+
+      while (clean.startsWith(',') || clean.startsWith('-') || clean.startsWith('—')) {
+        clean = clean.substring(1).trim();
       }
+
+      final target = clean.isNotEmpty ? clean : rawAddress;
+      final encoded = Uri.encodeComponent(target);
+      final dirUri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=$encoded&travelmode=two_wheeler',
+      );
+      final searchUri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$encoded',
+      );
+
+      try {
+        if (await canLaunchUrl(dirUri)) {
+          await launchUrl(dirUri, mode: LaunchMode.externalApplication);
+          return;
+        } else if (await canLaunchUrl(searchUri)) {
+          await launchUrl(searchUri, mode: LaunchMode.externalApplication);
+          return;
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Could not open map navigation. Please check GPS or address.'),
+        ),
+      );
     }
   }
 
@@ -461,7 +528,6 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Customer mini preview
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -722,19 +788,26 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     }
 
     if (_isLoading) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(color: Color(0xFF0C831F)),
-              const SizedBox(height: 16),
-              Text(
-                t('Loading Partner Profile...', 'प्रोफ़ाइल लोड हो रही है...', 'Profile load ho rahi hai...'),
-                style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-              ),
-            ],
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          _handleBackNavigation();
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: Color(0xFF0C831F)),
+                const SizedBox(height: 16),
+                Text(
+                  t('Loading Partner Profile...', 'प्रोफ़ाइल लोड हो रही है...', 'Profile load ho rahi hai...'),
+                  style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -744,131 +817,142 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
       return _buildLoginView(t);
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0C831F).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.two_wheeler_rounded,
-                color: Color(0xFF0C831F),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  t('Delivery Partner Mode', 'डिलीवरी पार्टनर मोड', 'Delivery Partner Mode'),
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-                Text(
-                  t('Zepto & Blinkit Express Fleet', 'एक्सप्रेस डिलीवरी फ्लीट', 'Express Delivery Fleet'),
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Color(0xFF64748B)),
-            tooltip: t('Switch Partner / Logout', 'लॉगआउट करें', 'Logout Karein'),
-            onPressed: () => _handleLogout(t),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBackNavigation();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
+            onPressed: _handleBackNavigation,
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Rider Header & Duty Strip
-          _buildPartnerHeaderCard(t),
-
-          // Zepto/Blinkit Style Segmented Tab Bar
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(3),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: Colors.white,
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0C831F).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
+                ),
+                child: const Icon(
+                  Icons.two_wheeler_rounded,
+                  color: Color(0xFF0C831F),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      t('Delivery Partner Mode', 'डिलीवरी पार्टनर मोड', 'Delivery Partner Mode'),
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      t('NearKirana Express Fleet', 'NearKirana एक्सप्रेस फ्लीट', 'NearKirana Express Fleet'),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-                labelColor: const Color(0xFF0C831F),
-                unselectedLabelColor: const Color(0xFF64748B),
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
-                unselectedLabelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
-                dividerColor: Colors.transparent,
-                tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.electric_moped_rounded, size: 18),
-                        const SizedBox(width: 8),
-                        Text(t('Active Tasks', 'सक्रिय कार्य', 'Active Tasks')),
-                      ],
-                    ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, color: Color(0xFF64748B)),
+              tooltip: t('Switch Partner / Logout', 'लॉगआउट करें', 'Logout Karein'),
+              onPressed: () => _handleLogout(t),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Rider Header & Duty Strip
+            _buildPartnerHeaderCard(t),
+
+            // Segmented Tab Bar
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.all(3),
+                child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.history_rounded, size: 18),
-                        const SizedBox(width: 8),
-                        Text(t('Delivery History', 'डिलीवरी इतिहास', 'Delivery History')),
-                      ],
+                  labelColor: const Color(0xFF0C831F),
+                  unselectedLabelColor: const Color(0xFF64748B),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
+                  unselectedLabelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                  dividerColor: Colors.transparent,
+                  tabs: [
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.electric_moped_rounded, size: 18),
+                          const SizedBox(width: 8),
+                          Text(t('Active Tasks', 'सक्रिय कार्य', 'Active Tasks')),
+                        ],
+                      ),
                     ),
-                  ),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.history_rounded, size: 18),
+                          const SizedBox(width: 8),
+                          Text(t('Delivery History', 'डिलीवरी इतिहास', 'Delivery History')),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Tab Content
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildActiveTasksTab(t),
+                  _buildHistoryTab(t),
                 ],
               ),
             ),
-          ),
-
-          // Tab Content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildActiveTasksTab(t),
-                _buildHistoryTab(t),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -983,7 +1067,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           ),
           const SizedBox(height: 14),
 
-          // Zepto/Blinkit Rider Stats Bar
+          // Rider Stats Bar
           Row(
             children: [
               _buildStatCard(
@@ -1123,7 +1207,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           padding: const EdgeInsets.all(16),
           itemCount: tasks.length,
           itemBuilder: (context, index) {
-            return _buildZeptoTaskCard(tasks[index], t);
+            return _buildDeliveryTaskCard(tasks[index], t);
           },
         );
       },
@@ -1252,7 +1336,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     );
   }
 
-  Widget _buildZeptoTaskCard(
+  Widget _buildDeliveryTaskCard(
     DeliveryOrderTask task,
     String Function(String, String, String) t,
   ) {
@@ -1303,15 +1387,18 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  t('Express Parcel', 'एक्सप्रेस पार्सल', 'Express Parcel'),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF475569),
+                Expanded(
+                  child: Text(
+                    t('NearKirana Express', 'NearKirana एक्सप्रेस', 'NearKirana Express'),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 6),
                 _buildStatusBadge(task, t),
               ],
             ),
@@ -1322,7 +1409,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Route Nodes (Pickup Store -> Customer Drop)
+                // Route Nodes (Customer Drop)
                 _buildRouteNodes(task, t),
 
                 const SizedBox(height: 14),
@@ -1339,11 +1426,13 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                         label: Text(
                           t('Call Customer', 'ग्राहक को कॉल करें', 'Call Customer'),
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF2563EB),
                           side: const BorderSide(color: Color(0xFFBFDBFE)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -1351,16 +1440,18 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     const SizedBox(width: 10),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _launchMap(task.deliveryAddress),
+                        onPressed: () => _launchDirections(task),
                         icon: const Icon(Icons.near_me_rounded, size: 17),
                         label: Text(
                           t('Directions', 'मैप नेविगेशन', 'Directions'),
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF0D9488),
                           side: const BorderSide(color: Color(0xFF99F6E4)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -1369,7 +1460,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                 ),
                 const SizedBox(height: 14),
 
-                // Parcel Bill Summary
+                // Parcel Bill Summary with ZERO overflow guarantee
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -1378,38 +1469,45 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.inventory_2_outlined, size: 14, color: Color(0xFF64748B)),
-                              const SizedBox(width: 4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.inventory_2_outlined, size: 14, color: Color(0xFF64748B)),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    '${task.itemsCount} ${t('items in parcel', 'सामान पार्सल में', 'items parcel mein')}',
+                                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (task.itemsSummary.isNotEmpty) ...[
+                              const SizedBox(height: 3),
                               Text(
-                                '${task.itemsCount} ${t('items in parcel', 'सामान पार्सल में', 'items parcel mein')}',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                task.itemsSummary.join(', '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF1E293B),
+                                ),
                               ),
                             ],
-                          ),
-                          if (task.itemsSummary.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              task.itemsSummary.join(', '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF1E293B),
-                              ),
-                            ),
                           ],
-                        ],
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             '₹${task.totalAmount.toStringAsFixed(0)}',
@@ -1443,7 +1541,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // Zepto One-Tap Workflow Button
+                // Workflow Button
                 _buildWorkflowButton(task, t),
               ],
             ),
@@ -1457,53 +1555,60 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     DeliveryOrderTask task,
     String Function(String, String, String) t,
   ) {
-    return Column(
+    // Format address cleanly: remove "House: —", "House: -"
+    String displayAddress = task.deliveryAddress
+        .replaceAll(RegExp(r'House\s*:\s*[—\-\.]*'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    while (displayAddress.startsWith(',') || displayAddress.startsWith('-') || displayAddress.startsWith('—')) {
+      displayAddress = displayAddress.substring(1).trim();
+    }
+    if (displayAddress.isEmpty) displayAddress = task.deliveryAddress;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Drop Node (Customer destination)
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEF4444),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.location_on_rounded, size: 12, color: Colors.white),
-                  ),
+        Container(
+          margin: const EdgeInsets.only(top: 2),
+          width: 22,
+          height: 22,
+          decoration: const BoxDecoration(
+            color: Color(0xFFEF4444),
+            shape: BoxShape.circle,
+          ),
+          child: const Center(
+            child: Icon(Icons.location_on_rounded, size: 13, color: Colors.white),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                task.customerName,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
                 ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.customerName,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    task.deliveryAddress,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF475569),
-                      height: 1.3,
-                    ),
-                  ),
-                ],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                displayAddress,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF475569),
+                  height: 1.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -1522,19 +1627,19 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
       case DeliveryTaskStatus.assigned:
         bg = const Color(0xFFFFFBEB);
         fg = const Color(0xFFB45309);
-        label = t('Assigned', 'नया असाइन', 'Assigned');
+        label = t('Assigned', 'असाइन', 'Assigned');
         icon = Icons.assignment_ind_rounded;
         break;
       case DeliveryTaskStatus.accepted:
         bg = const Color(0xFFEFF6FF);
         fg = const Color(0xFF1D4ED8);
-        label = t('Accepted (Store Pickup)', 'स्वीकार किया (दुकान से लें)', 'Accepted (Store Pickup)');
+        label = t('Accepted', 'स्वीकार', 'Accepted');
         icon = Icons.storefront_rounded;
         break;
       case DeliveryTaskStatus.pickedUp:
         bg = const Color(0xFFFAF5FF);
         fg = const Color(0xFF7E22CE);
-        label = t('Out for Delivery', 'रास्ते में है', 'Out for Delivery');
+        label = t('Out for Delivery', 'रास्ते में', 'Out for Delivery');
         icon = Icons.two_wheeler_rounded;
         break;
       case DeliveryTaskStatus.delivered:
@@ -1552,16 +1657,16 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: fg.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: fg),
+          Icon(icon, size: 13, color: fg),
           const SizedBox(width: 4),
           Text(
             label,
@@ -1586,7 +1691,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           icon: const Icon(Icons.thumb_up_alt_rounded, size: 18),
           label: Text(
             t('Accept Delivery Task', 'ऑर्डर स्वीकार करें', 'Accept Delivery Task'),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF2563EB),
@@ -1608,7 +1713,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           icon: const Icon(Icons.inventory_2_rounded, size: 18),
           label: Text(
             t('Confirm Store Pickup', 'दुकान से पार्सल लिया', 'Confirm Store Pickup'),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0C831F),
@@ -1689,7 +1794,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
               task.isCOD
                   ? '${t('Collect', 'कैश लें', 'Collect')} ₹${task.totalAmount.toStringAsFixed(0)} & ${t('Mark Delivered', 'डिलीवरी पूरी करें', 'Mark Delivered')}'
                   : t('Mark Delivered (Prepaid)', 'डिलीवरी पूर्ण करें', 'Mark Delivered (Prepaid)'),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0C831F),
@@ -1704,117 +1809,124 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
   }
 
   Widget _buildLoginView(String Function(String, String, String) t) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          t('Delivery Partner Portal', 'डिलीवरी पार्टनर पोर्टल', 'Delivery Partner Portal'),
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBackNavigation();
+      },
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
-          onPressed: () => Navigator.of(context).pop(),
+        appBar: AppBar(
+          title: Text(
+            t('Delivery Partner Portal', 'डिलीवरी पार्टनर पोर्टल', 'Delivery Partner Portal'),
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+          ),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
+            onPressed: _handleBackNavigation,
+          ),
         ),
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0C831F).withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.two_wheeler_rounded,
-                      size: 64,
-                      color: Color(0xFF0C831F),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  t('Zepto & Blinkit Express Fleet', 'एक्सप्रेस डिलीवरी पार्टनर', 'Express Delivery Fleet'),
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  t(
-                    'Login to accept delivery tasks, route navigation & instant payouts',
-                    'ऑर्डर डिलीवरी स्वीकार करने और नेविगेट करने के लिए लॉगिन करें',
-                    'Delivery tasks accept karne aur navigate karne ke liye login karein',
-                  ),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
-                ),
-                const SizedBox(height: 32),
-                TextField(
-                  controller: _loginPhoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: t('Mobile Number', 'मोबाइल नंबर', 'Mobile Number'),
-                    hintText: '9876543210',
-                    prefixIcon: const Icon(Icons.phone_rounded, color: Color(0xFF0C831F)),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF0C831F), width: 2),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.two_wheeler_rounded,
+                        size: 64,
+                        color: Color(0xFF0C831F),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _loginNameController,
-                  decoration: InputDecoration(
-                    labelText: t('Rider Full Name', 'डिलीवरी बॉय का पूरा नाम', 'Rider Full Name'),
-                    hintText: 'e.g. Rahul Sharma',
-                    prefixIcon: const Icon(Icons.person_rounded, color: Color(0xFF0C831F)),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF0C831F), width: 2),
+                  const SizedBox(height: 24),
+                  Text(
+                    t('NearKirana Express Fleet', 'NearKirana एक्सप्रेस डिलीवरी पार्टनर', 'NearKirana Express Fleet'),
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F172A),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _isLoggingIn ? null : () => _handlePartnerLogin(t),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0C831F),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
+                  const SizedBox(height: 8),
+                  Text(
+                    t(
+                      'Login to accept delivery tasks, route navigation & instant payouts',
+                      'ऑर्डर डिलीवरी स्वीकार करने और नेविगेट करने के लिए लॉगिन करें',
+                      'Delivery tasks accept karne aur navigate karne ke liye login karein',
                     ),
-                    child: _isLoggingIn
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : Text(
-                            t('Start Delivering Now', 'ड्यूटी शुरू करें', 'Duty Shuru Karein'),
-                            style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 32),
+                  TextField(
+                    controller: _loginPhoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: t('Mobile Number', 'मोबाइल नंबर', 'Mobile Number'),
+                      hintText: '9876543210',
+                      prefixIcon: const Icon(Icons.phone_rounded, color: Color(0xFF0C831F)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFF0C831F), width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _loginNameController,
+                    decoration: InputDecoration(
+                      labelText: t('Rider Full Name', 'डिलीवरी बॉय का पूरा नाम', 'Rider Full Name'),
+                      hintText: 'e.g. Rahul Sharma',
+                      prefixIcon: const Icon(Icons.person_rounded, color: Color(0xFF0C831F)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFF0C831F), width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _isLoggingIn ? null : () => _handlePartnerLogin(t),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0C831F),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: _isLoggingIn
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text(
+                              t('Start Delivering Now', 'ड्यूटी शुरू करें', 'Duty Shuru Karein'),
+                              style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

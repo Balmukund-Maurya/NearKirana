@@ -326,8 +326,20 @@ class DeliveryOrderTask {
       customerName: data['customer_name']?.toString() ?? data['name']?.toString() ?? 'Customer',
       customerPhone: data['phone_number']?.toString() ?? data['customer_phone']?.toString() ?? '',
       deliveryAddress: data['delivery_address']?.toString() ?? data['address']?.toString() ?? 'Address not specified',
-      customerLat: (data['customer_lat'] as num?)?.toDouble(),
-      customerLng: (data['customer_lng'] as num?)?.toDouble(),
+      customerLat: (data['customer_lat'] as num?)?.toDouble() ??
+          (data['selected_address']?['latitude'] as num?)?.toDouble() ??
+          (data['selected_address']?['lat'] as num?)?.toDouble() ??
+          (data['delivery_location']?['latitude'] as num?)?.toDouble() ??
+          (data['delivery_location']?['lat'] as num?)?.toDouble() ??
+          (data['address_lat'] as num?)?.toDouble() ??
+          (data['lat'] as num?)?.toDouble(),
+      customerLng: (data['customer_lng'] as num?)?.toDouble() ??
+          (data['selected_address']?['longitude'] as num?)?.toDouble() ??
+          (data['selected_address']?['lng'] as num?)?.toDouble() ??
+          (data['delivery_location']?['longitude'] as num?)?.toDouble() ??
+          (data['delivery_location']?['lng'] as num?)?.toDouble() ??
+          (data['address_lng'] as num?)?.toDouble() ??
+          (data['lng'] as num?)?.toDouble(),
       totalAmount: (data['total_amount'] as num?)?.toDouble() ?? 0.0,
       paymentMode: data['payment_mode']?.toString() ?? data['payment_method']?.toString() ?? 'COD',
       paymentStatus: data['payment_status']?.toString() ?? 'Pending',

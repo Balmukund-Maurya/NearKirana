@@ -23,7 +23,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'widgets/language_bottom_sheet.dart';
 
 class GatewayScreen extends StatefulWidget {
-  const GatewayScreen({super.key});
+  final bool forceSelectRole;
+  const GatewayScreen({super.key, this.forceSelectRole = false});
 
   @override
   State<GatewayScreen> createState() => _GatewayScreenState();
@@ -46,6 +47,11 @@ class _GatewayScreenState extends State<GatewayScreen> {
     _globalPhone = prefs.getString('global_phone');
     
     if (!mounted) return;
+
+    if (widget.forceSelectRole) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     if (_globalPhone != null && _globalPhone!.isNotEmpty) {
       final shopProvider = Provider.of<ShopProvider>(context, listen: false);

@@ -513,7 +513,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                   ),
                 ),
                 Text(
-                  t('Zepto & Blinkit Merchant Partner', 'मर्चेंट ऑनबोर्डिंग', 'Merchant Partner Onboarding'),
+                  t('NearKirana Merchant Partner', 'नियरकिराना मर्चेंट ऑनबोर्डिंग', 'NearKirana Merchant Partner Onboarding'),
                   style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                 ),
               ],
@@ -1067,7 +1067,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                       ),
                     ),
                     Text(
-                      t('Zepto & Blinkit Express Grocery Network', 'एक्सप्रेस किराना नेटवर्क', 'Express Grocery Network'),
+                      t('NearKirana Express Grocery Network', 'नियरकिराना एक्सप्रेस नेटवर्क', 'NearKirana Express Grocery Network'),
                       style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
                     ),
                   ],

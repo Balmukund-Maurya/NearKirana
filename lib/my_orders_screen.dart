@@ -712,8 +712,16 @@ class MyOrdersScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
             child: Row(
               children: [
-                // Live track button if Out for Delivery
-                if (status == OrderStatus.outForDelivery) ...[
+                // Live track button if Out for Delivery or Rider is assigned
+                if ((status == OrderStatus.outForDelivery ||
+                     status.toLowerCase().contains('delivery') ||
+                     status.toLowerCase().contains('transit') ||
+                     status.toLowerCase().contains('dispatch') ||
+                     (data['delivery_boy_name'] != null && data['delivery_boy_name'].toString().isNotEmpty) ||
+                     (data['delivery_partner_id'] != null && data['delivery_partner_id'].toString().isNotEmpty)) &&
+                    status != OrderStatus.delivered &&
+                    status != OrderStatus.cancelled &&
+                    status != OrderStatus.rejected) ...[
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {

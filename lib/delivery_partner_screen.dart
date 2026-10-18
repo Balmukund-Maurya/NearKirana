@@ -371,11 +371,15 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
         partnerPhone: _currentPartner?.phone ?? '',
         partnerVehicle: _currentPartner?.vehicleNumber,
         shopId: task.shopId,
+        shopName: task.shopName,
+        shopLat: task.shopLat,
+        shopLng: task.shopLng,
         customerPhone: task.customerPhone,
         customerName: task.customerName,
         customerAddress: task.deliveryAddress,
         customerLat: task.customerLat,
         customerLng: task.customerLng,
+        phase: 'to_customer',
       );
 
       SoundService().orderDispatched();
@@ -430,6 +434,45 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
         partnerId: _currentPartner?.id ?? task.partnerId,
       );
 
+      // Start live GPS broadcasting towards the STORE immediately (Stage 1)
+      double? storeLat = task.shopLat;
+      double? storeLng = task.shopLng;
+      String storeName = task.shopName;
+
+      if ((storeLat == null || storeLng == null) && task.shopId.isNotEmpty) {
+        try {
+          final shopDoc = await _service.firestore.collection('shops').doc(task.shopId).get();
+          if (shopDoc.exists) {
+            final sData = shopDoc.data()!;
+            storeLat = (sData['store_latitude'] as num?)?.toDouble() ??
+                (sData['shop_lat'] as num?)?.toDouble() ??
+                (sData['latitude'] as num?)?.toDouble();
+            storeLng = (sData['store_longitude'] as num?)?.toDouble() ??
+                (sData['shop_lng'] as num?)?.toDouble() ??
+                (sData['longitude'] as num?)?.toDouble();
+            storeName = sData['shop_name']?.toString() ?? sData['store_name']?.toString() ?? storeName;
+          }
+        } catch (_) {}
+      }
+
+      await _trackingService.startBroadcasting(
+        orderId: task.orderId,
+        partnerId: _currentPartner?.id ?? task.partnerId,
+        partnerName: _currentPartner?.name ?? task.partnerName,
+        partnerPhone: _currentPartner?.phone ?? '',
+        partnerVehicle: _currentPartner?.vehicleNumber,
+        shopId: task.shopId,
+        shopName: storeName.isNotEmpty ? storeName : 'Kirana Store',
+        shopLat: storeLat,
+        shopLng: storeLng,
+        customerPhone: task.customerPhone,
+        customerName: task.customerName,
+        customerAddress: task.deliveryAddress,
+        customerLat: task.customerLat,
+        customerLng: task.customerLng,
+        phase: 'to_store',
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -474,6 +517,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     final notesCtrl = TextEditingController(
       text: t('Delivered to customer', 'ग्राहक को डिलीवर किया गया', 'Customer ko deliver kiya gaya'),
     );
+    final pinCtrl = TextEditingController();
+    String? pinError;
+    final expectedPin = task.deliveryPin.trim();
 
     await showDialog(
       context: context,
@@ -561,6 +607,84 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     ),
                   ),
                   const SizedBox(height: 14),
+
+                  // 1. PIN Verification Field (OTP at doorstep)
+                  if (expectedPin.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: pinError != null ? const Color(0xFFDC2626) : const Color(0xFFBBF7D0),
+                          width: pinError != null ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  t(
+                                    'Customer Delivery PIN Verification',
+                                    'ग्राहक डिलीवरी पिन वेरिफिकेशन',
+                                    'Customer Delivery PIN Verification',
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF166534),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            t(
+                              'Ask customer for the 4-digit PIN shown on their app screen:',
+                              'ग्राहक के ऐप में दिख रहा 4 अंकों का डिलीवरी पिन पूछकर दर्ज करें:',
+                              'Customer ke app me dikh raha 4-digit delivery PIN enter karein:',
+                            ),
+                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF334155)),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: pinCtrl,
+                            keyboardType: TextInputType.number,
+                            maxLength: 4,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 8,
+                              color: Color(0xFF0F172A),
+                            ),
+                            decoration: InputDecoration(
+                              counterText: '',
+                              hintText: '• • • •',
+                              hintStyle: const TextStyle(letterSpacing: 6, color: Color(0xFF94A3B8)),
+                              filled: true,
+                              fillColor: Colors.white,
+                              errorText: pinError,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            onChanged: (_) {
+                              if (pinError != null) {
+                                setDialogState(() => pinError = null);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
 
                   if (task.isCOD)
                     Container(
@@ -687,6 +811,32 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
               ),
               ElevatedButton.icon(
                 onPressed: () async {
+                  if (expectedPin.isNotEmpty) {
+                    final enteredPin = pinCtrl.text.trim();
+                    if (enteredPin.isEmpty) {
+                      setDialogState(() {
+                        pinError = t(
+                          'Please enter 4-digit PIN',
+                          'कृपया 4 अंकों का डिलीवरी पिन दर्ज करें',
+                          'Please 4 digit delivery PIN enter karein',
+                        );
+                      });
+                      HapticFeedback.heavyImpact();
+                      return;
+                    }
+                    if (enteredPin != expectedPin) {
+                      setDialogState(() {
+                        pinError = t(
+                          'Incorrect PIN! Ask customer for correct PIN',
+                          'गलत पिन! ग्राहक से सही डिलीवरी पिन पूछें',
+                          'Galat PIN! Customer se sahi delivery PIN poochein',
+                        );
+                      });
+                      HapticFeedback.heavyImpact();
+                      return;
+                    }
+                  }
+
                   if (task.isCOD && !codCollected) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -1440,7 +1590,15 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     const SizedBox(width: 10),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _launchDirections(task),
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          CustomerLiveTrackingScreen.open(
+                            context,
+                            orderId: task.orderId,
+                            orderData: task.rawFirestoreData,
+                            viewerRole: 'rider',
+                          );
+                        },
                         icon: const Icon(Icons.near_me_rounded, size: 17),
                         label: Text(
                           t('Directions', 'मैप नेविगेशन', 'Directions'),
@@ -1767,6 +1925,8 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   CustomerLiveTrackingScreen.open(
                     context,
                     orderId: task.orderId,
+                    orderData: task.rawFirestoreData,
+                    viewerRole: 'rider',
                   );
                 },
                 icon: const Icon(Icons.map_rounded, size: 16),

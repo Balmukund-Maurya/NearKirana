@@ -200,6 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
         landmark: savedLandmark ?? '',
       );
 
+      await userProvider.restoreCustomerProfile(savedPhone);
       await userProvider.checkServiceability();
 
       if (!mounted) return;
@@ -398,6 +399,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       userProvider.setUser(name, phone);
+      await userProvider.restoreCustomerProfile(phone);
       await userProvider.checkServiceability();
 
       if (mounted) {

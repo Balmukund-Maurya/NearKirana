@@ -253,6 +253,7 @@ class DeliveryOrderTask {
   final int itemsCount;
   final List<String> itemsSummary;
   final String? deliveryNotes;
+  final String deliveryPin;
 
   const DeliveryOrderTask({
     required this.orderId,
@@ -281,6 +282,7 @@ class DeliveryOrderTask {
     this.itemsCount = 0,
     this.itemsSummary = const [],
     this.deliveryNotes,
+    this.deliveryPin = '',
   });
 
   bool get isCOD => paymentMode.toUpperCase() == 'COD' || paymentStatus.toLowerCase() == 'unpaid';
@@ -372,6 +374,7 @@ class DeliveryOrderTask {
       itemsCount: count,
       itemsSummary: summary,
       deliveryNotes: data['delivery_notes']?.toString(),
+      deliveryPin: data['delivery_pin']?.toString() ?? '',
     );
   }
 }

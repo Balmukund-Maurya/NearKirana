@@ -1030,6 +1030,7 @@ class AdminOrderCard extends StatelessWidget {
                               context,
                               orderId: orderDoc.id,
                               orderData: data,
+                              viewerRole: 'shop_owner',
                             );
                           },
                           icon: const Icon(Icons.location_on_rounded, size: 14),

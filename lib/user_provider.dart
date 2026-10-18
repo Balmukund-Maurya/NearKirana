@@ -174,9 +174,19 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
             .collection('customers')
             .where('mobile', whereIn: variants.take(10).toList())
             .get();
-        for (final doc in qs.docs) {
-          await doc.reference.update({
+        if (qs.docs.isNotEmpty) {
+          for (final doc in qs.docs) {
+            await doc.reference.update({
+              'name': _customerName,
+              'updated_at': FieldValue.serverTimestamp(),
+            });
+          }
+        } else {
+          await FirebaseUtils.firestore.collection('customers').add({
             'name': _customerName,
+            'mobile': _phoneNumber,
+            'pin': 'PHONE_AUTH',
+            'created_at': FieldValue.serverTimestamp(),
             'updated_at': FieldValue.serverTimestamp(),
           });
         }
@@ -192,6 +202,146 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       debugPrint('Error updating customer name: $e');
     }
+  }
+
+  /// Restores customer profile (name, saved addresses, default address) from Firestore across phone variations
+  Future<void> restoreCustomerProfile(String phone) async {
+    final rawDigits = phone.replaceAll(RegExp(r'\D'), '');
+    final cleanPhone = rawDigits.length >= 10 ? rawDigits.substring(rawDigits.length - 10) : rawDigits;
+    final variants = <String>{};
+    if (cleanPhone.isNotEmpty) {
+      variants.add(cleanPhone);
+      variants.add('+91$cleanPhone');
+      variants.add('+91 $cleanPhone');
+      variants.add('91$cleanPhone');
+    }
+    if (phone.trim().isNotEmpty) {
+      variants.add(phone.trim());
+    }
+    if (_phoneNumber.trim().isNotEmpty) {
+      variants.add(_phoneNumber.trim());
+    }
+
+    _phoneNumber = phone;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('customerPhone', phone);
+
+    try {
+      QueryDocumentSnapshot<Map<String, dynamic>>? latestDoc;
+
+      // 1. Search customers collection with all variations of phone
+      if (variants.isNotEmpty) {
+        final qs = await FirebaseUtils.firestore
+            .collection('customers')
+            .where('mobile', whereIn: variants.take(10).toList())
+            .get();
+
+        if (qs.docs.isNotEmpty) {
+          // Sort by updated_at or created_at descending to pick the newest record
+          final sortedDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(qs.docs);
+          sortedDocs.sort((a, b) {
+            final aTime = (a.data()['updated_at'] as Timestamp?) ?? (a.data()['created_at'] as Timestamp?) ?? Timestamp(0, 0);
+            final bTime = (b.data()['updated_at'] as Timestamp?) ?? (b.data()['created_at'] as Timestamp?) ?? Timestamp(0, 0);
+            return bTime.compareTo(aTime);
+          });
+          latestDoc = sortedDocs.first;
+        }
+      }
+
+      // 2. Also check users collection for current user doc if present
+      final currentUser = FirebaseUtils.auth.currentUser;
+      Map<String, dynamic>? userData;
+      if (currentUser != null) {
+        final userSnap = await FirebaseUtils.firestore.collection('users').doc(currentUser.uid).get();
+        if (userSnap.exists) {
+          userData = userSnap.data();
+        }
+      }
+
+      // 3. Restore Name: prefer newest customer doc name or user doc name
+      String restoredName = '';
+      if (latestDoc != null) {
+        restoredName = (latestDoc.data()['name'] as String?)?.trim() ?? '';
+      }
+      if (restoredName.isEmpty && userData != null) {
+        restoredName = (userData['name'] as String?)?.trim() ?? '';
+      }
+      if (restoredName.isNotEmpty) {
+        _customerName = restoredName;
+        await prefs.setString('customerName', _customerName);
+      }
+
+      // 4. Restore Email & Profile Pic
+      if (latestDoc != null) {
+        final docEmail = latestDoc.data()['email'] as String?;
+        if (docEmail != null && docEmail.isNotEmpty) {
+          _email = docEmail;
+          await prefs.setString('customerEmail', _email);
+        }
+        final docPic = latestDoc.data()['profile_image_url'] as String?;
+        if (docPic != null && docPic.isNotEmpty) {
+          _profileImageUrl = docPic;
+          await prefs.setString('customerProfilePic', _profileImageUrl!);
+        }
+      }
+
+      // 5. Restore Saved Addresses
+      if (latestDoc != null) {
+        final rawSaved = latestDoc.data()['saved_addresses'];
+        if (rawSaved is List && rawSaved.isNotEmpty) {
+          _savedAddresses = rawSaved.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          await prefs.setString('savedAddresses', jsonEncode(_savedAddresses));
+        }
+
+        // Also check if single address fields exist in doc
+        final docAddress = latestDoc.data()['address'] as String?;
+        final docHouseNo = latestDoc.data()['house_no'] as String? ?? latestDoc.data()['houseNo'] as String?;
+        final docLandmark = latestDoc.data()['landmark'] as String?;
+        final docLabel = latestDoc.data()['label'] as String? ?? 'Home';
+        final docLat = (latestDoc.data()['lat'] as num?)?.toDouble();
+        final docLng = (latestDoc.data()['lng'] as num?)?.toDouble();
+
+        if (docAddress != null && docAddress.isNotEmpty) {
+          _deliveryAddress = docAddress;
+          _customerHouseNo = docHouseNo ?? '';
+          _customerLandmark = docLandmark ?? '';
+          _addressLabel = docLabel;
+          if (docLat != null) _currentLat = docLat;
+          if (docLng != null) _currentLng = docLng;
+
+          await prefs.setString('customerAddress', _deliveryAddress);
+          await prefs.setString('customerHouseNo', _customerHouseNo);
+          await prefs.setString('customerLandmark', _customerLandmark);
+          await prefs.setString('addressLabel', _addressLabel);
+          if (_currentLat != null) await prefs.setDouble('customerLat', _currentLat!);
+          if (_currentLng != null) await prefs.setDouble('customerLng', _currentLng!);
+        } else if (_savedAddresses.isNotEmpty) {
+          final defaultAddr = _savedAddresses.firstWhere(
+            (a) => a['isDefault'] == true,
+            orElse: () => _savedAddresses.first,
+          );
+          _deliveryAddress = defaultAddr['address']?.toString() ?? '';
+          _customerHouseNo = defaultAddr['houseNo']?.toString() ?? '';
+          _customerLandmark = defaultAddr['landmark']?.toString() ?? '';
+          _addressLabel = defaultAddr['label']?.toString() ?? 'Home';
+          _currentLat = (defaultAddr['lat'] as num?)?.toDouble();
+          _currentLng = (defaultAddr['lng'] as num?)?.toDouble();
+
+          await prefs.setString('customerAddress', _deliveryAddress);
+          await prefs.setString('customerHouseNo', _customerHouseNo);
+          await prefs.setString('customerLandmark', _customerLandmark);
+          await prefs.setString('addressLabel', _addressLabel);
+          if (_currentLat != null) await prefs.setDouble('customerLat', _currentLat!);
+          if (_currentLng != null) await prefs.setDouble('customerLng', _currentLng!);
+        }
+      }
+
+      await checkServiceability();
+    } catch (e) {
+      debugPrint('Error restoring customer profile: $e');
+    }
+
+    notifyListeners();
   }
 
   Future<void> setDeliveryAddress(
@@ -438,18 +588,55 @@ class UserProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _syncAddressesToFirebase() async {
-    final phoneStr = _phoneNumber.replaceAll(RegExp(r'\D'), '');
-    if (phoneStr.isNotEmpty) {
-      try {
-        final qs = await FirebaseUtils.firestore.collection('customers').where('mobile', isEqualTo: phoneStr).get();
-        if (qs.docs.isNotEmpty) {
-          await FirebaseUtils.firestore.collection('customers').doc(qs.docs.first.id).update({
-            'saved_addresses': _savedAddresses,
-          });
+    final variants = _getPhoneVariants();
+    if (variants.isEmpty) return;
+
+    try {
+      final qs = await FirebaseUtils.firestore
+          .collection('customers')
+          .where('mobile', whereIn: variants.take(10).toList())
+          .get();
+
+      final updatePayload = {
+        'saved_addresses': _savedAddresses,
+        'address': _deliveryAddress,
+        'house_no': _customerHouseNo,
+        'landmark': _customerLandmark,
+        'label': _addressLabel,
+        'lat': _currentLat,
+        'lng': _currentLng,
+        'updated_at': FieldValue.serverTimestamp(),
+      };
+
+      if (qs.docs.isNotEmpty) {
+        for (final doc in qs.docs) {
+          await doc.reference.update(updatePayload);
         }
-      } catch (e) {
-        debugPrint('Error syncing addresses to Firebase: $e');
+      } else {
+        await FirebaseUtils.firestore.collection('customers').add({
+          'name': _customerName.isNotEmpty ? _customerName : 'User',
+          'mobile': _phoneNumber,
+          'pin': 'PHONE_AUTH',
+          'created_at': FieldValue.serverTimestamp(),
+          ...updatePayload,
+        });
       }
+
+      final currentUser = FirebaseUtils.auth.currentUser;
+      if (currentUser != null) {
+        await FirebaseUtils.firestore.collection('users').doc(currentUser.uid).set({
+          'saved_addresses': _savedAddresses,
+          'address': _deliveryAddress,
+          'house_no': _customerHouseNo,
+          'landmark': _customerLandmark,
+          'label': _addressLabel,
+          'lat': _currentLat,
+          'lng': _currentLng,
+          'updated_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Error syncing addresses to Firebase: $e');
     }
   }
 

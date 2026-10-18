@@ -18,6 +18,15 @@ class LiveDeliveryTrackingService {
   Position? _lastBroadcastPosition;
   bool _isBroadcastingPaused = false;
 
+  // Active Phase & Target Coordinates ('to_store' or 'to_customer')
+  String _currentPhase = 'to_customer';
+  double? _targetLat;
+  double? _targetLng;
+  double? _currentShopLat;
+  double? _currentShopLng;
+  double? _currentCustomerLat;
+  double? _currentCustomerLng;
+
   // Configurable thresholds for battery & Firestore optimization
   final int minUpdateIntervalSeconds;
   final double minUpdateDistanceMeters;
@@ -59,6 +68,7 @@ class LiveDeliveryTrackingService {
     required String customerAddress,
     double? customerLat,
     double? customerLng,
+    String phase = 'to_customer', // 'to_store' or 'to_customer'
     Stream<Position>? customPositionStreamForTesting,
   }) async {
     // If already broadcasting for another order, terminate previous session first
@@ -72,8 +82,26 @@ class LiveDeliveryTrackingService {
     _lastBroadcastTime = null;
     _lastBroadcastPosition = null;
 
+    _currentPhase = phase;
+    _currentShopLat = shopLat;
+    _currentShopLng = shopLng;
+    _currentCustomerLat = customerLat;
+    _currentCustomerLng = customerLng;
+
+    if (phase == 'to_store') {
+      _targetLat = shopLat;
+      _targetLng = shopLng;
+    } else {
+      _targetLat = customerLat;
+      _targetLng = customerLng;
+    }
+
     final now = DateTime.now();
     final docRef = _trackingRef.doc(orderId);
+
+    final initialStatus = phase == 'to_store'
+        ? LiveTrackingStatus.headingToStore
+        : LiveTrackingStatus.transit;
 
     // Initial session document
     final initialSession = LiveTrackingSession(
@@ -91,8 +119,10 @@ class LiveDeliveryTrackingService {
       customerAddress: customerAddress,
       customerLat: customerLat,
       customerLng: customerLng,
+      currentPhase: phase,
+      targetLabel: phase == 'to_store' ? (shopName ?? 'Kirana Store') : customerName,
       isActive: true,
-      status: LiveTrackingStatus.transit,
+      status: initialStatus,
       sessionStartedAt: now,
       lastUpdatedAt: now,
     );
@@ -197,28 +227,48 @@ class LiveDeliveryTrackingService {
     _lastBroadcastTime = now;
     _lastBroadcastPosition = pos;
 
-    // Calculate distance remaining to customer address
+    // Calculate distance remaining to target (Store or Customer)
     double? distanceRemaining;
     int? etaMinutes;
-    LiveTrackingStatus computedStatus = LiveTrackingStatus.transit;
+    final isHeadingToStore = _currentPhase == 'to_store';
+    LiveTrackingStatus computedStatus = isHeadingToStore
+        ? LiveTrackingStatus.headingToStore
+        : LiveTrackingStatus.transit;
 
-    if (customerLat != null &&
-        customerLng != null &&
-        customerLat != 0.0 &&
-        customerLng != 0.0) {
+    final double? targetLat = isHeadingToStore
+        ? (_targetLat ?? _currentShopLat)
+        : (_targetLat ?? _currentCustomerLat ?? customerLat);
+    final double? targetLng = isHeadingToStore
+        ? (_targetLng ?? _currentShopLng)
+        : (_targetLng ?? _currentCustomerLng ?? customerLng);
+
+    if (targetLat != null &&
+        targetLng != null &&
+        targetLat != 0.0 &&
+        targetLng != 0.0) {
       distanceRemaining = Geolocator.distanceBetween(
         pos.latitude,
         pos.longitude,
-        customerLat,
-        customerLng,
+        targetLat,
+        targetLng,
       );
 
-      // Proximity detection: within 180 meters
-      if (distanceRemaining <= 180.0) {
-        computedStatus = LiveTrackingStatus.nearby;
-        try {
-          SoundService().orderDispatched();
-        } catch (_) {}
+      if (isHeadingToStore) {
+        // Proximity detection for store arrival: within 80 meters
+        if (distanceRemaining <= 80.0) {
+          computedStatus = LiveTrackingStatus.arrivedAtStore;
+          try {
+            SoundService().orderDispatched();
+          } catch (_) {}
+        }
+      } else {
+        // Proximity detection for customer: within 180 meters
+        if (distanceRemaining <= 180.0) {
+          computedStatus = LiveTrackingStatus.nearby;
+          try {
+            SoundService().orderDispatched();
+          } catch (_) {}
+        }
       }
 
       // Calculate approximate ETA in minutes (assumes 20 km/h average speed in city)
@@ -244,6 +294,7 @@ class LiveDeliveryTrackingService {
         'current_location': newPoint.toMap(),
         'last_updated_at': Timestamp.fromDate(now),
         'status': computedStatus.key,
+        'current_phase': _currentPhase,
         'distance_remaining_meters': distanceRemaining,
         'estimated_minutes_remaining': etaMinutes,
         'breadcrumbs': FieldValue.arrayUnion([newPoint.toMap()]),
@@ -259,6 +310,7 @@ class LiveDeliveryTrackingService {
           'heading': pos.heading,
           'updated_at': Timestamp.fromDate(now),
           'status': computedStatus.key,
+          'phase': _currentPhase,
         },
       }, SetOptions(merge: true));
     } catch (e) {

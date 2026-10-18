@@ -156,24 +156,41 @@ class _GatewayScreenState extends State<GatewayScreen> {
     );
 
     try {
+      final rawDigits = _globalPhone!.replaceAll(RegExp(r'\D'), '');
+      final cleanPhone = rawDigits.length >= 10 ? rawDigits.substring(rawDigits.length - 10) : rawDigits;
+      final variants = <String>{};
+      if (cleanPhone.isNotEmpty) {
+        variants.add(cleanPhone);
+        variants.add('+91$cleanPhone');
+        variants.add('+91 $cleanPhone');
+        variants.add('91$cleanPhone');
+      }
+      variants.add(_globalPhone!);
+
       final existingCustomer = await FirebaseUtils.firestore
           .collection('customers')
-          .where('mobile', isEqualTo: _globalPhone)
-          .limit(1)
+          .where('mobile', whereIn: variants.take(10).toList())
           .get();
 
       if (!mounted) return;
       Navigator.pop(context); // hide loader
 
       if (existingCustomer.docs.isNotEmpty) {
-        final doc = existingCustomer.docs.first;
+        final sortedDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(existingCustomer.docs);
+        sortedDocs.sort((a, b) {
+          final aTime = (a.data()['updated_at'] as Timestamp?) ?? (a.data()['created_at'] as Timestamp?) ?? Timestamp(0, 0);
+          final bTime = (b.data()['updated_at'] as Timestamp?) ?? (b.data()['created_at'] as Timestamp?) ?? Timestamp(0, 0);
+          return bTime.compareTo(aTime);
+        });
+
+        final doc = sortedDocs.first;
         final data = doc.data();
-        final dbName = data['name'] as String? ?? 'User';
+        final dbName = (data['name'] as String?)?.trim() ?? 'User';
         
         await prefs.setString('customerName', dbName);
         await prefs.setString('customerPhone', _globalPhone!);
         if (mounted) {
-          Provider.of<UserProvider>(context, listen: false).setUser(dbName, _globalPhone!);
+          await Provider.of<UserProvider>(context, listen: false).restoreCustomerProfile(_globalPhone!);
         }
       } else {
         final name = await showDialog<String>(
@@ -306,7 +323,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
           name: name,
         );
         if (mounted) {
-          Provider.of<UserProvider>(context, listen: false).setUser(name, _globalPhone!);
+          await Provider.of<UserProvider>(context, listen: false).restoreCustomerProfile(_globalPhone!);
         }
       }
     } catch (e) {

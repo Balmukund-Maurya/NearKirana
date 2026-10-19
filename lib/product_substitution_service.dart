@@ -17,6 +17,16 @@ class ProductSubstitutionService {
 
   static final ProductSubstitutionService instance = ProductSubstitutionService();
 
+  static String? _sanitizeImageUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if ((url.startsWith('http://') || url.startsWith('https://') || url.startsWith('assets/')) &&
+        url.length <= 1024 &&
+        !url.contains(';base64,')) {
+      return url;
+    }
+    return null;
+  }
+
   /// Proposes a product substitution for an active order item.
   Future<ProductSubstitutionProposal> proposeSubstitution({
     required String orderId,
@@ -47,13 +57,13 @@ class ProductSubstitutionService {
       originalPrice: originalPrice,
       originalQuantity: originalQuantity,
       originalUnit: originalUnit,
-      originalImageUrl: originalImageUrl,
+      originalImageUrl: _sanitizeImageUrl(originalImageUrl),
       substituteProductId: substituteProductId,
       substituteProductName: substituteProductName,
       substitutePrice: substitutePrice,
       substituteQuantity: substituteQuantity,
       substituteUnit: substituteUnit,
-      substituteImageUrl: substituteImageUrl,
+      substituteImageUrl: _sanitizeImageUrl(substituteImageUrl),
       status: SubstitutionStatus.pending,
       reason: reason,
       proposedBy: proposedBy,

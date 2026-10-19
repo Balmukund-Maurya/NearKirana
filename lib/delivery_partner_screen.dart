@@ -832,15 +832,19 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             ),
             child: Row(
               children: [
-                Text(
-                  'Order #$shortId',
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+                Expanded(
+                  child: Text(
+                    'Order #$shortId',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 _buildTaskStatusBadge(task),
               ],
             ),
@@ -927,27 +931,31 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   ),
                   child: Row(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${task.itemsCount} Items in parcel',
-                            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
-                          ),
-                          if (task.itemsSummary.isNotEmpty)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              task.itemsSummary.join(', '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textDark,
-                              ),
+                              '${task.itemsCount} Items in parcel',
+                              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
                             ),
-                        ],
+                            if (task.itemsSummary.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                task.itemsSummary.join(', '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

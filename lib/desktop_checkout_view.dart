@@ -165,13 +165,13 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: Row(
                   children: [
-                    _buildStep(1, isDesktop ? (l10n?.delivery_address ?? 'Delivery Address') : (l10n?.address_lbl ?? 'Address'), isActive: true, isDesktop: isDesktop),
-                    _buildLine(isActive: true, isDesktop: isDesktop),
-                    _buildStep(2, isDesktop ? (l10n?.order_summary ?? 'Order Review') : "Review", isActive: false, isDesktop: isDesktop),
-                    _buildLine(isActive: false, isDesktop: isDesktop),
-                    _buildStep(3, isDesktop ? (l10n?.payment_method ?? 'Payment Method') : "Payment", isActive: false, isDesktop: isDesktop),
-                    _buildLine(isActive: false, isDesktop: isDesktop),
-                    _buildStep(4, isDesktop ? (l10n?.place_order ?? 'Place Order') : "Done", isActive: false, isDesktop: isDesktop),
+                    _buildStep(1, isDesktop ? (l10n?.delivery_address ?? 'Delivery Address') : (l10n?.address_lbl ?? 'Address'), isActive: true),
+                    _buildLine(isActive: true),
+                    _buildStep(2, isDesktop ? (l10n?.order_summary ?? 'Order Review') : "Review", isActive: false),
+                    _buildLine(isActive: false),
+                    _buildStep(3, isDesktop ? (l10n?.payment_method ?? 'Payment Method') : "Payment", isActive: false),
+                    _buildLine(isActive: false),
+                    _buildStep(4, isDesktop ? (l10n?.place_order ?? 'Place Order') : "Done", isActive: false),
                   ],
                 ),
               ),
@@ -588,18 +588,13 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    "${l10n?.subtotal ?? 'Subtotal'} (${cartItems.length} ${l10n?.items ?? 'items'})",
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 14,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                Text(
+                                  "${l10n?.subtotal ?? 'Subtotal'} (${cartItems.length} ${l10n?.items ?? 'items'})",
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 14,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
                                 Text(
                                   "₹${subtotal.toStringAsFixed(0)}",
                                   style: const TextStyle(
@@ -613,30 +608,22 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Expanded(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          "${l10n?.delivery_charges ?? 'Delivery Charges'} ",
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 14,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      "${l10n?.delivery_charges ?? 'Delivery Charges'} ",
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 14,
                                       ),
-                                      Icon(
-                                        Icons.info_outline,
-                                        size: 14,
-                                        color: Colors.grey.shade400,
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 14,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
                                 Text(
                                   deliveryFee == 0 ? (l10n?.free_delivery_label ?? "FREE") : "₹${deliveryFee.toStringAsFixed(0)}",
                                   style: TextStyle(
@@ -652,18 +639,13 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      l10n?.coupon_discount ?? "Discount",
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 14,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    l10n?.coupon_discount ?? "Discount",
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 14,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
                                   Text(
                                     "- ₹${discount.toStringAsFixed(0)}",
                                     style: const TextStyle(
@@ -690,19 +672,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      l10n?.total_amount ?? "Total Amount",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Color(0xFF111827),
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    l10n?.total_amount ?? "Total Amount",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Color(0xFF111827),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
                                   Text(
                                     "₹${finalTotal.toStringAsFixed(0)}",
                                     style: const TextStyle(
@@ -734,14 +711,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                       size: 16,
                                     ),
                                     const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        "You are saving ₹${discount.toStringAsFixed(0)} on this order!",
-                                        style: const TextStyle(
-                                          color: Color(0xFF166534),
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                    Text(
+                                      "You are saving ₹${discount.toStringAsFixed(0)} on this order!",
+                                      style: const TextStyle(
+                                        color: Color(0xFF166534),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ],
@@ -960,13 +935,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
 
   // UI HELPERS
 
-  Widget _buildStep(int stepNum, String label, {required bool isActive, bool isDesktop = true}) {
+  Widget _buildStep(int stepNum, String label, {required bool isActive}) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: isDesktop ? 32 : 26,
-          height: isDesktop ? 32 : 26,
+          width: 32,
+          height: 32,
           decoration: BoxDecoration(
             color: isActive ? const Color(0xFF047857) : Colors.grey.shade200,
             shape: BoxShape.circle,
@@ -977,21 +951,21 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             style: TextStyle(
               color: isActive ? Colors.white : Colors.grey.shade500,
               fontWeight: FontWeight.bold,
-              fontSize: isDesktop ? 14 : 11,
+              fontSize: 14,
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         SizedBox(
-          width: isDesktop ? 75 : 52,
+          width: 75,
           child: Text(
             label,
             textAlign: TextAlign.center,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: isActive ? const Color(0xFF111827) : Colors.grey.shade400,
-              fontSize: isDesktop ? 12 : 10,
+              fontSize: 12,
               fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
             ),
           ),
@@ -1000,15 +974,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     );
   }
 
-  Widget _buildLine({required bool isActive, bool isDesktop = true}) {
+  Widget _buildLine({required bool isActive}) {
     return Expanded(
       child: Container(
         height: 2,
-        margin: EdgeInsets.only(
-          bottom: isDesktop ? 24 : 18,
-          left: isDesktop ? 8 : 4,
-          right: isDesktop ? 8 : 4,
-        ),
+        margin: const EdgeInsets.only(bottom: 24, left: 8, right: 8),
         color: isActive ? const Color(0xFF047857) : Colors.grey.shade200,
       ),
     );
@@ -1624,26 +1594,27 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           ),
           const SizedBox(height: 14),
 
-          // Supported UPI Apps
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
+          // Supported UPI Apps Row
+          Row(
             children: [
               _buildUpiAppChip(
                 name: "GPay",
                 bgColor: const Color(0xFFE8F0FE),
                 textColor: const Color(0xFF1A73E8),
               ),
+              const SizedBox(width: 8),
               _buildUpiAppChip(
                 name: "PhonePe",
                 bgColor: const Color(0xFFF3E8FF),
                 textColor: const Color(0xFF5F259F),
               ),
+              const SizedBox(width: 8),
               _buildUpiAppChip(
                 name: "Paytm",
                 bgColor: const Color(0xFFE0F2FE),
                 textColor: const Color(0xFF002E6E),
               ),
+              const SizedBox(width: 8),
               _buildUpiAppChip(
                 name: "BHIM / Any",
                 bgColor: const Color(0xFFFFF7ED),
@@ -1752,38 +1723,37 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             const SizedBox(height: 14),
 
             // Action Buttons: Pay via UPI App OR Scan QR
-            LayoutBuilder(
-              builder: (context, btnConstraints) {
-                final isNarrowBtn = btnConstraints.maxWidth < 340;
-                final upiPayBtn = ElevatedButton.icon(
-                  onPressed: () => _launchUpiApp(
-                    context: context,
-                    shopUpiId: shopUpiId,
-                    shopName: shopName,
-                    finalTotal: finalTotal,
-                  ),
-                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: Text(
-                    "Pay via UPI App (₹${finalTotal.toStringAsFixed(0)})",
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _launchUpiApp(
+                      context: context,
+                      shopUpiId: shopUpiId,
+                      shopName: shopName,
+                      finalTotal: finalTotal,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF047857),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: Text(
+                      "Pay via UPI App (₹${finalTotal.toStringAsFixed(0)})",
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                    elevation: 0,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF047857),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                    ),
                   ),
-                );
-
-                final qrToggleBtn = OutlinedButton.icon(
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     setState(() => _showQrCode = !_showQrCode);
@@ -1799,29 +1769,10 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   ),
-                );
-
-                if (isNarrowBtn) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      upiPayBtn,
-                      const SizedBox(height: 8),
-                      qrToggleBtn,
-                    ],
-                  );
-                }
-
-                return Row(
-                  children: [
-                    Expanded(child: upiPayBtn),
-                    const SizedBox(width: 10),
-                    qrToggleBtn,
-                  ],
-                );
-              },
+                ),
+              ],
             ),
 
             if (_showQrCode) ...[
@@ -2217,22 +2168,13 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       }
 
       // Build delivery address
-      String finalDeliveryAddress = '';
-      if (userProvider.customerHouseNo.isNotEmpty) {
-        finalDeliveryAddress = 'House: ${userProvider.customerHouseNo}';
-        if (userProvider.customerLandmark.isNotEmpty) {
-          finalDeliveryAddress += ', Landmark: ${userProvider.customerLandmark}';
-        }
-        if (userProvider.autoLocality.isNotEmpty) {
-          finalDeliveryAddress += ' — (${userProvider.autoLocality})';
-        }
-      } else if (userProvider.deliveryAddress.isNotEmpty) {
-        finalDeliveryAddress = userProvider.deliveryAddress;
-      } else {
-        finalDeliveryAddress = 'Home Delivery';
+      String finalDeliveryAddress = 'House: \${userProvider.customerHouseNo}';
+      if (userProvider.customerLandmark.isNotEmpty) {
+        finalDeliveryAddress += ', Landmark: \${userProvider.customerLandmark}';
       }
+      finalDeliveryAddress += ' — (Locality: \${userProvider.autoLocality})';
       if (userProvider.addressLabel.isNotEmpty) {
-        finalDeliveryAddress += ' [${userProvider.addressLabel}]';
+        finalDeliveryAddress += ' [\${userProvider.addressLabel}]';
       }
 
       final items = cartProvider.itemsList
@@ -2242,12 +2184,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 price: item.price,
                 quantity: item.quantity,
                 isLoose: item.isLoose,
-                imageUrl: OrderItemRequest.sanitizeImageUrl(item.imageUrl),
+                imageUrl: item.imageUrl,
               ))
           .toList();
 
       final idempotencyKey =
-          'pay_${phone}_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}';
+          'pay_\${phone}_\${DateTime.now().millisecondsSinceEpoch}_\${Random().nextInt(999999)}';
 
       final estimate = userProvider.getEstimatedDeliveryTime(deliveryType: 'Delivery');
 
@@ -2357,7 +2299,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Your order will be delivered soon.\nDelivery PIN: ${result.deliveryPin}",
+                  "Your order will be delivered soon.\nDelivery PIN: \${result.deliveryPin}",
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                 ),

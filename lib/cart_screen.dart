@@ -103,11 +103,14 @@ class _CartScreenState extends State<CartScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isCheckout) {
-      return DesktopCheckoutView(
-        onBackToCart: () => setState(() => _isCheckout = false),
-        onOrderPlaced: () {
-          setState(() => _isCheckout = false);
-        },
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        body: DesktopCheckoutView(
+          onBackToCart: () => setState(() => _isCheckout = false),
+          onOrderPlaced: () {
+            setState(() => _isCheckout = false);
+          },
+        ),
       );
     }
 
@@ -420,15 +423,10 @@ class _CartScreenState extends State<CartScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    AppLocalizations.of(context)!.subtotal,
-                    style: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Text(
+                  AppLocalizations.of(context)!.subtotal,
+                  style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                 ),
-                const SizedBox(width: 8),
                 Text(
                   '₹$subtotal',
                   style: AppTextStyles.bodySemiBold(color: AppColors.textDark),
@@ -440,15 +438,10 @@ class _CartScreenState extends State<CartScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Text(
-                      AppLocalizations.of(context)!.delivery_fee,
-                      style: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  Text(
+                    AppLocalizations.of(context)!.delivery_fee,
+                    style: AppTextStyles.bodyMedium(color: AppColors.textMid),
                   ),
-                  const SizedBox(width: 8),
                   Text(
                     '+₹$deliveryFee',
                     style: AppTextStyles.bodySemiBold(
@@ -465,15 +458,10 @@ class _CartScreenState extends State<CartScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    '${AppLocalizations.of(context)!.total_amount}:',
-                    style: AppTextStyles.heading2(color: AppColors.textDark),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Text(
+                  '${AppLocalizations.of(context)!.total_amount}:',
+                  style: AppTextStyles.heading2(color: AppColors.textDark),
                 ),
-                const SizedBox(width: 8),
                 Text(
                   '₹$finalTotal',
                   style: AppTextStyles.heading1(color: AppColors.primaryDark),
@@ -1838,7 +1826,7 @@ class _CartScreenState extends State<CartScreen> {
 
                                         isLoose: item.isLoose,
 
-                                        imageUrl: OrderItemRequest.sanitizeImageUrl(item.imageUrl),
+                                        imageUrl: item.imageUrl,
                                       ),
                                     )
                                     .toList();
@@ -2762,15 +2750,10 @@ class _CartScreenState extends State<CartScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  'Subtotal (${cartItems.length} items)',
-                                  style: TextStyle(color: Colors.grey.shade500),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                              Text(
+                                'Subtotal (${cartItems.length} items)',
+                                style: TextStyle(color: Colors.grey.shade500),
                               ),
-                              const SizedBox(width: 8),
                               Text(
                                 '₹${subtotal.toStringAsFixed(0)}',
                                 style: const TextStyle(
@@ -2784,29 +2767,21 @@ class _CartScreenState extends State<CartScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        'Delivery Charges ',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade500,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Delivery Charges ',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
                                     ),
-                                    Icon(
-                                      Icons.info_outline,
-                                      size: 14,
-                                      color: Colors.grey.shade400,
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  Icon(
+                                    Icons.info_outline,
+                                    size: 14,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
                               Text(
                                 '₹${deliveryFee.toStringAsFixed(0)}',
                                 style: const TextStyle(
@@ -2826,19 +2801,14 @@ class _CartScreenState extends State<CartScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Expanded(
-                                  child: Text(
-                                    'Total Amount',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Color(0xFF111827),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                const Text(
+                                  'Total Amount',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Color(0xFF111827),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
                                 Text(
                                   '₹${finalTotal.toStringAsFixed(0)}',
                                   style: const TextStyle(

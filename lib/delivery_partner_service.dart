@@ -76,14 +76,16 @@ class DeliveryPartnerService {
     return null;
   }
 
-  /// Real-time stream of all delivery partners registered for a shop (or all if shopId empty)
+  /// Real-time stream of all delivery partners registered for a shop
   Stream<List<DeliveryPartner>> streamShopPartners(String shopId) {
-    Query query = _partnersRef;
-    if (shopId.isNotEmpty) {
-      query = query.where('shop_id', isEqualTo: shopId);
+    if (shopId.isEmpty) {
+      return Stream.value(<DeliveryPartner>[]);
     }
 
-    return query.snapshots().map((snapshot) {
+    return _partnersRef
+        .where('shop_id', isEqualTo: shopId)
+        .snapshots()
+        .map((snapshot) {
       final list = snapshot.docs
           .map((doc) => DeliveryPartner.fromMap(
                 doc.data() as Map<String, dynamic>,
@@ -93,27 +95,6 @@ class DeliveryPartnerService {
       list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       return list;
     });
-  }
-
-  /// One-time fetch of delivery partners
-  Future<List<DeliveryPartner>> getShopPartners(String shopId) async {
-    try {
-      Query query = _partnersRef;
-      if (shopId.isNotEmpty) {
-        query = query.where('shop_id', isEqualTo: shopId);
-      }
-      final snapshot = await query.get();
-      final list = snapshot.docs
-          .map((doc) => DeliveryPartner.fromMap(
-                doc.data() as Map<String, dynamic>,
-                doc.id,
-              ))
-          .toList();
-      list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-      return list;
-    } catch (_) {
-      return [];
-    }
   }
 
   /// Toggles partner availability status (available, onDelivery, offline)

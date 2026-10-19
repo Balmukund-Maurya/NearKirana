@@ -832,19 +832,15 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    'Order #$shortId',
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Text(
+                  'Order #$shortId',
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const Spacer(),
                 _buildTaskStatusBadge(task),
               ],
             ),
@@ -931,31 +927,27 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   ),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${task.itemsCount} Items in parcel',
+                            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
+                          ),
+                          if (task.itemsSummary.isNotEmpty)
                             Text(
-                              '${task.itemsCount} Items in parcel',
-                              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
-                            ),
-                            if (task.itemsSummary.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                task.itemsSummary.join(', '),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textDark,
-                                ),
+                              task.itemsSummary.join(', '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textDark,
                               ),
-                            ],
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
+                      const Spacer(),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

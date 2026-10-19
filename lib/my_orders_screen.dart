@@ -999,56 +999,43 @@ class MyOrdersScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Flexible(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      final phone = data['phone_number']?.toString() ?? '';
-                      final shopId = data['shop_id']?.toString() ?? '';
-                      _showSaveOrderAsListDialog(context, doc.id, phone, shopId, items);
-                    },
-                    icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-                    label: const Text(
-                      'Save as List',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryDark,
-                      side: BorderSide(color: AppColors.primaryDark.withValues(alpha: 0.3)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    final phone = data['phone_number']?.toString() ?? '';
+                    final shopId = data['shop_id']?.toString() ?? '';
+                    _showSaveOrderAsListDialog(context, doc.id, phone, shopId, items);
+                  },
+                  icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+                  label: const Text('Save as List'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryDark,
+                    side: BorderSide(color: AppColors.primaryDark.withValues(alpha: 0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      HapticFeedback.mediumImpact();
-                      final shopId = data['shop_id']?.toString() ?? '';
-                      ReorderSummaryDialog.showForItems(
-                        context: context,
-                        sourceTitle: 'Order #${doc.id}',
-                        shopId: shopId,
-                        items: items.map((i) => Map<String, dynamic>.from(i as Map)).toList(),
-                      );
-                    },
-                    icon: const Icon(Icons.replay_rounded, size: 18),
-                    label: const Text(
-                      'Reorder',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryDark,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    ),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    final shopId = data['shop_id']?.toString() ?? '';
+                    ReorderSummaryDialog.showForItems(
+                      context: context,
+                      sourceTitle: 'Order #${doc.id}',
+                      shopId: shopId,
+                      items: items.map((i) => Map<String, dynamic>.from(i as Map)).toList(),
+                    );
+                  },
+                  icon: const Icon(Icons.replay_rounded, size: 18),
+                  label: const Text('Reorder'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                 ),
               ],
@@ -1128,108 +1115,85 @@ class MyOrdersScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final currentIndex = OrderStateMachine.getTimelineStepIndex(currentStatus);
 
-    final stepLabels = [
-      l10n?.order_status_pending ?? 'Pending',
-      l10n?.order_status_accepted ?? 'Accepted',
-      l10n?.order_status_packing ?? 'Packing',
-      l10n?.order_status_ready ?? 'Ready',
-      l10n?.order_status_out ?? 'Out for Delivery',
-      l10n?.order_status_delivered ?? 'Delivered',
-    ];
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(stepLabels.length, (index) {
-          final isFirst = index == 0;
-          final isLast = index == stepLabels.length - 1;
-          final isCompleted = index <= currentIndex;
-          final isCurrent = index == currentIndex;
-          final isLeftLineDone = index <= currentIndex;
-          final isRightLineDone = index < currentIndex;
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildTimelineStep(l10n?.order_status_pending ?? 'Pending', 0, currentIndex),
+          _buildTimelineLine(currentIndex > 0),
+          _buildTimelineStep(l10n?.order_status_accepted ?? 'Accepted', 1, currentIndex),
+          _buildTimelineLine(currentIndex > 1),
+          _buildTimelineStep(l10n?.order_status_packing ?? 'Packing', 2, currentIndex),
+          _buildTimelineLine(currentIndex > 2),
+          _buildTimelineStep(l10n?.order_status_ready ?? 'Ready', 3, currentIndex),
+          _buildTimelineLine(currentIndex > 3),
+          _buildTimelineStep(l10n?.order_status_out ?? 'Out', 4, currentIndex),
+          _buildTimelineLine(currentIndex > 4),
+          _buildTimelineStep(l10n?.order_status_delivered ?? 'Delivered', 5, currentIndex),
+        ],
+      ),
+    );
+  }
 
-          return Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    // Left connecting half-line
-                    Expanded(
-                      child: Container(
-                        height: 2.5,
-                        color: isFirst
-                            ? Colors.transparent
-                            : (isLeftLineDone ? AppColors.primaryDark : AppColors.bgTint),
-                      ),
+  Widget _buildTimelineStep(String label, int stepIndex, int currentIndex) {
+    final bool isCompleted = stepIndex <= currentIndex;
+    final bool isCurrent = stepIndex == currentIndex;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isCompleted ? AppColors.primaryDark : AppColors.bgTint,
+            border: isCurrent
+                ? Border.all(color: AppColors.primaryLight, width: 2.5)
+                : null,
+            boxShadow: isCompleted
+                ? [
+                    BoxShadow(
+                      color: AppColors.primaryDark.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
-                    // Step circle
-                    Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isCompleted ? AppColors.primaryDark : AppColors.bgTint,
-                        border: isCurrent
-                            ? Border.all(color: AppColors.primaryLight, width: 2.5)
-                            : null,
-                        boxShadow: isCompleted
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.primaryDark.withValues(alpha: 0.25),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: isCompleted
-                          ? const Icon(
-                              Icons.check_rounded,
-                              size: 13,
-                              color: AppColors.white,
-                            )
-                          : null,
-                    ),
-                    // Right connecting half-line
-                    Expanded(
-                      child: Container(
-                        height: 2.5,
-                        color: isLast
-                            ? Colors.transparent
-                            : (isRightLineDone ? AppColors.primaryDark : AppColors.bgTint),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                SizedBox(
-                  height: 26,
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        stepLabels[index],
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        style: AppTextStyles.caption(
-                          color: isCompleted
-                              ? AppColors.primaryDark
-                              : AppColors.textLight,
-                        ).copyWith(
-                          fontSize: 10,
-                          fontWeight: isCompleted ? FontWeight.bold : FontWeight.w500,
-                          height: 1.15,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
+                  ]
+                : null,
+          ),
+          child: isCompleted
+              ? const Icon(
+                  Icons.check_rounded,
+                  size: 14,
+                  color: AppColors.white,
+                )
+              : null,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: AppTextStyles.caption(
+            color: isCompleted
+                ? AppColors.primaryDark
+                : AppColors.textLight,
+          ).copyWith(
+            fontSize: 10,
+            fontWeight: isCompleted ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimelineLine(bool isCompleted) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20, left: 2, right: 2),
+        height: 2.5,
+        decoration: BoxDecoration(
+          color: isCompleted ? AppColors.primaryDark : AppColors.bgTint,
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
     );
   }

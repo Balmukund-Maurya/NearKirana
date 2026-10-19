@@ -1030,26 +1030,10 @@ service cloud.firestore {
       );
     }
 
-    // =========================================================================
-    // 21. DELIVERY PARTNERS & DISPATCHES
-    // =========================================================================
-    match /delivery_partners/{partnerId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
-      allow delete: if isSuperAdmin() || isAuthenticated();
-    }
-
-    match /delivery_tasks/{taskId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
-      allow delete: if isSuperAdmin() || isAuthenticated();
-    }
-
     // Fallback: Deny all unhandled paths
     match /{document=**} {
       allow read, write: if false;
     }
-
   }
 }
 

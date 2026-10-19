@@ -275,10 +275,7 @@ class _CouponInputCardState extends State<CouponInputCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
+                        Row(
                           children: [
                             Text(
                               _appliedCoupon!.code,
@@ -289,6 +286,7 @@ class _CouponInputCardState extends State<CouponInputCard> {
                                 letterSpacing: 0.5,
                               ),
                             ),
+                            const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 6,
@@ -450,16 +448,12 @@ class AvailableCouponsSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
-                child: Text(
-                  'Available Coupons & Offers',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF111827),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              const Text(
+                'Available Coupons & Offers',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
                 ),
               ),
               IconButton(
@@ -755,13 +749,9 @@ class _AdminCouponDialogState extends State<AdminCouponDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Text(
-                        widget.existingCoupon == null ? 'Create New Coupon' : 'Edit Coupon',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Text(
+                      widget.existingCoupon == null ? 'Create New Coupon' : 'Edit Coupon',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),

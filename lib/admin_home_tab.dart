@@ -178,7 +178,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                 Expanded(
                   flex: 3,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [AppColors.primaryDark, Color(0xFF1E4B19)],
@@ -202,41 +202,33 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                             const Icon(
                               Icons.currency_rupee_rounded,
                               color: AppColors.primaryLight,
-                              size: 18,
+                              size: 20,
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Earning Today',
-                                style: AppTextStyles.bodyMedium(
-                                  color: AppColors.primaryLight,
-                                ).copyWith(fontSize: 13),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 8),
+                            Text(
+                              'Earning Today',
+                              style: AppTextStyles.bodyMedium(
+                                color: AppColors.primaryLight,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '₹${todayTotal.toStringAsFixed(0)}',
-                            style: AppTextStyles.heading1(
-                              color: AppColors.white,
-                            ).copyWith(fontSize: 28),
-                          ),
+                        Text(
+                          '₹${todayTotal.toStringAsFixed(0)}',
+                          style: AppTextStyles.heading1(
+                            color: AppColors.white,
+                          ).copyWith(fontSize: 32),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 16),
                 Expanded(
                   flex: 2,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: BorderRadius.circular(24),
@@ -257,31 +249,23 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                             const Icon(
                               Icons.local_shipping_rounded,
                               color: Colors.blue,
-                              size: 18,
+                              size: 20,
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Active',
-                                style: AppTextStyles.bodyMedium(
-                                  color: AppColors.textMid,
-                                ).copyWith(fontSize: 13),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 8),
+                            Text(
+                              'Active',
+                              style: AppTextStyles.bodyMedium(
+                                color: AppColors.textMid,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '$activeOrders',
-                            style: AppTextStyles.heading1(
-                              color: AppColors.textDark,
-                            ).copyWith(fontSize: 28),
-                          ),
+                        Text(
+                          '$activeOrders',
+                          style: AppTextStyles.heading1(
+                            color: AppColors.textDark,
+                          ).copyWith(fontSize: 32),
                         ),
                       ],
                     ),

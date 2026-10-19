@@ -26,18 +26,6 @@ class OrderItemRequest {
     this.unit,
   });
 
-  static String sanitizeImageUrl(String? url) {
-    if (url == null || url.isEmpty) return '';
-    // Only allow lightweight web URLs (HTTP/HTTPS) or short asset paths (<= 1024 chars).
-    // Raw Base64 data URIs can be 500KB - 2MB each and exceed Firestore's 1MB document limit.
-    if ((url.startsWith('http://') || url.startsWith('https://') || url.startsWith('assets/')) &&
-        url.length <= 1024 &&
-        !url.contains(';base64,')) {
-      return url;
-    }
-    return '';
-  }
-
   Map<String, dynamic> toMap() => {
     'id': productId,
     'name': name,
@@ -45,7 +33,7 @@ class OrderItemRequest {
     'quantity': quantity,
     'is_loose': isLoose,
     'isLoose': isLoose,
-    'image_url': sanitizeImageUrl(imageUrl),
+    'image_url': imageUrl ?? '',
     if (unit != null) 'unit': unit,
   };
 
@@ -434,9 +422,6 @@ class AtomicOrderService {
         reservedStocksMap[item.productId] = newStock;
         liveSubtotal += currentPrice * item.quantity;
 
-        final rawImg = item.imageUrl ?? pData['image_url']?.toString() ?? '';
-        final safeImg = OrderItemRequest.sanitizeImageUrl(rawImg);
-
         verifiedItemsList.add({
           'id': item.productId,
           'name': pData['name']?.toString() ?? item.name,
@@ -444,7 +429,7 @@ class AtomicOrderService {
           'quantity': item.quantity,
           'is_loose': item.isLoose,
           'isLoose': item.isLoose,
-          'image_url': safeImg,
+          'image_url': item.imageUrl ?? pData['image_url']?.toString() ?? '',
           if (item.unit != null) 'unit': item.unit,
         });
       }
@@ -603,13 +588,7 @@ class AtomicOrderService {
         if (params.instructions != null && params.instructions!.isNotEmpty)
           'instructions': params.instructions,
         'created_at': FieldValue.serverTimestamp(),
-        if (params.extraData != null)
-          ...params.extraData!.map((k, v) {
-            if (v is String && (v.startsWith('data:image') || v.contains(';base64,') || v.length > 2048)) {
-              return MapEntry(k, '');
-            }
-            return MapEntry(k, v);
-          }),
+        if (params.extraData != null) ...params.extraData!,
       };
 
       transaction.set(orderRef, orderData);

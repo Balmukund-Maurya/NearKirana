@@ -317,24 +317,6 @@ class DeliveryOrderTask {
       taskStatus = DeliveryTaskStatus.assigned;
     }
 
-    String resolvedAddress = data['delivery_address']?.toString() ?? data['address']?.toString() ?? 'Address not specified';
-    if (resolvedAddress.contains(r'${')) {
-      resolvedAddress = resolvedAddress
-          .replaceAll(r'${userProvider.customerHouseNo}', '')
-          .replaceAll(r'${userProvider.customerLandmark}', '')
-          .replaceAll(r'${userProvider.autoLocality}', '')
-          .replaceAll(r'${userProvider.addressLabel}', '')
-          .replaceAll(r'${', '')
-          .replaceAll(r'}', '')
-          .replaceAll('House: , Landmark:  — (Locality: )', '')
-          .replaceAll('House:  — (Locality: )', '')
-          .replaceAll('House: — (Locality: )', '')
-          .trim();
-      if (resolvedAddress.isEmpty || resolvedAddress == 'House:' || resolvedAddress == '—' || resolvedAddress == '[]') {
-        resolvedAddress = data['address']?.toString() ?? 'Customer Location';
-      }
-    }
-
     return DeliveryOrderTask(
       orderId: id,
       shopId: data['shop_id']?.toString() ?? '',
@@ -343,7 +325,7 @@ class DeliveryOrderTask {
       partnerPhone: data['delivery_boy_phone']?.toString() ?? '',
       customerName: data['customer_name']?.toString() ?? data['name']?.toString() ?? 'Customer',
       customerPhone: data['phone_number']?.toString() ?? data['customer_phone']?.toString() ?? '',
-      deliveryAddress: resolvedAddress,
+      deliveryAddress: data['delivery_address']?.toString() ?? data['address']?.toString() ?? 'Address not specified',
       customerLat: (data['customer_lat'] as num?)?.toDouble(),
       customerLng: (data['customer_lng'] as num?)?.toDouble(),
       totalAmount: (data['total_amount'] as num?)?.toDouble() ?? 0.0,

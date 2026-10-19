@@ -14,7 +14,6 @@ import 'package:near_kirana/firebase_utils.dart';
 import 'package:geolocator/geolocator.dart';
 import 'super_admin_screen.dart' as super_admin_screen;
 import 'auth_service.dart';
-import 'gateway_screen.dart';
 
 class ShopSelectorScreen extends StatefulWidget {
   const ShopSelectorScreen({super.key});
@@ -28,18 +27,6 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
   String _searchQuery = '';
   Position? _currentPosition;
   int _logoTapCount = 0;
-  bool _showAllShops = false;
-
-  void _goBack() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const GatewayScreen()),
-      );
-    }
-  }
 
   @override
   void initState() {
@@ -175,286 +162,195 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
   @override
   Widget build(BuildContext context) {
     final langProvider = AppLocalizations.of(context)!;
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _goBack();
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark),
-            tooltip: 'Back',
-            onPressed: _goBack,
-          ),
-          actions: [
-            if (_currentPosition != null)
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showAllShops = !_showAllShops;
-                  });
-                },
-                icon: Icon(
-                  _showAllShops ? Icons.near_me_outlined : Icons.public_rounded,
-                  size: 18,
-                  color: AppColors.primaryDark,
-                ),
-                label: Text(
-                  _showAllShops ? 'Near Me' : 'All Stores',
-                  style: const TextStyle(
-                    color: AppColors.primaryDark,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: AppColors.surface,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 48,
+                maxWidth: 450,
               ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        resizeToAvoidBottomInset: true,
-        backgroundColor: AppColors.surface,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 48,
-                  maxWidth: 450,
-                ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () async {
-                          _logoTapCount++;
-                          if (_logoTapCount >= 5) {
-                            _logoTapCount = 0;
-                            final pin = await showDialog<String>(
-                              context: context,
-                              builder: (context) {
-                                final ctrl = TextEditingController();
-                                return AlertDialog(
-                                  title: const Text('Super Admin PIN'),
-                                  content: TextField(
-                                    controller: ctrl,
-                                    keyboardType: TextInputType.number,
-                                    obscureText: true,
-                                  ),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                                    TextButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('OK')),
-                                  ],
-                                );
-                              }
-                            );
-                            if (pin == '999999') {
-                              await AuthService().elevateToSuperAdmin();
-                              if (context.mounted) {
-                                Navigator.push(context, MaterialPageRoute(builder: (_) => const super_admin_screen.SuperAdminScreen()));
-                              }
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () async {
+                        _logoTapCount++;
+                        if (_logoTapCount >= 5) {
+                          _logoTapCount = 0;
+                          final pin = await showDialog<String>(
+                            context: context,
+                            builder: (context) {
+                              final ctrl = TextEditingController();
+                              return AlertDialog(
+                                title: const Text('Super Admin PIN'),
+                                content: TextField(
+                                  controller: ctrl,
+                                  keyboardType: TextInputType.number,
+                                  obscureText: true,
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                  TextButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('OK')),
+                                ],
+                              );
+                            }
+                          );
+                          if (pin == '999999') {
+                            await AuthService().elevateToSuperAdmin();
+                            if (context.mounted) {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const super_admin_screen.SuperAdminScreen()));
                             }
                           }
-                        },
-                        child: Icon(
-                          Icons.storefront_rounded,
-                          size: 80,
-                          color: AppColors.primaryDark,
-                        )
-                            .animate()
-                            .fadeIn(duration: 600.ms)
-                            .scale(curve: Curves.easeOutBack),
-                      ),
-                  const SizedBox(height: 12),
-                  Text(
-                    langProvider.welcome_title,
-                    style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28),
-                    textAlign: TextAlign.center,
-                  )
-                      .animate()
-                      .fadeIn(delay: 200.ms)
-                      .slideY(begin: 0.2, end: 0),
-                  const SizedBox(height: 8),
-                  Text(
-                    langProvider.search_shop_subtitle,
-                    style: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                    textAlign: TextAlign.center,
-                  ).animate().fadeIn(delay: 300.ms),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _searchController,
-                    onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
-                    decoration: InputDecoration(
-                      hintText: langProvider.search_shop_hint,
-                      prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryDark),
-                      filled: true,
-                      fillColor: AppColors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
+                        }
+                      },
+                      child: Icon(
+                        Icons.storefront_rounded,
+                        size: 80,
+                        color: AppColors.primaryDark,
+                      )
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .scale(curve: Curves.easeOutBack),
                     ),
-                  ).animate().fadeIn(delay: 400.ms),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: _scanShopQR,
-                    icon: const Icon(Icons.qr_code_scanner_rounded),
-                    label: Text(AppLocalizations.of(context)!.scan_shop_qr),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryDark,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: AppColors.primaryDark, width: 1.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                const SizedBox(height: 12),
+                Text(
+                  langProvider.welcome_title,
+                  style: AppTextStyles.heading1(color: AppColors.textDark).copyWith(fontSize: 28),
+                  textAlign: TextAlign.center,
+                )
+                    .animate()
+                    .fadeIn(delay: 200.ms)
+                    .slideY(begin: 0.2, end: 0),
+                const SizedBox(height: 8),
+                Text(
+                  langProvider.search_shop_subtitle,
+                  style: AppTextStyles.bodyMedium(color: AppColors.textMid),
+                  textAlign: TextAlign.center,
+                ).animate().fadeIn(delay: 300.ms),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _searchController,
+                  onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: langProvider.search_shop_hint,
+                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryDark),
+                    filled: true,
+                    fillColor: AppColors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
                     ),
-                  ).animate().fadeIn(delay: 500.ms),
-                  const SizedBox(height: 20),
-                  StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseUtils.firestore
-                              .collection('shops')
-                              .where('is_active', isEqualTo: true)
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasError) {
-                              return SizedBox(
-                                height: 180,
-                                child: Center(child: Text('Error: ${snapshot.error}')),
-                              );
-                            }
-                            if (!snapshot.hasData) {
-                              return const SizedBox(
-                                height: 180,
-                                child: Center(child: ModernLoader()),
-                              );
-                            }
+                  ),
+                ).animate().fadeIn(delay: 400.ms),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: _scanShopQR,
+                  icon: const Icon(Icons.qr_code_scanner_rounded),
+                  label: Text(AppLocalizations.of(context)!.scan_shop_qr),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryDark,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: const BorderSide(color: AppColors.primaryDark, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ).animate().fadeIn(delay: 500.ms),
+                const SizedBox(height: 20),
+                StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseUtils.firestore
+                            .collection('shops')
+                            .where('is_active', isEqualTo: true)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            return SizedBox(
+                              height: 180,
+                              child: Center(child: Text('Error: ${snapshot.error}')),
+                            );
+                          }
+                          if (!snapshot.hasData) {
+                            return const SizedBox(
+                              height: 180,
+                              child: Center(child: ModernLoader()),
+                            );
+                          }
 
-                            List<QueryDocumentSnapshot> shops = snapshot.data!.docs;
+                          List<QueryDocumentSnapshot> shops = snapshot.data!.docs;
 
-                            if (_searchQuery.isEmpty) {
-                              shops = shops.where((doc) {
-                                final name = (doc['shop_name'] ?? '').toString();
-                                return name.toLowerCase() != 'my shop';
-                              }).toList();
-                            } else {
-                              shops = shops.where((doc) {
-                                final name = (doc['shop_name'] ?? '').toString().toLowerCase();
-                                return name.contains(_searchQuery);
-                              }).toList();
-                            }
+                          if (_searchQuery.isEmpty) {
+                            shops = shops.where((doc) {
+                              final name = (doc['shop_name'] ?? '').toString();
+                              return name.toLowerCase() != 'my shop';
+                            }).toList();
+                          } else {
+                            shops = shops.where((doc) {
+                              final name = (doc['shop_name'] ?? '').toString().toLowerCase();
+                              return name.contains(_searchQuery);
+                            }).toList();
+                          }
 
-                            if (_currentPosition != null && !_showAllShops) {
-                              shops = shops.where((doc) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                final sLat = (data['store_latitude'] ?? data['lat'] as num?)?.toDouble();
-                                final sLng = (data['store_longitude'] ?? data['lng'] as num?)?.toDouble();
+                          if (_currentPosition != null) {
+                            shops = shops.where((doc) {
+                              final data = doc.data() as Map<String, dynamic>;
+                              final sLat = (data['store_latitude'] ?? data['lat'] as num?)?.toDouble();
+                              final sLng = (data['store_longitude'] ?? data['lng'] as num?)?.toDouble();
+                              
+                              if (sLat != null && sLng != null) {
+                                final dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, sLat, sLng);
+                                final deliveryRadiusKm = (data['delivery_radius_km'] as num?)?.toDouble() ?? 5.0;
+                                final pickupRadiusKm = (data['pickup_radius_km'] as num?)?.toDouble() ?? 25.0;
+                                final maxRadiusMeters = (deliveryRadiusKm > pickupRadiusKm ? deliveryRadiusKm : pickupRadiusKm) * 1000;
                                 
-                                if (sLat != null && sLng != null) {
-                                  final dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, sLat, sLng);
-                                  final deliveryRadiusKm = (data['delivery_radius_km'] as num?)?.toDouble() ?? 5.0;
-                                  final pickupRadiusKm = (data['pickup_radius_km'] as num?)?.toDouble() ?? 25.0;
-                                  final maxRadiusMeters = (deliveryRadiusKm > pickupRadiusKm ? deliveryRadiusKm : pickupRadiusKm) * 1000;
-                                  
-                                  return dist <= maxRadiusMeters;
-                                }
-                                return false; // Don't show shops with no coordinates if we are filtering by range
-                              }).toList();
-                            }
-
-                            shops.sort((a, b) {
-                              final aData = a.data() as Map<String, dynamic>;
-                              final bData = b.data() as Map<String, dynamic>;
-
-                              if (_currentPosition != null) {
-                                final aLat = (aData['store_latitude'] ?? aData['lat'] as num?)?.toDouble();
-                                final aLng = (aData['store_longitude'] ?? aData['lng'] as num?)?.toDouble();
-                                final bLat = (bData['store_latitude'] ?? bData['lat'] as num?)?.toDouble();
-                                final bLng = (bData['store_longitude'] ?? bData['lng'] as num?)?.toDouble();
-
-                                if (aLat != null && aLng != null && bLat != null && bLng != null) {
-                                  final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, aLat, aLng);
-                                  final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, bLat, bLng);
-                                  return distA.compareTo(distB);
-                                }
+                                return dist <= maxRadiusMeters;
                               }
+                              return false; // Don't show shops with no coordinates if we are filtering by range
+                            }).toList();
+                          }
 
-                              final aTime = aData['created_at'] as Timestamp?;
-                              final bTime = bData['created_at'] as Timestamp?;
-                              if (aTime == null && bTime == null) return 0;
-                              if (aTime == null) return 1;
-                              if (bTime == null) return -1;
-                              return bTime.compareTo(aTime);
-                            });
+                          shops.sort((a, b) {
+                            final aData = a.data() as Map<String, dynamic>;
+                            final bData = b.data() as Map<String, dynamic>;
 
-                            if (_searchQuery.isEmpty) {
-                              shops = shops.take(5).toList();
+                            if (_currentPosition != null) {
+                              final aLat = (aData['store_latitude'] ?? aData['lat'] as num?)?.toDouble();
+                              final aLng = (aData['store_longitude'] ?? aData['lng'] as num?)?.toDouble();
+                              final bLat = (bData['store_latitude'] ?? bData['lat'] as num?)?.toDouble();
+                              final bLng = (bData['store_longitude'] ?? bData['lng'] as num?)?.toDouble();
+
+                              if (aLat != null && aLng != null && bLat != null && bLng != null) {
+                                final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, aLat, aLng);
+                                final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, bLat, bLng);
+                                return distA.compareTo(distB);
+                              }
                             }
 
-                            if (shops.isEmpty) {
-                              return Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: AppColors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: AppColors.primaryLight.withValues(alpha: 0.3)),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.store_mall_directory_outlined, size: 54, color: AppColors.primaryDark),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      _showAllShops || _currentPosition == null
-                                          ? (AppLocalizations.of(context)!.error_no_shop_found)
-                                          : 'No stores found near your location',
-                                      textAlign: TextAlign.center,
-                                      style: AppTextStyles.heading2(color: AppColors.textDark),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      _showAllShops || _currentPosition == null
-                                          ? 'Try searching with a different name or scan the store QR code.'
-                                          : 'There are no partner stores near your current location. You can view all stores or go back.',
-                                      textAlign: TextAlign.center,
-                                      style: AppTextStyles.bodyMedium(color: AppColors.textMid),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    if (!_showAllShops && _currentPosition != null) ...[
-                                      ElevatedButton.icon(
-                                        onPressed: () => setState(() => _showAllShops = true),
-                                        icon: const Icon(Icons.public_rounded),
-                                        label: const Text('Browse All Available Stores'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primaryDark,
-                                          foregroundColor: Colors.white,
-                                          minimumSize: const Size(double.infinity, 44),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                    ],
-                                    OutlinedButton.icon(
-                                      onPressed: _goBack,
-                                      icon: const Icon(Icons.arrow_back_rounded),
-                                      label: const Text('Go Back / Switch Mode'),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: AppColors.primaryDark,
-                                        side: const BorderSide(color: AppColors.primaryDark),
-                                        minimumSize: const Size(double.infinity, 44),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
+                            final aTime = aData['created_at'] as Timestamp?;
+                            final bTime = bData['created_at'] as Timestamp?;
+                            if (aTime == null && bTime == null) return 0;
+                            if (aTime == null) return 1;
+                            if (bTime == null) return -1;
+                            return bTime.compareTo(aTime);
+                          });
+
+                          if (_searchQuery.isEmpty) {
+                            shops = shops.take(5).toList();
+                          }
+
+                          if (shops.isEmpty) {
+                            return SizedBox(
+                              height: 180,
+                              child: Center(child: Text(AppLocalizations.of(context)!.error_no_shop_found)),
+                            );
+                          }
 
                           return ListView.builder(
                             shrinkWrap: true,
@@ -513,7 +409,6 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
           ), // ends Center
         ), // ends SingleChildScrollView
       ), // ends SafeArea
-    ), // ends Scaffold
-  ); // ends PopScope
+    ); // ends Scaffold
   }
 }

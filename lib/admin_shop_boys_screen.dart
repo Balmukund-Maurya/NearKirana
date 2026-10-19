@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:near_kirana/firebase_utils.dart';
 import 'package:near_kirana/app_theme.dart';
 import 'package:near_kirana/widgets/admin_top_header.dart';
 import 'package:near_kirana/shop_provider.dart';
@@ -20,38 +23,89 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
   List<Map<String, dynamic>> _shopBoys = [];
   bool _isLoading = true;
   String _searchQuery = '';
+  StreamSubscription<List<DeliveryPartner>>? _partnersSub;
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _initListenerAndFetch();
+  }
+
+  @override
+  void dispose() {
+    _partnersSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initListenerAndFetch() async {
+    try {
+      final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+      final prefs = await SharedPreferences.getInstance();
+      String shopId = shopProvider.currentShopId ?? '';
+      if (shopId.isEmpty) {
+        shopId = prefs.getString('current_shop_id') ?? prefs.getString('last_selected_shop_id') ?? '';
+      }
+
+      _partnersSub?.cancel();
+      _partnersSub = _service.streamShopPartners(shopId).listen((partners) {
+        if (!mounted) return;
+        if (partners.isNotEmpty) {
+          final liveBoys = partners.map((p) => {
+            'id': p.id.length > 6 ? p.id.substring(p.id.length - 6).toUpperCase() : p.id,
+            'doc_id': p.id,
+            'name': p.name,
+            'phone': p.phone,
+            'assigned_shop': p.vehicleNumber.isNotEmpty ? p.vehicleNumber : (shopProvider.shopName ?? 'Kirana Express'),
+            'assigned_shop_location': 'Store Delivery',
+            'total_orders': p.totalDeliveredCount,
+            'status': p.isOnline ? 'Active' : 'Inactive',
+          }).toList();
+          setState(() {
+            _shopBoys = liveBoys;
+            _isLoading = false;
+          });
+        }
+      });
+    } catch (_) {}
+
+    await _fetchData();
   }
 
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     
-    // Default reference data
+    // Default reference data only if database is completely empty
     final defaultBoys = [
       {'id': 'SB001', 'name': 'Ramesh Kumar', 'phone': '+91 98765 43210', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 124, 'status': 'Active'},
       {'id': 'SB002', 'name': 'Suresh Patel', 'phone': '+91 98765 43211', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 98, 'status': 'Active'},
       {'id': 'SB003', 'name': 'Amit Yadav', 'phone': '+91 98765 43212', 'assigned_shop': 'Branch Store', 'assigned_shop_location': 'MP Nagar', 'total_orders': 76, 'status': 'Active'},
       {'id': 'SB004', 'name': 'Vikash Singh', 'phone': '+91 98765 43213', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 65, 'status': 'Active'},
-      {'id': 'SB005', 'name': 'Imran Khan', 'phone': '+91 98765 43214', 'assigned_shop': 'Branch Store', 'assigned_shop_location': 'MP Nagar', 'total_orders': 52, 'status': 'Active'},
-      {'id': 'SB006', 'name': 'Rohit Sharma', 'phone': '+91 98765 43215', 'assigned_shop': 'Sector Store', 'assigned_shop_location': 'New Market', 'total_orders': 48, 'status': 'Inactive'},
-      {'id': 'SB007', 'name': 'Manoj Gupta', 'phone': '+91 98765 43216', 'assigned_shop': 'Main Store', 'assigned_shop_location': 'Shivaji Nagar', 'total_orders': 41, 'status': 'Active'},
-      {'id': 'SB008', 'name': 'Deepak Verma', 'phone': '+91 98765 43217', 'assigned_shop': 'Branch Store', 'assigned_shop_location': 'MP Nagar', 'total_orders': 36, 'status': 'Active'},
     ];
 
     try {
       final shopProvider = Provider.of<ShopProvider>(context, listen: false);
-      final shopId = shopProvider.currentShopId ?? '';
-      if (shopId.isNotEmpty) {
-        final partners = await _service.streamShopPartners(shopId).first;
+      final prefs = await SharedPreferences.getInstance();
+      String shopId = shopProvider.currentShopId ?? '';
+      if (shopId.isEmpty) {
+        shopId = prefs.getString('current_shop_id') ?? prefs.getString('last_selected_shop_id') ?? '';
+      }
+      if (shopId.isEmpty) {
+        try {
+          final snap = await FirebaseUtils.firestore.collection('shops').limit(1).get();
+          if (snap.docs.isNotEmpty) {
+            shopId = snap.docs.first.id;
+          }
+        } catch (_) {}
+      }
+
+      final partners = await _service.getShopPartners(shopId);
+      if (partners.isNotEmpty) {
         final liveBoys = partners.map((p) => {
           'id': p.id.length > 6 ? p.id.substring(p.id.length - 6).toUpperCase() : p.id,
+          'doc_id': p.id,
           'name': p.name,
           'phone': p.phone,
-          'assigned_shop': p.vehicleNumber.isNotEmpty ? p.vehicleNumber : 'Kirana Express',
+          'assigned_shop': p.vehicleNumber.isNotEmpty ? p.vehicleNumber : (shopProvider.shopName ?? 'Kirana Express'),
           'assigned_shop_location': 'Store Delivery',
           'total_orders': p.totalDeliveredCount,
           'status': p.isOnline ? 'Active' : 'Inactive',
@@ -59,21 +113,24 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
 
         if (mounted) {
           setState(() {
-            _shopBoys = [...liveBoys, ...defaultBoys];
+            _shopBoys = liveBoys;
             _isLoading = false;
           });
           return;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Error fetching delivery partners: $e");
+    }
 
     if (mounted) {
       setState(() {
-        _shopBoys = defaultBoys;
+        _shopBoys = _shopBoys.isNotEmpty ? _shopBoys : defaultBoys;
         _isLoading = false;
       });
     }
   }
+
 
   Future<void> _showAddShopBoyDialog() async {
     final nameCtrl = TextEditingController();
@@ -136,27 +193,77 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
                 return;
               }
 
-              final shopId = Provider.of<ShopProvider>(context, listen: false).currentShopId ?? '';
-              final partner = DeliveryPartner(
-                id: '',
-                shopId: shopId,
-                name: name,
-                phone: phone,
-                vehicleNumber: vehicleCtrl.text.trim(),
-                status: DeliveryPartnerStatus.available,
-                createdAt: DateTime.now(),
-              );
-
               final messenger = ScaffoldMessenger.of(context);
-              await _service.registerOrUpdatePartner(partner);
-              if (dialogCtx.mounted) {
-                Navigator.pop(dialogCtx);
-              }
-              _fetchData();
-              if (mounted) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text('Delivery partner $name added successfully!')),
+              final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                String shopId = shopProvider.currentShopId ?? '';
+                if (shopId.isEmpty) {
+                  shopId = prefs.getString('current_shop_id') ?? prefs.getString('last_selected_shop_id') ?? '';
+                }
+                if (shopId.isEmpty) {
+                  final snap = await FirebaseUtils.firestore.collection('shops').limit(1).get();
+                  if (snap.docs.isNotEmpty) {
+                    shopId = snap.docs.first.id;
+                  }
+                }
+
+                final partner = DeliveryPartner(
+                  id: '',
+                  shopId: shopId,
+                  name: name,
+                  phone: phone,
+                  vehicleNumber: vehicleCtrl.text.trim(),
+                  status: DeliveryPartnerStatus.available,
+                  createdAt: DateTime.now(),
                 );
+
+                final saved = await _service.registerOrUpdatePartner(partner);
+
+                final newBoy = {
+                  'id': saved.id.length > 6 ? saved.id.substring(saved.id.length - 6).toUpperCase() : saved.id,
+                  'doc_id': saved.id,
+                  'name': saved.name,
+                  'phone': saved.phone,
+                  'assigned_shop': saved.vehicleNumber.isNotEmpty ? saved.vehicleNumber : (shopProvider.shopName ?? 'Kirana Express'),
+                  'assigned_shop_location': 'Store Delivery',
+                  'total_orders': 0,
+                  'status': 'Active',
+                };
+
+                if (mounted) {
+                  setState(() {
+                    _shopBoys.removeWhere((b) => b['id'].toString().startsWith('SB00'));
+                    _shopBoys.insert(0, newBoy);
+                  });
+                }
+
+                if (dialogCtx.mounted) {
+                  Navigator.pop(dialogCtx);
+                }
+
+                await _fetchData();
+
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Delivery partner $name added successfully!'),
+                      backgroundColor: AppColors.primaryDark,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (dialogCtx.mounted) {
+                  Navigator.pop(dialogCtx);
+                }
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to add partner: $e'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(

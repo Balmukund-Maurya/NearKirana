@@ -99,8 +99,13 @@ class OrderPlacementParams {
     this.enforceStockCheck = true,
     this.enforceStoreOpen = false,
     this.couponCode,
+    this.loyaltyPointsRedeemed,
+    this.loyaltyDiscount,
     this.extraData,
   });
+
+  final int? loyaltyPointsRedeemed;
+  final double? loyaltyDiscount;
 }
 
 /// Result returned after executing atomic order placement
@@ -114,6 +119,8 @@ class OrderPlacementResult {
   final double deliveryFee;
   final double discount;
   final String? couponCode;
+  final int loyaltyPointsRedeemed;
+  final double loyaltyDiscount;
   final Map<String, double> reservedStocks;
 
   const OrderPlacementResult({
@@ -126,6 +133,8 @@ class OrderPlacementResult {
     required this.deliveryFee,
     this.discount = 0.0,
     this.couponCode,
+    this.loyaltyPointsRedeemed = 0,
+    this.loyaltyDiscount = 0.0,
     this.reservedStocks = const {},
   });
 }
@@ -527,7 +536,14 @@ class AtomicOrderService {
         }
       }
 
-      // 1.5 Calculate final delivery fee and net payable total
+      // 1.5 Calculate loyalty discount, final delivery fee and net payable total
+      double serverLoyaltyDiscount = 0.0;
+      if (params.loyaltyPointsRedeemed != null && params.loyaltyPointsRedeemed! > 0) {
+        serverLoyaltyDiscount = (params.loyaltyDiscount ?? 0.0).clamp(0.0, max(0.0, liveSubtotal - serverDiscount));
+      }
+
+      final double totalDiscount = serverDiscount + serverLoyaltyDiscount;
+
       double calculatedDeliveryFee =
           (params.deliveryType == 'Delivery' && liveSubtotal < freeThreshold)
           ? params.deliveryFee
@@ -538,7 +554,7 @@ class AtomicOrderService {
       }
 
       final double liveFinalTotal =
-          ((liveSubtotal - serverDiscount).clamp(0.0, double.infinity)) + calculatedDeliveryFee;
+          ((liveSubtotal - totalDiscount).clamp(0.0, double.infinity)) + calculatedDeliveryFee;
 
       // -----------------------------------------------------------------------
       // PHASE 2: ALL WRITES (Executed atomically together)
@@ -572,7 +588,10 @@ class AtomicOrderService {
         'delivery_type': params.deliveryType,
         'delivery_fee': calculatedDeliveryFee,
         'subtotal': liveSubtotal,
-        'discount': serverDiscount,
+        'discount': totalDiscount,
+        'coupon_discount': serverDiscount,
+        'loyalty_discount': serverLoyaltyDiscount,
+        'loyalty_points_redeemed': params.loyaltyPointsRedeemed ?? 0,
         if (cleanCouponCode != null && cleanCouponCode.isNotEmpty) ...{
           'coupon_code': cleanCouponCode,
           'coupon_id': verifiedCoupon?.id,
@@ -620,8 +639,10 @@ class AtomicOrderService {
         totalAmount: liveFinalTotal,
         subtotal: liveSubtotal,
         deliveryFee: calculatedDeliveryFee,
-        discount: serverDiscount,
+        discount: totalDiscount,
         couponCode: cleanCouponCode,
+        loyaltyPointsRedeemed: params.loyaltyPointsRedeemed ?? 0,
+        loyaltyDiscount: serverLoyaltyDiscount,
         reservedStocks: reservedStocksMap,
       );
     });
@@ -639,6 +660,22 @@ class AtomicOrderService {
         );
       } catch (e) {
         // Notification failure should never block or fail order placement
+      }
+
+      // Feature 60: If customer redeemed loyalty points, debit their loyalty account
+      if (params.loyaltyPointsRedeemed != null && params.loyaltyPointsRedeemed! > 0) {
+        try {
+          await LoyaltyReferralService(firestore: _firestore).redeemPoints(
+            shopId: params.shopId,
+            customerPhone: params.customerPhone,
+            pointsToRedeem: params.loyaltyPointsRedeemed!,
+            orderSubtotal: result.subtotal,
+            orderId: result.orderId,
+            customerUid: params.customerUid,
+          );
+        } catch (e) {
+          // Loyalty redemption failure should never block order placement
+        }
       }
 
       // Feature 60: Automatically calculate and credit loyalty points and complete qualifying referrals

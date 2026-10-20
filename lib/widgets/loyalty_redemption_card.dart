@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../app_theme.dart';
+import '../language_provider.dart';
 import '../loyalty_referral_models.dart';
 import '../loyalty_referral_service.dart';
 import '../l10n/app_localizations.dart';
@@ -101,7 +103,9 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final isHindi = l10n?.localeName.startsWith('hi') ?? false;
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final isHindi = langProvider.isHindi;
+    final isHinglish = langProvider.isHinglish;
 
     return FutureBuilder<LoyaltyProgramConfig>(
       future: _service.getProgramConfig(widget.shopId),
@@ -128,15 +132,15 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
               margin: const EdgeInsets.symmetric(vertical: 8),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _isRedemptionApplied ? Colors.amber.shade50 : Colors.white,
+                color: _isRedemptionApplied ? const Color(0xFFF0FDF4) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _isRedemptionApplied ? Colors.amber.shade400 : Colors.grey.shade200,
+                  color: _isRedemptionApplied ? const Color(0xFF22C55E) : const Color(0xFFE5E7EB),
                   width: _isRedemptionApplied ? 1.5 : 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
+                    color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -161,18 +165,22 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              l10n?.loyalty_rewards_section ?? 'Loyalty Rewards',
+                              isHindi
+                                  ? 'लॉयल्टी रिवार्ड्स'
+                                  : (isHinglish ? 'Loyalty Rewards' : (l10n?.loyalty_rewards_section ?? 'Loyalty Rewards')),
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 13.5,
                                 color: AppColors.textDark,
                               ),
                             ),
                             Text(
                               isHindi
                                   ? 'उपलब्ध: $currentPoints pts • ${account.tier.localizedLabel(context)}'
-                                  : 'Available: $currentPoints pts • ${account.tier.localizedLabel(context)}',
-                              style: const TextStyle(fontSize: 11, color: AppColors.textMid),
+                                  : (isHinglish
+                                      ? 'Available: $currentPoints pts • ${account.tier.localizedLabel(context)}'
+                                      : 'Available: $currentPoints pts • ${account.tier.localizedLabel(context)}'),
+                              style: const TextStyle(fontSize: 11.5, color: AppColors.textMid),
                             ),
                           ],
                         ),
@@ -181,6 +189,7 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
                         Switch(
                           value: _isRedemptionApplied,
                           activeThumbColor: AppColors.primaryDark,
+                          activeTrackColor: const Color(0xFFBBF7D0),
                           onChanged: (val) => _toggleRedemption(val, account, config),
                         ),
                     ],
@@ -192,22 +201,30 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
                       children: [
                         Text(
                           _isRedemptionApplied
-                              ? (isHindi ? '$_appliedPoints अंक भुनाए गए' : '$_appliedPoints points redeemed')
-                              : (isHindi ? 'अधिकतम $maxRedeemable अंक भुनाएं' : 'Redeem up to $maxRedeemable pts'),
+                              ? (isHindi
+                                  ? '$_appliedPoints अंक भुनाए गए'
+                                  : (isHinglish ? '$_appliedPoints pts redeem hue' : '$_appliedPoints points redeemed'))
+                              : (isHindi
+                                  ? 'अधिकतम $maxRedeemable अंक भुनाएं'
+                                  : (isHinglish ? 'Max $maxRedeemable pts redeem karein' : 'Redeem up to $maxRedeemable pts')),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: _isRedemptionApplied ? Colors.green.shade800 : AppColors.textMid,
+                            color: _isRedemptionApplied ? const Color(0xFF166534) : AppColors.textMid,
                           ),
                         ),
                         Text(
                           _isRedemptionApplied
-                              ? (isHindi ? '-₹${_appliedDiscount.toStringAsFixed(1)} छूट' : '-₹${_appliedDiscount.toStringAsFixed(1)} off')
-                              : (isHindi ? 'बचत: ₹${potentialSavings.toStringAsFixed(1)}' : 'Savings: ₹${potentialSavings.toStringAsFixed(1)}'),
+                              ? (isHindi
+                                  ? '-₹${_appliedDiscount.toStringAsFixed(1)} छूट'
+                                  : (isHinglish ? '-₹${_appliedDiscount.toStringAsFixed(1)} off' : '-₹${_appliedDiscount.toStringAsFixed(1)} off'))
+                              : (isHindi
+                                  ? 'बचत: ₹${potentialSavings.toStringAsFixed(1)}'
+                                  : (isHinglish ? 'Savings: ₹${potentialSavings.toStringAsFixed(1)}' : 'Savings: ₹${potentialSavings.toStringAsFixed(1)}')),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: _isRedemptionApplied ? Colors.green.shade800 : AppColors.primaryDark,
+                            color: _isRedemptionApplied ? const Color(0xFF166534) : AppColors.primaryDark,
                           ),
                         ),
                       ],
@@ -218,10 +235,14 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
                       currentPoints < config.minPointsToRedeem
                           ? (isHindi
                               ? 'छूट हेतु कम से कम ${config.minPointsToRedeem} अंक आवश्यक हैं'
-                              : 'Minimum ${config.minPointsToRedeem} points required for discount')
+                              : (isHinglish
+                                  ? 'Discount ke liye minimum ${config.minPointsToRedeem} points chahiye'
+                                  : 'Minimum ${config.minPointsToRedeem} points required for discount'))
                           : (isHindi
                               ? 'इस ऑर्डर मूल्य पर रिडेम्पशन सीमा पूरी हो चुकी है'
-                              : 'Maximum redemption limit reached for this order'),
+                              : (isHinglish
+                                  ? 'Is order value par maximum points limit poori ho chuki hai'
+                                  : 'Maximum redemption limit reached for this order')),
                       style: const TextStyle(fontSize: 11, color: AppColors.textMid),
                     ),
                   ],

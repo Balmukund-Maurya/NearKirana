@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'firebase_options.dart';
 import 'home_screen.dart';
-import 'admin_login_screen.dart';
 import 'cart_provider.dart';
 import 'notification_service.dart';
 import 'search_utils.dart';
@@ -21,6 +20,7 @@ import 'admin_dashboard.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'shop_selector_screen.dart';
+import 'super_admin_screen.dart';
 import 'gateway_screen.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:phone_email_auth/phone_email_auth.dart';
@@ -714,15 +714,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ? 'Continue karke aap hamari Terms of Service & Privacy Policy se agree karte hain'
               : 'By continuing, you agree to our Terms of Service & Privacy Policy');
 
-    final String orDivider = isHindi ? 'या' : (isHinglish ? 'ya' : 'or');
 
-    final String ownerLoginText = isHindi
-        ? 'दुकानदार लॉगिन'
-        : (isHinglish ? 'Shop Owner Login' : 'Shop Owner Login');
-
-    final String changeShopText = isHindi
-        ? 'दुकान बदलें'
-        : (isHinglish ? 'Change Shop' : 'Change Shop');
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -759,25 +751,21 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF047857), Color(0xFF10B981)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(14),
+                  color: AppColors.primaryDark,
+                  borderRadius: BorderRadius.circular(13),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF047857).withValues(alpha: 0.3),
+                      color: AppColors.primaryDark.withValues(alpha: 0.25),
                       blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
                 child: const Icon(
-                  Icons.shopping_bag_rounded,
+                  Icons.storefront_rounded,
                   color: Colors.white,
                   size: 26,
                 ),
@@ -791,23 +779,45 @@ class _LoginScreenState extends State<LoginScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    shopName.isNotEmpty && shopName != 'NearKirana'
-                        ? shopName
-                        : 'NearKirana',
-                    style: GoogleFonts.poppins(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF047857),
-                      letterSpacing: -0.5,
+                  if (shopName.isNotEmpty && shopName != 'NearKirana')
+                    Text(
+                      shopName,
+                      style: GoogleFonts.outfit(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primaryDark,
+                        letterSpacing: -0.3,
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        Text(
+                          'Near',
+                          style: GoogleFonts.outfit(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textDark,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        Text(
+                          'Kirana',
+                          style: GoogleFonts.outfit(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primaryDark,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
                   Text(
                     'Instant Local Delivery',
-                    style: GoogleFonts.poppins(
-                      fontSize: 10.5,
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade500,
+                      color: AppColors.textMid,
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -893,7 +903,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Icon(
                         Icons.phone_android_rounded,
                         size: 20,
-                        color: Color(0xFF047857),
+                        color: AppColors.primaryDark,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -979,10 +989,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF047857),
+                backgroundColor: AppColors.primaryDark,
                 foregroundColor: Colors.white,
-                elevation: 3,
-                shadowColor: const Color(0xFF047857).withValues(alpha: 0.35),
+                elevation: 2,
+                shadowColor: AppColors.primaryDark.withValues(alpha: 0.35),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -992,10 +1002,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Text(
                     continueBtnText,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.outfit(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 16.5,
                       fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1037,133 +1048,251 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ).animate().fadeIn(delay: 500.ms),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // Divider
-          Row(
-            children: [
-              const Expanded(
-                child: Divider(color: Color(0xFFE2E8F0), thickness: 1),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  orDivider,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF94A3B8),
-                  ),
-                ),
-              ),
-              const Expanded(
-                child: Divider(color: Color(0xFFE2E8F0), thickness: 1),
-              ),
-            ],
-          ).animate().fadeIn(delay: 550.ms),
-
-          const SizedBox(height: 16),
-
-          // Admin/Owner login
-          TextButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
-            ),
-            icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
-            label: Text(
-              ownerLoginText,
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF475569),
-              ),
-            ),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF475569),
-            ),
-          ).animate().fadeIn(delay: 600.ms),
-
-          const SizedBox(height: 8),
-
-          // Change Shop Button
-          TextButton.icon(
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(
-                    lang == 'hi'
-                        ? 'दुकान बदलें?'
-                        : (lang == 'hinglish'
-                              ? 'Shop badlein?'
-                              : 'Change Shop?'),
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-                  ),
-                  content: Text(
-                    lang == 'hi'
-                        ? 'क्या आप इस दुकान से बाहर निकलकर दूसरी दुकान चुनना चाहते हैं? आपकी कार्ट खाली हो जाएगी।'
-                        : (lang == 'hinglish'
-                              ? 'Kya aap doosri shop choose karna chahte hain? Aapka cart khali ho jayega.'
-                              : 'Do you want to leave this shop and choose another? Your cart will be cleared.'),
-                    style: GoogleFonts.poppins(fontSize: 13),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(
-                        lang == 'hi' ? 'रद्द करें' : 'Cancel',
-                        style: GoogleFonts.poppins(),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF047857),
-                      ),
-                      child: Text(
-                        lang == 'hi' ? 'हाँ, दुकान बदलें' : 'Yes, Change Shop',
-                        style: GoogleFonts.poppins(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm == true && context.mounted) {
-                await Provider.of<ShopProvider>(
-                  context,
-                  listen: false,
-                ).clearShop();
-                if (context.mounted) {
-                  Provider.of<CartProvider>(context, listen: false).clearCart();
-                }
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ShopSelectorScreen(),
-                    ),
-                    (route) => false,
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-            label: Text(
-              changeShopText,
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF047857),
-              ),
-            ),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF047857),
-            ),
-          ).animate().fadeIn(delay: 650.ms),
+          // Super Admin Access (Discreet bottom pill option)
+          _buildSuperAdminOption(context, langProvider),
         ],
       ),
     );
+  }
+
+  Widget _buildSuperAdminOption(
+    BuildContext context,
+    LanguageProvider langProvider,
+  ) {
+    final isHindi = langProvider.isHindi;
+    final isHinglish = langProvider.isHinglish;
+    final superAdminLabel = isHindi
+        ? 'सुपर एडमिन'
+        : (isHinglish ? 'Super Admin' : 'Super Admin');
+
+    return GestureDetector(
+      onTap: () => _showSuperAdminPinDialog(langProvider),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.shield_outlined,
+              size: 14,
+              color: AppColors.primaryDark,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              superAdminLabel,
+              style: GoogleFonts.outfit(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF334155),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.lock_outline_rounded,
+              size: 11,
+              color: Color(0xFF94A3B8),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSuperAdminPinDialog(
+    LanguageProvider langProvider,
+  ) async {
+    final isHindi = langProvider.isHindi;
+    final isHinglish = langProvider.isHinglish;
+    final pinController = TextEditingController();
+    bool obscurePin = true;
+    String? errorMessage;
+
+    final verified = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (dCtx, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryDark.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      color: AppColors.primaryDark,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    isHindi
+                        ? 'सुपर एडमिन सत्यापन'
+                        : (isHinglish ? 'Super Admin Verification' : 'Super Admin Access'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isHindi
+                        ? 'कंसोल एक्सेस करने के लिए 6-अंकों का पिन दर्ज करें:'
+                        : (isHinglish
+                            ? 'Console access karne ke liye 6-digit PIN dalein:'
+                            : 'Enter 6-digit security PIN to access Super Admin:'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.5,
+                      color: const Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: pinController,
+                    keyboardType: TextInputType.number,
+                    obscureText: obscurePin,
+                    maxLength: 6,
+                    autofocus: true,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 6,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: '••••••',
+                      counterText: '',
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        borderSide: BorderSide(
+                          color: AppColors.primaryDark,
+                          width: 1.5,
+                        ),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePin
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          size: 18,
+                          color: const Color(0xFF64748B),
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscurePin = !obscurePin;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          size: 14,
+                          color: Color(0xFFDC2626),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            errorMessage!,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11.5,
+                              color: const Color(0xFFDC2626),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx, false),
+                  child: Text(
+                    isHindi ? 'रद्द करें' : (isHinglish ? 'Cancel' : 'Cancel'),
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () {
+                    final enteredPin = pinController.text.trim();
+                    if (enteredPin == '999999') {
+                      Navigator.pop(dialogCtx, true);
+                    } else {
+                      setDialogState(() {
+                        errorMessage = isHindi
+                            ? 'अमान्य सुपर एडमिन पिन!'
+                            : (isHinglish
+                                ? 'Galat Super Admin PIN hai!'
+                                : 'Invalid Super Admin PIN!');
+                      });
+                    }
+                  },
+                  child: Text(
+                    isHindi ? 'सत्यापित करें' : (isHinglish ? 'Verify Karein' : 'Verify'),
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (verified == true && mounted) {
+      AuthService().elevateToSuperAdmin().catchError((_) {});
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SuperAdminScreen(),
+        ),
+      );
+    }
   }
 }

@@ -15,6 +15,7 @@ import 'package:near_kirana/razorpay_service.dart';
 import 'package:near_kirana/address_selection_bottom_sheet.dart';
 import 'package:near_kirana/coupon_model.dart';
 import 'package:near_kirana/widgets/coupon_widgets.dart';
+import 'package:near_kirana/widgets/loyalty_redemption_card.dart';
 import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -53,6 +54,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   final ScrollController _mobileScrollController = ScrollController();
   final Set<String> _selectedInstructionChips = {};
   CouponValidationResult? _appliedCouponResult;
+  ({int points, double discountRupees})? _appliedLoyaltyRedemption;
 
   // Khata Verification State (Offline customers created by shop owner)
   bool _isLoadingKhata = true;
@@ -139,8 +141,10 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         ? 0.0
         : (subtotal >= freeDeliveryThreshold ? 0.0 : deliveryFeeAmount);
 
-    // Promotional Coupon / Discount Engine (Feature 49)
-    final double discount = _appliedCouponResult?.totalSavings ?? 0.0;
+    // Promotional Coupon / Discount Engine (Feature 49) & Loyalty Points (Feature 60)
+    final double couponDiscount = _appliedCouponResult?.totalSavings ?? 0.0;
+    final double loyaltyDiscount = _appliedLoyaltyRedemption?.discountRupees ?? 0.0;
+    final double discount = couponDiscount + loyaltyDiscount;
     final double finalTotal = max(0.0, subtotal + deliveryFee - discount);
 
     final size = MediaQuery.of(context).size;
@@ -157,6 +161,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         subtotal: subtotal,
         deliveryFee: deliveryFee,
         discount: discount,
+        loyaltyDiscount: loyaltyDiscount,
+        loyaltyPoints: _appliedLoyaltyRedemption?.points ?? 0,
         finalTotal: finalTotal,
         canDeliver: canDeliver,
         currentShopId: currentShopId,
@@ -656,6 +662,20 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                 });
                               },
                             ),
+                            if (currentShopId.isNotEmpty && customerPhone.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              LoyaltyRedemptionCard(
+                                shopId: currentShopId,
+                                customerPhone: customerPhone,
+                                customerName: userProvider.customerName.isNotEmpty ? userProvider.customerName : 'Customer',
+                                subtotal: subtotal,
+                                onRedemptionChanged: (redemption) {
+                                  setState(() {
+                                    _appliedLoyaltyRedemption = redemption;
+                                  });
+                                },
+                              ),
+                            ],
                             const SizedBox(height: 16),
 
                             // PRICE DETAILS
@@ -716,7 +736,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                 ),
                               ],
                             ),
-                            if (discount > 0) ...[
+                            if (couponDiscount > 0) ...[
                               const SizedBox(height: 12),
                               Row(
                                 mainAxisAlignment:
@@ -730,7 +750,30 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                     ),
                                   ),
                                   Text(
-                                    "- ₹${discount.toStringAsFixed(0)}",
+                                    "- ₹${couponDiscount.toStringAsFixed(0)}",
+                                    style: const TextStyle(
+                                      color: Color(0xFF166534),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            if (loyaltyDiscount > 0) ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Loyalty Points (${_appliedLoyaltyRedemption?.points ?? 0} pts)",
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    "- ₹${loyaltyDiscount.toStringAsFixed(0)}",
                                     style: const TextStyle(
                                       color: Color(0xFF166534),
                                       fontWeight: FontWeight.bold,
@@ -1030,6 +1073,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     required double subtotal,
     required double deliveryFee,
     required double discount,
+    double loyaltyDiscount = 0.0,
+    int loyaltyPoints = 0,
     required double finalTotal,
     required bool canDeliver,
     required String currentShopId,
@@ -1135,6 +1180,22 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               },
             ),
 
+            // 5.5 Loyalty Rewards Redemption Card
+            if (currentShopId.isNotEmpty && customerPhone.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              LoyaltyRedemptionCard(
+                shopId: currentShopId,
+                customerPhone: customerPhone,
+                customerName: userProvider.customerName.isNotEmpty ? userProvider.customerName : 'Customer',
+                subtotal: subtotal,
+                onRedemptionChanged: (redemption) {
+                  setState(() {
+                    _appliedLoyaltyRedemption = redemption;
+                  });
+                },
+              ),
+            ],
+
             const SizedBox(height: 12),
 
             // 6. Payment Method Section
@@ -1186,6 +1247,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               subtotal: subtotal,
               deliveryFee: deliveryFee,
               discount: discount,
+              loyaltyDiscount: loyaltyDiscount,
+              loyaltyPoints: loyaltyPoints,
               finalTotal: finalTotal,
               cartItemsCount: cartItems.length,
               l10n: l10n,
@@ -1934,10 +1997,16 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     required double subtotal,
     required double deliveryFee,
     required double discount,
+    double loyaltyDiscount = 0.0,
+    int loyaltyPoints = 0,
     required double finalTotal,
     required int cartItemsCount,
     required AppLocalizations? l10n,
   }) {
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final isHindi = langProvider.isHindi;
+    final isHinglish = langProvider.isHinglish;
+    final double couponSavings = _appliedCouponResult?.totalSavings ?? 0.0;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1970,11 +2039,21 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             (_isPickup || deliveryFee == 0) ? "FREE" : "₹${deliveryFee.toStringAsFixed(0)}",
             isFree: _isPickup || deliveryFee == 0,
           ),
-          if (discount > 0) ...[
+          if (couponSavings > 0) ...[
             const SizedBox(height: 10),
             _buildMobileBillRow(
-              "Coupon Discount",
-              "-₹${discount.toStringAsFixed(0)}",
+              isHindi ? "कूपन छूट" : (isHinglish ? "Coupon Discount" : "Coupon Discount"),
+              "-₹${couponSavings.toStringAsFixed(0)}",
+              isDiscount: true,
+            ),
+          ],
+          if (loyaltyDiscount > 0) ...[
+            const SizedBox(height: 10),
+            _buildMobileBillRow(
+              isHindi
+                  ? "लॉयल्टी अंक छूट ($loyaltyPoints pts)"
+                  : (isHinglish ? "Loyalty Points Discount ($loyaltyPoints pts)" : "Loyalty Points Discount ($loyaltyPoints pts)"),
+              "-₹${loyaltyDiscount.toStringAsFixed(0)}",
               isDiscount: true,
             ),
           ],
@@ -3531,6 +3610,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           instructions: _instructionsController.text.trim(),
           idempotencyKey: idempotencyKey,
           couponCode: _appliedCouponResult?.coupon?.code,
+          loyaltyPointsRedeemed: _appliedLoyaltyRedemption?.points,
+          loyaltyDiscount: _appliedLoyaltyRedemption?.discountRupees,
           items: items,
           extraData: {
             'estimated_delivery_window': estimate.formattedWindow,
@@ -3567,6 +3648,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         }
       }
 
+      final double totalSavings = (_appliedCouponResult?.discountAmount ?? 0.0) +
+          (_appliedLoyaltyRedemption?.discountRupees ?? 0.0);
+
       final receiptOrderData = {
         'order_id': result.orderId,
         'items': items.map((i) => {
@@ -3574,7 +3658,10 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           'price': i.price, 'total_price': i.quantity * i.price, 'is_loose': i.isLoose,
         }).toList(),
         'subtotal': cartProvider.cartTotal,
-        'discount': _appliedCouponResult?.discountAmount ?? 0.0,
+        'discount': totalSavings,
+        'coupon_discount': _appliedCouponResult?.discountAmount ?? 0.0,
+        'loyalty_discount': _appliedLoyaltyRedemption?.discountRupees ?? 0.0,
+        'loyalty_points_redeemed': _appliedLoyaltyRedemption?.points ?? 0,
         'coupon_code': _appliedCouponResult?.coupon?.code,
         'delivery_fee': deliveryFee,
         'total_amount': result.totalAmount,

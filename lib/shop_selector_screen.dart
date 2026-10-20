@@ -870,7 +870,9 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                                 ),
                                 const SizedBox(width: 2),
                                 Text(
-                                  '15-25 min',
+                                  (data['delivery_time'] != null && data['delivery_time'].toString().isNotEmpty)
+                                      ? data['delivery_time'].toString()
+                                      : '15-25 min',
                                   style: GoogleFonts.outfit(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
@@ -894,7 +896,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                                 Icon(Icons.star_rounded, size: 13, color: Colors.amber.shade800),
                                 const SizedBox(width: 2),
                                 Text(
-                                  '4.8',
+                                  (data['rating'] != null) ? '${data['rating']}' : '4.8',
                                   style: GoogleFonts.outfit(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,

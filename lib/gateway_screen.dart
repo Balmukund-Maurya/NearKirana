@@ -20,6 +20,7 @@ import 'auth_service.dart';
 import 'delivery_partner_screen.dart';
 import 'language_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'super_admin_screen.dart';
 import 'widgets/language_bottom_sheet.dart';
 
 class GatewayScreen extends StatefulWidget {
@@ -760,10 +761,10 @@ class _GatewayScreenState extends State<GatewayScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF047857).withValues(alpha: 0.1),
+                  color: AppColors.primaryDark.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFF047857).withValues(alpha: 0.2),
+                    color: AppColors.primaryDark.withValues(alpha: 0.25),
                   ),
                 ),
                 child: Row(
@@ -771,16 +772,16 @@ class _GatewayScreenState extends State<GatewayScreen> {
                   children: [
                     const Icon(
                       Icons.bolt_rounded,
-                      color: Color(0xFF047857),
+                      color: AppColors.primaryDark,
                       size: 16,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       deliveryBadgeText,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.outfit(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF047857),
+                        color: AppColors.primaryDark,
                       ),
                     ),
                   ],
@@ -887,7 +888,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 36 : 18,
-        vertical: isDesktop ? 36 : 24,
+        vertical: isDesktop ? 32 : 16,
       ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: isDesktop ? 0.95 : 1.0),
@@ -915,75 +916,84 @@ class _GatewayScreenState extends State<GatewayScreen> {
             const SizedBox(height: 8),
           ],
 
-          // Zepto / Blinkit Brand Header
+          // NearKirana Brand Header (Exact match with shop_selector_screen)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF047857), Color(0xFF10B981)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
+                  color: AppColors.primaryDark,
+                  borderRadius: BorderRadius.circular(13),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF047857).withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      color: AppColors.primaryDark.withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
                 child: const Icon(
-                  Icons.shopping_bag_rounded,
+                  Icons.storefront_rounded,
                   color: Colors.white,
-                  size: 28,
+                  size: 25,
                 ),
-              ).animate().scale(begin: const Offset(0, 0), end: const Offset(1, 1), duration: 500.ms, curve: Curves.easeOutBack),
-              const SizedBox(width: 14),
+              ).animate().scale(begin: const Offset(0, 0), end: const Offset(1, 1), duration: 400.ms, curve: Curves.easeOutBack),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'NearKirana',
-                    style: GoogleFonts.poppins(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF047857),
-                      letterSpacing: -0.5,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Near',
+                        style: GoogleFonts.outfit(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textDark,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      Text(
+                        'Kirana',
+                        style: GoogleFonts.outfit(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primaryDark,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ],
                   ),
                   Text(
                     'Instant Local Delivery',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.outfit(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade500,
-                      letterSpacing: 0.4,
+                      color: AppColors.textMid,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],
-              ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.1, end: 0),
+              ).animate().fadeIn(delay: 100.ms).slideX(begin: 0.1, end: 0),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           // Subtitle
           Text(
             brandSubtitle,
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
-              fontSize: 14.5,
+              fontSize: 13.5,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF1E293B),
-              height: 1.3,
+              height: 1.25,
             ),
-          ).animate().fadeIn(delay: 200.ms),
+          ).animate().fadeIn(delay: 150.ms),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
 
           // Zepto/Blinkit Style 3 Trust Feature Badges
           Wrap(
@@ -1010,9 +1020,9 @@ class _GatewayScreenState extends State<GatewayScreen> {
                 bgColor: const Color(0xFFDBEAFE),
               ),
             ],
-          ).animate().fadeIn(delay: 300.ms),
+          ).animate().fadeIn(delay: 200.ms),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 18),
 
           // Input Field Title
           Align(
@@ -1020,13 +1030,13 @@ class _GatewayScreenState extends State<GatewayScreen> {
             child: Text(
               phoneLabel,
               style: GoogleFonts.poppins(
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF334155),
               ),
             ),
-          ).animate().fadeIn(delay: 350.ms),
-          const SizedBox(height: 8),
+          ).animate().fadeIn(delay: 250.ms),
+          const SizedBox(height: 6),
 
           // Modern Rounded Phone Input Container
           Container(
@@ -1041,13 +1051,13 @@ class _GatewayScreenState extends State<GatewayScreen> {
             child: Row(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Row(
                     children: [
                       const Icon(
                         Icons.phone_android_rounded,
                         size: 20,
-                        color: Color(0xFF047857),
+                        color: AppColors.primaryDark,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -1083,7 +1093,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
                     decoration: InputDecoration(
                       hintText: phoneHint,
                       hintStyle: GoogleFonts.poppins(
-                        fontSize: 13.5,
+                        fontSize: 13,
                         fontWeight: FontWeight.w400,
                         color: Colors.grey.shade400,
                         letterSpacing: 0,
@@ -1095,14 +1105,14 @@ class _GatewayScreenState extends State<GatewayScreen> {
                 ),
               ],
             ),
-          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.08, end: 0),
+          ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.08, end: 0),
 
-          const SizedBox(height: 22),
+          const SizedBox(height: 16),
 
-          // Continue Button (Zepto / Blinkit Vibrant Green Button)
+          // Continue Button (NearKirana Primary Dark Green Button)
           SizedBox(
             width: double.infinity,
-            height: 54,
+            height: 50,
             child: ElevatedButton(
               onPressed: () {
                 if (_phoneController.text.length != 10) {
@@ -1127,8 +1137,9 @@ class _GatewayScreenState extends State<GatewayScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF047857),
-                elevation: 0,
+                backgroundColor: AppColors.primaryDark,
+                elevation: 2,
+                shadowColor: AppColors.primaryDark.withValues(alpha: 0.35),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -1138,9 +1149,9 @@ class _GatewayScreenState extends State<GatewayScreen> {
                 children: [
                   Text(
                     continueBtnText,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.outfit(
                       color: Colors.white,
-                      fontSize: 16.5,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.2,
                     ),
@@ -1149,14 +1160,14 @@ class _GatewayScreenState extends State<GatewayScreen> {
                   const Icon(
                     Icons.arrow_forward_rounded,
                     color: Colors.white,
-                    size: 20,
+                    size: 19,
                   ),
                 ],
               ),
             ),
-          ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.08, end: 0),
+          ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.08, end: 0),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
 
           // Terms and Privacy Footer (With lock icon, NO emojis)
           Row(
@@ -1182,9 +1193,254 @@ class _GatewayScreenState extends State<GatewayScreen> {
                 ),
               ),
             ],
-          ).animate().fadeIn(delay: 500.ms),
+          ).animate().fadeIn(delay: 400.ms),
+
+          const SizedBox(height: 18),
+
+          // Super Admin Access (Discreet pill button)
+          _buildSuperAdminOption(context, langProvider),
         ],
       ),
+    );
+  }
+
+  Widget _buildSuperAdminOption(
+    BuildContext context,
+    LanguageProvider? langProvider,
+  ) {
+    final isHindi = langProvider?.isHindi ?? false;
+    final isHinglish = langProvider?.isHinglish ?? false;
+    final superAdminLabel = isHindi
+        ? 'सुपर एडमिन'
+        : (isHinglish ? 'Super Admin' : 'Super Admin');
+
+    return GestureDetector(
+      onTap: () => _showSuperAdminPinDialog(context, langProvider),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.shield_outlined,
+              size: 14,
+              color: AppColors.primaryDark,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              superAdminLabel,
+              style: GoogleFonts.outfit(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF334155),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.lock_outline_rounded,
+              size: 11,
+              color: Color(0xFF94A3B8),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSuperAdminPinDialog(
+    BuildContext context,
+    LanguageProvider? langProvider,
+  ) {
+    final parentContext = context;
+    final isHindi = langProvider?.isHindi ?? false;
+    final isHinglish = langProvider?.isHinglish ?? false;
+    final pinController = TextEditingController();
+    bool obscurePin = true;
+    String? errorMessage;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (dCtx, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryDark.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      color: AppColors.primaryDark,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    isHindi
+                        ? 'सुपर एडमिन सत्यापन'
+                        : (isHinglish ? 'Super Admin Verification' : 'Super Admin Access'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isHindi
+                        ? 'कंसोल एक्सेस करने के लिए 6-अंकों का पिन दर्ज करें:'
+                        : (isHinglish
+                            ? 'Console access karne ke liye 6-digit PIN dalein:'
+                            : 'Enter 6-digit security PIN to access Super Admin:'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.5,
+                      color: const Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: pinController,
+                    keyboardType: TextInputType.number,
+                    obscureText: obscurePin,
+                    maxLength: 6,
+                    autofocus: true,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 6,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: '••••••',
+                      counterText: '',
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        borderSide: BorderSide(
+                          color: AppColors.primaryDark,
+                          width: 1.5,
+                        ),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePin
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          size: 18,
+                          color: const Color(0xFF64748B),
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscurePin = !obscurePin;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          size: 14,
+                          color: Color(0xFFDC2626),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            errorMessage!,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11.5,
+                              color: const Color(0xFFDC2626),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: Text(
+                    isHindi ? 'रद्द करें' : (isHinglish ? 'Cancel' : 'Cancel'),
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final enteredPin = pinController.text.trim();
+                    if (enteredPin == '999999') {
+                      Navigator.pop(dialogCtx);
+                      await AuthService().elevateToSuperAdmin();
+                      if (parentContext.mounted) {
+                        Navigator.push(
+                          parentContext,
+                          MaterialPageRoute(
+                            builder: (_) => const SuperAdminScreen(),
+                          ),
+                        );
+                      }
+                    } else {
+                      setDialogState(() {
+                        errorMessage = isHindi
+                            ? 'अमान्य सुपर एडमिन पिन!'
+                            : (isHinglish
+                                ? 'Galat Super Admin PIN hai!'
+                                : 'Invalid Super Admin PIN!');
+                      });
+                    }
+                  },
+                  child: Text(
+                    isHindi ? 'सत्यापित करें' : (isHinglish ? 'Verify Karein' : 'Verify'),
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

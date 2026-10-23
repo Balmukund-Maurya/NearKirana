@@ -153,6 +153,19 @@ class AddressSelectionBottomSheet extends StatelessWidget {
                         serviceability: serviceability,
                         isCheckoutMode: isCheckoutMode,
                         onSelect: () async {
+                          if (isCheckoutMode && serviceability.isOutOfDeliveryRadius) {
+                            HapticFeedback.heavyImpact();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Yeh address delivery daayre se bahar hai (${serviceability.distanceKm.toStringAsFixed(1)} km door). Dukan sirf ${radiusKm.toStringAsFixed(0)} km tak deliver karti hai. Kripya nazdeek ka address chunein ya Store Pickup karein.',
+                                ),
+                                backgroundColor: AppColors.error,
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                            return;
+                          }
                           HapticFeedback.lightImpact();
                           await userProvider.selectAddressForCheckout(address);
                           if (context.mounted) {
@@ -625,6 +638,10 @@ class _AddEditAddressSheetState extends State<AddEditAddressSheet> {
           initialLat: initialLat,
           initialLng: initialLng,
           isPickingOnly: true,
+          checkDeliveryRadius: true,
+          customStoreLat: userProvider.storeLat,
+          customStoreLng: userProvider.storeLng,
+          customDeliveryRadiusKm: userProvider.deliveryRadiusKm,
         ),
       ),
     );

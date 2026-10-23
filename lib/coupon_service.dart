@@ -44,15 +44,42 @@ class CouponService {
           .limit(1)
           .get();
 
-      if (querySnap.docs.isEmpty) {
+      DocumentSnapshot<Map<String, dynamic>>? foundDoc;
+      if (querySnap.docs.isNotEmpty) {
+        foundDoc = querySnap.docs.first;
+      } else {
+        // Fallback: search by original code or scan active coupons case-insensitively
+        final altSnap = await _firestore
+            .collection('coupons')
+            .where('code', isEqualTo: code.trim())
+            .limit(1)
+            .get();
+        if (altSnap.docs.isNotEmpty) {
+          foundDoc = altSnap.docs.first;
+        } else {
+          final allSnap = await _firestore
+              .collection('coupons')
+              .limit(50)
+              .get();
+          for (final d in allSnap.docs) {
+            final c = (d.data()['code']?.toString() ?? '').toUpperCase().trim();
+            if (c == cleanCode) {
+              foundDoc = d;
+              break;
+            }
+          }
+        }
+      }
+
+      if (foundDoc == null) {
         return CouponValidationResult(
           isValid: false,
           errorMessage: 'Coupon code "$cleanCode" is invalid or does not exist.',
         );
       }
 
-      final doc = querySnap.docs.first;
-      final coupon = CouponModel.fromMap(doc.data(), id: doc.id);
+      final doc = foundDoc;
+      final coupon = CouponModel.fromMap(doc.data()!, id: doc.id);
 
       final currentTime = now ?? DateTime.now();
 
@@ -69,6 +96,7 @@ class CouponService {
       if (coupon.shopId != null &&
           coupon.shopId!.isNotEmpty &&
           shopId != null &&
+          shopId.isNotEmpty &&
           coupon.shopId != shopId) {
         return CouponValidationResult(
           isValid: false,

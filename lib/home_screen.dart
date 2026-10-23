@@ -19,6 +19,10 @@ class HomeScreen extends StatefulWidget {
   final int initialIndex;
   const HomeScreen({super.key, this.initialIndex = 0});
 
+  /// Static callback so child tabs (like CustomerShopTab) can trigger
+  /// bottom navigation bar tab switching (e.g., jump to Cart tab 1).
+  static Function(int)? navCallback;
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -30,6 +34,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    HomeScreen.navCallback = _onNavTap;
+  }
+
+  @override
+  void dispose() {
+    HomeScreen.navCallback = null;
+    super.dispose();
   }
 
 

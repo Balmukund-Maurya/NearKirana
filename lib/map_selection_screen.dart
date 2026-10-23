@@ -1,5 +1,6 @@
 import 'package:near_kirana/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -17,12 +18,20 @@ class MapSelectionScreen extends StatefulWidget {
   final double initialLat;
   final double initialLng;
   final bool isPickingOnly;
+  final bool checkDeliveryRadius;
+  final double? customStoreLat;
+  final double? customStoreLng;
+  final double? customDeliveryRadiusKm;
 
   const MapSelectionScreen({
     super.key,
     required this.initialLat,
     required this.initialLng,
     this.isPickingOnly = false,
+    this.checkDeliveryRadius = true,
+    this.customStoreLat,
+    this.customStoreLng,
+    this.customDeliveryRadiusKm,
   });
 
   @override
@@ -43,18 +52,33 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   String? _storeName;
 
   bool get _isOutOfDeliveryZone {
-    if (_storeLat == null || _storeLng == null || _deliveryRadiusKm == null) return false;
-    // Don't show out of delivery message for admin who is just picking a location for store setup
-    if (widget.isPickingOnly) return false; 
-    if (_deliveryRadiusKm! <= 0) return false; // 0 means unlimited delivery radius
+    if (!widget.checkDeliveryRadius) return false;
+    final storeLat = widget.customStoreLat ?? _storeLat;
+    final storeLng = widget.customStoreLng ?? _storeLng;
+    final radiusKm = widget.customDeliveryRadiusKm ?? _deliveryRadiusKm;
+    if (storeLat == null || storeLng == null || radiusKm == null) return false;
+    if (radiusKm <= 0) return false; // 0 means unlimited delivery radius
     
     final distance = Geolocator.distanceBetween(
       _currentCenter.latitude,
       _currentCenter.longitude,
-      _storeLat!,
-      _storeLng!,
+      storeLat,
+      storeLng,
     );
-    return distance > (_deliveryRadiusKm! * 1000);
+    return distance > (radiusKm * 1000);
+  }
+
+  double get _currentDistanceKm {
+    final storeLat = widget.customStoreLat ?? _storeLat;
+    final storeLng = widget.customStoreLng ?? _storeLng;
+    if (storeLat == null || storeLng == null) return 0.0;
+    final distance = Geolocator.distanceBetween(
+      _currentCenter.latitude,
+      _currentCenter.longitude,
+      storeLat,
+      storeLng,
+    );
+    return distance / 1000.0;
   }
 
   @override
@@ -73,19 +97,33 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
   Future<void> _fetchStoreArea() async {
     try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
       final shopProvider = Provider.of<ShopProvider>(context, listen: false);
       final shopId = shopProvider.currentShopId;
-      final doc = shopId != null && shopId.isNotEmpty 
-          ? await FirebaseUtils.firestore.collection('shops').doc(shopId).get()
-          : await FirebaseUtils.firestore.collection('settings').doc('app_config').get();
-          
-      if (doc.exists && mounted) {
-        final data = doc.data() as Map<String, dynamic>;
+
+      double? lat = widget.customStoreLat ?? userProvider.storeLat ?? shopProvider.shopLat;
+      double? lng = widget.customStoreLng ?? userProvider.storeLng ?? shopProvider.shopLng;
+      double? radius = widget.customDeliveryRadiusKm ?? userProvider.deliveryRadiusKm;
+
+      if (lat == null || lng == null || radius == null) {
+        final doc = shopId != null && shopId.isNotEmpty 
+            ? await FirebaseUtils.firestore.collection('shops').doc(shopId).get()
+            : await FirebaseUtils.firestore.collection('settings').doc('app_config').get();
+            
+        if (doc.exists && mounted) {
+          final data = doc.data() as Map<String, dynamic>;
+          lat = (data['store_latitude'] as num?)?.toDouble() ?? (data['lat'] as num?)?.toDouble();
+          lng = (data['store_longitude'] as num?)?.toDouble() ?? (data['lng'] as num?)?.toDouble();
+          radius = (data['delivery_radius_km'] as num?)?.toDouble() ?? 5.0;
+        }
+      }
+
+      if (mounted) {
         setState(() {
-          _storeLat = (data['store_latitude'] as num?)?.toDouble() ?? (data['lat'] as num?)?.toDouble();
-          _storeLng = (data['store_longitude'] as num?)?.toDouble() ?? (data['lng'] as num?)?.toDouble();
-          _deliveryRadiusKm = (data['delivery_radius_km'] as num?)?.toDouble() ?? 5.0;
-          _storeName = (data['shop_name'] ?? shopProvider.shopName ?? 'Store').toString();
+          _storeLat = lat;
+          _storeLng = lng;
+          _deliveryRadiusKm = radius ?? 5.0;
+          _storeName = (shopProvider.shopName ?? 'Store').toString();
         });
 
         // Center on store if no initial location was passed
@@ -97,8 +135,6 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         } else if (widget.initialLat == 0.0 && widget.initialLng == 0.0) {
           _locateUser();
         }
-      } else if (widget.initialLat == 0.0 && widget.initialLng == 0.0) {
-        _locateUser();
       }
     } catch (_) {
       if (widget.initialLat == 0.0 && widget.initialLng == 0.0) {
@@ -706,6 +742,43 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               ],
             ),
           ),
+          if (_isOutOfDeliveryZone)
+            Positioned(
+              bottom: 82,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFCA5A5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Location is ${_currentDistanceKm.toStringAsFixed(1)} km away. Store only delivers within ${_deliveryRadiusKm?.toStringAsFixed(0) ?? "5"} km.',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF991B1B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -718,16 +791,44 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
             heroTag: 'fab_map_selection_confirm',
             onPressed: () {
               if (_isOutOfDeliveryZone) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(langProvider.selected_loc_outside),
-                    backgroundColor: Colors.red,
-                    behavior: SnackBarBehavior.floating,
+                HapticFeedback.heavyImpact();
+                final radius = widget.customDeliveryRadiusKm ?? _deliveryRadiusKm ?? 5.0;
+                final dist = _currentDistanceKm.toStringAsFixed(1);
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    title: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded, color: Colors.red, size: 24),
+                        const SizedBox(width: 8),
+                        Text(
+                          langProvider.out_of_delivery_area,
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    content: Text(
+                      'Yeh location dukan se $dist km door hai. Hamari delivery sirf $radius km ke daayre mein uplabdh hai.\n\nKripya dukan ke delivery area ke andar ka pata chunein ya Store Pickup option chunein.',
+                      style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF334155)),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(AppLocalizations.of(context)!.ok_btn),
+                      ),
+                    ],
                   ),
                 );
-              } else {
-                _showAddressDetailsSheet();
+                return;
               }
+
+              if (widget.isPickingOnly) {
+                Navigator.pop(context, _currentCenter);
+                return;
+              }
+
+              _showAddressDetailsSheet();
             },
             backgroundColor: _isOutOfDeliveryZone ? Colors.red : const Color(0xFF4CAF50),
             icon: Icon(

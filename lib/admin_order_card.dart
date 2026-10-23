@@ -1889,15 +1889,17 @@ class AdminOrderCard extends StatelessWidget {
                               final batch = FirebaseUtils.firestore.batch();
                               final orderRef = FirebaseUtils.firestore.collection('orders').doc(orderId);
 
+                              final isKhataSelected = selectedPayment == 'Khata' || selectedPayment == 'Kirana Khata';
+                              final khataAlreadyRecorded = data['khata_recorded'] == true;
                               batch.update(orderRef, {
                                 'status': nextStatus,
                                 'payment_method': selectedPayment,
                                 'pin_bypassed': true,
-                                if (nextStatus == 'Delivered' && selectedPayment != 'Khata')
+                                if (nextStatus == 'Delivered' && !isKhataSelected)
                                   'payment_status': PaymentStatus.paid,
                               });
 
-                              if (nextStatus == 'Delivered' && selectedPayment == 'Khata') {
+                              if (nextStatus == 'Delivered' && isKhataSelected && !khataAlreadyRecorded) {
                                 final phone = data['phone_number'] as String?;
                                 final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
                                 if (phone != null && total > 0) {
@@ -1919,10 +1921,12 @@ class AdminOrderCard extends StatelessWidget {
                                         'amount': total,
                                         'type': 'debit',
                                         'shop_id': data['shop_id'],
-                                        'description': 'Order Delivered (#${orderId.substring(0, 5)})',
+                                        'order_id': orderId,
+                                        'description': 'Order Delivered (#${orderId.length > 5 ? orderId.substring(0, 5) : orderId})',
                                         'timestamp': FieldValue.serverTimestamp(),
                                       },
                                     );
+                                    batch.update(orderRef, {'khata_recorded': true});
                                   }
                                 }
                               }
@@ -1979,14 +1983,16 @@ class AdminOrderCard extends StatelessWidget {
                           final batch = FirebaseUtils.firestore.batch();
                           final orderRef = FirebaseUtils.firestore.collection('orders').doc(orderId);
 
+                          final isKhataSelected2 = selectedPayment == 'Khata' || selectedPayment == 'Kirana Khata';
+                          final khataAlreadyRecorded2 = data['khata_recorded'] == true;
                           batch.update(orderRef, {
                             'status': nextStatus,
                             'payment_method': selectedPayment,
-                            if (nextStatus == 'Delivered' && selectedPayment != 'Khata')
+                            if (nextStatus == 'Delivered' && !isKhataSelected2)
                               'payment_status': PaymentStatus.paid,
                           });
 
-                          if (nextStatus == 'Delivered' && selectedPayment == 'Khata') {
+                          if (nextStatus == 'Delivered' && isKhataSelected2 && !khataAlreadyRecorded2) {
                             final phone = data['phone_number'] as String?;
                             final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
                             if (phone != null && total > 0) {
@@ -2008,10 +2014,12 @@ class AdminOrderCard extends StatelessWidget {
                                     'amount': total,
                                     'type': 'debit',
                                     'shop_id': data['shop_id'],
-                                    'description': 'Order Delivered (#${orderId.substring(0, 5)})',
+                                    'order_id': orderId,
+                                    'description': 'Order Delivered (#${orderId.length > 5 ? orderId.substring(0, 5) : orderId})',
                                     'timestamp': FieldValue.serverTimestamp(),
                                   },
                                 );
+                                batch.update(orderRef, {'khata_recorded': true});
                               }
                             }
                           }
@@ -2973,8 +2981,10 @@ class AdminOrderCard extends StatelessWidget {
         }
 
         // --- 2. PERFORM ALL WRITES ---
-        final isKhataPayment = (data['payment_method'] as String?) == 'Khata';
-        if (currentStatus == OrderStatus.delivered && customerRef != null && isKhataPayment) {
+        final isKhataPayment = (data['payment_method'] as String?) == 'Khata' ||
+            (data['payment_method'] as String?) == 'Kirana Khata';
+        final khataWasRecorded = data['khata_recorded'] == true || currentStatus == OrderStatus.delivered;
+        if (customerRef != null && isKhataPayment && khataWasRecorded) {
           transaction.update(customerRef, {
             'shop_balances.${data['shop_id']}': FieldValue.increment(
               -finalTotal,
@@ -2987,7 +2997,8 @@ class AdminOrderCard extends StatelessWidget {
             'amount': finalTotal,
             'type': 'credit',
             'shop_id': data['shop_id'],
-            'description': 'Order Cancelled #${orderId.substring(0, 5)}',
+            'order_id': orderId,
+            'description': 'Order Cancelled #${orderId.length > 5 ? orderId.substring(0, 5) : orderId}',
             'timestamp': FieldValue.serverTimestamp(),
           });
         }

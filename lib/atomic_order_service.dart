@@ -275,20 +275,41 @@ class AtomicOrderService {
     final cleanCouponCode = params.couponCode?.toUpperCase().trim();
 
     if (cleanCouponCode != null && cleanCouponCode.isNotEmpty) {
-      final cQuery = await _firestore
+      var cQuery = await _firestore
           .collection('coupons')
           .where('code', isEqualTo: cleanCouponCode)
           .limit(1)
           .get();
 
-      if (cQuery.docs.isEmpty) {
+      if (cQuery.docs.isNotEmpty) {
+        preflightCouponRef = cQuery.docs.first.reference;
+      } else {
+        // Fallback: search by original code or case-insensitive scan
+        final altQuery = await _firestore
+            .collection('coupons')
+            .where('code', isEqualTo: params.couponCode!.trim())
+            .limit(1)
+            .get();
+        if (altQuery.docs.isNotEmpty) {
+          preflightCouponRef = altQuery.docs.first.reference;
+        } else {
+          final allSnap = await _firestore.collection('coupons').limit(50).get();
+          for (final d in allSnap.docs) {
+            final c = (d.data()['code']?.toString() ?? '').toUpperCase().trim();
+            if (c == cleanCouponCode) {
+              preflightCouponRef = d.reference;
+              break;
+            }
+          }
+        }
+      }
+
+      if (preflightCouponRef == null) {
         throw InvalidCouponException(
           couponCode: cleanCouponCode,
           reason: 'Coupon code does not exist',
         );
       }
-
-      preflightCouponRef = cQuery.docs.first.reference;
 
       final cleanPhone = params.customerPhone.replaceAll(RegExp(r'\D'), '');
       if (cleanPhone.isNotEmpty) {

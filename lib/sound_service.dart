@@ -72,6 +72,11 @@ class SoundService {
   /// Generic success
   Future<void> success() => loginSuccess();
 
+  /// Button click / tap
+  Future<void> click() async {
+    _vibrate(duration: 25, amplitude: 50);
+  }
+
   /// Out of stock tap
   Future<void> blocked() => play('blocked.wav');
 

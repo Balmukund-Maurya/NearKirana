@@ -21,6 +21,8 @@ import 'animation_helpers.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import 'widgets/voice_order_sheet.dart';
 import 'widgets/notifications_bottom_sheet.dart';
+import 'home_screen.dart';
+import 'cart_screen.dart';
 
 class CustomerShopTab extends StatefulWidget {
   const CustomerShopTab({super.key});
@@ -143,106 +145,323 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
     final userProvider = Provider.of<UserProvider>(context);
     final shopProvider = Provider.of<ShopProvider>(context);
     final langProvider = Provider.of<LanguageProvider>(context);
+    final cartProvider = Provider.of<CartProvider>(context);
+    final bool hasCartItems = cartProvider.itemCount > 0;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: Column(
+      body: Stack(
         children: [
-          // Custom curved header (Mobile Only)
-          if (MediaQuery.of(context).size.width <= 800)
-            _buildHeader(context, langProvider, userProvider, shopProvider)
-          else
-            _buildDesktopHeader(langProvider),
-          // Category chips
-          _buildCategories(context, langProvider),
-          // Out of service banner
-          if (!userProvider.isServiceable)
-            Container(
-              width: double.infinity,
-              color: AppColors.error.withValues(alpha: 0.1),
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.location_off_outlined,
-                    color: AppColors.error,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      userProvider.serviceabilityError ??
-                          'Delivery not available in your area',
-                      style: AppTextStyles.captionMedium(
+          Column(
+            children: [
+              // Custom curved header (Mobile Only)
+              if (MediaQuery.of(context).size.width <= 800)
+                _buildHeader(context, langProvider, userProvider, shopProvider)
+              else
+                _buildDesktopHeader(langProvider),
+              // Category chips
+              _buildCategories(context, langProvider),
+              // Out of service banner
+              if (!userProvider.isServiceable)
+                Container(
+                  width: double.infinity,
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.location_off_outlined,
                         color: AppColors.error,
+                        size: 18,
                       ),
-                    ),
-                  ),
-                  if ((userProvider.serviceabilityError ?? '').contains(
-                        'permission',
-                      ) ||
-                      (userProvider.serviceabilityError ?? '').contains(
-                        'disabled',
-                      )) ...[
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if ((userProvider.serviceabilityError ?? '').contains(
-                          'permission',
-                        )) {
-                          await Geolocator.openAppSettings();
-                        } else {
-                          await Geolocator.openLocationSettings();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.white,
-                        foregroundColor: AppColors.error,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        minimumSize: const Size(0, 32),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          userProvider.serviceabilityError ??
+                              'Delivery not available in your area',
+                          style: AppTextStyles.captionMedium(
+                            color: AppColors.error,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        AppLocalizations.of(context)!.fix_btn,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                      if ((userProvider.serviceabilityError ?? '').contains(
+                            'permission',
+                          ) ||
+                          (userProvider.serviceabilityError ?? '').contains(
+                            'disabled',
+                          )) ...[
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if ((userProvider.serviceabilityError ?? '').contains(
+                              'permission',
+                            )) {
+                              await Geolocator.openAppSettings();
+                            } else {
+                              await Geolocator.openLocationSettings();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.white,
+                            foregroundColor: AppColors.error,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            minimumSize: const Size(0, 32),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            AppLocalizations.of(context)!.fix_btn,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
+                      ],
+                      IconButton(
+                        icon: const Icon(
+                          Icons.refresh_rounded,
+                          color: AppColors.error,
+                          size: 18,
+                        ),
+                        onPressed: () => userProvider.checkServiceability(),
+                        tooltip: 'Check Again',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                    ),
-                  ],
-                  IconButton(
-                    icon: const Icon(
-                      Icons.refresh_rounded,
-                      color: AppColors.error,
-                      size: 18,
-                    ),
-                    onPressed: () => userProvider.checkServiceability(),
-                    tooltip: 'Check Again',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    ],
                   ),
-                ],
+                ),
+              // Product grid
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, hasCartItems ? 76 : 0),
+                  child: ProductGrid(
+                    searchQuery: _searchQuery,
+                    selectedCategory: _selectedCategory,
+                    buildProductCard: _buildProductCard,
+                    userProvider: userProvider,
+                    langProvider: langProvider,
+                  ),
+                ),
               ),
-            ),
-          // Product grid
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: ProductGrid(
-                searchQuery: _searchQuery,
-                selectedCategory: _selectedCategory,
-                buildProductCard: _buildProductCard,
-                userProvider: userProvider,
-                langProvider: langProvider,
-              ),
-            ),
+            ],
           ),
+          if (hasCartItems)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 12,
+              child: _buildZeptoBlinkitCartBar(context, cartProvider, langProvider),
+            ),
         ],
       ),
     );
+  }
+
+  Widget _buildZeptoBlinkitCartBar(
+    BuildContext context,
+    CartProvider cartProvider,
+    LanguageProvider langProvider,
+  ) {
+    final int itemCount = cartProvider.itemCount;
+    final double total = cartProvider.cartTotal;
+
+    final String itemText = langProvider.isHindi
+        ? '$itemCount सामान'
+        : (langProvider.isHinglish
+            ? '$itemCount Items'
+            : '$itemCount ${itemCount == 1 ? 'Item' : 'Items'}');
+
+    final String viewCartText = langProvider.isHindi
+        ? 'कार्ट देखें'
+        : (langProvider.isHinglish ? 'Cart Dekhein' : 'View Cart');
+
+    final String subText = langProvider.isHindi
+        ? 'चेकआउट करने के लिए टैप करें'
+        : (langProvider.isHinglish
+            ? 'Checkout karne ke liye tap karein'
+            : 'Tap to proceed to checkout');
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 650),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primaryDark, // NearKirana brand green (#306D29)
+                Color(0xFF2E7D32),     // Matching header gradient
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryDark.withValues(alpha: 0.38),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+                spreadRadius: 1,
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(
+              color: AppColors.primaryLight.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                SoundService().click();
+                if (HomeScreen.navCallback != null) {
+                  HomeScreen.navCallback!(1);
+                } else {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const CartScreen(isTab: false),
+                    ),
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    // Cart bag icon with brand-tinted glowing badge
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.primaryLight.withValues(alpha: 0.25),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.shopping_bag_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Item count & price info matching AppTextStyles
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                itemText,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: Text(
+                                  '•',
+                                  style: TextStyle(
+                                    color: AppColors.primaryLight,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '₹${total.toStringAsFixed(0)}',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            subText,
+                            style: GoogleFonts.poppins(
+                              color: AppColors.bgTint,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // "View Cart ➔" action pill matching NearKirana theme
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            viewCartText,
+                            style: GoogleFonts.poppins(
+                              color: AppColors.primaryDark,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: AppColors.primaryDark,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    )
+        .animate()
+        .slideY(
+          begin: 0.6,
+          end: 0,
+          duration: 250.ms,
+          curve: Curves.easeOutCubic,
+        )
+        .fadeIn(duration: 200.ms);
   }
 
   Widget _buildDesktopHeader(LanguageProvider langProvider) {

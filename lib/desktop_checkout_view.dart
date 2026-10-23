@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:geolocator/geolocator.dart';
 
 import 'package:near_kirana/cart_provider.dart';
 import 'package:near_kirana/user_provider.dart';
@@ -3350,14 +3351,49 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     double deliveryFee,
   ) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    if (!_isPickup && (userProvider.currentLat == null || userProvider.currentLng == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please add a delivery address first"),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
+    final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+    if (!_isPickup) {
+      if (userProvider.currentLat == null || userProvider.currentLng == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please add a delivery address first"),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      // Fail-safe delivery radius validation
+      final double? sLat = shopProvider.storeLat ?? userProvider.storeLat;
+      final double? sLng = shopProvider.storeLng ?? userProvider.storeLng;
+      final double sRadius = (shopProvider.deliveryRadiusKm != null && shopProvider.deliveryRadiusKm! > 0)
+          ? shopProvider.deliveryRadiusKm!
+          : ((userProvider.deliveryRadiusKm != null && userProvider.deliveryRadiusKm! > 0)
+              ? userProvider.deliveryRadiusKm!
+              : 10.0);
+
+      if (sLat != null && sLng != null && sLat != 0.0 && sLng != 0.0) {
+        final double distMeters = Geolocator.distanceBetween(
+          sLat,
+          sLng,
+          userProvider.currentLat!,
+          userProvider.currentLng!,
+        );
+        final double distKm = distMeters / 1000.0;
+        if (sRadius > 0 && distKm > sRadius) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Ye delivery location dukan ki service area se bahar hai (${distKm.toStringAsFixed(1)} km door). Store sirf ${sRadius.toStringAsFixed(1)} km tak deliver karta hai.',
+              ),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          return;
+        }
+      }
     }
 
     setState(() => _isProcessingCheckout = true);
@@ -3378,7 +3414,6 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         return;
       }
 
-      final shopProvider = Provider.of<ShopProvider>(context, listen: false);
       final String shopId = shopProvider.currentShopId ?? '';
       final String shopName = shopProvider.currentShopName.isNotEmpty
           ? shopProvider.currentShopName
@@ -3424,6 +3459,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         debugPrint('Customer check error: $e');
       }
 
+      DocumentReference<Map<String, dynamic>>? shopCustomerDocRef;
       Map<String, dynamic>? shopCustomerData;
       if (customerQuery != null && customerQuery.docs.isNotEmpty) {
         for (final doc in customerQuery.docs) {
@@ -3435,9 +3471,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           final shopBalances = data['shop_balances'] as Map<String, dynamic>?;
           if (shopIds.contains(shopId) ||
               (shopBalances != null && shopBalances.containsKey(shopId))) {
+            shopCustomerDocRef = doc.reference;
             shopCustomerData = data;
             break;
           }
+        }
+        if (shopCustomerDocRef == null && customerQuery.docs.isNotEmpty) {
+          shopCustomerDocRef = customerQuery.docs.first.reference;
+          shopCustomerData = customerQuery.docs.first.data();
         }
       }
 
@@ -3504,8 +3545,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           }
           return;
         }
-        paymentMethod = 'Kirana Khata';
+        paymentMethod = PaymentMethod.khata;
         paymentStatus = 'Pending (Khata)';
+        extraPaymentData = {
+          'khata_recorded': true,
+          'payment_mode': 'Khata',
+        };
       } else {
         // Instant UPI Payment via Razorpay Gateway (Google Pay, PhonePe, Paytm, BHIM, etc.)
         RazorpayCheckoutResult rzpResult;
@@ -3645,6 +3690,31 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           );
         } catch (e) {
           debugPrint('Payment audit trail warning: $e');
+        }
+      }
+      // If payment was made using Khata, update customer Khata ledger immediately
+      if (_selectedPaymentIndex == 2 && shopCustomerDocRef != null) {
+        try {
+          final batch = FirebaseUtils.firestore.batch();
+          batch.update(shopCustomerDocRef, {
+            'shop_balances.$shopId': FieldValue.increment(result.totalAmount),
+            'total_udhaar': FieldValue.increment(result.totalAmount),
+            'shop_ids': FieldValue.arrayUnion([shopId]),
+          });
+          batch.set(
+            shopCustomerDocRef.collection('khata_transactions').doc(),
+            {
+              'amount': result.totalAmount,
+              'type': 'debit',
+              'shop_id': shopId,
+              'order_id': result.orderId,
+              'description': 'Online Order (#${result.orderId.length > 5 ? result.orderId.substring(0, 5) : result.orderId})',
+              'timestamp': FieldValue.serverTimestamp(),
+            },
+          );
+          await batch.commit();
+        } catch (e) {
+          debugPrint('Khata ledger update error: $e');
         }
       }
 

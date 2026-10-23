@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../language_provider.dart';
 import '../notification_service.dart';
+import '../admin_dashboard.dart';
 
 /// Shows the notifications center sheet (bottom sheet on mobile, dialog on desktop)
 Future<void> showNotificationsSheet(
@@ -369,6 +370,9 @@ class NotificationsSheetContent extends StatelessWidget {
                                       'order_id': item.orderId,
                                       ...item.data,
                                     };
+                                    Navigator.of(context).pop();
+                                    // If in shop owner/admin view, navigate directly to Orders tab
+                                    AdminDashboard.navCallback?.call(1);
                                   }
                                 },
                                 borderRadius: BorderRadius.circular(16),

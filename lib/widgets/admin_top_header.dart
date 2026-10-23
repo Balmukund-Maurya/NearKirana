@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../shop_provider.dart';
 import 'notifications_bottom_sheet.dart';
+import '../notification_service.dart';
 
 class AdminTopHeader extends StatelessWidget {
   const AdminTopHeader({super.key});
@@ -61,10 +62,17 @@ class AdminTopHeader extends StatelessWidget {
           ),
           const Spacer(),
           // Actions
-          _buildHeaderIcon(
-            Icons.notifications_none_rounded,
-            showBadge: true,
-            onTap: () => showNotificationsSheet(context, shopId: shopId),
+          StreamBuilder<int>(
+            stream: NotificationService.unreadCountStream(shopId: shopId),
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data ?? 0;
+              return _buildHeaderIcon(
+                Icons.notifications_none_rounded,
+                showBadge: unreadCount > 0,
+                badgeCount: unreadCount,
+                onTap: () => showNotificationsSheet(context, shopId: shopId),
+              );
+            },
           ),
           const SizedBox(width: 16),
           _buildHeaderIcon(Icons.chat_bubble_outline_rounded),
@@ -90,7 +98,7 @@ class AdminTopHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, {bool showBadge = false, VoidCallback? onTap}) {
+  Widget _buildHeaderIcon(IconData icon, {bool showBadge = false, int badgeCount = 0, VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -107,14 +115,24 @@ class AdminTopHeader extends StatelessWidget {
             Icon(icon, color: Colors.grey.shade700, size: 20),
             if (showBadge)
               Positioned(
-                right: -2,
-                top: -2,
+                right: -4,
+                top: -4,
                 child: Container(
-                  width: 8,
-                  height: 8,
+                  padding: const EdgeInsets.all(3),
                   decoration: const BoxDecoration(
                     color: Colors.red,
                     shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                  child: Center(
+                    child: Text(
+                      badgeCount > 9 ? '9+' : '$badgeCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),

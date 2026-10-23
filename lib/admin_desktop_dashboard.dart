@@ -8,6 +8,7 @@ import 'package:near_kirana/widgets/weekly_sales_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:near_kirana/gateway_screen.dart';
 import 'package:near_kirana/widgets/notifications_bottom_sheet.dart';
+import 'package:near_kirana/notification_service.dart';
 
 class AdminDesktopDashboard extends StatelessWidget {
   final int selectedIndex;
@@ -349,10 +350,17 @@ class AdminDesktopHome extends StatelessWidget {
           Builder(
             builder: (ctx) {
               final shopId = Provider.of<ShopProvider>(ctx).currentShopId;
-              return _buildHeaderIcon(
-                Icons.notifications_none_rounded,
-                showBadge: true,
-                onTap: () => showNotificationsSheet(ctx, shopId: shopId),
+              return StreamBuilder<int>(
+                stream: NotificationService.unreadCountStream(shopId: shopId),
+                builder: (ctx, snap) {
+                  final unreadCount = snap.data ?? 0;
+                  return _buildHeaderIcon(
+                    Icons.notifications_none_rounded,
+                    showBadge: unreadCount > 0,
+                    badgeCount: unreadCount,
+                    onTap: () => showNotificationsSheet(ctx, shopId: shopId),
+                  );
+                },
               );
             },
           ),
@@ -387,7 +395,7 @@ class AdminDesktopHome extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, {bool showBadge = false, VoidCallback? onTap}) {
+  Widget _buildHeaderIcon(IconData icon, {bool showBadge = false, int badgeCount = 0, VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -404,12 +412,22 @@ class AdminDesktopHome extends StatelessWidget {
             Icon(icon, color: Colors.black87, size: 20),
             if (showBadge)
               Positioned(
-                right: -2,
-                top: -2,
+                right: -4,
+                top: -4,
                 child: Container(
-                  width: 8,
-                  height: 8,
+                  padding: const EdgeInsets.all(3),
                   decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                  child: Center(
+                    child: Text(
+                      badgeCount > 9 ? '9+' : '$badgeCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ),
           ],

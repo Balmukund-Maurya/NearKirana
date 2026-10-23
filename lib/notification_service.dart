@@ -1114,13 +1114,14 @@ class NotificationService {
     }
 
     return query
-        .orderBy('created_at', descending: true)
         .limit(limit)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
+      final list = snapshot.docs.map((doc) {
         return NotificationItem.fromMap(doc.id, doc.data() as Map<String, dynamic>);
       }).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     });
   }
 
@@ -1132,7 +1133,7 @@ class NotificationService {
     FirebaseFirestore? firestore,
   }) {
     final db = firestore ?? FirebaseUtils.firestore;
-    Query query = db.collection('notifications').where('is_read', isEqualTo: false);
+    Query query = db.collection('notifications');
 
     if (shopId != null && shopId.isNotEmpty) {
       query = query.where('shop_id', isEqualTo: shopId);
@@ -1142,7 +1143,11 @@ class NotificationService {
       query = query.where('recipient_uid', isEqualTo: recipientUid);
     }
 
-    return query.snapshots().map((snapshot) => snapshot.docs.length);
+    return query.snapshots().map((snapshot) =>
+        snapshot.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>?;
+          return data?['is_read'] != true;
+        }).length);
   }
 
   /// Marks a specific notification as read

@@ -17,6 +17,9 @@ class ShopProvider with ChangeNotifier {
   String? _shopProfilePic;
   String? _razorpayKeyId;
   bool _isActive = true;
+  double? _storeLat;
+  double? _storeLng;
+  double? _deliveryRadiusKm;
 
   String? get currentShopId => _currentShopId;
   String? get shopName => _shopName;
@@ -30,6 +33,11 @@ class ShopProvider with ChangeNotifier {
   String? get shopProfilePic => _shopProfilePic;
   String? get razorpayKeyId => _razorpayKeyId;
   bool get isActive => _isActive;
+  double? get storeLat => _storeLat;
+  double? get storeLng => _storeLng;
+  double? get shopLat => _storeLat;
+  double? get shopLng => _storeLng;
+  double? get deliveryRadiusKm => _deliveryRadiusKm;
 
   Future<void> loadCurrentShop() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,6 +52,9 @@ class ShopProvider with ChangeNotifier {
     _shopProfilePic = prefs.getString('current_shop_profile_pic');
     _razorpayKeyId = prefs.getString('current_shop_razorpay_key_id');
     _isActive = prefs.getBool('current_shop_is_active') ?? true;
+    _storeLat = prefs.getDouble('current_shop_lat');
+    _storeLng = prefs.getDouble('current_shop_lng');
+    _deliveryRadiusKm = prefs.getDouble('current_shop_delivery_radius_km');
 
     if (_currentShopId != null && _currentShopId!.isNotEmpty) {
       _listenToShop(_currentShopId!);
@@ -75,6 +86,18 @@ class ShopProvider with ChangeNotifier {
       _shopProfilePic = data['profile_image_url']?.toString() ?? _shopProfilePic;
       _razorpayKeyId = data['razorpay_key_id']?.toString() ?? _razorpayKeyId;
       _isActive = data['is_active'] ?? true;
+      _storeLat = (data['store_latitude'] as num?)?.toDouble() ??
+          (data['latitude'] as num?)?.toDouble() ??
+          (data['lat'] as num?)?.toDouble() ??
+          _storeLat;
+      _storeLng = (data['store_longitude'] as num?)?.toDouble() ??
+          (data['longitude'] as num?)?.toDouble() ??
+          (data['lng'] as num?)?.toDouble() ??
+          _storeLng;
+      _deliveryRadiusKm = (data['delivery_radius_km'] as num?)?.toDouble() ??
+          (data['deliveryRadiusKm'] as num?)?.toDouble() ??
+          (data['radius_km'] as num?)?.toDouble() ??
+          _deliveryRadiusKm;
 
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -105,6 +128,15 @@ class ShopProvider with ChangeNotifier {
           await prefs.setString('current_shop_razorpay_key_id', _razorpayKeyId!);
         }
         await prefs.setBool('current_shop_is_active', _isActive);
+        if (_storeLat != null) {
+          await prefs.setDouble('current_shop_lat', _storeLat!);
+        }
+        if (_storeLng != null) {
+          await prefs.setDouble('current_shop_lng', _storeLng!);
+        }
+        if (_deliveryRadiusKm != null) {
+          await prefs.setDouble('current_shop_delivery_radius_km', _deliveryRadiusKm!);
+        }
       } catch (_) {}
 
       notifyListeners();
@@ -180,6 +212,9 @@ class ShopProvider with ChangeNotifier {
     _shopBannerUrl = null;
     _shopWhatsAppTemplate = null;
     _shopUpiId = null;
+    _storeLat = null;
+    _storeLng = null;
+    _deliveryRadiusKm = null;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('current_shop_id');
@@ -192,6 +227,9 @@ class ShopProvider with ChangeNotifier {
     await prefs.remove('current_shop_upi_id');
     await prefs.remove('current_shop_profile_pic');
     await prefs.remove('current_shop_is_active');
+    await prefs.remove('current_shop_lat');
+    await prefs.remove('current_shop_lng');
+    await prefs.remove('current_shop_delivery_radius_km');
 
     notifyListeners();
   }

@@ -79,6 +79,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
   double _roadDistanceMeters = 0.0;
   double _roadDurationSeconds = 0.0;
   String _selectedTransportMode = 'bike'; // 'bike', 'car', 'walk'
+  bool _isBottomCardMinimized = false;
   LatLng? _lastRouteStart;
   LatLng? _lastRouteEnd;
   bool _isFetchingRoute = false;
@@ -220,10 +221,6 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
-  }
-
-  Future<void> _callPartner(String phone) async {
-    await _callNumber(phone);
   }
 
   Future<void> _launchGoogleMaps(double lat, double lng) async {
@@ -671,12 +668,16 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   }
 
                   // Active road distance & travel speeds:
-                  // Bike (~21 km/h): 350 m/min
+                  // Bike (~21 km/h): 350 m/min (or OSRM calculated road duration)
                   // Car (~18 km/h): 300 m/min
                   // Walk (~4.8 km/h): 80 m/min
                   final double activeDistanceMeters = _roadDistanceMeters > 0 ? _roadDistanceMeters : realDistMeters;
-                  final int bikeEtaMins = ((activeDistanceMeters / 350).ceil()).clamp(1, 120);
-                  final int carEtaMins = ((activeDistanceMeters / 300).ceil()).clamp(1, 120);
+                  final int bikeEtaMins = _roadDurationSeconds > 0
+                      ? (_roadDurationSeconds / 60).ceil().clamp(1, 120)
+                      : ((activeDistanceMeters / 350).ceil()).clamp(1, 120);
+                  final int carEtaMins = _roadDurationSeconds > 0
+                      ? ((_roadDurationSeconds * 1.15) / 60).ceil().clamp(1, 120)
+                      : ((activeDistanceMeters / 300).ceil()).clamp(1, 120);
                   final int walkEtaMins = ((activeDistanceMeters / 80).ceil()).clamp(1, 180);
 
                   final int selectedEtaMins = _selectedTransportMode == 'car'
@@ -870,9 +871,13 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                       ),
 
                       // 3. Floating Map Controls (Right Side)
-                      Positioned(
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeInOutCubic,
                         right: 16,
-                        bottom: widget.viewerRole == 'rider' ? 345 : 310,
+                        bottom: _isBottomCardMinimized
+                            ? 96
+                            : (widget.viewerRole == 'rider' ? 345 : 310),
                         child: Column(
                           children: [
                             _buildMapControlButton(
@@ -1492,369 +1497,546 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     final isArrivedAtStore = session?.isArrivedAtStore ?? false;
     final deliveryPin = (orderData['delivery_pin'] ?? '').toString().trim();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.14),
-            blurRadius: 20,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Top Pull Handle
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
+    final IconData selectedModeIcon;
+    switch (_selectedTransportMode) {
+      case 'car':
+        selectedModeIcon = Icons.directions_car_rounded;
+        break;
+      case 'walk':
+        selectedModeIcon = Icons.directions_walk_rounded;
+        break;
+      case 'bike':
+      default:
+        selectedModeIcon = Icons.two_wheeler_rounded;
+        break;
+    }
 
-          // 2. Google Maps Sheet Header Row
-          Row(
-            children: [
-              Text(
-                t('Drive', 'ड्राइव', 'Drive'),
-                style: GoogleFonts.outfit(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0F172A),
-                ),
+    return GestureDetector(
+      onVerticalDragEnd: (details) {
+        if (details.primaryVelocity != null) {
+          if (details.primaryVelocity! > 150 && !_isBottomCardMinimized) {
+            HapticFeedback.selectionClick();
+            setState(() => _isBottomCardMinimized = true);
+          } else if (details.primaryVelocity! < -150 && _isBottomCardMinimized) {
+            HapticFeedback.selectionClick();
+            setState(() => _isBottomCardMinimized = false);
+          }
+        }
+      },
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOutCubic,
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.14),
+                blurRadius: 20,
+                offset: const Offset(0, -2),
               ),
-              const Spacer(),
-              // Tune/Satellite button
-              Material(
-                color: Colors.grey.shade100,
-                shape: const CircleBorder(),
+            ],
+          ),
+          padding: EdgeInsets.fromLTRB(16, 10, 16, _isBottomCardMinimized ? 12 : 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Top Pull Handle (Tap to toggle minimize/expand)
+              Center(
                 child: InkWell(
-                  customBorder: const CircleBorder(),
                   onTap: () {
                     HapticFeedback.selectionClick();
-                    setState(() => _isSatellite = !_isSatellite);
+                    setState(() => _isBottomCardMinimized = !_isBottomCardMinimized);
                   },
+                  borderRadius: BorderRadius.circular(10),
                   child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      _isSatellite ? Icons.map_outlined : Icons.tune_rounded,
-                      size: 18,
-                      color: const Color(0xFF475569),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Share button
-              Material(
-                color: Colors.grey.shade100,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Clipboard.setData(ClipboardData(text: 'Tracking Order #${widget.orderId}'));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(t('Tracking link copied', 'ट्रैकिंग लिंक कॉपी हुआ', 'Tracking link copied')),
-                        duration: const Duration(seconds: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                    );
+                    ),
+                  ),
+                ),
+              ),
+
+              if (_isBottomCardMinimized) ...[
+                // Minimized Compact Bar - Leaves entire map unobstructed
+                InkWell(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _isBottomCardMinimized = false);
                   },
-                  child: const Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.share_rounded,
-                      size: 18,
-                      color: Color(0xFF475569),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      children: [
+                        // Transport Mode Icon
+                        Container(
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0F2FE),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(
+                            selectedModeIcon,
+                            size: 22,
+                            color: const Color(0xFF0284C7),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // ETA & Distance
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    isDelivered
+                                        ? t('Delivered', 'डिलीवर हुआ', 'Delivered')
+                                        : '$selectedEtaMins min',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF15803D),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '($selectedDistStr)',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF475569),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                isHeadingToStore || isArrivedAtStore
+                                    ? shopName
+                                    : (customerAddress.isNotEmpty ? customerAddress : customerName),
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF64748B),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Quick Start Nav Button
+                        ElevatedButton.icon(
+                          onPressed: onStartNavigation,
+                          icon: const Icon(Icons.navigation_rounded, size: 15),
+                          label: Text(
+                            t('Start', 'शुरू', 'Start'),
+                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF007A87),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            minimumSize: Size.zero,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // Expand Up-Chevron Button
+                        Material(
+                          color: Colors.grey.shade100,
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _isBottomCardMinimized = false);
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.all(7),
+                              child: Icon(
+                                Icons.keyboard_arrow_up_rounded,
+                                size: 20,
+                                color: Color(0xFF475569),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              // Close button
-              Material(
-                color: Colors.grey.shade100,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.close_rounded,
-                      size: 18,
-                      color: Color(0xFF475569),
+              ] else ...[
+                // Expanded Mode - Full Google Maps Sheet
+                Row(
+                  children: [
+                    Text(
+                      t('Drive', 'ड्राइव', 'Drive'),
+                      style: GoogleFonts.outfit(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0F172A),
+                      ),
                     ),
+                    const Spacer(),
+                    // Minimize Down Chevron button
+                    Material(
+                      color: Colors.grey.shade100,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _isBottomCardMinimized = true);
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 20,
+                            color: Color(0xFF475569),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Tune/Satellite button
+                    Material(
+                      color: Colors.grey.shade100,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _isSatellite = !_isSatellite);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(
+                            _isSatellite ? Icons.map_outlined : Icons.tune_rounded,
+                            size: 18,
+                            color: const Color(0xFF475569),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Share button
+                    Material(
+                      color: Colors.grey.shade100,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Clipboard.setData(ClipboardData(text: 'Tracking Order #${widget.orderId}'));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(t('Tracking link copied', 'ट्रैकिंग लिंक कॉपी हुआ', 'Tracking link copied')),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.share_rounded,
+                            size: 18,
+                            color: Color(0xFF475569),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Close button
+                    Material(
+                      color: Colors.grey.shade100,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => Navigator.of(context).pop(),
+                        child: const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: Color(0xFF475569),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // 3. Transport Modes Selector Tabs (Bike, Car, Walk)
+                Row(
+                  children: [
+                    _buildTransportModeTab(
+                      mode: 'bike',
+                      icon: Icons.two_wheeler_rounded,
+                      label: '$bikeEtaMins min',
+                      isSelected: _selectedTransportMode == 'bike',
+                    ),
+                    const SizedBox(width: 8),
+                    _buildTransportModeTab(
+                      mode: 'car',
+                      icon: Icons.directions_car_rounded,
+                      label: '$carEtaMins min',
+                      isSelected: _selectedTransportMode == 'car',
+                    ),
+                    const SizedBox(width: 8),
+                    _buildTransportModeTab(
+                      mode: 'walk',
+                      icon: Icons.directions_walk_rounded,
+                      label: '$walkEtaMins min',
+                      isSelected: _selectedTransportMode == 'walk',
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // 4. Large Green Bold ETA Text
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      isDelivered
+                          ? t('Delivered', 'डिलीवर हुआ', 'Delivered')
+                          : '$selectedEtaMins min',
+                      style: GoogleFonts.outfit(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF15803D), // Google Maps Green
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '($selectedDistStr)',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isDelivered
+                      ? t('Delivery completed successfully', 'ऑर्डर सफलतापूर्वक डिलीवर हो चुका है', 'Order successfully deliver ho gaya')
+                      : t('Fastest route, the usual traffic', 'सबसे तेज़ रास्ता, सामान्य ट्रैफ़िक', 'Fastest route, normal traffic'),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
                   ),
                 ),
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 10),
+                const SizedBox(height: 12),
 
-          // 3. Transport Modes Selector Tabs (Bike, Car, Walk)
-          Row(
-            children: [
-              _buildTransportModeTab(
-                mode: 'bike',
-                icon: Icons.two_wheeler_rounded,
-                label: '$bikeEtaMins min',
-                isSelected: _selectedTransportMode == 'bike',
-              ),
-              const SizedBox(width: 8),
-              _buildTransportModeTab(
-                mode: 'car',
-                icon: Icons.directions_car_rounded,
-                label: '$carEtaMins min',
-                isSelected: _selectedTransportMode == 'car',
-              ),
-              const SizedBox(width: 8),
-              _buildTransportModeTab(
-                mode: 'walk',
-                icon: Icons.directions_walk_rounded,
-                label: '$walkEtaMins min',
-                isSelected: _selectedTransportMode == 'walk',
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          // 4. Large Green Bold ETA Text (exact match to Google Maps screenshot)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                isDelivered
-                    ? t('Delivered', 'डिलीवर हुआ', 'Delivered')
-                    : '$selectedEtaMins min',
-                style: GoogleFonts.outfit(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF15803D), // Google Maps Green
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '($selectedDistStr)',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF475569),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            isDelivered
-                ? t('Delivery completed successfully', 'ऑर्डर सफलतापूर्वक डिलीवर हो चुका है', 'Order successfully deliver ho gaya')
-                : t('Fastest route, the usual traffic', 'सबसे तेज़ रास्ता, सामान्य ट्रैफ़िक', 'Fastest route, normal traffic'),
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF64748B),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // 5. Action Buttons (Start, Call, PIN)
-          Row(
-            children: [
-              // Primary Start / Center Button (Teal pill)
-              Expanded(
-                flex: 4,
-                child: ElevatedButton.icon(
-                  onPressed: onStartNavigation,
-                  icon: const Icon(Icons.navigation_rounded, size: 18),
-                  label: Text(
-                    t('Start', 'शुरू करें', 'Start'),
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF007A87), // Google Maps Teal Navigation
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Quick Call Button
-              if ((widget.viewerRole == 'customer' && partnerPhone.isNotEmpty) ||
-                  (widget.viewerRole == 'rider' && customerPhone.isNotEmpty) ||
-                  (widget.viewerRole == 'shop_owner' && partnerPhone.isNotEmpty))
-                Expanded(
-                  flex: 4,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _callNumber(
-                      widget.viewerRole == 'rider' ? customerPhone : partnerPhone,
+                // 5. Action Buttons (Start, Call, PIN)
+                Row(
+                  children: [
+                    // Primary Start / Center Button (Teal pill)
+                    Expanded(
+                      flex: 4,
+                      child: ElevatedButton.icon(
+                        onPressed: onStartNavigation,
+                        icon: const Icon(Icons.navigation_rounded, size: 18),
+                        label: Text(
+                          t('Start', 'शुरू करें', 'Start'),
+                          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF007A87), // Google Maps Teal Navigation
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        ),
+                      ),
                     ),
-                    icon: const Icon(Icons.call_rounded, size: 16),
-                    label: Text(
-                      widget.viewerRole == 'rider'
-                          ? t('Call Customer', 'कॉल ग्राहक', 'Call Customer')
-                          : t('Call Rider', 'कॉल राइडर', 'Call Rider'),
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF0F172A),
-                      side: BorderSide(color: Colors.grey.shade300),
-                      padding: const EdgeInsets.symmetric(vertical: 11),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                    ),
-                  ),
+                    const SizedBox(width: 8),
+                    // Quick Call Button
+                    if ((widget.viewerRole == 'customer' && partnerPhone.isNotEmpty) ||
+                        (widget.viewerRole == 'rider' && customerPhone.isNotEmpty) ||
+                        (widget.viewerRole == 'shop_owner' && partnerPhone.isNotEmpty))
+                      Expanded(
+                        flex: 4,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _callNumber(
+                            widget.viewerRole == 'rider' ? customerPhone : partnerPhone,
+                          ),
+                          icon: const Icon(Icons.call_rounded, size: 16),
+                          label: Text(
+                            widget.viewerRole == 'rider'
+                                ? t('Call Customer', 'कॉल ग्राहक', 'Call Customer')
+                                : t('Call Rider', 'कॉल राइडर', 'Call Rider'),
+                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0F172A),
+                            side: BorderSide(color: Colors.grey.shade300),
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    // Delivery PIN pill
+                    if (deliveryPin.isNotEmpty && !isDelivered)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFECFDF5),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.vpn_key_rounded, size: 13, color: Color(0xFF059669)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'PIN: $deliveryPin',
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF065F46),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-              const SizedBox(width: 8),
-              // Delivery PIN pill
-              if (deliveryPin.isNotEmpty && !isDelivered)
+
+                // 6. Active Destination / Target Address Info Pill
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  margin: const EdgeInsets.only(top: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFECFDF5),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                    color: isHeadingToStore || isArrivedAtStore
+                        ? const Color(0xFFEEF2FF)
+                        : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isHeadingToStore || isArrivedAtStore
+                          ? const Color(0xFFC7D2FE)
+                          : const Color(0xFFE2E8F0),
+                    ),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.vpn_key_rounded, size: 13, color: Color(0xFF059669)),
-                      const SizedBox(width: 4),
-                      Text(
-                        'PIN: $deliveryPin',
-                        style: GoogleFonts.outfit(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF065F46),
+                      Icon(
+                        isHeadingToStore || isArrivedAtStore
+                            ? Icons.storefront_rounded
+                            : Icons.location_on_rounded,
+                        size: 16,
+                        color: isHeadingToStore || isArrivedAtStore
+                            ? const Color(0xFF4F46E5)
+                            : const Color(0xFFEA4335),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isHeadingToStore || isArrivedAtStore
+                                  ? '${t('Pickup Store', 'पिकअप दुकान', 'Pickup Store')}: $shopName'
+                                  : '${t('Destination', 'गंतव्य', 'Destination')}: $customerName',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              isHeadingToStore || isArrivedAtStore
+                                  ? shopAddress
+                                  : (customerAddress.isNotEmpty ? customerAddress : t('Customer Address', 'ग्राहक का पता', 'Customer Address')),
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                color: AppColors.textMid,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
+
+                // 7. Rider actions if viewer is Rider
+                if (widget.viewerRole == 'rider' && !isDelivered) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _launchGoogleMaps(targetLat, targetLng),
+                          icon: const Icon(Icons.navigation_rounded, size: 15),
+                          label: Text(
+                            t('Google Maps', 'गूगल मैप्स', 'Google Maps'),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0284C7),
+                            side: const BorderSide(color: Color(0xFFBAE6FD)),
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showRiderPinDialog(context, orderData, lang),
+                          icon: const Icon(Icons.check_circle_outline_rounded, size: 15),
+                          label: Text(
+                            t('Verify PIN', 'PIN दर्ज करें', 'Verify PIN'),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0C831F),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ],
           ),
-
-          // 6. Active Destination / Target Address Info Pill
-          Container(
-            margin: const EdgeInsets.only(top: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: isHeadingToStore || isArrivedAtStore
-                  ? const Color(0xFFEEF2FF)
-                  : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isHeadingToStore || isArrivedAtStore
-                    ? const Color(0xFFC7D2FE)
-                    : const Color(0xFFE2E8F0),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  isHeadingToStore || isArrivedAtStore
-                      ? Icons.storefront_rounded
-                      : Icons.location_on_rounded,
-                  size: 16,
-                  color: isHeadingToStore || isArrivedAtStore
-                      ? const Color(0xFF4F46E5)
-                      : const Color(0xFFEA4335),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isHeadingToStore || isArrivedAtStore
-                            ? '${t('Pickup Store', 'पिकअप दुकान', 'Pickup Store')}: $shopName'
-                            : '${t('Destination', 'गंतव्य', 'Destination')}: $customerName',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        isHeadingToStore || isArrivedAtStore
-                            ? shopAddress
-                            : (customerAddress.isNotEmpty ? customerAddress : t('Customer Address', 'ग्राहक का पता', 'Customer Address')),
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          color: AppColors.textMid,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // 7. Rider actions if viewer is Rider
-          if (widget.viewerRole == 'rider' && !isDelivered) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _launchGoogleMaps(targetLat, targetLng),
-                    icon: const Icon(Icons.navigation_rounded, size: 15),
-                    label: Text(
-                      t('Google Maps', 'गूगल मैप्स', 'Google Maps'),
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF0284C7),
-                      side: const BorderSide(color: Color(0xFFBAE6FD)),
-                      padding: const EdgeInsets.symmetric(vertical: 9),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _showRiderPinDialog(context, orderData, lang),
-                    icon: const Icon(Icons.check_circle_outline_rounded, size: 15),
-                    label: Text(
-                      t('Verify PIN', 'PIN दर्ज करें', 'Verify PIN'),
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0C831F),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 9),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

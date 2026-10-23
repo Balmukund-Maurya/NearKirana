@@ -1884,70 +1884,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
       );
     }
 
-    // 3. Stage: Picked up -> Live GPS Active + Mark Delivered
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFECFDF5),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFA7F3D0)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF10B981),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  t(
-                    'Live GPS Broadcast Active',
-                    'लाइव GPS शेयरिंग चालू है',
-                    'Live GPS Broadcast Active',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF065F46),
-                  ),
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () {
-                  CustomerLiveTrackingScreen.open(
-                    context,
-                    orderId: task.orderId,
-                    orderData: task.rawFirestoreData,
-                    viewerRole: 'rider',
-                  );
-                },
-                icon: const Icon(Icons.map_rounded, size: 16),
-                label: Text(
-                  t('View Map', 'मैप देखें', 'View Map'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF0C831F),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          width: double.infinity,
-          height: 50,
+    // 3. Stage: Picked up -> Mark Delivered
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
           child: ElevatedButton.icon(
             onPressed: () => _showDeliveryCompletionDialog(task, t),
             icon: const Icon(Icons.task_alt_rounded, size: 20),
@@ -1964,8 +1904,6 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
               elevation: 0,
             ),
           ),
-        ),
-      ],
     );
   }
 

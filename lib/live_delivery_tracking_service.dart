@@ -34,9 +34,9 @@ class LiveDeliveryTrackingService {
 
   LiveDeliveryTrackingService({
     FirebaseFirestore? firestore,
-    this.minUpdateIntervalSeconds = 10,
-    this.minUpdateDistanceMeters = 15.0,
-    this.maxBreadcrumbsCount = 20,
+    this.minUpdateIntervalSeconds = 4,
+    this.minUpdateDistanceMeters = 8.0,
+    this.maxBreadcrumbsCount = 25,
   }) : _firestore = firestore ?? FirebaseUtils.firestore;
 
   bool get isBroadcasting =>
@@ -150,10 +150,10 @@ class LiveDeliveryTrackingService {
         return false;
       }
 
-      // Configure battery-friendly GPS stream (15m distance filter)
+      // Configure battery-friendly GPS stream (8m distance filter for fast response)
       const locationSettings = LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 15,
+        distanceFilter: 8,
       );
 
       _positionSubscription = Geolocator.getPositionStream(
@@ -192,6 +192,70 @@ class LiveDeliveryTrackingService {
       debugPrint('[Tracking] Error starting location stream: $e');
       return false;
     }
+  }
+
+  /// Ensures active broadcasting is running for the given order when rider is viewing/delivering
+  Future<bool> ensureBroadcastingForRider({
+    required String orderId,
+    required Map<String, dynamic> orderData,
+  }) async {
+    if (isBroadcasting && _activeBroadcastingOrderId == orderId) {
+      return true;
+    }
+    final partnerId = orderData['delivery_boy_id']?.toString() ??
+        orderData['partner_id']?.toString() ??
+        'rider_active';
+    final partnerName = orderData['delivery_boy_name']?.toString() ??
+        orderData['partner_name']?.toString() ??
+        'Rider';
+    final partnerPhone = orderData['delivery_boy_phone']?.toString() ??
+        orderData['partner_phone']?.toString() ??
+        '';
+    final partnerVehicle = orderData['delivery_partner_vehicle']?.toString() ??
+        orderData['partner_vehicle']?.toString();
+    final shopId = orderData['shop_id']?.toString() ?? 'store';
+    final shopName = orderData['shop_name']?.toString() ?? orderData['store_name']?.toString();
+    final shopLat = (orderData['shop_lat'] as num?)?.toDouble() ??
+        (orderData['store_lat'] as num?)?.toDouble() ??
+        (orderData['shop_latitude'] as num?)?.toDouble();
+    final shopLng = (orderData['shop_lng'] as num?)?.toDouble() ??
+        (orderData['store_lng'] as num?)?.toDouble() ??
+        (orderData['shop_longitude'] as num?)?.toDouble();
+    final customerPhone = orderData['customer_phone']?.toString() ??
+        orderData['user_phone']?.toString() ??
+        orderData['phone']?.toString() ??
+        '';
+    final customerName = orderData['customer_name']?.toString() ?? 'Customer';
+    final customerAddress = orderData['delivery_address']?.toString() ?? '';
+    final customerLat = (orderData['customer_lat'] as num?)?.toDouble() ??
+        (orderData['selected_address']?['latitude'] as num?)?.toDouble() ??
+        (orderData['selected_address']?['lat'] as num?)?.toDouble() ??
+        (orderData['address_lat'] as num?)?.toDouble();
+    final customerLng = (orderData['customer_lng'] as num?)?.toDouble() ??
+        (orderData['selected_address']?['longitude'] as num?)?.toDouble() ??
+        (orderData['selected_address']?['lng'] as num?)?.toDouble() ??
+        (orderData['address_lng'] as num?)?.toDouble();
+
+    final status = (orderData['status'] ?? '').toString().toLowerCase();
+    final phase = (status == 'picked_up' || status == 'out_for_delivery') ? 'to_customer' : 'to_store';
+
+    return await startBroadcasting(
+      orderId: orderId,
+      partnerId: partnerId,
+      partnerName: partnerName,
+      partnerPhone: partnerPhone,
+      partnerVehicle: partnerVehicle,
+      shopId: shopId,
+      shopName: shopName,
+      shopLat: shopLat,
+      shopLng: shopLng,
+      customerPhone: customerPhone,
+      customerName: customerName,
+      customerAddress: customerAddress,
+      customerLat: customerLat,
+      customerLng: customerLng,
+      phase: phase,
+    );
   }
 
   /// Processes raw GPS update from hardware, applies throttling, ETA calculation,

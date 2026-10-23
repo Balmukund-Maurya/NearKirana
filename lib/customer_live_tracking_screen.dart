@@ -7,11 +7,14 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 import 'firebase_utils.dart';
+import 'language_provider.dart';
 import 'order_state_machine.dart';
 import 'app_theme.dart';
 import 'live_delivery_tracking_models.dart';
 import 'live_delivery_tracking_service.dart';
+import 'road_routing_service.dart';
 
 /// Screen displayed to customers, store owners, and delivery partners to view real-time GPS location
 /// and dynamic ETA/route during active order delivery.
@@ -57,13 +60,69 @@ class CustomerLiveTrackingScreen extends StatefulWidget {
 }
 
 class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final LiveDeliveryTrackingService _service;
   late final MapController _mapController;
   late final AnimationController _pulseController;
+  late final AnimationController _riderMoveController;
+
+  LatLng? _previousRiderPoint;
+  LatLng? _targetRiderPoint;
+  double _previousHeading = 0.0;
+  double _targetHeading = 0.0;
 
   bool _isSatellite = false;
   bool _hasInitialCentered = false;
+
+  final RoadRoutingService _roadRoutingService = RoadRoutingService();
+  List<LatLng> _roadRoutePoints = [];
+  double _roadDistanceMeters = 0.0;
+  double _roadDurationSeconds = 0.0;
+  String _selectedTransportMode = 'bike'; // 'bike', 'car', 'walk'
+  LatLng? _lastRouteStart;
+  LatLng? _lastRouteEnd;
+  bool _isFetchingRoute = false;
+
+  void _fetchRoadRouteIfNeeded(LatLng start, LatLng end) {
+    if (_lastRouteStart != null && _lastRouteEnd != null) {
+      final double distStart = Geolocator.distanceBetween(
+        _lastRouteStart!.latitude,
+        _lastRouteStart!.longitude,
+        start.latitude,
+        start.longitude,
+      );
+      final double distEnd = Geolocator.distanceBetween(
+        _lastRouteEnd!.latitude,
+        _lastRouteEnd!.longitude,
+        end.latitude,
+        end.longitude,
+      );
+      if (distStart < 15.0 && distEnd < 15.0 && _roadRoutePoints.isNotEmpty) {
+        return;
+      }
+    }
+    if (_isFetchingRoute) return;
+    _isFetchingRoute = true;
+    _lastRouteStart = start;
+    _lastRouteEnd = end;
+
+    _roadRoutingService.fetchRoadRoute(start: start, end: end).then((res) {
+      if (mounted) {
+        setState(() {
+          _isFetchingRoute = false;
+          if (res != null && res.points.isNotEmpty) {
+            _roadRoutePoints = res.points;
+            _roadDistanceMeters = res.distanceMeters;
+            _roadDurationSeconds = res.durationSeconds;
+          }
+        });
+      }
+    }).catchError((_) {
+      if (mounted) {
+        setState(() => _isFetchingRoute = false);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -74,16 +133,83 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
+    _riderMoveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
     if (widget.enableAnimations) {
       _pulseController.repeat(reverse: true);
+    }
+
+    // If viewed by rider, start phone GPS broadcasting immediately
+    if (widget.viewerRole == 'rider' && widget.initialOrderData != null) {
+      _service.ensureBroadcastingForRider(
+        orderId: widget.orderId,
+        orderData: widget.initialOrderData!,
+      );
     }
   }
 
   @override
   void dispose() {
+    _riderMoveController.dispose();
     _pulseController.dispose();
     _mapController.dispose();
     super.dispose();
+  }
+
+  void _updateRiderTarget(LatLng newPoint, double newHeading) {
+    if (_targetRiderPoint == null) {
+      _previousRiderPoint = newPoint;
+      _targetRiderPoint = newPoint;
+      _previousHeading = newHeading;
+      _targetHeading = newHeading;
+      return;
+    }
+
+    final double dist = Geolocator.distanceBetween(
+      _targetRiderPoint!.latitude,
+      _targetRiderPoint!.longitude,
+      newPoint.latitude,
+      newPoint.longitude,
+    );
+
+    final double headingDiff = (newHeading - _targetHeading).abs();
+
+    if (dist > 1.2 || headingDiff > 3.0) {
+      _previousRiderPoint = _getCurrentAnimatedRiderPoint();
+      _targetRiderPoint = newPoint;
+      _previousHeading = _getCurrentAnimatedHeading();
+      _targetHeading = newHeading;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _riderMoveController.forward(from: 0.0);
+        }
+      });
+    }
+  }
+
+  LatLng _getCurrentAnimatedRiderPoint() {
+    if (_previousRiderPoint == null) {
+      return _targetRiderPoint ?? const LatLng(28.6139, 77.2090);
+    }
+    if (_targetRiderPoint == null) return _previousRiderPoint!;
+    final t = Curves.easeInOut.transform(_riderMoveController.value);
+    final lat = _previousRiderPoint!.latitude +
+        (_targetRiderPoint!.latitude - _previousRiderPoint!.latitude) * t;
+    final lng = _previousRiderPoint!.longitude +
+        (_targetRiderPoint!.longitude - _previousRiderPoint!.longitude) * t;
+    return LatLng(lat, lng);
+  }
+
+  double _getCurrentAnimatedHeading() {
+    if (_previousRiderPoint == null) return _targetHeading;
+    final t = Curves.easeInOut.transform(_riderMoveController.value);
+    double diff = (_targetHeading - _previousHeading) % 360;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+    return (_previousHeading + diff * t) % 360;
   }
 
   Future<void> _callNumber(String phone) async {
@@ -119,7 +245,17 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     }
   }
 
-  void _showRiderPinDialog(BuildContext context, Map<String, dynamic> orderData) {
+  void _showRiderPinDialog(
+    BuildContext context,
+    Map<String, dynamic> orderData,
+    LanguageProvider lang,
+  ) {
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     final expectedPin = (orderData['delivery_pin'] ?? '').toString().trim();
     final pinCtrl = TextEditingController();
     String? errorText;
@@ -137,19 +273,32 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   color: const Color(0xFF0C831F).withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.verified_user_rounded, color: Color(0xFF0C831F), size: 24),
+                child: const Icon(
+                  Icons.verified_user_rounded,
+                  color: Color(0xFF0C831F),
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 10),
-              const Text('डिलीवरी PIN सत्यापन', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Expanded(
+                child: Text(
+                  t('Delivery PIN Verification', 'डिलीवरी PIN सत्यापन', 'Delivery PIN Verification'),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'ग्राहक से 4-अंकों का डिलीवरी PIN पूछकर यहाँ दर्ज करें:',
-                style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+              Text(
+                t(
+                  'Ask customer for the 4-digit delivery PIN and enter below:',
+                  'ग्राहक से 4-अंकों का डिलीवरी PIN पूछकर यहाँ दर्ज करें:',
+                  'Customer se 4-digit delivery PIN poochkar yahan enter karein:',
+                ),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
               ),
               const SizedBox(height: 14),
               TextField(
@@ -157,7 +306,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 keyboardType: TextInputType.number,
                 maxLength: 4,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 8),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 8,
+                ),
                 decoration: InputDecoration(
                   counterText: '',
                   hintText: '••••',
@@ -170,14 +323,21 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dlgCtx),
-              child: const Text('रद्द करें', style: TextStyle(color: Colors.grey)),
+              child: Text(
+                t('Cancel', 'रद्द करें', 'Cancel'),
+                style: const TextStyle(color: Colors.grey),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
                 final entered = pinCtrl.text.trim();
                 if (expectedPin.isNotEmpty && entered != expectedPin) {
                   setDlgState(() {
-                    errorText = 'गलत PIN! कृपया ग्राहक से सही PIN लें।';
+                    errorText = t(
+                      'Incorrect PIN! Please ask customer for correct PIN.',
+                      'गलत PIN! कृपया ग्राहक से सही PIN लें।',
+                      'Galat PIN! Please customer se correct PIN lein.',
+                    );
                   });
                   return;
                 }
@@ -190,9 +350,15 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 await _service.stopBroadcasting(widget.orderId, isDelivered: true);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('ऑर्डर सफलतापूर्वक डिलीवर हुआ!'),
-                      backgroundColor: Color(0xFF0C831F),
+                    SnackBar(
+                      content: Text(
+                        t(
+                          'Order delivered successfully!',
+                          'ऑर्डर सफलतापूर्वक डिलीवर हुआ!',
+                          'Order successfully deliver ho gaya!',
+                        ),
+                      ),
+                      backgroundColor: const Color(0xFF0C831F),
                     ),
                   );
                 }
@@ -202,7 +368,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('वेरिफाई व पूरा करें'),
+              child: Text(
+                t('Verify & Complete', 'वेरिफाई व पूरा करें', 'Verify & Complete'),
+              ),
             ),
           ],
         ),
@@ -383,6 +551,28 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               final partnerHeading = session?.currentLocation?.heading ?? 45.0;
               final defaultCenter = partnerPoint;
 
+              // Update target point for smooth Zepto/Blinkit glide animation
+              _updateRiderTarget(partnerPoint, partnerHeading);
+
+              // Auto-start broadcasting if viewer is rider and service is not yet broadcasting
+              if (widget.viewerRole == 'rider' && !_service.isBroadcasting) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && !_service.isBroadcasting) {
+                    _service.ensureBroadcastingForRider(
+                      orderId: widget.orderId,
+                      orderData: orderData,
+                    );
+                  }
+                });
+              }
+
+              final lang = Provider.of<LanguageProvider>(context);
+              String t(String en, String hi, String hinglish) {
+                if (lang.isHindi) return hi;
+                if (lang.isHinglish) return hinglish;
+                return en;
+              }
+
               final bool isHeadingToStore = session?.isHeadingToStore ?? false;
               final bool isArrivedAtStore = session?.isArrivedAtStore ?? false;
               final bool isDelivered = (orderData['status']?.toString().toLowerCase() == OrderStatus.delivered.toLowerCase()) ||
@@ -428,223 +618,345 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   : '${(realDistMeters / 1000).toStringAsFixed(1)} km';
 
               final String dynamicEtaStr = isDelivered
-                  ? 'Delivered'
+                  ? t('Delivered', 'डिलीवर हो गया', 'Delivered')
                   : isArrivedAtStore
-                      ? 'दुकान पर पहुंचे'
+                      ? t('At Store', 'दुकान पर पहुंचे', 'Store par pahuche')
                       : realIsNearby
-                          ? '1–2 mins'
+                          ? t('1–2 mins', '1–2 मिनट', '1–2 mins')
                           : realEtaMins <= 2
-                              ? '1–2 mins'
-                              : '$realEtaMins mins';
+                              ? t('1–2 mins', '1–2 मिनट', '1–2 mins')
+                              : t('$realEtaMins mins', '$realEtaMins मिनट', '$realEtaMins mins');
 
-              // Build route polyline points based on current delivery phase
-              final List<LatLng> polylinePoints = [];
-              if (isHeadingToStore || isArrivedAtStore) {
-                polylinePoints.add(partnerPoint);
-                if (session != null && session.breadcrumbs.isNotEmpty) {
-                  for (final b in session.breadcrumbs) {
-                    polylinePoints.add(LatLng(b.latitude, b.longitude));
-                  }
-                }
-                polylinePoints.add(storePoint);
-              } else {
-                polylinePoints.add(storePoint);
-                if (session != null && session.breadcrumbs.isNotEmpty) {
-                  for (final b in session.breadcrumbs) {
-                    polylinePoints.add(LatLng(b.latitude, b.longitude));
-                  }
-                }
-                polylinePoints.add(partnerPoint);
-                polylinePoints.add(customerPoint);
-              }
+              final String distAwayStr = t(
+                '$dynamicDistStr away',
+                '$dynamicDistStr दूर',
+                '$dynamicDistStr door',
+              );
 
-              return Stack(
-                children: [
-                  // 1. Full Screen Interactive Map
-                  FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                      initialCenter: defaultCenter,
-                      initialZoom: 15.5,
-                    ),
+              return AnimatedBuilder(
+                animation: _riderMoveController,
+                builder: (context, _) {
+                  final animatedRiderPoint = _getCurrentAnimatedRiderPoint();
+                  final animatedRiderHeading = _getCurrentAnimatedHeading();
+
+                  // Determine active navigation start & target
+                  final LatLng navStart = animatedRiderPoint;
+                  final LatLng navTarget = (isHeadingToStore || isArrivedAtStore) ? storePoint : customerPoint;
+
+                  // Request turn-by-turn road route along real streets (OSRM / OpenStreetMap)
+                  _fetchRoadRouteIfNeeded(navStart, navTarget);
+
+                  // Compose display route along actual streets
+                  final List<LatLng> displayRoutePoints = [];
+                  if (_roadRoutePoints.isNotEmpty) {
+                    displayRoutePoints.addAll(_roadRoutePoints);
+                    final double distToFirst = Geolocator.distanceBetween(
+                      animatedRiderPoint.latitude,
+                      animatedRiderPoint.longitude,
+                      displayRoutePoints.first.latitude,
+                      displayRoutePoints.first.longitude,
+                    );
+                    if (distToFirst > 4.0) {
+                      displayRoutePoints.insert(0, animatedRiderPoint);
+                    }
+                  } else {
+                    if (isHeadingToStore || isArrivedAtStore) {
+                      displayRoutePoints.add(animatedRiderPoint);
+                      displayRoutePoints.add(storePoint);
+                    } else {
+                      displayRoutePoints.add(storePoint);
+                      displayRoutePoints.add(animatedRiderPoint);
+                      displayRoutePoints.add(customerPoint);
+                    }
+                  }
+
+                  // Active road distance & travel speeds:
+                  // Bike (~21 km/h): 350 m/min
+                  // Car (~18 km/h): 300 m/min
+                  // Walk (~4.8 km/h): 80 m/min
+                  final double activeDistanceMeters = _roadDistanceMeters > 0 ? _roadDistanceMeters : realDistMeters;
+                  final int bikeEtaMins = ((activeDistanceMeters / 350).ceil()).clamp(1, 120);
+                  final int carEtaMins = ((activeDistanceMeters / 300).ceil()).clamp(1, 120);
+                  final int walkEtaMins = ((activeDistanceMeters / 80).ceil()).clamp(1, 180);
+
+                  final int selectedEtaMins = _selectedTransportMode == 'car'
+                      ? carEtaMins
+                      : _selectedTransportMode == 'walk'
+                          ? walkEtaMins
+                          : bikeEtaMins;
+
+                  final String selectedDistStr = activeDistanceMeters < 1000
+                      ? '${activeDistanceMeters.round()} m'
+                      : '${(activeDistanceMeters / 1000).toStringAsFixed(1)} km';
+
+                  // Floating Road ETA Badge (midpoint along road route)
+                  LatLng? roadBadgePoint;
+                  if (displayRoutePoints.length >= 2) {
+                    final midIdx = displayRoutePoints.length ~/ 2;
+                    roadBadgePoint = displayRoutePoints[midIdx];
+                  }
+
+                  // Top header labels
+                  final String originLabel = widget.viewerRole == 'customer'
+                      ? (partnerName.isNotEmpty ? '$partnerName (Live)' : t('Rider Live Location', 'राइडर की लोकेशन', 'Rider Live Location'))
+                      : widget.viewerRole == 'rider'
+                          ? t('Your Location', 'आपकी लोकेशन', 'Your Location')
+                          : t('Delivery Partner', 'डिलीवरी पार्टनर', 'Delivery Partner');
+
+                  final String destinationLabel = isHeadingToStore || isArrivedAtStore
+                      ? (shopAddress.isNotEmpty ? shopAddress : shopName)
+                      : (customerAddress.isNotEmpty ? customerAddress : customerName);
+
+                  return Stack(
                     children: [
-                      if (widget.enableTiles)
-                        TileLayer(
-                          urlTemplate: _isSatellite
-                              ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
-                              : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-                          userAgentPackageName: 'com.adityakirana.aditya_kirana',
+                      // 1. Full Screen Interactive Map
+                      FlutterMap(
+                        mapController: _mapController,
+                        options: MapOptions(
+                          initialCenter: defaultCenter,
+                          initialZoom: 15.5,
                         ),
-
-                      // Route polyline
-                      if (polylinePoints.length >= 2)
-                        PolylineLayer(
-                          polylines: [
-                            Polyline(
-                              points: polylinePoints,
-                              strokeWidth: 4.5,
-                              color: (isHeadingToStore || isArrivedAtStore)
-                                  ? const Color(0xFF4F46E5).withValues(alpha: 0.85)
-                                  : AppColors.primaryDark.withValues(alpha: 0.75),
-                              borderStrokeWidth: 1.5,
-                              borderColor: Colors.white,
+                        children: [
+                          if (widget.enableTiles)
+                            TileLayer(
+                              urlTemplate: _isSatellite
+                                  ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+                                  : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                              userAgentPackageName: 'com.adityakirana.aditya_kirana',
                             ),
-                          ],
-                        ),
 
-                      // Proximity circle around active destination (Store or Customer)
-                      CircleLayer(
-                        circles: [
-                          if (isHeadingToStore || isArrivedAtStore)
-                            CircleMarker(
-                              point: storePoint,
-                              radius: 80,
-                              useRadiusInMeter: true,
-                              color: const Color(0xFF6366F1).withValues(alpha: 0.10),
-                              borderColor: const Color(0xFF6366F1).withValues(alpha: 0.4),
-                              borderStrokeWidth: 1.5,
-                            )
-                          else
-                            CircleMarker(
-                              point: customerPoint,
-                              radius: 120,
-                              useRadiusInMeter: true,
-                              color: Colors.blue.withValues(alpha: 0.08),
-                              borderColor: Colors.blue.withValues(alpha: 0.35),
-                              borderStrokeWidth: 1.5,
+                          // Google Maps 2-Layer Road Polyline (exact match to screenshot)
+                          if (displayRoutePoints.length >= 2)
+                            PolylineLayer(
+                              polylines: [
+                                // Layer 1: Dark navy road border (Color 0xFF1E3A8A)
+                                Polyline(
+                                  points: displayRoutePoints,
+                                  strokeWidth: 8.5,
+                                  color: const Color(0xFF1E3A8A),
+                                ),
+                                // Layer 2: Vibrant electric blue road core (Color 0xFF2563EB)
+                                Polyline(
+                                  points: displayRoutePoints,
+                                  strokeWidth: 5.5,
+                                  color: const Color(0xFF2563EB),
+                                ),
+                              ],
                             ),
+
+                          // Proximity circle around active destination (Store or Customer)
+                          CircleLayer(
+                            circles: [
+                              if (isHeadingToStore || isArrivedAtStore)
+                                CircleMarker(
+                                  point: storePoint,
+                                  radius: 80,
+                                  useRadiusInMeter: true,
+                                  color: const Color(0xFF6366F1).withValues(alpha: 0.10),
+                                  borderColor: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                                  borderStrokeWidth: 1.5,
+                                )
+                              else
+                                CircleMarker(
+                                  point: customerPoint,
+                                  radius: 120,
+                                  useRadiusInMeter: true,
+                                  color: Colors.blue.withValues(alpha: 0.08),
+                                  borderColor: Colors.blue.withValues(alpha: 0.35),
+                                  borderStrokeWidth: 1.5,
+                                ),
+                            ],
+                          ),
+
+                          // Markers Layer
+                          MarkerLayer(
+                            markers: [
+                              // Floating Road ETA Badge (Like [ 1 min ] badge in screenshot)
+                              if (roadBadgePoint != null && !isDelivered)
+                                Marker(
+                                  point: roadBadgePoint,
+                                  width: 76,
+                                  height: 32,
+                                  alignment: Alignment.center,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1D4ED8),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: Colors.white, width: 1.8),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.35),
+                                          blurRadius: 5,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '$selectedEtaMins min',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              // Store Marker
+                              Marker(
+                                point: storePoint,
+                                width: 85,
+                                height: 65,
+                                child: _buildStoreMarker(
+                                  isTarget: isHeadingToStore || isArrivedAtStore,
+                                  storeName: shopName,
+                                  lang: lang,
+                                ),
+                              ),
+
+                              // Destination Marker (Google Maps Red Pin with White Dot)
+                              Marker(
+                                point: customerPoint,
+                                width: 90,
+                                height: 75,
+                                alignment: Alignment.topCenter,
+                                child: _buildGoogleMapsDestinationPin(
+                                  label: widget.viewerRole == 'customer'
+                                      ? t('Your Location', 'आपका पता', 'Aapka Address')
+                                      : '${t('Customer', 'ग्राहक', 'Customer')}: $customerName',
+                                ),
+                              ),
+
+                              // Live Delivery Partner Marker (Google Maps Live Location Blue Dot)
+                              Marker(
+                                point: animatedRiderPoint,
+                                width: 85,
+                                height: 85,
+                                alignment: Alignment.center,
+                                child: _buildGoogleMapsLiveLocationMarker(
+                                  partnerName,
+                                  animatedRiderHeading,
+                                  realIsNearby,
+                                  isHeadingToStore: isHeadingToStore || isArrivedAtStore,
+                                  lang: lang,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
 
-                      // Markers Layer
-                      MarkerLayer(
-                        markers: [
-                          // Store Marker
-                          Marker(
-                            point: storePoint,
-                            width: 75,
-                            height: 60,
-                            child: _buildStoreMarker(
-                              isTarget: isHeadingToStore || isArrivedAtStore,
-                              storeName: shopName,
-                            ),
-                          ),
-
-                          // Customer Destination Marker
-                          Marker(
-                            point: customerPoint,
-                            width: 90,
-                            height: 75,
-                            child: _buildDestinationMarker(
-                              label: widget.viewerRole == 'customer'
-                                  ? 'आपका पता'
-                                  : 'ग्राहक: $customerName',
-                            ),
-                          ),
-
-                          // Live Delivery Partner Marker
-                          Marker(
-                            point: partnerPoint,
-                            width: 90,
-                            height: 85,
-                            child: _buildPartnerMarker(
-                              partnerName,
-                              partnerHeading,
-                              realIsNearby,
-                              isHeadingToStore: isHeadingToStore || isArrivedAtStore,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  // 2. Top Navigation & Status Bar
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: _buildTopHeader(context, session, isDelivered),
-                  ),
-
-                  // 3. Floating Map Controls (Right Side)
-                  Positioned(
-                    right: 16,
-                    bottom: widget.viewerRole == 'rider' ? 295 : 260,
-                    child: Column(
-                      children: [
-                        _buildMapControlButton(
-                          icon: _isSatellite
-                              ? Icons.map_outlined
-                              : Icons.satellite_alt_rounded,
-                          tooltip: 'Toggle Satellite',
-                          onTap: () {
-                            setState(() => _isSatellite = !_isSatellite);
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        _buildMapControlButton(
-                          icon: Icons.two_wheeler_rounded,
-                          tooltip: 'Center Partner',
-                          color: AppColors.primaryDark,
-                          iconColor: Colors.white,
-                          onTap: () => _centerOn(partnerPoint),
-                        ),
-                        const SizedBox(height: 10),
-                        _buildMapControlButton(
-                          icon: (isHeadingToStore || isArrivedAtStore)
-                              ? Icons.storefront_rounded
-                              : Icons.home_rounded,
-                          tooltip: (isHeadingToStore || isArrivedAtStore)
-                              ? 'Center Store'
-                              : 'Center Destination',
-                          onTap: () => _centerOn(
-                            (isHeadingToStore || isArrivedAtStore)
-                                ? storePoint
-                                : customerPoint,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        _buildMapControlButton(
-                          icon: Icons.zoom_out_map_rounded,
-                          tooltip: 'Fit All',
-                          onTap: () => _fitAllMarkers(
-                            partnerPoint,
+                      // 2. Top Navigation & Status Bar (Google Maps Header Card)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: _buildTopHeader(
+                          context,
+                          session,
+                          isDelivered,
+                          lang,
+                          originLabel: originLabel,
+                          destinationLabel: destinationLabel,
+                          onFitAll: () => _fitAllMarkers(
+                            animatedRiderPoint,
                             customerPoint,
                             storePoint,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
 
-                  // 4. Floating Bottom Info Card
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                    child: _buildBottomCard(
-                      context: context,
-                      session: session,
-                      orderData: orderData,
-                      customerName: customerName,
-                      customerAddress: customerAddress,
-                      customerPhone: customerPhone,
-                      shopName: shopName,
-                      shopAddress: shopAddress,
-                      partnerName: partnerName,
-                      partnerPhone: partnerPhone,
-                      partnerVehicle: partnerVehicle,
-                      targetLat: targetLat,
-                      targetLng: targetLng,
-                      realDistMeters: realDistMeters,
-                      dynamicDistStr: dynamicDistStr,
-                      dynamicEtaStr: dynamicEtaStr,
-                      isDelivered: isDelivered,
-                      realIsNearby: realIsNearby,
-                    ),
-                  ),
-                ],
+                      // 3. Floating Map Controls (Right Side)
+                      Positioned(
+                        right: 16,
+                        bottom: widget.viewerRole == 'rider' ? 345 : 310,
+                        child: Column(
+                          children: [
+                            _buildMapControlButton(
+                              icon: _isSatellite
+                                  ? Icons.map_outlined
+                                  : Icons.satellite_alt_rounded,
+                              tooltip: t('Toggle Satellite', 'सैटेलाइट व्यू बदलें', 'Toggle Satellite'),
+                              onTap: () {
+                                setState(() => _isSatellite = !_isSatellite);
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            _buildMapControlButton(
+                              icon: Icons.two_wheeler_rounded,
+                              tooltip: t('Center Rider', 'राइडर पर केंद्रित करें', 'Center Rider'),
+                              color: AppColors.primaryDark,
+                              iconColor: Colors.white,
+                              onTap: () => _centerOn(animatedRiderPoint),
+                            ),
+                            const SizedBox(height: 10),
+                            _buildMapControlButton(
+                              icon: (isHeadingToStore || isArrivedAtStore)
+                                  ? Icons.storefront_rounded
+                                  : Icons.home_rounded,
+                              tooltip: (isHeadingToStore || isArrivedAtStore)
+                                  ? t('Center Store', 'दुकान पर केंद्रित करें', 'Center Store')
+                                  : t('Center Destination', 'गंतव्य पर केंद्रित करें', 'Center Destination'),
+                              onTap: () => _centerOn(
+                                (isHeadingToStore || isArrivedAtStore)
+                                    ? storePoint
+                                    : customerPoint,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _buildMapControlButton(
+                              icon: Icons.zoom_out_map_rounded,
+                              tooltip: t('Fit All', 'सभी देखें', 'Fit All'),
+                              onTap: () => _fitAllMarkers(
+                                animatedRiderPoint,
+                                customerPoint,
+                                storePoint,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // 4. Floating Bottom Navigation Card (Matches Screenshot Google Maps Sheet)
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
+                        child: _buildBottomCard(
+                          context: context,
+                          session: session,
+                          orderData: orderData,
+                          customerName: customerName,
+                          customerAddress: customerAddress,
+                          customerPhone: customerPhone,
+                          shopName: shopName,
+                          shopAddress: shopAddress,
+                          partnerName: partnerName,
+                          partnerPhone: partnerPhone,
+                          partnerVehicle: partnerVehicle,
+                          targetLat: targetLat,
+                          targetLng: targetLng,
+                          realDistMeters: realDistMeters,
+                          dynamicDistStr: dynamicDistStr,
+                          dynamicEtaStr: dynamicEtaStr,
+                          distAwayStr: distAwayStr,
+                          isDelivered: isDelivered,
+                          realIsNearby: realIsNearby,
+                          lang: lang,
+                          selectedEtaMins: selectedEtaMins,
+                          selectedDistStr: selectedDistStr,
+                          bikeEtaMins: bikeEtaMins,
+                          carEtaMins: carEtaMins,
+                          walkEtaMins: walkEtaMins,
+                          onStartNavigation: () => _centerOn(animatedRiderPoint, zoom: 17.5),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               );
             },
           );
@@ -657,58 +969,38 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
   // UI WIDGET BUILDERS
   // ==========================================
 
-  Widget _buildTopHeader(BuildContext context, LiveTrackingSession? session, bool isDelivered) {
-    final isHeadingToStore = session?.isHeadingToStore ?? false;
-    final isArrivedAtStore = session?.isArrivedAtStore ?? false;
-    final isNearby = session?.isNearby ?? false;
-
-    String titleText = 'Live Delivery Track';
-    if (widget.viewerRole == 'shop_owner') {
-      titleText = 'Store Live Tracking';
-    } else if (widget.viewerRole == 'rider') {
-      titleText = 'Delivery Navigation';
-    }
-
-    String subtitleText;
-    Color subtitleColor;
-
-    final shortOrderId = widget.orderId.length > 6
-        ? widget.orderId.substring(widget.orderId.length - 6)
-        : widget.orderId;
-
-    if (isDelivered) {
-      subtitleText = 'Order #$shortOrderId • डिलीवर हो चुका है';
-      subtitleColor = Colors.green.shade700;
-    } else if (isArrivedAtStore) {
-      subtitleText = 'Order #$shortOrderId • दुकान पहुंच गए हैं (पिकअप)';
-      subtitleColor = Colors.purple.shade700;
-    } else if (isHeadingToStore) {
-      subtitleText = 'Order #$shortOrderId • दुकान की ओर आ रहे हैं';
-      subtitleColor = const Color(0xFF4F46E5);
-    } else if (isNearby) {
-      subtitleText = 'Order #$shortOrderId • आस-पास पहुंच गए हैं';
-      subtitleColor = Colors.orange.shade800;
-    } else {
-      subtitleText = 'Order #$shortOrderId • रास्ते में है';
-      subtitleColor = AppColors.primaryDark;
+  Widget _buildTopHeader(
+    BuildContext context,
+    LiveTrackingSession? session,
+    bool isDelivered,
+    LanguageProvider lang, {
+    required String originLabel,
+    required String destinationLabel,
+    VoidCallback? onFitAll,
+  }) {
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
     }
 
     return SafeArea(
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 15,
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 16,
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             IconButton(
               icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark),
@@ -717,35 +1009,86 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
             const SizedBox(width: 4),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Origin row (Google Maps blue origin dot)
                   Row(
                     children: [
-                      Text(
-                        titleText,
-                        style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF1A73E8), // Google Maps origin blue dot
+                          shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _buildLivePulseIndicator(isDelivered),
+                      Expanded(
+                        child: Text(
+                          originLabel,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1E293B),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
-                  Text(
-                    subtitleText,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: subtitleColor,
+                  // 3 vertical connector dots
+                  Padding(
+                    padding: const EdgeInsets.only(left: 3.5, top: 2, bottom: 2),
+                    child: Column(
+                      children: [
+                        Container(width: 3, height: 3, decoration: BoxDecoration(color: Colors.grey.shade400, shape: BoxShape.circle)),
+                        const SizedBox(height: 2),
+                        Container(width: 3, height: 3, decoration: BoxDecoration(color: Colors.grey.shade400, shape: BoxShape.circle)),
+                      ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // Destination row (Google Maps red pin)
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_rounded,
+                        size: 13,
+                        color: Color(0xFFEA4335), // Google Maps red pin
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          destinationLabel,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0F172A),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+            ),
+            const SizedBox(width: 8),
+            // Live badge and Route Action
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildLivePulseIndicator(isDelivered, lang),
+                if (onFitAll != null)
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.swap_vert_rounded, size: 20, color: Color(0xFF475569)),
+                    tooltip: t('Fit Route', 'रूट देखें', 'Fit Route'),
+                    onPressed: onFitAll,
+                  ),
+              ],
             ),
           ],
         ),
@@ -753,7 +1096,13 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     );
   }
 
-  Widget _buildLivePulseIndicator(bool isEnded) {
+  Widget _buildLivePulseIndicator(bool isEnded, LanguageProvider lang) {
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     if (isEnded) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -762,7 +1111,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          'ENDED',
+          t('ENDED', 'समाप्त', 'ENDED'),
           style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
         ),
       );
@@ -833,17 +1182,18 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     );
   }
 
-  Widget _buildPartnerMarker(
+  Widget _buildGoogleMapsLiveLocationMarker(
     String name,
     double heading,
     bool isNearby, {
     bool isHeadingToStore = false,
+    required LanguageProvider lang,
   }) {
-    final markerColor = isNearby
-        ? Colors.orange.shade700
-        : isHeadingToStore
-            ? const Color(0xFF4F46E5)
-            : AppColors.primaryDark;
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
 
     return AnimatedBuilder(
       animation: _pulseController,
@@ -861,7 +1211,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 ],
               ),
               child: Text(
-                name.isNotEmpty ? name : 'Rider',
+                name.isNotEmpty ? name : t('Rider', 'राइडर', 'Rider'),
                 style: GoogleFonts.inter(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -875,41 +1225,67 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
             Stack(
               alignment: Alignment.center,
               children: [
-                // Pulsing ring
+                // Outer pulsing halo (Google Maps live location aura)
                 Container(
-                  width: 44 + (_pulseController.value * 16),
-                  height: 44 + (_pulseController.value * 16),
+                  width: 38 + (_pulseController.value * 14),
+                  height: 38 + (_pulseController.value * 14),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: (isNearby
-                            ? Colors.orange
-                            : isHeadingToStore
-                                ? const Color(0xFF6366F1)
-                                : AppColors.primaryDark)
-                        .withValues(alpha: 0.25 * (1 - _pulseController.value)),
+                    color: const Color(0xFF1A73E8).withValues(
+                      alpha: 0.24 * (1 - _pulseController.value),
+                    ),
                   ),
                 ),
-                // Bike icon with heading rotation
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: markerColor,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: Transform.rotate(
-                    angle: heading * (math.pi / 180),
-                    child: const Icon(
-                      Icons.two_wheeler_rounded,
-                      color: Colors.white,
-                      size: 20,
+                // Heading rotation with outer white ring and intense blue dot
+                Transform.rotate(
+                  angle: heading * (math.pi / 180),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF1A73E8).withValues(alpha: 0.35),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // White border ring
+                        Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Solid blue center
+                        Container(
+                          width: 18,
+                          height: 18,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF1A73E8), // Google Maps live dot blue
+                          ),
+                        ),
+                        // Mini rider bike
+                        const Icon(
+                          Icons.two_wheeler_rounded,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -921,28 +1297,37 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     );
   }
 
-  Widget _buildDestinationMarker({String label = 'आपका पता'}) {
+  Widget _buildGoogleMapsDestinationPin({required String label}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color: Colors.red.shade600,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            const Icon(
+              Icons.location_on_rounded,
+              size: 40,
+              color: Color(0xFFEA4335), // Google Maps red
+            ),
+            Positioned(
+              top: 9,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
               ),
-            ],
-          ),
-          child: const Icon(
-            Icons.home_rounded,
-            color: Colors.white,
-            size: 20,
+            ),
+          ],
+        ),
+        Container(
+          width: 12,
+          height: 3,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(3),
           ),
         ),
         const SizedBox(height: 2),
@@ -950,14 +1335,14 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(5),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 2),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 3),
             ],
           ),
           child: Text(
             label,
-            style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.bold),
+            style: GoogleFonts.inter(fontSize: 8.5, fontWeight: FontWeight.bold),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -966,7 +1351,17 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     );
   }
 
-  Widget _buildStoreMarker({bool isTarget = false, String storeName = 'दुकान'}) {
+  Widget _buildStoreMarker({
+    bool isTarget = false,
+    String storeName = 'Store',
+    required LanguageProvider lang,
+  }) {
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1001,7 +1396,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
             ],
           ),
           child: Text(
-            storeName.isNotEmpty ? storeName : 'दुकान',
+            storeName.isNotEmpty ? storeName : t('Store', 'दुकान', 'Store'),
             style: GoogleFonts.inter(
               fontSize: 8,
               fontWeight: FontWeight.bold,
@@ -1012,6 +1407,50 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTransportModeTab({
+    required String mode,
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _selectedTransportMode = mode);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFE0F2FE) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: isSelected ? Border.all(color: const Color(0xFF0284C7), width: 1.5) : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF64748B),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF334155),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1032,75 +1471,26 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     required double realDistMeters,
     required String dynamicDistStr,
     required String dynamicEtaStr,
+    required String distAwayStr,
     required bool isDelivered,
     required bool realIsNearby,
+    required LanguageProvider lang,
+    required int selectedEtaMins,
+    required String selectedDistStr,
+    required int bikeEtaMins,
+    required int carEtaMins,
+    required int walkEtaMins,
+    required VoidCallback onStartNavigation,
   }) {
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     final isHeadingToStore = session?.isHeadingToStore ?? false;
     final isArrivedAtStore = session?.isArrivedAtStore ?? false;
     final deliveryPin = (orderData['delivery_pin'] ?? '').toString().trim();
-
-    final IconData statusIcon = isDelivered
-        ? Icons.check_circle_rounded
-        : isArrivedAtStore
-            ? Icons.storefront_rounded
-            : isHeadingToStore
-                ? Icons.store_mall_directory_rounded
-                : realIsNearby
-                    ? Icons.near_me_rounded
-                    : Icons.moped_rounded;
-
-    final Color statusBg = isDelivered
-        ? Colors.green.shade50
-        : isArrivedAtStore
-            ? Colors.purple.shade50
-            : isHeadingToStore
-                ? const Color(0xFFEEF2FF)
-                : realIsNearby
-                    ? Colors.orange.shade50
-                    : AppColors.primaryLight.withValues(alpha: 0.15);
-
-    final Color statusIconColor = isDelivered
-        ? Colors.green.shade700
-        : isArrivedAtStore
-            ? Colors.purple.shade700
-            : isHeadingToStore
-                ? const Color(0xFF4F46E5)
-                : realIsNearby
-                    ? Colors.orange.shade800
-                    : AppColors.primaryDark;
-
-    // Dynamic Time & Location Calculation
-    final String heroTitle = isDelivered
-        ? 'डिलीवरी सफल हुई'
-        : isArrivedAtStore
-            ? 'दुकान पर पहुंच गए हैं'
-            : isHeadingToStore
-                ? 'दुकान पिकअप: $dynamicEtaStr ($dynamicDistStr)'
-                : realIsNearby
-                    ? 'पहुंचने वाले हैं! ($dynamicDistStr)'
-                    : '$dynamicEtaStr ($dynamicDistStr दूर)';
-
-    final Color heroTitleColor = isDelivered
-        ? Colors.green.shade800
-        : isArrivedAtStore
-            ? Colors.purple.shade900
-            : realIsNearby
-                ? Colors.orange.shade900
-                : AppColors.textDark;
-
-    final String heroSubtitle = isDelivered
-        ? 'सामान सुरक्षित डिलीवर हो चुका है'
-        : isArrivedAtStore
-            ? 'राइडर दुकान से सामान पिक कर रहे हैं'
-            : isHeadingToStore
-                ? 'राइडर दुकान की ओर आ रहे हैं'
-                : realIsNearby
-                    ? 'कृपया पार्सल रिसीव करने के लिए तैयार रहें'
-                    : widget.viewerRole == 'rider'
-                        ? 'ग्राहक के पते की ओर नेविगेट करें'
-                        : widget.viewerRole == 'shop_owner'
-                            ? 'राइडर ग्राहक के पते की ओर जा रहा है'
-                            : 'डिलीवरी पार्टनर आपके पते की ओर आ रहे हैं';
 
     return Container(
       decoration: BoxDecoration(
@@ -1108,133 +1498,272 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: 0.14),
             blurRadius: 20,
             offset: const Offset(0, -2),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. ETA & Status Hero Banner
+          // 1. Top Pull Handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
+          // 2. Google Maps Sheet Header Row
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  statusIcon,
-                  color: statusIconColor,
-                  size: 24,
+              Text(
+                t('Drive', 'ड्राइव', 'Drive'),
+                style: GoogleFonts.outfit(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF0F172A),
                 ),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      heroTitle,
-                      style: GoogleFonts.outfit(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: heroTitleColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      heroSubtitle,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppColors.textMid,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (deliveryPin.isNotEmpty && !isDelivered) ...[
-                if (widget.viewerRole == 'rider')
-                  InkWell(
-                    onTap: () => _showRiderPinDialog(context, orderData),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0C831F).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF0C831F).withValues(alpha: 0.4)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF0C831F)),
-                          const SizedBox(width: 4),
-                          Text(
-                            'PIN दर्ज करें',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0C831F),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentPink.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.accentPink.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'PIN',
-                          style: GoogleFonts.inter(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.accentPink,
-                          ),
-                        ),
-                        Text(
-                          deliveryPin,
-                          style: GoogleFonts.outfit(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.accentPink,
-                          ),
-                        ),
-                      ],
+              const Spacer(),
+              // Tune/Satellite button
+              Material(
+                color: Colors.grey.shade100,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _isSatellite = !_isSatellite);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      _isSatellite ? Icons.map_outlined : Icons.tune_rounded,
+                      size: 18,
+                      color: const Color(0xFF475569),
                     ),
                   ),
-              ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Share button
+              Material(
+                color: Colors.grey.shade100,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Clipboard.setData(ClipboardData(text: 'Tracking Order #${widget.orderId}'));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(t('Tracking link copied', 'ट्रैकिंग लिंक कॉपी हुआ', 'Tracking link copied')),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: const Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.share_rounded,
+                      size: 18,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Close button
+              Material(
+                color: Colors.grey.shade100,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => Navigator.of(context).pop(),
+                  child: const Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
 
-          // 2. Active Destination / Target Info Pill
+          const SizedBox(height: 10),
+
+          // 3. Transport Modes Selector Tabs (Bike, Car, Walk)
+          Row(
+            children: [
+              _buildTransportModeTab(
+                mode: 'bike',
+                icon: Icons.two_wheeler_rounded,
+                label: '$bikeEtaMins min',
+                isSelected: _selectedTransportMode == 'bike',
+              ),
+              const SizedBox(width: 8),
+              _buildTransportModeTab(
+                mode: 'car',
+                icon: Icons.directions_car_rounded,
+                label: '$carEtaMins min',
+                isSelected: _selectedTransportMode == 'car',
+              ),
+              const SizedBox(width: 8),
+              _buildTransportModeTab(
+                mode: 'walk',
+                icon: Icons.directions_walk_rounded,
+                label: '$walkEtaMins min',
+                isSelected: _selectedTransportMode == 'walk',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // 4. Large Green Bold ETA Text (exact match to Google Maps screenshot)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                isDelivered
+                    ? t('Delivered', 'डिलीवर हुआ', 'Delivered')
+                    : '$selectedEtaMins min',
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF15803D), // Google Maps Green
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '($selectedDistStr)',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF475569),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            isDelivered
+                ? t('Delivery completed successfully', 'ऑर्डर सफलतापूर्वक डिलीवर हो चुका है', 'Order successfully deliver ho gaya')
+                : t('Fastest route, the usual traffic', 'सबसे तेज़ रास्ता, सामान्य ट्रैफ़िक', 'Fastest route, normal traffic'),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // 5. Action Buttons (Start, Call, PIN)
+          Row(
+            children: [
+              // Primary Start / Center Button (Teal pill)
+              Expanded(
+                flex: 4,
+                child: ElevatedButton.icon(
+                  onPressed: onStartNavigation,
+                  icon: const Icon(Icons.navigation_rounded, size: 18),
+                  label: Text(
+                    t('Start', 'शुरू करें', 'Start'),
+                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF007A87), // Google Maps Teal Navigation
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Quick Call Button
+              if ((widget.viewerRole == 'customer' && partnerPhone.isNotEmpty) ||
+                  (widget.viewerRole == 'rider' && customerPhone.isNotEmpty) ||
+                  (widget.viewerRole == 'shop_owner' && partnerPhone.isNotEmpty))
+                Expanded(
+                  flex: 4,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _callNumber(
+                      widget.viewerRole == 'rider' ? customerPhone : partnerPhone,
+                    ),
+                    icon: const Icon(Icons.call_rounded, size: 16),
+                    label: Text(
+                      widget.viewerRole == 'rider'
+                          ? t('Call Customer', 'कॉल ग्राहक', 'Call Customer')
+                          : t('Call Rider', 'कॉल राइडर', 'Call Rider'),
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF0F172A),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              // Delivery PIN pill
+              if (deliveryPin.isNotEmpty && !isDelivered)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.vpn_key_rounded, size: 13, color: Color(0xFF059669)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'PIN: $deliveryPin',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF065F46),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+
+          // 6. Active Destination / Target Address Info Pill
           Container(
-            margin: const EdgeInsets.only(top: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: isHeadingToStore || isArrivedAtStore
                   ? const Color(0xFFEEF2FF)
-                  : const Color(0xFFF0FDF4),
-              borderRadius: BorderRadius.circular(12),
+                  : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isHeadingToStore || isArrivedAtStore
                     ? const Color(0xFFC7D2FE)
-                    : const Color(0xFFBBF7D0),
+                    : const Color(0xFFE2E8F0),
               ),
             ),
             child: Row(
@@ -1243,10 +1772,10 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   isHeadingToStore || isArrivedAtStore
                       ? Icons.storefront_rounded
                       : Icons.location_on_rounded,
-                  size: 18,
+                  size: 16,
                   color: isHeadingToStore || isArrivedAtStore
                       ? const Color(0xFF4F46E5)
-                      : Colors.green.shade700,
+                      : const Color(0xFFEA4335),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1255,8 +1784,8 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                     children: [
                       Text(
                         isHeadingToStore || isArrivedAtStore
-                            ? 'पिकअप दुकान: $shopName'
-                            : 'डिलीवरी गंतव्य: $customerName',
+                            ? '${t('Pickup Store', 'पिकअप दुकान', 'Pickup Store')}: $shopName'
+                            : '${t('Destination', 'गंतव्य', 'Destination')}: $customerName',
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -1268,7 +1797,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                       Text(
                         isHeadingToStore || isArrivedAtStore
                             ? shopAddress
-                            : (customerAddress.isNotEmpty ? customerAddress : 'ग्राहक का पता'),
+                            : (customerAddress.isNotEmpty ? customerAddress : t('Customer Address', 'ग्राहक का पता', 'Customer Address')),
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           color: AppColors.textMid,
@@ -1283,274 +1812,51 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
             ),
           ),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, thickness: 1, color: AppColors.bgTint),
-          ),
-
-          // 3. Role-Specific Profile & Action Area
-          if (widget.viewerRole == 'customer') ...[
-            // Customer view: Rider profile + Call Rider
+          // 7. Rider actions if viewer is Rider
+          if (widget.viewerRole == 'rider' && !isDelivered) ...[
+            const SizedBox(height: 8),
             Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primaryDark,
-                  child: Text(
-                    partnerName.isNotEmpty ? partnerName[0].toUpperCase() : 'D',
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        partnerName,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                      if (partnerVehicle != null && partnerVehicle.isNotEmpty)
-                        Text(
-                          'वाहन: $partnerVehicle',
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: AppColors.textMid,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (partnerPhone.isNotEmpty && !isDelivered)
-                  ElevatedButton.icon(
-                    onPressed: () => _callPartner(partnerPhone),
-                    icon: const Icon(Icons.call_rounded, size: 16),
-                    label: const Text('कॉल करें'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 9,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  child: OutlinedButton.icon(
+                    onPressed: () => _launchGoogleMaps(targetLat, targetLng),
+                    icon: const Icon(Icons.navigation_rounded, size: 15),
+                    label: Text(
+                      t('Google Maps', 'गूगल मैप्स', 'Google Maps'),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                     ),
-                  ),
-              ],
-            ),
-          ] else if (widget.viewerRole == 'shop_owner') ...[
-            // Shop Owner view: Rider + Customer Quick Call Actions
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: const Color(0xFF1E3A8A),
-                  child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 20),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'राइडर: $partnerName',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        'ग्राहक: $customerName',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: AppColors.textMid,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                if (partnerPhone.isNotEmpty && !isDelivered) ...[
-                  ElevatedButton.icon(
-                    onPressed: () => _callNumber(partnerPhone),
-                    icon: const Icon(Icons.call_rounded, size: 14),
-                    label: const Text('राइडर', style: TextStyle(fontSize: 11)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0C831F),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                if (customerPhone.isNotEmpty && !isDelivered)
-                  OutlinedButton.icon(
-                    onPressed: () => _callNumber(customerPhone),
-                    icon: const Icon(Icons.call_rounded, size: 14),
-                    label: const Text('ग्राहक', style: TextStyle(fontSize: 11)),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF2563EB),
-                      side: const BorderSide(color: Color(0xFF93C5FD)),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      foregroundColor: const Color(0xFF0284C7),
+                      side: const BorderSide(color: Color(0xFFBAE6FD)),
+                      padding: const EdgeInsets.symmetric(vertical: 9),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
-              ],
-            ),
-          ] else if (widget.viewerRole == 'rider') ...[
-            // Rider view: Call Customer, Google Maps Navigation, and Verify PIN Complete button
-            Column(
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: const Color(0xFF0C831F),
-                      child: const Icon(Icons.two_wheeler_rounded, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            customerName,
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            customerAddress.isNotEmpty ? customerAddress : 'ग्राहक का पता',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: AppColors.textMid,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (customerPhone.isNotEmpty && !isDelivered)
-                      ElevatedButton.icon(
-                        onPressed: () => _callNumber(customerPhone),
-                        icon: const Icon(Icons.call_rounded, size: 15),
-                        label: const Text('कॉल ग्राहक', style: TextStyle(fontSize: 11)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0C831F),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                  ],
                 ),
-                if (!isDelivered) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _launchGoogleMaps(targetLat, targetLng),
-                          icon: const Icon(Icons.navigation_rounded, size: 16),
-                          label: const Text(
-                            'गूगल मैप्स',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF0284C7),
-                            side: const BorderSide(color: Color(0xFFBAE6FD)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _showRiderPinDialog(context, orderData),
-                          icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
-                          label: const Text(
-                            'PIN दर्ज कर पूरा करें',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0C831F),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                        ),
-                      ),
-                    ],
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showRiderPinDialog(context, orderData, lang),
+                    icon: const Icon(Icons.check_circle_outline_rounded, size: 15),
+                    label: Text(
+                      t('Verify PIN', 'PIN दर्ज करें', 'Verify PIN'),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0C831F),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
-                ],
+                ),
               ],
             ),
           ],
-
-          const SizedBox(height: 10),
-
-          // 4. Role-Aware Notice
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  widget.viewerRole == 'rider'
-                      ? Icons.navigation_rounded
-                      : widget.viewerRole == 'shop_owner'
-                          ? Icons.shield_rounded
-                          : Icons.lock_outline_rounded,
-                  size: 13,
-                  color: AppColors.textLight,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    widget.viewerRole == 'rider'
-                        ? 'नेविगेशन मोड: लोकेशन ग्राहक और दुकान को लाइव शेयर हो रही है।'
-                        : widget.viewerRole == 'shop_owner'
-                            ? 'लाइव ट्रैकिंग: दुकान और ग्राहक दोनों के लिए रियल-टाइम डिलीवरी मॉनिटरिंग।'
-                            : 'गोपनीयता: लोकेशन सिर्फ इस डिलीवरी के दौरान लाइव है और हैंडओवर पर बंद हो जाएगी।',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 }
+

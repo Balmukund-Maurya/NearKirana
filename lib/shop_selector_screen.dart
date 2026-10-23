@@ -8,12 +8,17 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:near_kirana/firebase_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'shop_provider.dart';
 import 'app_theme.dart';
 import 'modern_loader.dart';
 import 'cart_provider.dart';
 import 'wishlist_provider.dart';
 import 'language_provider.dart';
+import 'user_provider.dart';
+import 'admin_login_screen.dart';
+import 'admin_dashboard.dart';
+import 'home_screen.dart';
 import 'widgets/language_bottom_sheet.dart';
 import 'super_admin_screen.dart' as super_admin_screen;
 import 'auth_service.dart';
@@ -23,6 +28,13 @@ class ShopSelectorScreen extends StatefulWidget {
 
   @override
   State<ShopSelectorScreen> createState() => _ShopSelectorScreenState();
+}
+
+double? _parseDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value.trim());
+  return null;
 }
 
 class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
@@ -50,8 +62,20 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
       }
       if (permission == LocationPermission.deniedForever) return;
 
+      // First check last known position for immediate responsiveness
+      Position? lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null && mounted) {
+        setState(() {
+          _currentPosition = lastKnown;
+        });
+      }
+
+      // Fetch precise position with strict timeout to avoid freezing
       Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 5),
+        ),
       );
       if (mounted) {
         setState(() {
@@ -72,11 +96,6 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
   Future<void> _loadExistingShop() async {
     final shopProvider = Provider.of<ShopProvider>(context, listen: false);
     await shopProvider.loadCurrentShop();
-
-    if (!mounted) return;
-    if (shopProvider.currentShopId != null && shopProvider.currentShopId!.isNotEmpty) {
-      Navigator.pushReplacementNamed(context, '/login');
-    }
   }
 
   Future<void> _scanShopQR() async {
@@ -87,11 +106,31 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
     );
 
     if (res is String && res.isNotEmpty && res != '-1' && context.mounted) {
-      await _verifyAndEnterShop(res);
+      String cleanShopId = res.trim();
+      // Handle potential URL or deep-link encoded in QR
+      if (cleanShopId.contains('/') || cleanShopId.contains('?')) {
+        final uri = Uri.tryParse(cleanShopId);
+        if (uri != null) {
+          if (uri.queryParameters.containsKey('shopId')) {
+            cleanShopId = uri.queryParameters['shopId']!;
+          } else if (uri.queryParameters.containsKey('shop')) {
+            cleanShopId = uri.queryParameters['shop']!;
+          } else if (uri.queryParameters.containsKey('id')) {
+            cleanShopId = uri.queryParameters['id']!;
+          } else if (uri.pathSegments.isNotEmpty) {
+            cleanShopId = uri.pathSegments.lastWhere(
+              (seg) => seg.isNotEmpty,
+              orElse: () => cleanShopId,
+            );
+          }
+        }
+      }
+      await _verifyAndEnterShop(cleanShopId);
     }
   }
 
   Future<void> _verifyAndEnterShop(String shopId) async {
+    bool isDialogOpen = true;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -104,10 +143,13 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
       final shopDoc = await FirebaseUtils.firestore.collection('shops').doc(shopId).get();
 
       if (!mounted) return;
-      Navigator.pop(context);
+      if (isDialogOpen) {
+        isDialogOpen = false;
+        Navigator.pop(context);
+      }
 
       if (shopDoc.exists) {
-        final data = shopDoc.data() as Map<String, dynamic>;
+        final data = shopDoc.data() ?? {};
         final shopName = data['shop_name'] ?? 'Unknown Shop';
         final isActive = data['is_active'] ?? true;
         final address = data['address']?.toString();
@@ -116,6 +158,8 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
         final bannerUrl = data['banner_image_url']?.toString() ?? data['shop_image_url']?.toString();
         final whatsappTemplate = data['whatsapp_message_template']?.toString();
         final upiId = data['upi_id']?.toString() ?? data['vpa']?.toString();
+
+        if (!mounted) return;
 
         if (!isActive) {
           final lang = Provider.of<LanguageProvider>(context, listen: false);
@@ -129,13 +173,14 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
           return;
         }
 
-        final currentShopId = Provider.of<ShopProvider>(context, listen: false).currentShopId;
+        final shopProvider = Provider.of<ShopProvider>(context, listen: false);
+        final currentShopId = shopProvider.currentShopId;
         if (currentShopId != null && currentShopId != shopId) {
           Provider.of<CartProvider>(context, listen: false).clearCart();
         }
         Provider.of<WishlistProvider>(context, listen: false).setCurrentShopId(shopId);
 
-        await Provider.of<ShopProvider>(context, listen: false).setShop(
+        await shopProvider.setShop(
           shopId,
           shopName,
           address: address,
@@ -147,10 +192,46 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
         );
 
         HapticFeedback.heavyImpact();
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
+
+        final prefs = await SharedPreferences.getInstance();
+        final role = prefs.getString('app_role');
+        final isAdminLoggedIn = prefs.getBool('isAdminLoggedIn') ?? false;
+
+        if (!mounted) return;
+
+        if (role == 'admin') {
+          if (isAdminLoggedIn) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminDashboard()),
+              (route) => false,
+            );
+          } else {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+              (route) => false,
+            );
+          }
+        } else {
+          final savedPhone = prefs.getString('customerPhone');
+          if (savedPhone != null && savedPhone.isNotEmpty) {
+            final userProvider = Provider.of<UserProvider>(context, listen: false);
+            await userProvider.restoreCustomerProfile(savedPhone);
+            await userProvider.checkServiceability();
+            if (mounted) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                (route) => false,
+              );
+            }
+          } else {
+            Navigator.pushReplacementNamed(context, '/login');
+          }
         }
       } else {
+        if (!mounted) return;
         final lang = Provider.of<LanguageProvider>(context, listen: false);
         _showError(
           lang.isHindi
@@ -161,10 +242,12 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      if (isDialogOpen) {
+        isDialogOpen = false;
         Navigator.pop(context);
-        _showError('Network error: $e');
       }
+      _showError('Network error: $e');
     }
   }
 
@@ -240,31 +323,46 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryDark.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.bolt_rounded,
-                                    size: 16,
-                                    color: AppColors.primaryDark,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (Navigator.canPop(context)) ...[
+                                  IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark, size: 22),
+                                    onPressed: () => Navigator.pop(context),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    deliveryHeader,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primaryDark,
-                                    ),
-                                  ),
+                                  const SizedBox(width: 8),
                                 ],
-                              ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryDark.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.bolt_rounded,
+                                        size: 16,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        deliveryHeader,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primaryDark,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                             const LanguageTogglePill(),
                           ],
@@ -521,17 +619,18 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
 
                     List<QueryDocumentSnapshot> allShops = snapshot.data!.docs;
 
-                    // Filter out non-store docs or specific query
+                    // Filter out non-store docs or specific query safely without crashing
                     if (_searchQuery.isNotEmpty) {
                       allShops = allShops.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
+                        final data = doc.data() as Map<String, dynamic>? ?? {};
                         final name = (data['shop_name'] ?? '').toString().toLowerCase();
                         final address = (data['address'] ?? '').toString().toLowerCase();
                         return name.contains(_searchQuery) || address.contains(_searchQuery);
                       }).toList();
                     } else {
                       allShops = allShops.where((doc) {
-                        final name = (doc['shop_name'] ?? '').toString();
+                        final data = doc.data() as Map<String, dynamic>? ?? {};
+                        final name = (data['shop_name'] ?? '').toString();
                         return name.toLowerCase() != 'my shop';
                       }).toList();
                     }
@@ -540,11 +639,12 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                     List<QueryDocumentSnapshot> filteredShops = List.from(allShops);
                     bool showingFallback = false;
 
-                    if (_currentPosition != null) {
+                    // Only apply strict location radius if user isn't searching for a specific store
+                    if (_currentPosition != null && _searchQuery.isEmpty) {
                       final withinRadius = allShops.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final sLat = (data['store_latitude'] ?? data['lat'] as num?)?.toDouble();
-                        final sLng = (data['store_longitude'] ?? data['lng'] as num?)?.toDouble();
+                        final data = doc.data() as Map<String, dynamic>? ?? {};
+                        final sLat = _parseDouble(data['store_latitude'] ?? data['lat']);
+                        final sLng = _parseDouble(data['store_longitude'] ?? data['lng']);
 
                         if (sLat != null && sLng != null) {
                           final dist = Geolocator.distanceBetween(
@@ -553,8 +653,8 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                             sLat,
                             sLng,
                           );
-                          final deliveryRadiusKm = (data['delivery_radius_km'] as num?)?.toDouble() ?? 5.0;
-                          final pickupRadiusKm = (data['pickup_radius_km'] as num?)?.toDouble() ?? 25.0;
+                          final deliveryRadiusKm = _parseDouble(data['delivery_radius_km']) ?? 5.0;
+                          final pickupRadiusKm = _parseDouble(data['pickup_radius_km']) ?? 25.0;
                           final maxRadiusMeters = (deliveryRadiusKm > pickupRadiusKm ? deliveryRadiusKm : pickupRadiusKm) * 1000;
 
                           return dist <= maxRadiusMeters;
@@ -570,22 +670,30 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                       }
                     }
 
-                    // Sort by distance if available, otherwise by creation
+                    // Sort: shops with known distance first, then by creation date
                     filteredShops.sort((a, b) {
-                      final aData = a.data() as Map<String, dynamic>;
-                      final bData = b.data() as Map<String, dynamic>;
+                      final aData = a.data() as Map<String, dynamic>? ?? {};
+                      final bData = b.data() as Map<String, dynamic>? ?? {};
+
+                      double distA = double.infinity;
+                      double distB = double.infinity;
 
                       if (_currentPosition != null) {
-                        final aLat = (aData['store_latitude'] ?? aData['lat'] as num?)?.toDouble();
-                        final aLng = (aData['store_longitude'] ?? aData['lng'] as num?)?.toDouble();
-                        final bLat = (bData['store_latitude'] ?? bData['lat'] as num?)?.toDouble();
-                        final bLng = (bData['store_longitude'] ?? bData['lng'] as num?)?.toDouble();
-
-                        if (aLat != null && aLng != null && bLat != null && bLng != null) {
-                          final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, aLat, aLng);
-                          final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, bLat, bLng);
-                          return distA.compareTo(distB);
+                        final aLat = _parseDouble(aData['store_latitude'] ?? aData['lat']);
+                        final aLng = _parseDouble(aData['store_longitude'] ?? aData['lng']);
+                        if (aLat != null && aLng != null) {
+                          distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, aLat, aLng);
                         }
+
+                        final bLat = _parseDouble(bData['store_latitude'] ?? bData['lat']);
+                        final bLng = _parseDouble(bData['store_longitude'] ?? bData['lng']);
+                        if (bLat != null && bLng != null) {
+                          distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, bLat, bLng);
+                        }
+                      }
+
+                      if (distA != distB) {
+                        return distA.compareTo(distB);
                       }
 
                       final aTime = aData['created_at'] as Timestamp?;
@@ -653,14 +761,13 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                       );
                     }
 
-                    return SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            if (index == 0 && showingFallback && _currentPosition != null) {
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
+                    return SliverMainAxisGroup(
+                      slivers: [
+                        if (showingFallback && _currentPosition != null && _searchQuery.isEmpty)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
                                   color: Colors.amber.shade50,
@@ -687,40 +794,44 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                                     ),
                                   ],
                                 ),
-                              );
-                            }
+                              ),
+                            ),
+                          ),
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final shop = filteredShops[index];
+                                final data = shop.data() as Map<String, dynamic>? ?? {};
 
-                            final actualIndex = (showingFallback && _currentPosition != null) ? index - 1 : index;
-                            if (actualIndex >= filteredShops.length) return null;
-
-                            final shop = filteredShops[actualIndex];
-                            final data = shop.data() as Map<String, dynamic>;
-
-                            String? distanceStr;
-                            if (_currentPosition != null) {
-                              final sLat = (data['store_latitude'] ?? data['lat'] as num?)?.toDouble();
-                              final sLng = (data['store_longitude'] ?? data['lng'] as num?)?.toDouble();
-                              if (sLat != null && sLng != null) {
-                                final dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, sLat, sLng);
-                                if (dist < 1000) {
-                                  distanceStr = '${dist.toStringAsFixed(0)}m';
-                                } else {
-                                  distanceStr = '${(dist / 1000).toStringAsFixed(1)}km';
+                                String? distanceStr;
+                                if (_currentPosition != null) {
+                                  final sLat = _parseDouble(data['store_latitude'] ?? data['lat']);
+                                  final sLng = _parseDouble(data['store_longitude'] ?? data['lng']);
+                                  if (sLat != null && sLng != null) {
+                                    final dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, sLat, sLng);
+                                    if (dist < 1000) {
+                                      distanceStr = '${dist.toStringAsFixed(0)}m';
+                                    } else {
+                                      distanceStr = '${(dist / 1000).toStringAsFixed(1)}km';
+                                    }
+                                  }
                                 }
-                              }
-                            }
 
-                            return _buildZeptoStoreCard(
-                              shopId: shop.id,
-                              data: data,
-                              distanceStr: distanceStr,
-                              isHindi: isHindi,
-                              isHinglish: isHinglish,
-                            );
-                          },
-                          childCount: filteredShops.length + ((showingFallback && _currentPosition != null) ? 1 : 0),
+                                return _buildZeptoStoreCard(
+                                  shopId: shop.id,
+                                  data: data,
+                                  distanceStr: distanceStr,
+                                  isHindi: isHindi,
+                                  isHinglish: isHinglish,
+                                );
+                              },
+                              childCount: filteredShops.length,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     );
                   },
                 ),
@@ -807,7 +918,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Store Name + Active Dot
+                      // Store Name + Open/Closed Badge + Selected Tag
                       Row(
                         children: [
                           Expanded(
@@ -822,12 +933,42 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          const SizedBox(width: 6),
                           Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF10B981),
-                              shape: BoxShape.circle,
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: (data['is_store_open'] ?? true)
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                                  : Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: (data['is_store_open'] ?? true)
+                                        ? const Color(0xFF10B981)
+                                        : Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  (data['is_store_open'] ?? true)
+                                      ? (isHindi ? 'खुला है' : isHinglish ? 'Open' : 'Open')
+                                      : (isHindi ? 'बंद है' : isHinglish ? 'Closed' : 'Closed'),
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: (data['is_store_open'] ?? true)
+                                        ? const Color(0xFF047857)
+                                        : Colors.red.shade700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],

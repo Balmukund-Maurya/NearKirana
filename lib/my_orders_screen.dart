@@ -27,6 +27,45 @@ class MyOrdersScreen extends StatelessWidget {
   final bool isTab;
   const MyOrdersScreen({super.key, this.isTab = false});
 
+  Future<void> _makeDirectPhoneCall(String phone) async {
+    HapticFeedback.mediumImpact();
+    try {
+      String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+      if (cleanPhone.isEmpty) return;
+      if (cleanPhone.length == 10) cleanPhone = '91$cleanPhone';
+      
+      final Uri launchUri = Uri(scheme: 'tel', path: '+$cleanPhone');
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        await launchUrl(Uri.parse('tel:$cleanPhone'));
+      }
+    } catch (e) {
+      debugPrint('Could not launch dialer: $e');
+    }
+  }
+
+  Future<void> _callDeliveryBoyOrStore(BuildContext context, Map<String, dynamic> data) async {
+    HapticFeedback.mediumImpact();
+    final String riderPhone = (data['delivery_boy_phone'] ??
+            data['delivery_partner_phone'] ??
+            data['rider_phone'] ??
+            (data['delivery_partner'] is Map ? data['delivery_partner']['phone'] : null) ??
+            (data['delivery_boy'] is Map ? data['delivery_boy']['phone'] : null) ??
+            '')
+        .toString()
+        .trim();
+
+    // If delivery partner is assigned, call delivery boy directly
+    if (riderPhone.isNotEmpty) {
+      await _makeDirectPhoneCall(riderPhone);
+      return;
+    }
+
+    // Fallback: If no delivery boy is assigned yet, call shop owner
+    await _callShopOwner(context);
+  }
+
   Future<void> _callShopOwner(BuildContext context) async {
     HapticFeedback.mediumImpact();
     try {
@@ -773,27 +812,48 @@ class MyOrdersScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                 ],
 
-                // Call Store button
-                OutlinedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    _callShopOwner(context);
-                  },
-                  icon: const Icon(Icons.call_outlined, size: 14, color: Color(0xFF334155)),
-                  label: Text(
-                    isHindi ? 'कॉल' : 'Call',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF334155),
+                // Call Delivery Boy or Store button
+                () {
+                  final String riderPhone = (data['delivery_boy_phone'] ??
+                          data['delivery_partner_phone'] ??
+                          data['rider_phone'] ??
+                          (data['delivery_partner'] is Map ? data['delivery_partner']['phone'] : null) ??
+                          (data['delivery_boy'] is Map ? data['delivery_boy']['phone'] : null) ??
+                          '')
+                      .toString()
+                      .trim();
+                  final bool hasRiderAssigned = riderPhone.isNotEmpty;
+
+                  return OutlinedButton.icon(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      _callDeliveryBoyOrStore(context, data);
+                    },
+                    icon: Icon(
+                      hasRiderAssigned ? Icons.delivery_dining_rounded : Icons.call_outlined,
+                      size: 15,
+                      color: hasRiderAssigned ? const Color(0xFF0C831F) : const Color(0xFF334155),
                     ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
+                    label: Text(
+                      hasRiderAssigned
+                          ? (isHindi ? 'राइडर' : 'Rider')
+                          : (isHindi ? 'कॉल' : 'Call'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: hasRiderAssigned ? const Color(0xFF0C831F) : const Color(0xFF334155),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: hasRiderAssigned ? const Color(0xFF86EFAC) : const Color(0xFFCBD5E1),
+                      ),
+                      backgroundColor: hasRiderAssigned ? const Color(0xFFF0FDF4) : Colors.transparent,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  );
+                }(),
                 const SizedBox(width: 8),
 
                 // View Summary / Bill details

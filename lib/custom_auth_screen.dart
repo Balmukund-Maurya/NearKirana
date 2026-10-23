@@ -30,8 +30,12 @@ class _CustomAuthScreenState extends State<CustomAuthScreen> {
       deviceId = await PhoneEmail.getUDID();
     }
 
+    final effectiveClientId = (phoneEmail.clientId != null && phoneEmail.clientId!.isNotEmpty)
+        ? phoneEmail.clientId!
+        : '17194425783292968499';
+
     authenticationUrl = "${AppConstant.authUrl}?"
-        "${AppConstant.clientId}=${phoneEmail.clientId}"
+        "${AppConstant.clientId}=$effectiveClientId"
         "&${AppConstant.device}=${deviceId ?? ""}"
         "&${AppConstant.authType}=5";
 

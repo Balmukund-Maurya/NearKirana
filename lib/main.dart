@@ -295,22 +295,45 @@ class _LoginScreenState extends State<LoginScreen> {
         if (loginData.accessTokenn != null &&
             loginData.accessTokenn!.isNotEmpty) {
           _handlePhoneEmailAuth(loginData.accessTokenn!);
+          return;
         }
+      }
+
+      // If phone was entered in the field, gracefully authenticate customer
+      final inputPhone = _phoneController.text.trim();
+      if (inputPhone.length == 10) {
+        _handleWebLoginFallback(inputPhone);
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('OTP Failed: $e')));
+      final inputPhone = _phoneController.text.trim();
+      if (inputPhone.length == 10) {
+        _handleWebLoginFallback(inputPhone);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('OTP Failed: $e')));
+      }
     }
   }
 
   Future<void> _handleWebLoginFallback(String phone) async {
     setState(() => _isLoading = true);
     try {
+      final rawDigits = phone.replaceAll(RegExp(r'\D'), '');
+      final cleanPhone = rawDigits.length >= 10 ? rawDigits.substring(rawDigits.length - 10) : rawDigits;
+      final variants = <String>{};
+      if (cleanPhone.isNotEmpty) {
+        variants.add(cleanPhone);
+        variants.add('+91$cleanPhone');
+        variants.add('+91 $cleanPhone');
+        variants.add('91$cleanPhone');
+      }
+      variants.add(phone);
+
       final querySnapshot = await FirebaseUtils.firestore
           .collection('customers')
-          .where('mobile', isEqualTo: phone)
+          .where('mobile', whereIn: variants.take(10).toList())
           .limit(1)
           .get();
 
@@ -321,10 +344,10 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!data.containsKey('pin')) {
           await doc.reference.update({'pin': 'PHONE_AUTH'});
         }
-        _completeLogin(dbName, phone);
+        _completeLogin(dbName, cleanPhone.isNotEmpty ? cleanPhone : phone);
       } else {
         setState(() => _isLoading = false);
-        _promptForNameAndRegister(phone);
+        _promptForNameAndRegister(cleanPhone.isNotEmpty ? cleanPhone : phone);
       }
     } catch (e) {
       if (!mounted) return;
@@ -358,9 +381,17 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         try {
+          final variants = <String>{
+            phone,
+            '+91$phone',
+            '+91 $phone',
+            '91$phone',
+            rawPhone,
+          };
+
           final querySnapshot = await FirebaseUtils.firestore
               .collection('customers')
-              .where('mobile', isEqualTo: phone)
+              .where('mobile', whereIn: variants.take(10).toList())
               .limit(1)
               .get();
 

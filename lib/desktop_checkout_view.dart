@@ -3749,6 +3749,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
 
       if (!context.mounted) return;
 
+      final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+      final String deliveryPin = result.deliveryPin.trim();
+
       await showDialog(
         context: context,
         barrierDismissible: false,
@@ -3760,28 +3763,134 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             widget.onOrderPlaced();
           },
           child: AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            contentPadding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 72, height: 72,
-                  decoration: BoxDecoration(color: const Color(0xFFF0FDF4), shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF22C55E), width: 2)),
-                  child: const Icon(Icons.check_rounded, color: Color(0xFF047857), size: 40),
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF22C55E), width: 2.5),
+                  ),
+                  child: const Icon(Icons.check_rounded, color: AppColors.primaryDark, size: 42),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  result.isDuplicate ? "Order Already Received!" : "Order Placed Successfully!",
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
+                  result.isDuplicate
+                      ? (langProvider.isHindi ? "ऑर्डर पहले ही प्राप्त हुआ!" : (langProvider.isHinglish ? "Order Already Received!" : "Order Already Received!"))
+                      : (langProvider.isHindi ? "ऑर्डर सफलतापूर्वक दर्ज हुआ!" : (langProvider.isHinglish ? "Order Placed Successfully!" : "Order Placed Successfully!")),
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF111827),
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
-                  "Your order will be delivered soon.\nDelivery PIN: \${result.deliveryPin}",
+                  langProvider.isHindi
+                      ? "आपका ऑर्डर जल्द ही डिलीवर कर दिया जाएगा।"
+                      : (langProvider.isHinglish
+                          ? "Aapka order jaldi hi deliver ho jayega."
+                          : "Your order will be delivered soon."),
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  style: GoogleFonts.poppins(color: Colors.grey.shade600, fontSize: 13),
                 ),
+                if (deliveryPin.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primaryLight.withValues(alpha: 0.8),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryDark.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.verified_user_outlined,
+                              size: 15,
+                              color: AppColors.primaryDark,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              langProvider.isHindi
+                                  ? 'डिलीवरी वेरिफिकेशन पिन'
+                                  : (langProvider.isHinglish
+                                      ? 'DELIVERY VERIFICATION PIN'
+                                      : 'DELIVERY PIN'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8,
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.primaryLight.withValues(alpha: 0.6),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            deliveryPin.split('').join('  '),
+                            style: GoogleFonts.poppins(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primaryDark,
+                              letterSpacing: 4.0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          langProvider.isHindi
+                              ? 'सामान लेते समय डिलीवरी पार्टनर को यह पिन बताएं'
+                              : (langProvider.isHinglish
+                                  ? 'Rider ko delivery ke samay ye PIN share karein'
+                                  : 'Share this PIN with delivery partner upon arrival'),
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: AppColors.textMid,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if (paymentStatus == PaymentStatus.pendingVerification) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -3801,24 +3910,37 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     ]),
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 OutlinedButton.icon(
                   onPressed: () => DigitalReceiptDialog.showForOrder(ctx, orderData: receiptOrderData, orderId: result.orderId),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.primaryDark),
+                    foregroundColor: AppColors.primaryDark,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
                   icon: const Icon(Icons.receipt_long, size: 18),
-                  label: const Text("View Digital Receipt"),
+                  label: Text(
+                    langProvider.isHindi ? "डिजिटल रसीद देखें" : (langProvider.isHinglish ? "View Digital Receipt" : "View Digital Receipt"),
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () { Navigator.pop(ctx); widget.onOrderPlaced(); },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF047857),
+                      backgroundColor: AppColors.primaryDark,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       elevation: 0,
                     ),
-                    child: const Text("Continue Shopping", style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: Text(
+                      langProvider.isHindi ? "खरीदारी जारी रखें" : (langProvider.isHinglish ? "Continue Shopping" : "Continue Shopping"),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
                   ),
                 ),
               ],

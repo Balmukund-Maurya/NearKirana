@@ -899,32 +899,61 @@ class NotificationService {
       'body_hinglish': bodyHinglish,
     };
 
-    // 1. Show instant local notification on active device in selected language
-    await showOrderNotification(
-      activeTitle,
-      activeBody,
-      orderId: orderId,
-      titleEn: titleEn,
-      titleHi: titleHi,
-      titleHinglish: titleHinglish,
-      bodyEn: bodyEn,
-      bodyHi: bodyHi,
-      bodyHinglish: bodyHinglish,
-      language: selectedLang,
-      payload: payloadData,
-    );
+    // Check if the currently active device belongs to this customer!
+    final prefs = await SharedPreferences.getInstance();
+    final currentCustomerPhone = prefs.getString('customerPhone') ?? '';
+    final cleanCurrent = currentCustomerPhone.replaceAll(RegExp(r'\D'), '');
+    final cleanRecipient = customerPhone.replaceAll(RegExp(r'\D'), '');
 
-    // 2. Play contextual sound alert
-    final s = newStatus.toLowerCase();
-    if (s.contains('out') || s.contains('dispatch')) {
-      SoundService().orderDispatched();
-    } else if (s.contains('deliver') && !s.contains('fail')) {
-      SoundService().orderDelivered();
-    } else if (s.contains('cancel') || s.contains('reject')) {
-      SoundService().orderCancelled();
-    } else {
-      SoundService().statusUpdated();
+    final bool isCurrentDeviceTheRecipient = cleanRecipient.isNotEmpty &&
+        cleanCurrent.isNotEmpty &&
+        (cleanCurrent == cleanRecipient ||
+            (cleanCurrent.length >= 10 &&
+                cleanRecipient.length >= 10 &&
+                cleanCurrent.substring(cleanCurrent.length - 10) ==
+                    cleanRecipient.substring(cleanRecipient.length - 10)));
+
+    // 1. Show instant local notification on active device ONLY IF the active device belongs to the recipient customer!
+    // This prevents shop owner from receiving local popup alerts on their own phone when accepting/packing/dispatching orders.
+    if (isCurrentDeviceTheRecipient) {
+      await showOrderNotification(
+        activeTitle,
+        activeBody,
+        orderId: orderId,
+        titleEn: titleEn,
+        titleHi: titleHi,
+        titleHinglish: titleHinglish,
+        bodyEn: bodyEn,
+        bodyHi: bodyHi,
+        bodyHinglish: bodyHinglish,
+        language: selectedLang,
+        payload: payloadData,
+      );
+
+      // 2. Play contextual sound alert only on customer device
+      final s = newStatus.toLowerCase();
+      if (s.contains('out') || s.contains('dispatch')) {
+        SoundService().orderDispatched();
+      } else if (s.contains('deliver') && !s.contains('fail')) {
+        SoundService().orderDelivered();
+      } else if (s.contains('cancel') || s.contains('reject')) {
+        SoundService().orderCancelled();
+      } else {
+        SoundService().statusUpdated();
+      }
     }
+
+    // Phone variants for reliable customer in-app notification queries
+    final last10 = cleanRecipient.length >= 10
+        ? cleanRecipient.substring(cleanRecipient.length - 10)
+        : cleanRecipient;
+    final List<String> phoneVariants = {
+      customerPhone,
+      cleanRecipient,
+      last10,
+      if (last10.isNotEmpty) '+91$last10',
+      if (last10.isNotEmpty) '91$last10',
+    }.where((e) => e.isNotEmpty).toList();
 
     // 3. Persist to customer's in-app notification center
     final notificationRef = db.collection('notifications').doc();
@@ -940,7 +969,11 @@ class NotificationService {
       'order_id': orderId,
       'status': newStatus,
       'type': 'order_status',
+      'target_role': 'customer',
+      'recipient_role': 'customer',
       'recipient_phone': customerPhone,
+      'recipient_phone_clean': last10,
+      'recipient_phones': phoneVariants,
       'recipient_uid': ?customerUid,
       'shop_id': shopId,
       'is_read': false,
@@ -1108,7 +1141,17 @@ class NotificationService {
     if (shopId != null && shopId.isNotEmpty) {
       query = query.where('shop_id', isEqualTo: shopId);
     } else if (recipientPhone != null && recipientPhone.isNotEmpty) {
-      query = query.where('recipient_phone', isEqualTo: recipientPhone);
+      final clean = recipientPhone.replaceAll(RegExp(r'\D'), '');
+      final last10 = clean.length >= 10 ? clean.substring(clean.length - 10) : clean;
+      final phoneVariants = {
+        recipientPhone,
+        clean,
+        last10,
+        if (last10.isNotEmpty) '+91$last10',
+        if (last10.isNotEmpty) '91$last10',
+      }.where((e) => e.isNotEmpty).toList();
+
+      query = query.where('recipient_phone', whereIn: phoneVariants.take(10).toList());
     } else if (recipientUid != null && recipientUid.isNotEmpty) {
       query = query.where('recipient_uid', isEqualTo: recipientUid);
     }
@@ -1117,9 +1160,21 @@ class NotificationService {
         .limit(limit)
         .snapshots()
         .map((snapshot) {
-      final list = snapshot.docs.map((doc) {
-        return NotificationItem.fromMap(doc.id, doc.data() as Map<String, dynamic>);
-      }).toList();
+      final list = snapshot.docs
+          .where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            if (shopId != null && shopId.isNotEmpty) {
+              // Shop owner only wants notifications meant for the store/admin.
+              // Exclude customer order status notifications!
+              final targetRole = data['target_role'] ?? data['recipient_role'];
+              if (targetRole == 'customer') return false;
+              final type = (data['type'] ?? '').toString();
+              if (type == 'order_status') return false;
+            }
+            return true;
+          })
+          .map((doc) => NotificationItem.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+          .toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
@@ -1138,7 +1193,17 @@ class NotificationService {
     if (shopId != null && shopId.isNotEmpty) {
       query = query.where('shop_id', isEqualTo: shopId);
     } else if (recipientPhone != null && recipientPhone.isNotEmpty) {
-      query = query.where('recipient_phone', isEqualTo: recipientPhone);
+      final clean = recipientPhone.replaceAll(RegExp(r'\D'), '');
+      final last10 = clean.length >= 10 ? clean.substring(clean.length - 10) : clean;
+      final phoneVariants = {
+        recipientPhone,
+        clean,
+        last10,
+        if (last10.isNotEmpty) '+91$last10',
+        if (last10.isNotEmpty) '91$last10',
+      }.where((e) => e.isNotEmpty).toList();
+
+      query = query.where('recipient_phone', whereIn: phoneVariants.take(10).toList());
     } else if (recipientUid != null && recipientUid.isNotEmpty) {
       query = query.where('recipient_uid', isEqualTo: recipientUid);
     }
@@ -1146,7 +1211,15 @@ class NotificationService {
     return query.snapshots().map((snapshot) =>
         snapshot.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>?;
-          return data?['is_read'] != true;
+          if (data == null) return false;
+          if (shopId != null && shopId.isNotEmpty) {
+            // Exclude customer order status notifications from shop owner's unread counter
+            final targetRole = data['target_role'] ?? data['recipient_role'];
+            if (targetRole == 'customer') return false;
+            final type = (data['type'] ?? '').toString();
+            if (type == 'order_status') return false;
+          }
+          return data['is_read'] != true;
         }).length);
   }
 

@@ -6,22 +6,33 @@ NearKirana is an enterprise-grade, multi-tenant Flutter application engineered t
 
 ## Application Screenshots
 
-The following screenshots are captured directly from the NearKirana application interface and live database:
+All screenshots below are captured directly from the live NearKirana application interface and database:
 
-| Customer Authentication Gateway | Role-Based Access Selection |
+### 1. Customer Onboarding and Store Discovery
+
+| Authentication Gateway | Multi-Role Portal Selection |
 | :---: | :---: |
 | <img src="docs/screenshots/app_login_gateway.png" width="340" alt="Customer Authentication Gateway" /> | <img src="docs/screenshots/app_role_selection.png" width="340" alt="Role-Based Access Selection" /> |
-| **Authentication Gateway**: Mobile authentication with country code, 10-25 mins instant delivery promise, language switch (English, Hindi, Hinglish), and discreet Super Admin entry. | **Unified Role Selection**: Dynamic interface allowing verified users to proceed as Customer, Kirana Store Owner, or Delivery Partner. |
+| **Authentication Gateway**: Mobile authentication with country code, 10-25 mins instant delivery promise, language switch (English, Hindi, Hinglish), and discreet Super Admin entry. | **Unified Role Selection**: Dynamic interface allowing verified users to proceed as Customer (Grahak), Kirana Store Owner (Dukandar), or Delivery Partner. |
 
-| Hyperlocal Store Discovery | Customer Storefront |
+| Hyperlocal Store Discovery | Branded Storefront Landing |
 | :---: | :---: |
 | <img src="docs/screenshots/app_shop_selector.png" width="340" alt="Hyperlocal Store Discovery" /> | <img src="docs/screenshots/app_customer_storefront.png" width="340" alt="Customer Storefront" /> |
 | **Store Selector**: GPS-driven discovery of nearby open stores (with distance, ratings, delivery time), area search bar, and store QR code scanning. | **Storefront Branding**: Individual store landing page with custom branding, store operating status, and product catalog entry. |
 
-| Delivery Fleet Operations |
-| :---: |
-| <img src="docs/screenshots/app_delivery_partner.png" width="340" alt="Delivery Fleet Operations" /> |
-| **Delivery Partner Mode**: Real-time duty toggle (On/Off Duty), live delivery metrics (Active, Delivered, COD cash collected), dispatched parcel breakdown, customer calling, and turn-by-turn route directions. |
+---
+
+### 2. Shopping Experience and Merchant Operations
+
+| Customer Shopping Catalog | Merchant Store Onboarding |
+| :---: | :---: |
+| <img src="docs/screenshots/app_customer_home.png" width="340" alt="Customer Shopping Catalog" /> | <img src="docs/screenshots/app_shop_registration.png" width="340" alt="Merchant Store Onboarding" /> |
+| **Customer Shopping Experience**: Address delivery bar, instant category filters (All, Dal, Rice, Spices, Oil, Snacks, Soap), bilingual voice search mic, and bottom navigation. | **Merchant Store Registration**: Zepto/Blinkit inspired onboarding with live GPS boundary auto-fetch, legal verification proof (GSTIN/FSSAI), and automated dispatch setup. |
+
+| Delivery Fleet Operations | Super Admin Governance |
+| :---: | :---: |
+| <img src="docs/screenshots/app_delivery_partner.png" width="340" alt="Delivery Fleet Operations" /> | <img src="docs/screenshots/app_super_admin.png" width="340" alt="Super Admin Governance" /> |
+| **Delivery Partner Fleet**: Real-time duty toggle, live delivery counts, active order cards with items breakdown, customer calling, and Google Maps routing. | **Platform Super Admin**: Platform-wide store oversight, active store toggles, KYC verification, commission tracking, and dispute management. |
 
 ---
 

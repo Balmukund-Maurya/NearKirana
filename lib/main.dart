@@ -141,6 +141,8 @@ class NearKiranaApp extends StatelessWidget {
             '/login': (context) => const LoginScreen(),
             '/shop-selector': (context) => const ShopSelectorScreen(),
             '/gateway': (context) => const GatewayScreen(),
+            '/admin': (context) => const AdminDashboard(),
+            '/super-admin': (context) => const SuperAdminScreen(),
           },
         );
       },

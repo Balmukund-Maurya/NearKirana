@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -82,19 +81,38 @@ class _GatewayScreenState extends State<GatewayScreen> {
     }
   }
 
-  Future<void> _forceLogin() async {
+  Future<void> _forceLogin([String? initialPhone]) async {
+    final phone = initialPhone ?? _phoneController.text.trim();
+    if (phone.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid 10-digit mobile number'),
+        ),
+      );
+      return;
+    }
+
     try {
-      final value = await Navigator.push(
+      final value = await Navigator.push<Map<String, dynamic>>(
         context,
-        MaterialPageRoute(builder: (_) => const CustomAuthScreen()),
+        MaterialPageRoute(builder: (_) => CustomAuthScreen(phoneNumber: phone)),
       );
 
-      if (value != null && value[AppConstant.authResponse] != null) {
-        final loginData = value[AppConstant.authResponse] as LoginModel;
-        final accessToken = loginData.accessTokenn;
-        if (accessToken != null && accessToken.isNotEmpty) {
-          _handlePhoneEmailAuthForGlobal(accessToken);
-        }
+      if (value != null && (value['verified'] == true || value['success'] == true)) {
+        final verifiedPhone = value['phone'] as String? ?? phone;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('global_phone', verifiedPhone);
+        if (!mounted) return;
+        setState(() {
+          _globalPhone = verifiedPhone;
+        });
+      } else if (value != null && value[AppConstant.authResponse] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('global_phone', phone);
+        if (!mounted) return;
+        setState(() {
+          _globalPhone = phone;
+        });
       }
     } catch (e) {
       if (!mounted) return;
@@ -104,45 +122,6 @@ class _GatewayScreenState extends State<GatewayScreen> {
     }
   }
 
-  void _handlePhoneEmailAuthForGlobal(String accessToken) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: ModernLoader(color: AppColors.primaryDark)),
-    );
-
-    PhoneEmail.getUserInfo(
-      accessToken: accessToken,
-      clientId: '17194425783292968499',
-      onSuccess: (userData) async {
-        if (!mounted) return;
-        String? rawPhone = userData.phoneNumber;
-        if (rawPhone == null || rawPhone.isEmpty) {
-          Navigator.pop(context); // hide loader
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to retrieve phone number.'), backgroundColor: AppColors.error),
-          );
-          return;
-        }
-
-        String phone = rawPhone.replaceAll(RegExp(r'\D'), '');
-        if (phone.length > 10) {
-          phone = phone.substring(phone.length - 10);
-        }
-
-        if (!mounted) return;
-        Navigator.pop(context); // hide loader
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('global_phone', phone);
-        
-        if (!mounted) return;
-        setState(() {
-          _globalPhone = phone;
-        });
-      },
-    );
-  }
 
   Future<void> _selectCustomerRole() async {
     final prefs = await SharedPreferences.getInstance();
@@ -341,6 +320,18 @@ class _GatewayScreenState extends State<GatewayScreen> {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
     } else {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ShopSelectorScreen()));
+    }
+  }
+
+  Future<void> _handleBackToLogin() async {
+    HapticFeedback.lightImpact();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('global_phone');
+    await prefs.remove('app_role');
+    if (mounted) {
+      setState(() {
+        _globalPhone = null;
+      });
     }
   }
 
@@ -554,12 +545,20 @@ class _GatewayScreenState extends State<GatewayScreen> {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width >= 900;
     
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: isDesktop 
-            ? _buildRoleSelectionDesktop(context, size)
-            : _buildRoleSelectionMobile(context, size),
+    return PopScope(
+      canPop: _globalPhone == null || _globalPhone!.isEmpty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _globalPhone != null && _globalPhone!.isNotEmpty) {
+          _handleBackToLogin();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        body: SafeArea(
+          child: isDesktop 
+              ? _buildRoleSelectionDesktop(context, size)
+              : _buildRoleSelectionMobile(context, size),
+        ),
       ),
     );
   }
@@ -1115,7 +1114,8 @@ class _GatewayScreenState extends State<GatewayScreen> {
             height: 50,
             child: ElevatedButton(
               onPressed: () {
-                if (_phoneController.text.length != 10) {
+                final phone = _phoneController.text.trim();
+                if (phone.length != 10) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Please enter a valid 10-digit mobile number'),
@@ -1123,18 +1123,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
                   );
                   return;
                 }
-                // Auth call
-                if (kIsWeb || kDebugMode) {
-                  final phone = _phoneController.text.trim();
-                  SharedPreferences.getInstance().then((prefs) {
-                    prefs.setString('global_phone', phone);
-                    setState(() {
-                      _globalPhone = phone;
-                    });
-                  });
-                } else {
-                  _forceLogin();
-                }
+                _forceLogin(phone);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryDark,
@@ -1501,16 +1490,43 @@ class _GatewayScreenState extends State<GatewayScreen> {
           flex: 5,
           child: Container(
             color: const Color(0xFFFDFBF7), // Warm Cream / Ivory
-            child: Center(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: _buildRolePanel(context, true),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 20,
+                  left: 24,
+                  child: IconButton(
+                    onPressed: _handleBackToLogin,
+                    tooltip: 'Back to Login',
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Color(0xFF1E293B),
+                      size: 22,
+                    ),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.all(10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      elevation: 1,
+                      shadowColor: Colors.black.withValues(alpha: 0.05),
+                    ),
                   ),
                 ),
-              ),
+                Center(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: _buildRolePanel(context, true),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1532,14 +1548,33 @@ class _GatewayScreenState extends State<GatewayScreen> {
 
     return Column(
       children: [
-        // Top Bar with Speed Badge & Language Pill (Zepto/Blinkit style)
+        // Top Bar with Back Button, Speed Badge & Language Pill
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+          padding: const EdgeInsets.fromLTRB(14, 10, 16, 6),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              IconButton(
+                onPressed: _handleBackToLogin,
+                tooltip: isHindi ? 'वापस जाएं' : (isHinglish ? 'Wapas jayein' : 'Back to Login'),
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Color(0xFF1E293B),
+                  size: 22,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  padding: const EdgeInsets.all(8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  elevation: 1,
+                  shadowColor: Colors.black.withValues(alpha: 0.05),
+                ),
+              ),
+              const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF047857).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -1567,6 +1602,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
                   ],
                 ),
               ),
+              const Spacer(),
               const LanguageTogglePill(),
             ],
           ),
@@ -1709,16 +1745,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
                   ),
                   const SizedBox(width: 10),
                   GestureDetector(
-                    onTap: () async {
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.remove('global_phone');
-                      await prefs.remove('app_role');
-                      if (context.mounted) {
-                        setState(() {
-                          _globalPhone = null;
-                        });
-                      }
-                    },
+                    onTap: _handleBackToLogin,
                     child: Text(
                       isHindi ? 'नंबर बदलें' : (isHinglish ? 'Change' : 'Change'),
                       style: GoogleFonts.poppins(

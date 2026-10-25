@@ -287,35 +287,26 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _startCustomPhoneLogin() async {
-    try {
-      final value = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CustomAuthScreen()),
-      );
-      if (value != null && value[AppConstant.authResponse] != null) {
-        final loginData = value[AppConstant.authResponse] as LoginModel;
-        if (loginData.accessTokenn != null &&
-            loginData.accessTokenn!.isNotEmpty) {
-          _handlePhoneEmailAuth(loginData.accessTokenn!);
-          return;
-        }
-      }
+    final inputPhone = _phoneController.text.trim();
+    if (inputPhone.length != 10) return;
 
-      // If phone was entered in the field, gracefully authenticate customer
-      final inputPhone = _phoneController.text.trim();
-      if (inputPhone.length == 10) {
-        _handleWebLoginFallback(inputPhone);
+    try {
+      final value = await Navigator.push<Map<String, dynamic>>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CustomAuthScreen(phoneNumber: inputPhone),
+        ),
+      );
+
+      if (value != null && (value['verified'] == true || value['success'] == true)) {
+        final verifiedPhone = value['phone'] as String? ?? inputPhone;
+        await _handleWebLoginFallback(verifiedPhone);
       }
     } catch (e) {
       if (!mounted) return;
-      final inputPhone = _phoneController.text.trim();
-      if (inputPhone.length == 10) {
-        _handleWebLoginFallback(inputPhone);
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('OTP Failed: $e')));
-      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('OTP Verification Error: $e')));
     }
   }
 
@@ -360,68 +351,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handlePhoneEmailAuth(String accessToken) {
-    setState(() => _isLoading = true);
-    PhoneEmail.getUserInfo(
-      accessToken: accessToken,
-      clientId: '17194425783292968499',
-      onSuccess: (userData) async {
-        if (!mounted) return;
-        String? rawPhone = userData.phoneNumber;
-        if (rawPhone == null || rawPhone.isEmpty) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to retrieve phone number.')),
-          );
-          return;
-        }
-
-        // Normalize to exactly 10 digits to match existing db records
-        String phone = rawPhone.replaceAll(RegExp(r'\D'), '');
-        if (phone.length > 10) {
-          phone = phone.substring(phone.length - 10);
-        }
-
-        try {
-          final variants = <String>{
-            phone,
-            '+91$phone',
-            '+91 $phone',
-            '91$phone',
-            rawPhone,
-          };
-
-          final querySnapshot = await FirebaseUtils.firestore
-              .collection('customers')
-              .where('mobile', whereIn: variants.take(10).toList())
-              .limit(1)
-              .get();
-
-          if (querySnapshot.docs.isNotEmpty) {
-            final doc = querySnapshot.docs.first;
-            final data = doc.data();
-            final dbName = data['name'] as String? ?? 'User';
-
-            // If user was offline (created by Admin without PIN), mark them as online
-            if (!data.containsKey('pin')) {
-              await doc.reference.update({'pin': 'PHONE_AUTH'});
-            }
-
-            _completeLogin(dbName, phone);
-          } else {
-            setState(() => _isLoading = false);
-            _promptForNameAndRegister(phone);
-          }
-        } catch (e) {
-          if (!mounted) return;
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
-        }
-      },
-    );
-  }
 
   Future<void> _completeLogin(String name, String phone) async {
     setState(() => _isLoading = true);
@@ -1014,12 +943,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   return;
                 }
 
-                // Call existing auth
-                if (kIsWeb) {
-                  _handleWebLoginFallback(_phoneController.text.trim());
-                } else {
-                  _startCustomPhoneLogin();
-                }
+                // Authenticate with OTP
+                _startCustomPhoneLogin();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryDark,

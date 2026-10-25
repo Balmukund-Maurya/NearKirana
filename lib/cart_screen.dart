@@ -18,7 +18,6 @@ import 'language_provider.dart';
 
 import 'package:near_kirana/firebase_utils.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'auth_service.dart';
 import 'payment_service.dart';
 import 'razorpay_service.dart';
@@ -1157,6 +1156,25 @@ class _CartScreenState extends State<CartScreen> {
     String selectedPaymentMethod = 'Cash on Delivery';
     bool showQrCode = false;
 
+    Widget buildAppBadge(String label, Color color) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+      );
+    }
+
     void showBottomSheetError(BuildContext ctx, String msg) {
       showDialog(
         context: ctx,
@@ -1782,282 +1800,125 @@ class _CartScreenState extends State<CartScreen> {
 
                     if (selectedPaymentMethod == 'UPI') ...[
                       const SizedBox(height: 12),
-                      if (shopUpiId.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.amber.withValues(alpha: 0.5),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.info_outline_rounded,
-                                color: Colors.orange,
-                                size: 24,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'This shopkeeper has not configured online UPI yet. Please use Cash on Delivery.',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: Colors.black87,
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFF86EFAC)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF047857),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.bolt_rounded,
+                                    color: Colors.white,
+                                    size: 18,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey[200]!),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Shop UPI ID',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 11,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                        Text(
-                                          shopUpiId,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.textDark,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.copy_rounded,
-                                      size: 18,
-                                      color: Color(0xFF4CAF50),
-                                    ),
-                                    tooltip: 'Copy UPI ID',
-                                    onPressed: () {
-                                      Clipboard.setData(
-                                        ClipboardData(text: shopUpiId),
-                                      );
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'UPI ID copied to clipboard',
-                                          ),
-                                          duration: Duration(seconds: 1),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                              const Divider(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () async {
-                                        HapticFeedback.lightImpact();
-                                        final upiUrl =
-                                            'upi://pay?pa=$shopUpiId&pn=${Uri.encodeComponent(shopName)}&am=${finalTotal.toStringAsFixed(2)}&cu=INR&tn=${Uri.encodeComponent('NearKirana Order')}';
-                                        try {
-                                          final uri = Uri.parse(upiUrl);
-                                          final launched = await launchUrl(
-                                            uri,
-                                            mode:
-                                                LaunchMode.externalApplication,
-                                          );
-                                          if (!launched && context.mounted) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'No UPI app found. You can scan the QR code below!',
-                                                ),
-                                                backgroundColor: Colors.orange,
-                                              ),
-                                            );
-                                            setState(() => showQrCode = true);
-                                          }
-                                        } catch (e) {
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Could not open UPI app: $e. Scan QR below.',
-                                                ),
-                                                backgroundColor: Colors.orange,
-                                              ),
-                                            );
-                                            setState(() => showQrCode = true);
-                                          }
-                                        }
-                                      },
-                                      icon: const Icon(
-                                        Icons.open_in_new_rounded,
-                                        size: 18,
-                                      ),
-                                      label: const Text('Pay via App'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFF4CAF50,
-                                        ),
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: () {
-                                        HapticFeedback.lightImpact();
-                                        setState(
-                                          () => showQrCode = !showQrCode,
-                                        );
-                                      },
-                                      icon: Icon(
-                                        showQrCode
-                                            ? Icons.qr_code_rounded
-                                            : Icons.qr_code_scanner_rounded,
-                                        size: 18,
-                                      ),
-                                      label: Text(
-                                        showQrCode ? 'Hide QR' : 'Show QR',
-                                      ),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(
-                                          0xFF4CAF50,
-                                        ),
-                                        side: const BorderSide(
-                                          color: Color(0xFF4CAF50),
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (showQrCode) ...[
-                                const SizedBox(height: 16),
-                                Center(
+                                const SizedBox(width: 10),
+                                Expanded(
                                   child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.grey[300]!,
-                                          ),
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              color: Colors.black12,
-                                              blurRadius: 8,
-                                              offset: Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: QrImageView(
-                                          data:
-                                              'upi://pay?pa=$shopUpiId&pn=${Uri.encodeComponent(shopName)}&am=${finalTotal.toStringAsFixed(2)}&cu=INR&tn=${Uri.encodeComponent('NearKirana Order')}',
-                                          version: QrVersions.auto,
-                                          size: 160.0,
+                                      Text(
+                                        'Instant Online Payment (Zepto Style)',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: const Color(0xFF065F46),
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
                                       Text(
-                                        'Scan with Google Pay, PhonePe, or Paytm',
+                                        '1-Tap Pay via PhonePe, GPay, Paytm or Cards',
                                         style: GoogleFonts.poppins(
                                           fontSize: 11,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      Text(
-                                        'Amount: ₹${finalTotal.toStringAsFixed(2)}',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF4CAF50),
+                                          color: const Color(0xFF047857),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                               ],
-                              const SizedBox(height: 14),
-                              TextField(
-                                controller: utrController,
-                                decoration: InputDecoration(
-                                  labelText:
-                                      'UPI Reference / UTR No. (Optional)',
-                                  hintText:
-                                      'e.g. 12-digit UTR from payment receipt',
-                                  prefixIcon: const Icon(
-                                    Icons.receipt_long_rounded,
-                                    size: 20,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 12,
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                buildAppBadge('PhonePe', const Color(0xFF5F259F)),
+                                buildAppBadge('Google Pay', const Color(0xFF1A73E8)),
+                                buildAppBadge('Paytm', const Color(0xFF00B9F1)),
+                                buildAppBadge('Cards / NetBanking', const Color(0xFF374151)),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                const Icon(Icons.verified_user_rounded, size: 14, color: Color(0xFF047857)),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    '100% Safe • Automatic Verification • No UTR Needed',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF047857),
+                                    ),
                                   ),
                                 ),
-                                keyboardType: TextInputType.number,
+                              ],
+                            ),
+                            if (shopUpiId.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() => showQrCode = !showQrCode);
+                                },
+                                child: Text(
+                                  showQrCode ? '▲ Hide Store QR Code' : '▼ Or scan store QR code directly',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF047857),
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
                               ),
+                              if (showQrCode) ...[
+                                const SizedBox(height: 10),
+                                Center(
+                                  child: QrImageView(
+                                    data:
+                                        'upi://pay?pa=$shopUpiId&pn=${Uri.encodeComponent(shopName)}&am=${finalTotal.toStringAsFixed(2)}&cu=INR&tn=${Uri.encodeComponent('NearKirana Order')}',
+                                    version: QrVersions.auto,
+                                    size: 140.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: utrController,
+                                  decoration: InputDecoration(
+                                    labelText: '12-digit UTR No. (Only if scanned QR)',
+                                    hintText: 'Enter UTR number',
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ],
                             ],
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ],
                     const SizedBox(height: 24),
                     ElevatedButton(
@@ -2738,7 +2599,9 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                             )
                           : Text(
-                              'Confirm Order • ₹${finalTotal.toStringAsFixed(0)} (${selectedPaymentMethod == 'UPI' ? 'UPI' : 'COD'})',
+                              selectedPaymentMethod == 'UPI'
+                                  ? 'Pay ₹${finalTotal.toStringAsFixed(0)} via UPI (GPay / PhonePe)'
+                                  : 'Confirm Order • ₹${finalTotal.toStringAsFixed(0)} (Cash on Delivery)',
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontSize: 16,

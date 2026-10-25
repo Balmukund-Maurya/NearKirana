@@ -74,6 +74,13 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   final Color activeLightGreen = const Color(0xFFF0FDF4);
   final Color activeBorderGreen = const Color(0xFF22C55E);
 
+  String _tr(String en, String hi, String hinglish, [LanguageProvider? lang]) {
+    final lp = lang ?? Provider.of<LanguageProvider>(context, listen: false);
+    if (lp.isHindi) return hi;
+    if (lp.isHinglish) return hinglish;
+    return en;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1109,7 +1116,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _isPickup ? "Store Pickup" : (l10n?.checkout ?? "Checkout"),
+              _isPickup
+                  ? _tr("Store Pickup", "दुकान से पिकअप", "Store Pickup")
+                  : _tr(l10n?.checkout ?? "Checkout", "चेकआउट", "Checkout"),
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -1117,7 +1126,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               ),
             ),
             Text(
-              "${cartItems.length} items • ₹${finalTotal.toStringAsFixed(0)}",
+              _tr(
+                "${cartItems.length} items • ₹${finalTotal.toStringAsFixed(0)}",
+                "${cartItems.length} सामान • ₹${finalTotal.toStringAsFixed(0)}",
+                "${cartItems.length} items • ₹${finalTotal.toStringAsFixed(0)}",
+              ),
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -1219,7 +1232,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        l10n?.payment_method ?? "Payment Method",
+                        _tr(l10n?.payment_method ?? "Payment Method", "भुगतान का तरीका", "Payment Method"),
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -1316,7 +1329,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       children: [
                         Expanded(
                           child: Text(
-                            _isPickup ? "Pickup Ready Time" : "Estimated Delivery Time",
+                            _isPickup
+                                ? _tr("Pickup Ready Time", "पिकअप का समय", "Pickup Ready Time")
+                                : _tr("Estimated Delivery Time", "अनुमानित डिलीवरी समय", "Estimated Delivery Time"),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
@@ -1347,8 +1362,16 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     const SizedBox(height: 2),
                     Text(
                       _isPickup
-                          ? "Pick up $itemCount items from $shopName counter"
-                          : "Shipment of $itemCount items from $shopName",
+                          ? _tr(
+                              "Pick up $itemCount items from $shopName counter",
+                              "$shopName काउंटर से $itemCount सामान पिकअप करें",
+                              "$shopName counter se $itemCount items collect karein",
+                            )
+                          : _tr(
+                              "Shipment of $itemCount items from $shopName",
+                              "$shopName से $itemCount सामान की डिलीवरी",
+                              "$shopName se $itemCount items ki delivery",
+                            ),
                       style: GoogleFonts.poppins(
                         fontSize: 11.5,
                         color: AppColors.textMid,
@@ -1454,7 +1477,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            "STORE PICKUP",
+                            _tr("STORE PICKUP", "स्टोर पिकअप", "STORE PICKUP"),
                             style: GoogleFonts.poppins(
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
@@ -1477,7 +1500,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "Collect directly at the store billing counter",
+                      _tr(
+                        "Collect directly at the store billing counter",
+                        "दुकान के बिलिंग काउंटर से सीधे प्राप्त करें",
+                        "Dukan ke billing counter se direct collect karein",
+                      ),
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: AppColors.textMid,
@@ -1505,7 +1532,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    "Self Pickup • Free Service Fee • Quick Counter Handover",
+                    _tr(
+                      "Self Pickup • Free Service Fee • Quick Counter Handover",
+                      "सेल्फ पिकअप • निःशुल्क सेवा • तुरंत काउंटर पर डिलीवरी",
+                      "Self Pickup • Free Service Fee • Quick Counter Handover",
+                    ),
                     style: GoogleFonts.poppins(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
@@ -1616,7 +1647,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            "DEFAULT",
+                            _tr("DEFAULT", "डिफ़ॉल्ट", "DEFAULT"),
                             style: GoogleFonts.poppins(
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
@@ -1667,7 +1698,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(
-                  "Change",
+                  _tr("Change", "बदलें", "Badlein"),
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -1694,8 +1725,16 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 Expanded(
                   child: Text(
                     isServiceable
-                        ? "${distKm.toStringAsFixed(1)} km away • Deliverable to your doorstep"
-                        : "Currently outside store delivery radius",
+                        ? _tr(
+                            "${distKm.toStringAsFixed(1)} km away • Deliverable to your doorstep",
+                            "${distKm.toStringAsFixed(1)} किमी दूर • आपके पते पर डिलीवरी उपलब्ध",
+                            "${distKm.toStringAsFixed(1)} km door • Ghar tak delivery uplabdh",
+                          )
+                        : _tr(
+                            "Currently outside store delivery radius",
+                            "फ़िलहाल स्टोर के डिलीवरी क्षेत्र से बाहर है",
+                            "Filhal store ke delivery area se bahar hai",
+                          ),
                     style: GoogleFonts.poppins(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
@@ -1727,7 +1766,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               const Icon(Icons.directions_bike_rounded, size: 18, color: AppColors.primaryDark),
               const SizedBox(width: 8),
               Text(
-                "Delivery Instructions",
+                _tr("Delivery Instructions", "डिलीवरी निर्देश", "Delivery Instructions"),
                 style: GoogleFonts.poppins(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
@@ -1736,7 +1775,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               ),
               const SizedBox(width: 4),
               Text(
-                "(Optional)",
+                _tr("(Optional)", "(वैकल्पिक)", "(Optional)"),
                 style: GoogleFonts.poppins(
                   fontSize: 11.5,
                   color: AppColors.textLight,
@@ -1751,27 +1790,27 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             children: [
               _buildInstructionChip(
                 icon: Icons.volume_off_outlined,
-                label: "Avoid calling",
+                label: _tr("Avoid calling", "कॉल न करें", "Call mat karein"),
                 rawText: "Avoid calling",
               ),
               _buildInstructionChip(
                 icon: Icons.notifications_off_outlined,
-                label: "Don't ring bell",
+                label: _tr("Don't ring bell", "घंटी न बजाएं", "Bell na bajayein"),
                 rawText: "Don't ring bell",
               ),
               _buildInstructionChip(
                 icon: Icons.door_front_door_outlined,
-                label: "Leave at door",
+                label: _tr("Leave at door", "दरवाजे पर रखें", "Darwaze par chhod dein"),
                 rawText: "Leave at door",
               ),
               _buildInstructionChip(
                 icon: Icons.phone_in_talk_outlined,
-                label: "Call on arrival",
+                label: _tr("Call on arrival", "पहुंचने पर कॉल करें", "Pahunchne par call karein"),
                 rawText: "Call on arrival",
               ),
               _buildInstructionChip(
                 icon: Icons.directions_outlined,
-                label: "Follow directions",
+                label: _tr("Follow directions", "रास्ते का पालन करें", "Directions follow karein"),
                 rawText: "Follow directions",
               ),
             ],
@@ -1783,7 +1822,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             onChanged: (_) => setState(() {}),
             style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textDark),
             decoration: InputDecoration(
-              hintText: "Add specific instructions (e.g. Ring bell, gate code, landmark...)",
+              hintText: _tr(
+                "Add specific instructions (e.g. Ring bell, gate code, landmark...)",
+                "विशेष निर्देश जोड़ें (जैसे: घंटी बजाएं, गेट कोड, लैंडमार्क...)",
+                "Instruction likhein (jaise: Bell bajayein, gate code, landmark...)",
+              ),
               hintStyle: GoogleFonts.poppins(fontSize: 12, color: AppColors.textLight),
               filled: true,
               fillColor: const Color(0xFFF9FAFB),
@@ -1900,7 +1943,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   const Icon(Icons.shopping_bag_outlined, size: 18, color: AppColors.primaryDark),
                   const SizedBox(width: 8),
                   Text(
-                    "Review Items (${cartItems.length})",
+                    _tr(
+                      "Review Items (${cartItems.length})",
+                      "सामान की समीक्षा (${cartItems.length})",
+                      "Review Items (${cartItems.length})",
+                    ),
                     style: GoogleFonts.poppins(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700,
@@ -1916,7 +1963,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     const Icon(Icons.edit_outlined, size: 13, color: AppColors.primaryDark),
                     const SizedBox(width: 4),
                     Text(
-                      "Edit Cart",
+                      _tr("Edit Cart", "कार्ट बदलें", "Edit Cart"),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -2005,8 +2052,6 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     required AppLocalizations? l10n,
   }) {
     final langProvider = Provider.of<LanguageProvider>(context, listen: false);
-    final isHindi = langProvider.isHindi;
-    final isHinglish = langProvider.isHinglish;
     final double couponSavings = _appliedCouponResult?.totalSavings ?? 0.0;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2023,7 +2068,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               const Icon(Icons.receipt_long_outlined, size: 18, color: AppColors.primaryDark),
               const SizedBox(width: 8),
               Text(
-                l10n?.bill_details ?? "Bill Details",
+                _tr(l10n?.bill_details ?? "Bill Details", "बिल का विवरण", "Bill Details", langProvider),
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -2033,17 +2078,24 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             ],
           ),
           const SizedBox(height: 14),
-          _buildMobileBillRow("Item Subtotal", "₹${subtotal.toStringAsFixed(0)}"),
+          _buildMobileBillRow(
+            _tr("Item Subtotal", "सामान का कुल मूल्य", "Item Subtotal", langProvider),
+            "₹${subtotal.toStringAsFixed(0)}",
+          ),
           const SizedBox(height: 10),
           _buildMobileBillRow(
-            _isPickup ? "Delivery Fee (Store Pickup)" : "Delivery Partner Fee",
-            (_isPickup || deliveryFee == 0) ? "FREE" : "₹${deliveryFee.toStringAsFixed(0)}",
+            _isPickup
+                ? _tr("Delivery Fee (Store Pickup)", "डिलीवरी शुल्क (स्टोर पिकअप)", "Delivery Fee (Store Pickup)", langProvider)
+                : _tr("Delivery Partner Fee", "डिलीवरी पार्टनर शुल्क", "Delivery Partner Fee", langProvider),
+            (_isPickup || deliveryFee == 0)
+                ? _tr("FREE", "मुफ़्त", "FREE", langProvider)
+                : "₹${deliveryFee.toStringAsFixed(0)}",
             isFree: _isPickup || deliveryFee == 0,
           ),
           if (couponSavings > 0) ...[
             const SizedBox(height: 10),
             _buildMobileBillRow(
-              isHindi ? "कूपन छूट" : (isHinglish ? "Coupon Discount" : "Coupon Discount"),
+              _tr("Coupon Discount", "कूपन छूट", "Coupon Discount", langProvider),
               "-₹${couponSavings.toStringAsFixed(0)}",
               isDiscount: true,
             ),
@@ -2051,15 +2103,22 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           if (loyaltyDiscount > 0) ...[
             const SizedBox(height: 10),
             _buildMobileBillRow(
-              isHindi
-                  ? "लॉयल्टी अंक छूट ($loyaltyPoints pts)"
-                  : (isHinglish ? "Loyalty Points Discount ($loyaltyPoints pts)" : "Loyalty Points Discount ($loyaltyPoints pts)"),
+              _tr(
+                "Loyalty Points Discount ($loyaltyPoints pts)",
+                "लॉयल्टी अंक छूट ($loyaltyPoints pts)",
+                "Loyalty Points Discount ($loyaltyPoints pts)",
+                langProvider,
+              ),
               "-₹${loyaltyDiscount.toStringAsFixed(0)}",
               isDiscount: true,
             ),
           ],
           const SizedBox(height: 10),
-          _buildMobileBillRow("Handling & Packaging", "FREE", isFree: true),
+          _buildMobileBillRow(
+            _tr("Handling & Packaging", "पैकेजिंग और हैंडलिंग", "Handling & Packaging", langProvider),
+            _tr("FREE", "मुफ़्त", "FREE", langProvider),
+            isFree: true,
+          ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Divider(color: Color(0xFFE5E7EB), height: 1),
@@ -2068,7 +2127,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "To Pay",
+                _tr("To Pay", "कुल भुगतान", "Total Pay", langProvider),
                 style: GoogleFonts.poppins(
                   fontSize: 15.5,
                   fontWeight: FontWeight.w700,
@@ -2100,7 +2159,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "You are saving ₹${discount.toStringAsFixed(0)} on this order!",
+                      _tr(
+                        "You are saving ₹${discount.toStringAsFixed(0)} on this order!",
+                        "आप इस ऑर्डर पर ₹${discount.toStringAsFixed(0)} की बचत कर रहे हैं!",
+                        "Aap is order par ₹${discount.toStringAsFixed(0)} bacha rahe hain!",
+                        langProvider,
+                      ),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -2185,7 +2249,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               const Icon(Icons.security_rounded, size: 15, color: AppColors.primaryDark),
               const SizedBox(width: 6),
               Text(
-                "Cancellation Policy",
+                _tr("Cancellation Policy", "रद्दीकरण नीति", "Cancellation Policy"),
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -2196,7 +2260,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           ),
           const SizedBox(height: 4),
           Text(
-            "Orders cannot be cancelled once packed by your local Kirana store. 100% Genuine and Fresh products delivered safely.",
+            _tr(
+              "Orders cannot be cancelled once packed by your local Kirana store. 100% Genuine and Fresh products delivered safely.",
+              "किराना स्टोर द्वारा सामान पैक किए जाने के बाद ऑर्डर रद्द नहीं किया जा सकता। 100% असली और ताजा उत्पाद सुरक्षित रूप से डिलीवर किए जाते हैं।",
+              "Store dwara order pack hone ke baad cancel nahi kiya ja sakta. 100% genuine aur fresh products safely deliver hote hain.",
+            ),
             style: GoogleFonts.poppins(
               fontSize: 11,
               color: AppColors.textMid,
@@ -2262,10 +2330,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       const SizedBox(width: 3),
                       Text(
                         _selectedPaymentIndex == 0
-                            ? "PAY USING UPI"
+                            ? _tr("PAY USING UPI", "UPI द्वारा भुगतान", "PAY USING UPI")
                             : _selectedPaymentIndex == 2
-                                ? "KIRANA KHATA"
-                                : (_isPickup ? "PAY AT STORE" : "PAY ON DELIVERY"),
+                                ? _tr("KIRANA KHATA", "किराना खाता", "KIRANA KHATA")
+                                : (_isPickup
+                                    ? _tr("PAY AT STORE", "दुकान पर भुगतान", "PAY AT STORE")
+                                    : _tr("PAY ON DELIVERY", "डिलीवरी पर भुगतान", "PAY ON DELIVERY")),
                         style: GoogleFonts.poppins(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w700,
@@ -2291,7 +2361,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     ],
                   ),
                   Text(
-                    "View Detailed Bill",
+                    _tr("View Detailed Bill", "विस्तृत बिल देखें", "Detailed Bill Dekhein"),
                     style: GoogleFonts.poppins(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
@@ -2338,10 +2408,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                             Flexible(
                               child: Text(
                                 _selectedPaymentIndex == 0
-                                    ? (_isPickup ? "Place Pickup" : "Place Order")
+                                    ? (_isPickup
+                                        ? _tr("Place Pickup", "पिकअप ऑर्डर करें", "Place Pickup")
+                                        : _tr("Place Order", "ऑर्डर करें", "Place Order"))
                                     : _selectedPaymentIndex == 2
-                                        ? "Order via Khata"
-                                        : (_isPickup ? "Confirm Pickup" : "Place Order (COD)"),
+                                        ? _tr("Order via Khata", "खाते से ऑर्डर करें", "Khata se Order Karein")
+                                        : (_isPickup
+                                            ? _tr("Confirm Pickup", "पिकअप कन्फर्म करें", "Pickup Confirm Karein")
+                                            : _tr("Place Order (COD)", "ऑर्डर करें (COD)", "Place Order (COD)")),
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -2685,6 +2759,25 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     required bool isDesktop,
     AppLocalizations? l10n,
   }) {
+    final langProvider = Provider.of<LanguageProvider>(context);
+    final upiTitle = _tr(l10n?.pay_online_upi ?? "UPI", "ऑनलाइन भुगतान (UPI)", "Pay Online (UPI)", langProvider);
+    final upiSub = _tr("Google Pay, PhonePe, Paytm, or BHIM", "Google Pay, PhonePe, Paytm या कोई भी UPI ऐप", "Google Pay, PhonePe, Paytm ya koi bhi UPI app", langProvider);
+    final upiBadge = _tr("FASTEST", "सबसे तेज", "FASTEST", langProvider);
+
+    final codTitle = _isPickup
+        ? _tr("Pay at Store", "दुकान पर भुगतान", "Store par Pay karein", langProvider)
+        : _tr(l10n?.cash_on_delivery ?? "Cash on Delivery", "कैश ऑन डिलीवरी (COD)", "Cash on Delivery (COD)", langProvider);
+    final codSub = _isPickup
+        ? _tr("Pay cash or scan UPI QR at the store counter", "काउंटर पर नकद दें या UPI QR स्कैन करें", "Counter par cash dein ya UPI QR scan karein", langProvider)
+        : _tr("Pay cash or scan QR at your doorstep", "डिलीवरी पर नकद दें या घर पर QR स्कैन करें", "Pay cash ya QR code scan karein", langProvider);
+    final codBadge = _isPickup
+        ? _tr("AT STORE", "दुकान पर", "AT STORE", langProvider)
+        : _tr("POPULAR", "लोकप्रिय", "POPULAR", langProvider);
+
+    final khataTitle = _tr("Kirana Khata (Pay Later)", "किराना खाता (उधार)", "Kirana Khata (Pay Later)", langProvider);
+    final khataSub = _tr("Add to monthly store ledger (verified)", "मासिक दुकान बहीखाते में जोड़ें", "Monthly store khata mein jodein", langProvider);
+    final khataBadge = _tr("0% INTEREST", "0% ब्याज", "0% INTEREST", langProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2698,9 +2791,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   child: _buildPaymentOptionCard(
                     index: 0,
                     icon: Icons.bolt_rounded,
-                    title: l10n?.pay_online_upi ?? "UPI",
-                    subtitle: "Google Pay, PhonePe, Paytm, BHIM",
-                    badgeText: "FASTEST",
+                    title: upiTitle,
+                    subtitle: upiSub,
+                    badgeText: upiBadge,
                     badgeColor: const Color(0xFF047857),
                     iconColor: const Color(0xFF047857),
                   ),
@@ -2710,9 +2803,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   child: _buildPaymentOptionCard(
                     index: 1,
                     icon: _isPickup ? Icons.storefront_rounded : Icons.payments_rounded,
-                    title: _isPickup ? "Pay at Store" : (l10n?.cash_on_delivery ?? "Cash on Delivery"),
-                    subtitle: _isPickup ? "Pay cash or scan UPI QR at the store counter" : "Pay cash or scan QR at doorstep",
-                    badgeText: _isPickup ? "AT STORE" : "POPULAR",
+                    title: codTitle,
+                    subtitle: codSub,
+                    badgeText: codBadge,
                     badgeColor: const Color(0xFF2563EB),
                     iconColor: const Color(0xFF2563EB),
                   ),
@@ -2723,9 +2816,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     child: _buildPaymentOptionCard(
                       index: 2,
                       icon: Icons.menu_book_rounded,
-                      title: "Kirana Khata",
-                      subtitle: "Add to monthly store ledger",
-                      badgeText: "0% INTEREST",
+                      title: khataTitle,
+                      subtitle: khataSub,
+                      badgeText: khataBadge,
                       badgeColor: const Color(0xFFD97706),
                       iconColor: const Color(0xFFD97706),
                     ),
@@ -2740,9 +2833,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               _buildPaymentOptionCard(
                 index: 0,
                 icon: Icons.bolt_rounded,
-                title: l10n?.pay_online_upi ?? "UPI",
-                subtitle: "Google Pay, PhonePe, Paytm, or BHIM",
-                badgeText: "FASTEST",
+                title: upiTitle,
+                subtitle: upiSub,
+                badgeText: upiBadge,
                 badgeColor: const Color(0xFF047857),
                 iconColor: const Color(0xFF047857),
               ),
@@ -2750,9 +2843,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               _buildPaymentOptionCard(
                 index: 1,
                 icon: _isPickup ? Icons.storefront_rounded : Icons.payments_rounded,
-                title: _isPickup ? "Pay at Store" : (l10n?.cash_on_delivery ?? "Cash on Delivery"),
-                subtitle: _isPickup ? "Pay cash or scan UPI QR at the store counter" : "Pay cash or scan QR at your doorstep",
-                badgeText: _isPickup ? "AT STORE" : "POPULAR",
+                title: codTitle,
+                subtitle: codSub,
+                badgeText: codBadge,
                 badgeColor: const Color(0xFF2563EB),
                 iconColor: const Color(0xFF2563EB),
               ),
@@ -2761,9 +2854,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 _buildPaymentOptionCard(
                   index: 2,
                   icon: Icons.menu_book_rounded,
-                  title: "Kirana Khata (Pay Later)",
-                  subtitle: "Add to monthly store ledger (verified)",
-                  badgeText: "0% INTEREST",
+                  title: khataTitle,
+                  subtitle: khataSub,
+                  badgeText: khataBadge,
                   badgeColor: const Color(0xFFD97706),
                   iconColor: const Color(0xFFD97706),
                 ),
@@ -2808,7 +2901,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  "100% Safe & Secure Payments • NPCI UPI Certified",
+                  _tr(
+                    "100% Safe & Secure Payments • NPCI UPI Certified",
+                    "100% सुरक्षित भुगतान • NPCI UPI प्रमाणित",
+                    "100% Safe & Secure Payments • NPCI UPI Certified",
+                    langProvider,
+                  ),
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -2824,12 +2922,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.lock, size: 12, color: Color(0xFF047857)),
-                    SizedBox(width: 4),
+                  children: [
+                    const Icon(Icons.lock, size: 12, color: Color(0xFF047857)),
+                    const SizedBox(width: 4),
                     Text(
-                      "Encrypted",
-                      style: TextStyle(
+                      _tr("Encrypted", "सुरक्षित", "Encrypted", langProvider),
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF047857),
@@ -3014,7 +3112,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Instant UPI Payment",
+                      _tr("Instant UPI Payment", "इंस्टेंट UPI भुगतान", "Instant UPI Payment"),
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
@@ -3022,7 +3120,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                       ),
                     ),
                     Text(
-                      "Pay directly to store via Google Pay, PhonePe, Paytm, or BHIM",
+                      _tr(
+                        "Pay directly to store via Google Pay, PhonePe, Paytm, or BHIM",
+                        "Google Pay, PhonePe, Paytm या BHIM द्वारा सीधे दुकान को भेजें",
+                        "Google Pay, PhonePe, Paytm ya BHIM se direct dukan ko bhejein",
+                      ),
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: Colors.grey.shade600,
@@ -3082,7 +3184,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "Click 'Place Order' below to pay via your preferred UPI app. Order will be confirmed automatically on successful payment.",
+                    _tr(
+                      "Click 'Place Order' below to pay via your preferred UPI app. Order will be confirmed automatically on successful payment.",
+                      "नीचे 'ऑर्डर करें' पर क्लिक करके अपने पसंदीदा UPI ऐप से भुगतान करें। भुगतान सफल होते ही ऑर्डर अपने आप कन्फर्म हो जाएगा।",
+                      "Neeche 'Place Order' par click karke apne pasandida UPI app se pay karein. Payment successful hone par order turant confirm ho jayega.",
+                    ),
                     style: GoogleFonts.poppins(
                       fontSize: 11.5,
                       color: const Color(0xFF166534),
@@ -3129,8 +3235,16 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               children: [
                 Text(
                   _isPickup
-                      ? "Pay ₹${finalTotal.toStringAsFixed(0)} at Store"
-                      : "Pay ₹${finalTotal.toStringAsFixed(0)} on Delivery",
+                      ? _tr(
+                          "Pay ₹${finalTotal.toStringAsFixed(0)} at Store",
+                          "दुकान पर ₹${finalTotal.toStringAsFixed(0)} का भुगतान करें",
+                          "Store par ₹${finalTotal.toStringAsFixed(0)} pay karein",
+                        )
+                      : _tr(
+                          "Pay ₹${finalTotal.toStringAsFixed(0)} on Delivery",
+                          "डिलीवरी पर ₹${finalTotal.toStringAsFixed(0)} का भुगतान करें",
+                          "Delivery par ₹${finalTotal.toStringAsFixed(0)} pay karein",
+                        ),
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
@@ -3140,8 +3254,16 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 const SizedBox(height: 2),
                 Text(
                   _isPickup
-                      ? "Pay in cash or scan the store UPI QR code when collecting your order from the shop counter."
-                      : "Pay in cash or ask delivery partner to scan their UPI QR code upon arrival at your doorstep.",
+                      ? _tr(
+                          "Pay in cash or scan the store UPI QR code when collecting your order from the shop counter.",
+                          "काउंटर से सामान लेते समय नकद दें या स्टोर का UPI QR कोड स्कैन करें।",
+                          "Counter se saman lete waqt cash dein ya store ka UPI QR code scan karein.",
+                        )
+                      : _tr(
+                          "Pay in cash or ask delivery partner to scan their UPI QR code upon arrival at your doorstep.",
+                          "डिलीवरी पार्टनर के आने पर नकद दें या उनका UPI QR कोड स्कैन करें।",
+                          "Delivery partner ke aane par cash dein ya unka UPI QR code scan karein.",
+                        ),
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: const Color(0xFF3B82F6),
@@ -3185,7 +3307,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Kirana Khata (Pay Later / Udhaar)",
+                  _tr(
+                    "Kirana Khata (Pay Later / Udhaar)",
+                    "किराना खाता (उधार / बाद में भुगतान)",
+                    "Kirana Khata (Pay Later / Udhaar)",
+                  ),
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
@@ -3194,7 +3320,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Order amount will be added to your verified monthly shop ledger. Settle weekly or at month end directly with the store owner.",
+                  _tr(
+                    "Order amount will be added to your verified monthly shop ledger. Settle weekly or at month end directly with the store owner.",
+                    "ऑर्डर राशि आपके सत्यापित मासिक दुकान बहीखाते में जुड़ जाएगी। साप्ताहिक या महीने के अंत में दुकानदार से हिसाब करें।",
+                    "Order amount aapke verified monthly shop ledger mein jud jayegi. Weekly ya month-end par store owner se hisab karein.",
+                  ),
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: const Color(0xFFB45309),
@@ -3208,7 +3338,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    "Credit Limit: ₹${_khataCreditLimit.toStringAsFixed(0)}  •  Current Udhaar: ₹${_currentKhataBalance.toStringAsFixed(0)}",
+                    _tr(
+                      "Credit Limit: ₹${_khataCreditLimit.toStringAsFixed(0)}  •  Current Udhaar: ₹${_currentKhataBalance.toStringAsFixed(0)}",
+                      "क्रेडिट सीमा: ₹${_khataCreditLimit.toStringAsFixed(0)}  •  वर्तमान उधार: ₹${_currentKhataBalance.toStringAsFixed(0)}",
+                      "Credit Limit: ₹${_khataCreditLimit.toStringAsFixed(0)}  •  Current Udhaar: ₹${_currentKhataBalance.toStringAsFixed(0)}",
+                    ),
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -3355,8 +3489,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     if (!_isPickup) {
       if (userProvider.currentLat == null || userProvider.currentLng == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please add a delivery address first"),
+          SnackBar(
+            content: Text(
+              _tr(
+                "Please add a delivery address first",
+                "कृपया पहले डिलीवरी का पता जोड़ें",
+                "Kripya pehle delivery address add karein",
+              ),
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -3384,7 +3524,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Ye delivery location dukan ki service area se bahar hai (${distKm.toStringAsFixed(1)} km door). Store sirf ${sRadius.toStringAsFixed(1)} km tak deliver karta hai.',
+                _tr(
+                  'This delivery location is outside store\'s delivery area (${distKm.toStringAsFixed(1)} km away). Store delivers up to ${sRadius.toStringAsFixed(1)} km.',
+                  'यह डिलीवरी स्थान दुकान के सेवा क्षेत्र से बाहर है (${distKm.toStringAsFixed(1)} किमी दूर)। स्टोर केवल ${sRadius.toStringAsFixed(1)} किमी तक डिलीवर करता है।',
+                  'Ye delivery location dukan ki service area se bahar hai (${distKm.toStringAsFixed(1)} km door). Store sirf ${sRadius.toStringAsFixed(1)} km tak deliver karta hai.',
+                ),
               ),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
@@ -3405,8 +3549,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         setState(() => _isProcessingCheckout = false);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Please login with a valid 10-digit phone number"),
+            SnackBar(
+              content: Text(
+                _tr(
+                  "Please login with a valid 10-digit phone number",
+                  "कृपया वैध 10-अंकीय फ़ोन नंबर से लॉगिन करें",
+                  "Kripya valid 10-digit phone number se login karein",
+                ),
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -3486,8 +3636,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         setState(() => _isProcessingCheckout = false);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Aapka account block kar diya gaya hai. Kripya dukan par sampark karein.'),
+            SnackBar(
+              content: Text(
+                _tr(
+                  'Your account has been blocked. Please contact the store.',
+                  'आपका खाता ब्लॉक कर दिया गया है। कृपया दुकान से संपर्क करें।',
+                  'Aapka account block kar diya gaya hai. Kripya dukan par sampark karein.',
+                ),
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -3525,8 +3681,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           setState(() => _isProcessingCheckout = false);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Khata sirf unhi offline customers ke liye hai jinka khata dukan malik ne create kiya hai.'),
+              SnackBar(
+                content: Text(
+                  _tr(
+                    'Khata is only available for offline customers registered by the store owner.',
+                    'खाता केवल उन ग्राहकों के लिए है जिनका खाता दुकान मालिक द्वारा खोला गया है।',
+                    'Khata sirf unhi offline customers ke liye hai jinka khata dukan malik ne create kiya hai.',
+                  ),
+                ),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -3537,8 +3699,14 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           setState(() => _isProcessingCheckout = false);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Khata credit limit exceed ho rahi hai. COD ya UPI chunein.'),
+              SnackBar(
+                content: Text(
+                  _tr(
+                    'Khata credit limit exceeded. Please choose COD or UPI.',
+                    'खाता क्रेडिट सीमा समाप्त हो रही है। कृपया COD या UPI चुनें।',
+                    'Khata credit limit exceed ho rahi hai. Kripya COD ya UPI chunein.',
+                  ),
+                ),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -3594,7 +3762,11 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           if (context.mounted) {
             final failureMsg = (rzpResult is RazorpayFailureResult && rzpResult.message.isNotEmpty)
                 ? rzpResult.message
-                : 'Payment fail ho gaya ya cancel kiya gaya.';
+                : _tr(
+                    'Payment failed or was cancelled.',
+                    'भुगतान विफल हो गया या रद्द किया गया।',
+                    'Payment fail ho gaya ya cancel kiya gaya.',
+                  );
             _showOnlinePaymentFallbackSheet(
               context: context,
               failureMessage: failureMsg,
@@ -4002,6 +4174,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     required double finalTotal,
     required double deliveryFee,
   }) {
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -4040,7 +4214,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Online Payment Incomplete',
+                _tr(
+                  'Online Payment Incomplete',
+                  'ऑनलाइन भुगतान अधूरा रह गया',
+                  'Online Payment Adhoora Rah Gaya',
+                  langProvider,
+                ),
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -4050,7 +4229,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Payment app uplabdh nahi hua ya transaction cancel ho gaya. Aap bina kisi rukawat ke Cash on Delivery (COD) se order turant confirm kar sakte hain.',
+                _tr(
+                  'Payment app was unavailable or the transaction was cancelled. You can instantly confirm your order with Cash on Delivery (COD) without any interruption.',
+                  'भुगतान ऐप उपलब्ध नहीं हुआ या लेनदेन रद्द हो गया। आप बिना किसी रुकावट के कैश ऑन डिलीवरी (COD) से तुरंत ऑर्डर कन्फर्म कर सकते हैं।',
+                  'Payment app uplabdh nahi hua ya transaction cancel ho gaya. Aap bina kisi rukawat ke Cash on Delivery (COD) se order turant confirm kar sakte hain.',
+                  langProvider,
+                ),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   color: Colors.grey.shade600,
@@ -4071,7 +4255,19 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   },
                   icon: const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 20),
                   label: Text(
-                    '${_isPickup ? 'Pay at Store' : 'Place Order with COD'} • ₹${finalTotal.toStringAsFixed(0)}',
+                    _isPickup
+                        ? _tr(
+                            'Pay at Store • ₹${finalTotal.toStringAsFixed(0)}',
+                            'दुकान पर भुगतान करें • ₹${finalTotal.toStringAsFixed(0)}',
+                            'Store par Pay karein • ₹${finalTotal.toStringAsFixed(0)}',
+                            langProvider,
+                          )
+                        : _tr(
+                            'Place Order with COD • ₹${finalTotal.toStringAsFixed(0)}',
+                            'कैश ऑन डिलीवरी (COD) से ऑर्डर करें • ₹${finalTotal.toStringAsFixed(0)}',
+                            'Place Order with COD • ₹${finalTotal.toStringAsFixed(0)}',
+                            langProvider,
+                          ),
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -4099,7 +4295,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   },
                   icon: const Icon(Icons.refresh_rounded, color: Color(0xFF047857), size: 18),
                   label: Text(
-                    'Retry Online / UPI Payment',
+                    _tr(
+                      'Retry Online / UPI Payment',
+                      'ऑनलाइन / UPI भुगतान पुनः प्रयास करें',
+                      'Online / UPI Payment Dobara Try Karein',
+                      langProvider,
+                    ),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -4118,7 +4319,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
                 child: Text(
-                  'Cancel',
+                  _tr('Cancel', 'रद्द करें', 'Cancel', langProvider),
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     color: Colors.grey.shade500,

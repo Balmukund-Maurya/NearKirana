@@ -452,6 +452,359 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
     }
   }
 
+  void _showAddKhataForCustomerDialog({
+    required BuildContext context,
+    required DocumentSnapshot customerDoc,
+    required String name,
+    required String mobile,
+    required String? shopId,
+    required String shopName,
+    required String Function(String, String, String) t,
+  }) {
+    if (shopId == null || shopId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(t('Shop ID not found', 'दुकान की पहचान नहीं मिली', 'Shop ID not found')),
+          backgroundColor: const Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
+    final initialAmountController = TextEditingController();
+    final noteController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (dialogContext) {
+        bool isProcessing = false;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.person_add_alt_1_rounded,
+                            color: Color(0xFF0C831F),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t('Add Customer Khata', 'ग्राहक का खाता जोड़ें', 'Add Customer Khata'),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              Text(
+                                shopName,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Customer Info Card
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                            radius: 20,
+                            child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : '?',
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0C831F)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        name,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0C831F).withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        t('App User', 'ऐप ग्राहक', 'App User'),
+                                        style: const TextStyle(fontSize: 9, color: Color(0xFF0C831F), fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  mobile.isNotEmpty ? '+91 $mobile' : t('No phone', 'फोन नंबर नहीं', 'No phone'),
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Opening Udhaar Amount (Optional)
+                    TextField(
+                      controller: initialAmountController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFFDC2626)),
+                      decoration: InputDecoration(
+                        labelText: t('Opening Udhaar (₹) - Optional', 'प्रारंभिक उधार (₹) - वैकल्पिक', 'Opening Udhaar (₹) - Optional'),
+                        hintText: '0',
+                        labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                        prefixIcon: const Icon(Icons.currency_rupee_rounded, color: Color(0xFFDC2626), size: 20),
+                        filled: true,
+                        fillColor: const Color(0xFFFEF2F2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFFECACA)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFFECACA)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFDC2626), width: 1.8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Quick Chips
+                    Wrap(
+                      spacing: 8,
+                      children: [0, 100, 500, 1000].map((amt) {
+                        return ActionChip(
+                          label: Text(amt == 0 ? '₹0' : '+₹$amt', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+                          backgroundColor: const Color(0xFFF1F5F9),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            initialAmountController.text = amt == 0 ? '0' : amt.toString();
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Note (Optional)
+                    TextField(
+                      controller: noteController,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF0F172A)),
+                      decoration: InputDecoration(
+                        labelText: t('Description / Note', 'विवरण / नोट (वैकल्पिक)', 'Description / Note (Optional)'),
+                        hintText: t('Opening account', 'खाता शुरुआत', 'Opening account'),
+                        labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                        prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0xFF64748B), size: 20),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFF0C831F), width: 1.8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+
+                    // Create Khata Button
+                    ElevatedButton(
+                      onPressed: isProcessing
+                          ? null
+                          : () async {
+                              final initialAmount = double.tryParse(initialAmountController.text.trim()) ?? 0.0;
+                              final note = noteController.text.trim();
+
+                              setModalState(() => isProcessing = true);
+
+                              try {
+                                final batch = FirebaseUtils.firestore.batch();
+                                final customerRef = FirebaseUtils.firestore.collection('customers').doc(customerDoc.id);
+
+                                final Map<String, dynamic> updateData = {
+                                  'shop_ids': FieldValue.arrayUnion([shopId]),
+                                  'last_active_shop': shopId,
+                                  'updated_at': FieldValue.serverTimestamp(),
+                                };
+
+                                final customerData = customerDoc.data() as Map<String, dynamic>? ?? {};
+                                final existingBalances = customerData['shop_balances'];
+                                if (existingBalances == null) {
+                                  updateData['shop_balances'] = {shopId: initialAmount};
+                                } else {
+                                  updateData['shop_balances.$shopId'] = initialAmount;
+                                }
+
+                                if (initialAmount > 0) {
+                                  updateData['total_udhaar'] = FieldValue.increment(initialAmount);
+                                  final txRef = customerRef.collection('khata_transactions').doc();
+                                  batch.set(txRef, {
+                                    'amount': initialAmount,
+                                    'type': 'debit',
+                                    'shop_id': shopId,
+                                    'description': note.isNotEmpty ? note : 'Opening Udhaar',
+                                    'timestamp': FieldValue.serverTimestamp(),
+                                    'created_by': 'admin',
+                                  });
+                                }
+
+                                batch.update(customerRef, updateData);
+                                await batch.commit();
+
+                                if (context.mounted) {
+                                  Navigator.pop(dialogContext);
+                                  SoundService().success();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      behavior: SnackBarBehavior.floating,
+                                      content: Text(
+                                        t(
+                                          'Khata created successfully for $name',
+                                          '$name का खाता सफलतापूर्वक बन गया है',
+                                          'Khata created successfully for $name',
+                                        ),
+                                      ),
+                                      backgroundColor: const Color(0xFF0C831F),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      behavior: SnackBarBehavior.floating,
+                                      content: Text('Error creating khata: $e'),
+                                      backgroundColor: const Color(0xFFDC2626),
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (context.mounted) {
+                                  setModalState(() => isProcessing = false);
+                                }
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0C831F),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: isProcessing
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check_circle_rounded, size: 20, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  t('Create Khata', 'खाता बनाएं', 'Create Khata'),
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = Provider.of<LanguageProvider>(context);
@@ -1299,7 +1652,11 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
         final String name = (data['name'] ?? 'Customer').toString();
         final String mobile = (data['mobile'] ?? '').toString();
         final bool isBanned = data['is_banned'] ?? false;
-        final double balance = ((data['shop_balances']?[shopId] ?? data['total_udhaar'] ?? 0) as num).toDouble();
+        final shopIds = (data['shop_ids'] as List?)?.map((e) => e.toString()).toList() ?? [];
+        final shopBalances = (data['shop_balances'] as Map?) ?? {};
+        final bool hasShopKhata = shopId != null &&
+            (shopIds.contains(shopId) || shopBalances.containsKey(shopId) || data['shop_id'] == shopId);
+        final double balance = ((shopBalances[shopId] ?? 0) as num).toDouble();
 
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
@@ -1320,16 +1677,28 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
             child: InkWell(
               onTap: () {
                 HapticFeedback.selectionClick();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => KhataStatementScreen(
-                      customerId: doc.id,
-                      customerName: name,
-                      isAdmin: true,
+                if (hasShopKhata) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => KhataStatementScreen(
+                        customerId: doc.id,
+                        customerName: name,
+                        isAdmin: true,
+                      ),
                     ),
-                  ),
-                );
+                  );
+                } else {
+                  _showAddKhataForCustomerDialog(
+                    context: context,
+                    customerDoc: doc,
+                    name: name,
+                    mobile: mobile,
+                    shopId: shopId,
+                    shopName: shopName,
+                    t: t,
+                  );
+                }
               },
               borderRadius: BorderRadius.circular(16),
               child: Padding(
@@ -1408,19 +1777,60 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
                             ],
                           ),
                         ),
-                        if (balance > 0)
+                        if (hasShopKhata) ...[
+                          if (balance > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.2)),
+                              ),
+                              child: Text(
+                                '₹${balance.toStringAsFixed(0)} ${t('Due', 'बाकी', 'Due')}',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFDC2626)),
+                              ),
+                            )
+                          else if (balance < 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
+                              ),
+                              child: Text(
+                                '₹${(-balance).toStringAsFixed(0)} ${t('Advance', 'जमा', 'Advance')}',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF2563EB)),
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.2)),
+                              ),
+                              child: Text(
+                                t('Settled', 'चुकता', 'Settled'),
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF16A34A)),
+                              ),
+                            ),
+                        ] else ...[
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                              color: const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.2)),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
                             ),
                             child: Text(
-                              '₹${balance.toStringAsFixed(0)} ${t('Due', 'बाकी', 'Due')}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFDC2626)),
+                              t('No Khata', 'खाता नहीं बना', 'No Khata'),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
                             ),
                           ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -1444,31 +1854,61 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
                             ),
                           ),
                         const SizedBox(width: 8),
-                        TextButton.icon(
-                          onPressed: () {
-                            HapticFeedback.selectionClick();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => KhataStatementScreen(
-                                  customerId: doc.id,
-                                  customerName: name,
-                                  isAdmin: true,
+                        if (!hasShopKhata)
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              _showAddKhataForCustomerDialog(
+                                context: context,
+                                customerDoc: doc,
+                                name: name,
+                                mobile: mobile,
+                                shopId: shopId,
+                                shopName: shopName,
+                                t: t,
+                              );
+                            },
+                            icon: const Icon(Icons.person_add_alt_1_rounded, size: 15, color: Colors.white),
+                            label: Text(
+                              t('Add Khata', 'खाता बनाएं', 'Add Khata'),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0C831F),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              elevation: 0,
+                            ),
+                          )
+                        else
+                          TextButton.icon(
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => KhataStatementScreen(
+                                    customerId: doc.id,
+                                    customerName: name,
+                                    isAdmin: true,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.menu_book_rounded, color: Color(0xFF2563EB), size: 16),
-                          label: Text(
-                            t('Khata Ledger', 'खाता बही', 'Khata Ledger'),
-                            style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.w700, fontSize: 12),
+                              );
+                            },
+                            icon: const Icon(Icons.menu_book_rounded, color: Color(0xFF2563EB), size: 16),
+                            label: Text(
+                              t('Khata Ledger', 'खाता बही', 'Khata Ledger'),
+                              style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                           ),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
                         PopupMenuButton<String>(
                           padding: EdgeInsets.zero,
                           icon: const Icon(Icons.more_vert_rounded, size: 18, color: Color(0xFF94A3B8)),

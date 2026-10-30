@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'app_theme.dart';
 import 'language_provider.dart';
@@ -54,22 +53,27 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
     super.dispose();
   }
 
-  Future<void> _shareOnWhatsApp(String code, String shopName, bool isHindi, bool isHinglish) async {
+  Future<void> _shareOnWhatsApp(
+    String code,
+    String shopName,
+    bool isHindi,
+    bool isHinglish,
+  ) async {
     HapticFeedback.lightImpact();
     final messageText = isHindi
         ? 'Near Kirana से ऑर्डर करें और छूट पाएं!\n\n'
-          'मेरा रेफरल कोड इस्तेमाल करें: $code\n'
-          'दुकान: $shopName\n\n'
-          'अपनी पहली किराने की खरीदारी पर पाएं आकर्षक लॉयल्टी रिवार्ड्स और छूट!'
+              'मेरा रेफरल कोड इस्तेमाल करें: $code\n'
+              'दुकान: $shopName\n\n'
+              'अपनी पहली किराने की खरीदारी पर पाएं आकर्षक लॉयल्टी रिवार्ड्स और छूट!'
         : (isHinglish
-            ? 'Near Kirana se grocery order karein aur discount paayein!\n\n'
-              'Mera referral code use karein: $code\n'
-              'Store: $shopName\n\n'
-              'Apne first order par extra loyalty points aur discount payein!'
-            : 'Order fresh groceries on Near Kirana and save!\n\n'
-              'Use my referral code: $code\n'
-              'Store: $shopName\n\n'
-              'Get exclusive welcome points and instant discounts on your first order!');
+              ? 'Near Kirana se grocery order karein aur discount paayein!\n\n'
+                    'Mera referral code use karein: $code\n'
+                    'Store: $shopName\n\n'
+                    'Apne first order par extra loyalty points aur discount payein!'
+              : 'Order fresh groceries on Near Kirana and save!\n\n'
+                    'Use my referral code: $code\n'
+                    'Store: $shopName\n\n'
+                    'Get exclusive welcome points and instant discounts on your first order!');
 
     final message = Uri.encodeComponent(messageText);
     final url = Uri.parse('whatsapp://send?text=$message');
@@ -107,7 +111,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
         content: Text(
           isHindi
               ? 'रेफरल कोड कॉपी हुआ: $code'
-              : (isHinglish ? 'Referral code copy ho gaya: $code' : 'Referral code copied: $code'),
+              : (isHinglish
+                    ? 'Referral code copy ho gaya: $code'
+                    : 'Referral code copied: $code'),
         ),
         backgroundColor: AppColors.primaryDark,
         behavior: SnackBarBehavior.floating,
@@ -115,14 +121,20 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
     );
   }
 
-  Future<void> _showApplyReferralDialog(BuildContext context, bool isHindi, bool isHinglish) async {
+  Future<void> _showApplyReferralDialog(
+    BuildContext context,
+    bool isHindi,
+    bool isHinglish,
+  ) async {
     showDialog(
       context: context,
       builder: (dialogCtx) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: Row(
                 children: [
                   Container(
@@ -131,13 +143,23 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       color: const Color(0xFFFEF3C7),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFD97706)),
+                    child: const Icon(
+                      Icons.card_giftcard_rounded,
+                      color: Color(0xFFD97706),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      isHindi ? 'रेफरल कोड दर्ज करें' : (isHinglish ? 'Referral Code Enter Karein' : 'Enter Referral Code'),
-                      style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+                      isHindi
+                          ? 'रेफरल कोड दर्ज करें'
+                          : (isHinglish
+                                ? 'Referral Code Enter Karein'
+                                : 'Enter Referral Code'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -150,18 +172,25 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                     isHindi
                         ? 'अपने मित्र का रेफरल कोड दर्ज करें और अपने पहले ऑर्डर पर बोनस अंक पाएं।'
                         : (isHinglish
-                            ? 'Apne dost ka referral code enter karein aur first order par bonus points paayein.'
-                            : 'Enter your friend\'s referral code to claim bonus points on your first purchase.'),
-                    style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF64748B)),
+                              ? 'Apne dost ka referral code enter karein aur first order par bonus points paayein.'
+                              : 'Enter your friend\'s referral code to claim bonus points on your first purchase.'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.5,
+                      color: const Color(0xFF64748B),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _referralCodeController,
                     textCapitalization: TextCapitalization.characters,
                     decoration: InputDecoration(
-                      labelText: isHindi ? 'रेफरल कोड (जैसे: BAL8492)' : 'Referral Code (e.g. BAL8492)',
+                      labelText: isHindi
+                          ? 'रेफरल कोड (जैसे: BAL8492)'
+                          : 'Referral Code (e.g. BAL8492)',
                       prefixIcon: const Icon(Icons.tag_rounded),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ],
@@ -169,7 +198,10 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogCtx),
-                  child: Text(isHindi ? 'रद्द करें' : 'Cancel', style: const TextStyle(color: Colors.grey)),
+                  child: Text(
+                    isHindi ? 'रद्द करें' : 'Cancel',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: _isApplyingCode
@@ -191,7 +223,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(result.message),
-                                backgroundColor: result.success ? AppColors.primaryDark : AppColors.error,
+                                backgroundColor: result.success
+                                    ? AppColors.primaryDark
+                                    : AppColors.error,
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
@@ -200,15 +234,24 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryDark,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: _isApplyingCode
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
-                      : Text(isHindi ? 'लागू करें' : (isHinglish ? 'Apply karein' : 'Apply Code')),
+                      : Text(
+                          isHindi
+                              ? 'लागू करें'
+                              : (isHinglish ? 'Apply karein' : 'Apply Code'),
+                        ),
                 ),
               ],
             );
@@ -235,7 +278,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: Color(0xFFF8FAFC),
-            body: Center(child: CircularProgressIndicator(color: AppColors.primaryDark)),
+            body: Center(
+              child: CircularProgressIndicator(color: AppColors.primaryDark),
+            ),
           );
         }
 
@@ -249,12 +294,17 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               elevation: 0,
               title: Text(
                 isHindi ? 'रिवार्ड्स और रेफरल' : 'Rewards & Referrals',
-                style: GoogleFonts.poppins(color: const Color(0xFF0F172A), fontWeight: FontWeight.w700),
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF0F172A),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             body: Center(
               child: Text(
-                isHindi ? 'रिवार्ड्स अकाउंट लोड नहीं हो सका' : 'Unable to load rewards account',
+                isHindi
+                    ? 'रिवार्ड्स अकाउंट लोड नहीं हो सका'
+                    : 'Unable to load rewards account',
                 style: GoogleFonts.poppins(color: const Color(0xFF64748B)),
               ),
             ),
@@ -275,18 +325,37 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                 scrolledUnderElevation: 0,
                 centerTitle: true,
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 20),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Color(0xFF0F172A),
+                    size: 20,
+                  ),
                   onPressed: () => Navigator.maybePop(context),
                 ),
                 title: Text(
-                  isHindi ? 'रिवार्ड्स और रेफरल' : (isHinglish ? 'Rewards & Referrals' : 'Rewards & Referrals'),
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18, color: const Color(0xFF0F172A)),
+                  isHindi
+                      ? 'रिवार्ड्स और रेफरल'
+                      : (isHinglish
+                            ? 'Rewards & Referrals'
+                            : 'Rewards & Referrals'),
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    color: const Color(0xFF0F172A),
+                  ),
                 ),
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.info_outline_rounded, color: Color(0xFF0F172A)),
+                    icon: const Icon(
+                      Icons.info_outline_rounded,
+                      color: Color(0xFF0F172A),
+                    ),
                     tooltip: isHindi ? 'नियम और जानकारी' : 'How it Works',
-                    onPressed: () => _showHowItWorksBottomSheet(context, isHindi, isHinglish),
+                    onPressed: () => _showHowItWorksBottomSheet(
+                      context,
+                      isHindi,
+                      isHinglish,
+                    ),
                   ),
                 ],
               ),
@@ -296,7 +365,10 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
 
                   // Segmented Tabs
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF1F5F9),
@@ -320,20 +392,38 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       dividerColor: Colors.transparent,
                       labelColor: AppColors.primaryDark,
                       unselectedLabelColor: const Color(0xFF64748B),
-                      labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 13),
-                      unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 13),
+                      labelStyle: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                      unselectedLabelStyle: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
                       tabs: [
                         Tab(
-                          icon: const Icon(Icons.people_outline_rounded, size: 18),
+                          icon: const Icon(
+                            Icons.people_outline_rounded,
+                            size: 18,
+                          ),
                           child: Text(
-                            isHindi ? 'रेफर और कमाएं' : (isHinglish ? 'Refer & Earn' : 'Refer & Earn'),
+                            isHindi
+                                ? 'रेफर और कमाएं'
+                                : (isHinglish
+                                      ? 'Refer & Earn'
+                                      : 'Refer & Earn'),
                             maxLines: 1,
                           ),
                         ),
                         Tab(
-                          icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                          icon: const Icon(
+                            Icons.receipt_long_rounded,
+                            size: 18,
+                          ),
                           child: Text(
-                            isHindi ? 'पासबुक' : (isHinglish ? 'Passbook' : 'Passbook'),
+                            isHindi
+                                ? 'पासबुक'
+                                : (isHinglish ? 'Passbook' : 'Passbook'),
                             maxLines: 1,
                           ),
                         ),
@@ -358,7 +448,11 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
     );
   }
 
-  Widget _buildHeroPointsCard(CustomerLoyaltyAccount account, bool isHindi, bool isHinglish) {
+  Widget _buildHeroPointsCard(
+    CustomerLoyaltyAccount account,
+    bool isHindi,
+    bool isHinglish,
+  ) {
     final rupeeSavings = account.rupeeValue();
     final tier = account.tier;
 
@@ -385,7 +479,10 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: tier.color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
@@ -436,23 +533,40 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               Padding(
                 padding: const EdgeInsets.only(bottom: 5),
                 child: Text(
-                  isHindi ? 'अंक उपलब्ध' : (isHinglish ? 'Points Available' : 'Points Available'),
-                  style: GoogleFonts.poppins(color: const Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500),
+                  isHindi
+                      ? 'अंक उपलब्ध'
+                      : (isHinglish ? 'Points Available' : 'Points Available'),
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF64748B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primaryDark.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: AppColors.primaryDark.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Column(
                   children: [
                     Text(
-                      isHindi ? 'बचत मूल्य' : (isHinglish ? 'Savings Value' : 'Savings Value'),
-                      style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFF64748B), fontWeight: FontWeight.bold),
+                      isHindi
+                          ? 'बचत मूल्य'
+                          : (isHinglish ? 'Savings Value' : 'Savings Value'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: const Color(0xFF64748B),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       '₹${rupeeSavings.toStringAsFixed(1)}',
@@ -480,16 +594,24 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             ),
             child: Row(
               children: [
-                const Icon(Icons.check_circle_outline_rounded, color: AppColors.primaryDark, size: 16),
+                const Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: AppColors.primaryDark,
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     isHindi
                         ? 'चेकआउट पर तुरंत छूट: हर 10 अंक = ₹1 की बचत'
                         : (isHinglish
-                            ? 'Checkout pe instant discount: 10 points = ₹1 off'
-                            : 'Checkout discount: 10 points = ₹1.0 off on your order'),
-                    style: GoogleFonts.poppins(color: AppColors.primaryDark, fontSize: 11.5, fontWeight: FontWeight.w600),
+                              ? 'Checkout pe instant discount: 10 points = ₹1 off'
+                              : 'Checkout discount: 10 points = ₹1.0 off on your order'),
+                    style: GoogleFonts.poppins(
+                      color: AppColors.primaryDark,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -504,7 +626,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             child: LinearProgressIndicator(
               value: account.progressToNextTier,
               backgroundColor: const Color(0xFFF1F5F9),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryDark),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primaryDark,
+              ),
               minHeight: 6,
             ),
           ),
@@ -514,15 +638,23 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             children: [
               Text(
                 account.tier == LoyaltyTier.platinum
-                    ? (isHindi ? 'उच्चतम टियर अनलॉक हुआ!' : 'Top Tier Unlocked!')
+                    ? (isHindi
+                          ? 'उच्चतम टियर अनलॉक हुआ!'
+                          : 'Top Tier Unlocked!')
                     : (isHindi
-                        ? '${account.nextTier.localizedLabel(context)} हेतु ${account.pointsNeededForNextTier} अंक और चाहिए'
-                        : '${account.pointsNeededForNextTier} pts needed for ${account.nextTier.localizedLabel(context)}'),
-                style: GoogleFonts.poppins(color: const Color(0xFF64748B), fontSize: 11),
+                          ? '${account.nextTier.localizedLabel(context)} हेतु ${account.pointsNeededForNextTier} अंक और चाहिए'
+                          : '${account.pointsNeededForNextTier} pts needed for ${account.nextTier.localizedLabel(context)}'),
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF64748B),
+                  fontSize: 11,
+                ),
               ),
               Text(
                 '${isHindi ? "कुल अर्जित" : "Total Earned"}: ${account.lifetimeEarnedPoints} pts',
-                style: GoogleFonts.poppins(color: const Color(0xFF64748B), fontSize: 11),
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF64748B),
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -531,7 +663,11 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
     );
   }
 
-  Widget _buildReferralTab(CustomerLoyaltyAccount account, bool isHindi, bool isHinglish) {
+  Widget _buildReferralTab(
+    CustomerLoyaltyAccount account,
+    bool isHindi,
+    bool isHinglish,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
       child: Column(
@@ -550,8 +686,16 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isHindi ? 'रेफरल कैसे काम करता है?' : (isHinglish ? 'Referral kaise kaam karta hai?' : 'How Referral Works'),
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14, color: const Color(0xFF0F172A)),
+                  isHindi
+                      ? 'रेफरल कैसे काम करता है?'
+                      : (isHinglish
+                            ? 'Referral kaise kaam karta hai?'
+                            : 'How Referral Works'),
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: const Color(0xFF0F172A),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Row(
@@ -561,7 +705,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       icon: Icons.share_rounded,
                       step: '1',
                       title: isHindi ? 'कोड भेजें' : 'Share Code',
-                      desc: isHindi ? 'दोस्तों को आमंत्रित करें' : 'Invite friends',
+                      desc: isHindi
+                          ? 'दोस्तों को आमंत्रित करें'
+                          : 'Invite friends',
                     ),
                     const SizedBox(width: 8),
                     _buildReferralStepItem(
@@ -575,7 +721,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       icon: Icons.card_giftcard_rounded,
                       step: '3',
                       title: isHindi ? '100 अंक पाएं' : 'Get 100 Pts',
-                      desc: isHindi ? 'तुरंत वॉलेट में क्रेडिट' : 'Instant bonus',
+                      desc: isHindi
+                          ? 'तुरंत वॉलेट में क्रेडिट'
+                          : 'Instant bonus',
                     ),
                   ],
                 ),
@@ -609,7 +757,11 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                         color: const Color(0xFFECFDF5),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.share_rounded, color: Color(0xFF059669), size: 20),
+                      child: const Icon(
+                        Icons.share_rounded,
+                        color: Color(0xFF059669),
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -617,14 +769,25 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isHindi ? 'आपका एक्सक्लूसिव रेफरल कोड' : (isHinglish ? 'Aapka Referral Code' : 'Your Referral Code'),
-                            style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14.5, color: const Color(0xFF0F172A)),
+                            isHindi
+                                ? 'आपका एक्सक्लूसिव रेफरल कोड'
+                                : (isHinglish
+                                      ? 'Aapka Referral Code'
+                                      : 'Your Referral Code'),
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14.5,
+                              color: const Color(0xFF0F172A),
+                            ),
                           ),
                           Text(
                             isHindi
                                 ? 'दोस्तों को भेजें और प्रत्येक सफल ऑर्डर पर 100 अंक पाएं'
                                 : 'Share with friends & get 100 bonus points',
-                            style: GoogleFonts.poppins(fontSize: 11.5, color: const Color(0xFF64748B)),
+                            style: GoogleFonts.poppins(
+                              fontSize: 11.5,
+                              color: const Color(0xFF64748B),
+                            ),
                           ),
                         ],
                       ),
@@ -635,7 +798,10 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
 
                 // Code Box with Copy
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
@@ -655,19 +821,34 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                         ),
                       ),
                       ElevatedButton.icon(
-                        onPressed: () => _copyToClipboard(account.referralCode, isHindi, isHinglish),
+                        onPressed: () => _copyToClipboard(
+                          account.referralCode,
+                          isHindi,
+                          isHinglish,
+                        ),
                         icon: const Icon(Icons.copy_rounded, size: 14),
                         label: Text(
                           isHindi ? 'कॉपी करें' : 'Copy',
-                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 12.5),
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppColors.primaryDark,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          side: const BorderSide(color: AppColors.primaryDark, width: 1.2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          side: const BorderSide(
+                            color: AppColors.primaryDark,
+                            width: 1.2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                     ],
@@ -680,17 +861,31 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                   width: double.infinity,
                   height: 46,
                   child: ElevatedButton.icon(
-                    onPressed: () => _shareOnWhatsApp(account.referralCode, 'हमारा किराना', isHindi, isHinglish),
+                    onPressed: () => _shareOnWhatsApp(
+                      account.referralCode,
+                      'हमारा किराना',
+                      isHindi,
+                      isHinglish,
+                    ),
                     icon: const Icon(Icons.send_rounded, size: 18),
                     label: Text(
-                      isHindi ? 'व्हाट्सएप पर शेयर करें' : (isHinglish ? 'WhatsApp par Share karein' : 'Share on WhatsApp'),
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14),
+                      isHindi
+                          ? 'व्हाट्सएप पर शेयर करें'
+                          : (isHinglish
+                                ? 'WhatsApp par Share karein'
+                                : 'Share on WhatsApp'),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF25D366),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
@@ -711,35 +906,61 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               child: Material(
                 color: Colors.transparent,
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 2,
+                  ),
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEF3C7),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFD97706), size: 18),
+                    child: const Icon(
+                      Icons.card_giftcard_rounded,
+                      color: Color(0xFFD97706),
+                      size: 18,
+                    ),
                   ),
                   title: Text(
-                    isHindi ? 'क्या मित्र का रेफरल कोड है?' : 'Have a friend\'s referral code?',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
+                    isHindi
+                        ? 'क्या मित्र का रेफरल कोड है?'
+                        : 'Have a friend\'s referral code?',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                   subtitle: Text(
-                    isHindi ? 'कोड दर्ज करें और पहले ऑर्डर पर अतिरिक्त बोनस पाएं' : 'Enter code & get extra welcome bonus',
-                    style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF64748B)),
+                    isHindi
+                        ? 'कोड दर्ज करें और पहले ऑर्डर पर अतिरिक्त बोनस पाएं'
+                        : 'Enter code & get extra welcome bonus',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: const Color(0xFF64748B),
+                    ),
                   ),
                   trailing: ElevatedButton(
-                    onPressed: () => _showApplyReferralDialog(context, isHindi, isHinglish),
+                    onPressed: () =>
+                        _showApplyReferralDialog(context, isHindi, isHinglish),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryDark,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     child: Text(
                       isHindi ? 'दर्ज करें' : (isHinglish ? 'Enter' : 'Enter'),
-                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -755,7 +976,11 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 18),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF059669),
+                    size: 18,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -777,19 +1002,31 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
 
           // Referred Friends List
           Text(
-            isHindi ? 'आपके द्वारा आमंत्रित मित्र' : (isHinglish ? 'Aapke Invited Friends' : 'Referred Friends'),
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 15, color: const Color(0xFF0F172A)),
+            isHindi
+                ? 'आपके द्वारा आमंत्रित मित्र'
+                : (isHinglish ? 'Aapke Invited Friends' : 'Referred Friends'),
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              color: const Color(0xFF0F172A),
+            ),
           ),
           const SizedBox(height: 10),
 
           StreamBuilder<List<ReferralRecord>>(
-            stream: _service.streamReferralsByReferrer(widget.shopId, widget.customerPhone),
+            stream: _service.streamReferralsByReferrer(
+              widget.shopId,
+              widget.customerPhone,
+            ),
             builder: (context, refSnap) {
               final referrals = refSnap.data ?? [];
               if (referrals.isEmpty) {
                 return Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
@@ -797,11 +1034,21 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                   ),
                   child: Column(
                     children: [
-                      const Icon(Icons.group_add_outlined, size: 38, color: Color(0xFF94A3B8)),
+                      const Icon(
+                        Icons.group_add_outlined,
+                        size: 38,
+                        color: Color(0xFF94A3B8),
+                      ),
                       const SizedBox(height: 8),
                       Text(
-                        isHindi ? 'अभी कोई मित्र नहीं जुड़ा' : 'No friends referred yet',
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: const Color(0xFF0F172A), fontSize: 13.5),
+                        isHindi
+                            ? 'अभी कोई मित्र नहीं जुड़ा'
+                            : 'No friends referred yet',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF0F172A),
+                          fontSize: 13.5,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -809,7 +1056,10 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                             ? 'पॉइंट्स कमाने के लिए व्हाट्सएप पर अपना कोड शेयर करें!'
                             : 'Share your code on WhatsApp to start earning points!',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(fontSize: 11.5, color: const Color(0xFF64748B)),
+                        style: GoogleFonts.poppins(
+                          fontSize: 11.5,
+                          color: const Color(0xFF64748B),
+                        ),
                       ),
                     ],
                   ),
@@ -831,17 +1081,25 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isCompleted ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
+                        color: isCompleted
+                            ? const Color(0xFFA7F3D0)
+                            : const Color(0xFFE2E8F0),
                       ),
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 18,
-                          backgroundColor: isCompleted ? const Color(0xFFECFDF5) : const Color(0xFFFEF3C7),
+                          backgroundColor: isCompleted
+                              ? const Color(0xFFECFDF5)
+                              : const Color(0xFFFEF3C7),
                           child: Icon(
-                            isCompleted ? Icons.check_circle_rounded : Icons.hourglass_top_rounded,
-                            color: isCompleted ? const Color(0xFF059669) : const Color(0xFFD97706),
+                            isCompleted
+                                ? Icons.check_circle_rounded
+                                : Icons.hourglass_top_rounded,
+                            color: isCompleted
+                                ? const Color(0xFF059669)
+                                : const Color(0xFFD97706),
                             size: 18,
                           ),
                         ),
@@ -852,29 +1110,44 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                             children: [
                               Text(
                                 ref.refereeName,
-                                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
                               ),
                               Text(
                                 '${ref.refereePhone.substring(0, 4)}XXXX${ref.refereePhone.substring(ref.refereePhone.length - 2)}',
-                                style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF64748B)),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  color: const Color(0xFF64748B),
+                                ),
                               ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
-                            color: isCompleted ? const Color(0xFFECFDF5) : const Color(0xFFFEF3C7),
+                            color: isCompleted
+                                ? const Color(0xFFECFDF5)
+                                : const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             isCompleted
                                 ? '+${ref.referrerPointsAwarded} pts'
-                                : (isHindi ? 'ऑर्डर की प्रतीक्षा' : 'Pending Order'),
+                                : (isHindi
+                                      ? 'ऑर्डर की प्रतीक्षा'
+                                      : 'Pending Order'),
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: isCompleted ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                              color: isCompleted
+                                  ? const Color(0xFF065F46)
+                                  : const Color(0xFF92400E),
                             ),
                           ),
                         ),
@@ -913,14 +1186,21 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             const SizedBox(height: 6),
             Text(
               title,
-              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F172A),
+              ),
               textAlign: TextAlign.center,
               maxLines: 1,
             ),
             const SizedBox(height: 2),
             Text(
               desc,
-              style: GoogleFonts.poppins(fontSize: 9.5, color: const Color(0xFF64748B)),
+              style: GoogleFonts.poppins(
+                fontSize: 9.5,
+                color: const Color(0xFF64748B),
+              ),
               textAlign: TextAlign.center,
               maxLines: 1,
             ),
@@ -930,12 +1210,21 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
     );
   }
 
-  Widget _buildPassbookTab(CustomerLoyaltyAccount account, bool isHindi, bool isHinglish) {
+  Widget _buildPassbookTab(
+    CustomerLoyaltyAccount account,
+    bool isHindi,
+    bool isHinglish,
+  ) {
     return StreamBuilder<List<LoyaltyTransaction>>(
-      stream: _service.streamCustomerTransactions(widget.shopId, widget.customerPhone),
+      stream: _service.streamCustomerTransactions(
+        widget.shopId,
+        widget.customerPhone,
+      ),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primaryDark));
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryDark),
+          );
         }
 
         final transactions = snap.data ?? [];
@@ -944,18 +1233,29 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.history_toggle_off_rounded, size: 48, color: Color(0xFF94A3B8)),
+                const Icon(
+                  Icons.history_toggle_off_rounded,
+                  size: 48,
+                  color: Color(0xFF94A3B8),
+                ),
                 const SizedBox(height: 10),
                 Text(
                   isHindi ? 'कोई पॉइंट्स इतिहास नहीं है' : 'No Points History',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: const Color(0xFF0F172A), fontSize: 15),
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0F172A),
+                    fontSize: 15,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   isHindi
                       ? 'जब आप किराना ऑर्डर करेंगे तो आपके अंक यहां दिखाई देंगे।'
                       : 'Your points will appear here when you place grocery orders.',
-                  style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF64748B)),
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: const Color(0xFF64748B),
+                  ),
                 ),
               ],
             ),
@@ -982,12 +1282,18 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isPositive ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                      color: isPositive
+                          ? const Color(0xFFECFDF5)
+                          : const Color(0xFFFEF2F2),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      isPositive ? Icons.add_circle_outline_rounded : Icons.remove_circle_outline_rounded,
-                      color: isPositive ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                      isPositive
+                          ? Icons.add_circle_outline_rounded
+                          : Icons.remove_circle_outline_rounded,
+                      color: isPositive
+                          ? const Color(0xFF059669)
+                          : const Color(0xFFDC2626),
                       size: 20,
                     ),
                   ),
@@ -998,12 +1304,18 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       children: [
                         Text(
                           tx.description,
-                          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 12.5),
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12.5,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '${tx.createdAt.day}/${tx.createdAt.month}/${tx.createdAt.year} • ${isHindi ? "शेष अंक" : "Balance"}: ${tx.balanceAfter} pts',
-                          style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: const Color(0xFF64748B),
+                          ),
                         ),
                       ],
                     ),
@@ -1013,7 +1325,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: isPositive ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                      color: isPositive
+                          ? const Color(0xFF059669)
+                          : const Color(0xFFDC2626),
                     ),
                   ),
                 ],
@@ -1025,7 +1339,11 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
     );
   }
 
-  void _showHowItWorksBottomSheet(BuildContext context, bool isHindi, bool isHinglish) {
+  void _showHowItWorksBottomSheet(
+    BuildContext context,
+    bool isHindi,
+    bool isHinglish,
+  ) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -1039,14 +1357,39 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isHindi ? 'लॉयल्टी और रेफरल कैसे काम करता है?' : 'How Loyalty & Referrals Work',
-                style: GoogleFonts.poppins(fontSize: 16.5, fontWeight: FontWeight.bold),
+                isHindi
+                    ? 'लॉयल्टी और रेफरल कैसे काम करता है?'
+                    : 'How Loyalty & Referrals Work',
+                style: GoogleFonts.poppins(
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
-              _buildStepRow('1', isHindi ? 'हर ₹100 की खरीदारी पर 10 पॉइंट्स कमाएं।' : 'Earn 10 points for every ₹100 spent.'),
-              _buildStepRow('2', isHindi ? 'सिल्वर, गोल्ड, प्लेटिनम टियर अनलॉक करके 2x तक पॉइंट्स पाएं।' : 'Unlock Silver, Gold, Platinum tiers to earn up to 2x points.'),
-              _buildStepRow('3', isHindi ? 'मित्रों को अपना कोड शेयर करें और उनके पहले ऑर्डर पर बोनस अंक पाएं।' : 'Invite friends using your code to earn mutual bonus points.'),
-              _buildStepRow('4', isHindi ? 'चेकआउट पर तुरंत अंक भुनाकर सीधे रुपये में छूट पाएं (10 अंक = ₹1)।' : 'Redeem points instantly at checkout for direct rupee discounts (10 pts = ₹1)!'),
+              _buildStepRow(
+                '1',
+                isHindi
+                    ? 'हर ₹100 की खरीदारी पर 10 पॉइंट्स कमाएं।'
+                    : 'Earn 10 points for every ₹100 spent.',
+              ),
+              _buildStepRow(
+                '2',
+                isHindi
+                    ? 'सिल्वर, गोल्ड, प्लेटिनम टियर अनलॉक करके 2x तक पॉइंट्स पाएं।'
+                    : 'Unlock Silver, Gold, Platinum tiers to earn up to 2x points.',
+              ),
+              _buildStepRow(
+                '3',
+                isHindi
+                    ? 'मित्रों को अपना कोड शेयर करें और उनके पहले ऑर्डर पर बोनस अंक पाएं।'
+                    : 'Invite friends using your code to earn mutual bonus points.',
+              ),
+              _buildStepRow(
+                '4',
+                isHindi
+                    ? 'चेकआउट पर तुरंत अंक भुनाकर सीधे रुपये में छूट पाएं (10 अंक = ₹1)।'
+                    : 'Redeem points instantly at checkout for direct rupee discounts (10 pts = ₹1)!',
+              ),
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
@@ -1055,7 +1398,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryDark,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: Text(isHindi ? 'समझ गया' : 'Got it'),
                 ),
@@ -1078,14 +1423,21 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
             backgroundColor: const Color(0xFFECFDF5),
             child: Text(
               number,
-              style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF059669)),
+              style: GoogleFonts.poppins(
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF059669),
+              ),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF334155)),
+              style: GoogleFonts.poppins(
+                fontSize: 12.5,
+                color: const Color(0xFF334155),
+              ),
             ),
           ),
         ],

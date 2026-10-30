@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'language_provider.dart';
@@ -51,7 +50,8 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
   void initState() {
     super.initState();
     _service = widget.service ?? DeliveryPartnerService();
-    _trackingService = widget.trackingService ??
+    _trackingService =
+        widget.trackingService ??
         LiveDeliveryTrackingService(firestore: _service.firestore);
     _tabController = TabController(length: 2, vsync: this);
     _initializePartner();
@@ -74,7 +74,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
       await prefs.remove('app_role');
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const GatewayScreen(forceSelectRole: true)),
+        MaterialPageRoute(
+          builder: (_) => const GatewayScreen(forceSelectRole: true),
+        ),
       );
     }
   }
@@ -114,7 +116,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           });
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('current_delivery_partner_id', partner.id);
-          await prefs.setString('current_delivery_partner_phone', partner.phone);
+          await prefs.setString(
+            'current_delivery_partner_phone',
+            partner.phone,
+          );
           return;
         }
       }
@@ -225,7 +230,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: Text(t('Logout', 'लॉगआउट', 'Logout')),
           ),
@@ -315,7 +322,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
 
-      while (clean.startsWith(',') || clean.startsWith('-') || clean.startsWith('—')) {
+      while (clean.startsWith(',') ||
+          clean.startsWith('-') ||
+          clean.startsWith('—')) {
         clean = clean.substring(1).trim();
       }
 
@@ -343,7 +352,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Could not open map navigation. Please check GPS or address.'),
+          content: Text(
+            'Could not open map navigation. Please check GPS or address.',
+          ),
         ),
       );
     }
@@ -394,7 +405,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             backgroundColor: const Color(0xFF0C831F),
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -441,16 +456,24 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
 
       if ((storeLat == null || storeLng == null) && task.shopId.isNotEmpty) {
         try {
-          final shopDoc = await _service.firestore.collection('shops').doc(task.shopId).get();
+          final shopDoc = await _service.firestore
+              .collection('shops')
+              .doc(task.shopId)
+              .get();
           if (shopDoc.exists) {
             final sData = shopDoc.data()!;
-            storeLat = (sData['store_latitude'] as num?)?.toDouble() ??
+            storeLat =
+                (sData['store_latitude'] as num?)?.toDouble() ??
                 (sData['shop_lat'] as num?)?.toDouble() ??
                 (sData['latitude'] as num?)?.toDouble();
-            storeLng = (sData['store_longitude'] as num?)?.toDouble() ??
+            storeLng =
+                (sData['store_longitude'] as num?)?.toDouble() ??
                 (sData['shop_lng'] as num?)?.toDouble() ??
                 (sData['longitude'] as num?)?.toDouble();
-            storeName = sData['shop_name']?.toString() ?? sData['store_name']?.toString() ?? storeName;
+            storeName =
+                sData['shop_name']?.toString() ??
+                sData['store_name']?.toString() ??
+                storeName;
           }
         } catch (_) {}
       }
@@ -480,7 +503,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             backgroundColor: const Color(0xFF0C831F),
             content: Row(
               children: [
-                const Icon(Icons.thumb_up_alt_rounded, color: Colors.white, size: 18),
+                const Icon(
+                  Icons.thumb_up_alt_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -515,7 +542,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
   ) async {
     bool codCollected = task.isCOD;
     final notesCtrl = TextEditingController(
-      text: t('Delivered to customer', 'ग्राहक को डिलीवर किया गया', 'Customer ko deliver kiya gaya'),
+      text: t(
+        'Delivered to customer',
+        'ग्राहक को डिलीवर किया गया',
+        'Customer ko deliver kiya gaya',
+      ),
     );
     final pinCtrl = TextEditingController();
     String? pinError;
@@ -530,9 +561,14 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
               : task.orderId;
 
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 10,
+            ),
             title: Row(
               children: [
                 Container(
@@ -553,7 +589,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t('Confirm Delivery', 'डिलीवरी पूर्ण करें', 'Delivery Confirm Karein'),
+                        t(
+                          'Confirm Delivery',
+                          'डिलीवरी पूर्ण करें',
+                          'Delivery Confirm Karein',
+                        ),
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -562,7 +602,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       ),
                       Text(
                         '${t('Order', 'ऑर्डर', 'Order')} #$shortId',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                        ),
                       ),
                     ],
                   ),
@@ -583,7 +626,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.person_rounded, color: Color(0xFF64748B), size: 20),
+                        const Icon(
+                          Icons.person_rounded,
+                          color: Color(0xFF64748B),
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -616,7 +663,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                         color: const Color(0xFFF0FDF4),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: pinError != null ? const Color(0xFFDC2626) : const Color(0xFFBBF7D0),
+                          color: pinError != null
+                              ? const Color(0xFFDC2626)
+                              : const Color(0xFFBBF7D0),
                           width: pinError != null ? 1.5 : 1.0,
                         ),
                       ),
@@ -625,7 +674,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 18),
+                              const Icon(
+                                Icons.verified_user_rounded,
+                                color: Color(0xFF16A34A),
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -650,7 +703,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                               'ग्राहक के ऐप में दिख रहा 4 अंकों का डिलीवरी पिन पूछकर दर्ज करें:',
                               'Customer ke app me dikh raha 4-digit delivery PIN enter karein:',
                             ),
-                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF334155)),
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              color: Color(0xFF334155),
+                            ),
                           ),
                           const SizedBox(height: 8),
                           TextField(
@@ -667,12 +723,19 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                             decoration: InputDecoration(
                               counterText: '',
                               hintText: '• • • •',
-                              hintStyle: const TextStyle(letterSpacing: 6, color: Color(0xFF94A3B8)),
+                              hintStyle: const TextStyle(
+                                letterSpacing: 6,
+                                color: Color(0xFF94A3B8),
+                              ),
                               filled: true,
                               fillColor: Colors.white,
                               errorText: pinError,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                              ),
                             ),
                             onChanged: (_) {
                               if (pinError != null) {
@@ -734,9 +797,13 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                               Checkbox(
                                 value: codCollected,
                                 activeColor: const Color(0xFF0C831F),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
                                 onChanged: (val) {
-                                  setDialogState(() => codCollected = val ?? false);
+                                  setDialogState(
+                                    () => codCollected = val ?? false,
+                                  );
                                 },
                               ),
                               Expanded(
@@ -768,7 +835,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle_rounded, color: Color(0xFF0C831F), size: 18),
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF0C831F),
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -792,10 +863,19 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   TextField(
                     controller: notesCtrl,
                     decoration: InputDecoration(
-                      labelText: t('Delivery Notes (Optional)', 'डिलीवरी रिमार्क (वैकल्पिक)', 'Delivery Notes (Optional)'),
+                      labelText: t(
+                        'Delivery Notes (Optional)',
+                        'डिलीवरी रिमार्क (वैकल्पिक)',
+                        'Delivery Notes (Optional)',
+                      ),
                       prefixIcon: const Icon(Icons.note_alt_rounded, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ],
@@ -870,7 +950,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       partnerName: _currentPartner?.name ?? task.partnerName,
                     );
 
-                    await _trackingService.stopBroadcasting(task.orderId, isDelivered: true);
+                    await _trackingService.stopBroadcasting(
+                      task.orderId,
+                      isDelivered: true,
+                    );
                     SoundService().orderDelivered();
 
                     if (mounted) {
@@ -880,7 +963,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                           behavior: SnackBarBehavior.floating,
                           content: Row(
                             children: [
-                              const Icon(Icons.verified_rounded, color: Colors.white, size: 20),
+                              const Icon(
+                                Icons.verified_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -911,13 +998,22 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0C831F),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 icon: const Icon(Icons.check_circle_rounded, size: 18),
                 label: Text(
-                  t('Confirm Delivered', 'सफल डिलीवरी दर्ज करें', 'Confirm Delivered'),
+                  t(
+                    'Confirm Delivered',
+                    'सफल डिलीवरी दर्ज करें',
+                    'Confirm Delivered',
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -953,8 +1049,15 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                 const CircularProgressIndicator(color: Color(0xFF0C831F)),
                 const SizedBox(height: 16),
                 Text(
-                  t('Loading Partner Profile...', 'प्रोफ़ाइल लोड हो रही है...', 'Profile load ho rahi hai...'),
-                  style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                  t(
+                    'Loading Partner Profile...',
+                    'प्रोफ़ाइल लोड हो रही है...',
+                    'Profile load ho rahi hai...',
+                  ),
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -980,7 +1083,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           elevation: 0,
           surfaceTintColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: Color(0xFF0F172A),
+            ),
             onPressed: _handleBackNavigation,
           ),
           titleSpacing: 0,
@@ -1005,7 +1111,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      t('Delivery Partner Mode', 'डिलीवरी पार्टनर मोड', 'Delivery Partner Mode'),
+                      t(
+                        'Delivery Partner Mode',
+                        'डिलीवरी पार्टनर मोड',
+                        'Delivery Partner Mode',
+                      ),
                       style: GoogleFonts.outfit(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -1014,8 +1124,16 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      t('NearKirana Express Fleet', 'NearKirana एक्सप्रेस फ्लीट', 'NearKirana Express Fleet'),
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                      t(
+                        'NearKirana Express Fleet',
+                        'NearKirana एक्सप्रेस फ्लीट',
+                        'NearKirana Express Fleet',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -1026,7 +1144,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.logout_rounded, color: Color(0xFF64748B)),
-              tooltip: t('Switch Partner / Logout', 'लॉगआउट करें', 'Logout Karein'),
+              tooltip: t(
+                'Switch Partner / Logout',
+                'लॉगआउट करें',
+                'Logout Karein',
+              ),
               onPressed: () => _handleLogout(t),
             ),
           ],
@@ -1062,8 +1184,14 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   labelColor: const Color(0xFF0C831F),
                   unselectedLabelColor: const Color(0xFF64748B),
                   indicatorSize: TabBarIndicatorSize.tab,
-                  labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
-                  unselectedLabelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                  labelStyle: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  unselectedLabelStyle: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                   dividerColor: Colors.transparent,
                   tabs: [
                     Tab(
@@ -1072,7 +1200,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                         children: [
                           const Icon(Icons.electric_moped_rounded, size: 18),
                           const SizedBox(width: 8),
-                          Text(t('Active Tasks', 'सक्रिय कार्य', 'Active Tasks')),
+                          Text(
+                            t('Active Tasks', 'सक्रिय कार्य', 'Active Tasks'),
+                          ),
                         ],
                       ),
                     ),
@@ -1082,7 +1212,13 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                         children: [
                           const Icon(Icons.history_rounded, size: 18),
                           const SizedBox(width: 8),
-                          Text(t('Delivery History', 'डिलीवरी इतिहास', 'Delivery History')),
+                          Text(
+                            t(
+                              'Delivery History',
+                              'डिलीवरी इतिहास',
+                              'Delivery History',
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1095,10 +1231,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: [
-                  _buildActiveTasksTab(t),
-                  _buildHistoryTab(t),
-                ],
+                children: [_buildActiveTasksTab(t), _buildHistoryTab(t)],
               ),
             ),
           ],
@@ -1158,7 +1291,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     const SizedBox(height: 2),
                     Text(
                       '${_currentPartner?.phone ?? ''} • ${_currentPartner?.vehicleNumber.isNotEmpty == true ? _currentPartner!.vehicleNumber : 'Kirana Express'}',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -1167,12 +1304,19 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
               const SizedBox(width: 8),
               // Duty Status Pill & Switch
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: isOnline ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                  color: isOnline
+                      ? const Color(0xFFECFDF5)
+                      : const Color(0xFFFEF2F2),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isOnline ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA),
+                    color: isOnline
+                        ? const Color(0xFFA7F3D0)
+                        : const Color(0xFFFECACA),
                   ),
                 ),
                 child: Row(
@@ -1183,7 +1327,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       height: 8,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isOnline ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                        color: isOnline
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFEF4444),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1194,7 +1340,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: isOnline ? const Color(0xFF065F46) : const Color(0xFF991B1B),
+                        color: isOnline
+                            ? const Color(0xFF065F46)
+                            : const Color(0xFF991B1B),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -1238,7 +1386,8 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                 icon: Icons.account_balance_wallet_rounded,
                 color: const Color(0xFFD97706),
                 label: t('COD Cash', 'नकद कैश', 'COD Cash'),
-                value: '₹${(_currentPartner?.cashCollected ?? 0.0).toStringAsFixed(0)}',
+                value:
+                    '₹${(_currentPartner?.cashCollected ?? 0.0).toStringAsFixed(0)}',
               ),
             ],
           ),
@@ -1278,7 +1427,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(fontSize: 10, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
@@ -1302,8 +1455,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     return StreamBuilder<List<DeliveryOrderTask>>(
       stream: _service.streamPartnerActiveTasks(_currentPartner!.id),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF0C831F)));
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF0C831F)),
+          );
         }
 
         final tasks = snapshot.data ?? [];
@@ -1320,7 +1476,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     decoration: BoxDecoration(
                       color: const Color(0xFFECFDF5),
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFA7F3D0), width: 2),
+                      border: Border.all(
+                        color: const Color(0xFFA7F3D0),
+                        width: 2,
+                      ),
                     ),
                     child: const Icon(
                       Icons.task_alt_rounded,
@@ -1330,7 +1489,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    t('No Active Deliveries', 'कोई सक्रिय डिलीवरी नहीं है', 'No Active Deliveries'),
+                    t(
+                      'No Active Deliveries',
+                      'कोई सक्रिय डिलीवरी नहीं है',
+                      'No Active Deliveries',
+                    ),
                     style: GoogleFonts.outfit(
                       fontSize: 19,
                       fontWeight: FontWeight.bold,
@@ -1345,7 +1508,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       'Sabhi orders complete ho gaye! Naya order assign hote hi yahan dikhega.',
                     ),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -1368,8 +1535,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     return StreamBuilder<List<DeliveryOrderTask>>(
       stream: _service.streamPartnerCompletedTasks(_currentPartner!.id),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF0C831F)));
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF0C831F)),
+          );
         }
 
         final history = snapshot.data ?? [];
@@ -1384,12 +1554,24 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     color: Color(0xFFF1F5F9),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.history_toggle_off_rounded, size: 36, color: Color(0xFF94A3B8)),
+                  child: const Icon(
+                    Icons.history_toggle_off_rounded,
+                    size: 36,
+                    color: Color(0xFF94A3B8),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  t('No delivery history yet', 'अभी तक कोई डिलीवरी इतिहास नहीं', 'Abhi tak koi delivery history nahi hai'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155), fontSize: 15),
+                  t(
+                    'No delivery history yet',
+                    'अभी तक कोई डिलीवरी इतिहास नहीं',
+                    'Abhi tak koi delivery history nahi hai',
+                  ),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF334155),
+                    fontSize: 15,
+                  ),
                 ),
               ],
             ),
@@ -1421,7 +1603,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       color: const Color(0xFFECFDF5),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.check_circle_rounded, color: Color(0xFF0C831F), size: 22),
+                    child: const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFF0C831F),
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1441,7 +1627,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                           item.deliveryAddress,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
                       ],
                     ),
@@ -1459,9 +1648,14 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: item.isCOD ? const Color(0xFFFFFBEB) : const Color(0xFFECFDF5),
+                          color: item.isCOD
+                              ? const Color(0xFFFFFBEB)
+                              : const Color(0xFFECFDF5),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -1471,7 +1665,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: item.isCOD ? const Color(0xFFB45309) : const Color(0xFF065F46),
+                            color: item.isCOD
+                                ? const Color(0xFFB45309)
+                                : const Color(0xFF065F46),
                           ),
                         ),
                       ),
@@ -1522,7 +1718,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0C831F).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -1539,7 +1738,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    t('NearKirana Express', 'NearKirana एक्सप्रेस', 'NearKirana Express'),
+                    t(
+                      'NearKirana Express',
+                      'NearKirana एक्सप्रेस',
+                      'NearKirana Express',
+                    ),
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -1574,16 +1777,28 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                             : null,
                         icon: const Icon(Icons.phone_in_talk_rounded, size: 17),
                         label: Text(
-                          t('Call Customer', 'ग्राहक को कॉल करें', 'Call Customer'),
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                          t(
+                            'Call Customer',
+                            'ग्राहक को कॉल करें',
+                            'Call Customer',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF2563EB),
                           side: const BorderSide(color: Color(0xFFBFDBFE)),
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -1603,15 +1818,23 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                         icon: const Icon(Icons.near_me_rounded, size: 17),
                         label: Text(
                           t('Directions', 'मैप नेविगेशन', 'Directions'),
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF0D9488),
                           side: const BorderSide(color: Color(0xFF99F6E4)),
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -1636,12 +1859,20 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.inventory_2_outlined, size: 14, color: Color(0xFF64748B)),
+                                const Icon(
+                                  Icons.inventory_2_outlined,
+                                  size: 14,
+                                  color: Color(0xFF64748B),
+                                ),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     '${task.itemsCount} ${t('items in parcel', 'सामान पार्सल में', 'items parcel mein')}',
-                                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF64748B),
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -1677,19 +1908,30 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: task.isCOD ? const Color(0xFFFFFBEB) : const Color(0xFFECFDF5),
+                              color: task.isCOD
+                                  ? const Color(0xFFFFFBEB)
+                                  : const Color(0xFFECFDF5),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               task.isCOD
                                   ? t('Collect Cash', 'नकद लें', 'Collect Cash')
-                                  : t('Prepaid Online', 'ऑनलाइन पेड', 'Prepaid Online'),
+                                  : t(
+                                      'Prepaid Online',
+                                      'ऑनलाइन पेड',
+                                      'Prepaid Online',
+                                    ),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: task.isCOD ? const Color(0xFFB45309) : const Color(0xFF065F46),
+                                color: task.isCOD
+                                    ? const Color(0xFFB45309)
+                                    : const Color(0xFF065F46),
                               ),
                             ),
                           ),
@@ -1720,7 +1962,9 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 
-    while (displayAddress.startsWith(',') || displayAddress.startsWith('-') || displayAddress.startsWith('—')) {
+    while (displayAddress.startsWith(',') ||
+        displayAddress.startsWith('-') ||
+        displayAddress.startsWith('—')) {
       displayAddress = displayAddress.substring(1).trim();
     }
     if (displayAddress.isEmpty) displayAddress = task.deliveryAddress;
@@ -1737,7 +1981,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             shape: BoxShape.circle,
           ),
           child: const Center(
-            child: Icon(Icons.location_on_rounded, size: 13, color: Colors.white),
+            child: Icon(
+              Icons.location_on_rounded,
+              size: 13,
+              color: Colors.white,
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -1829,7 +2077,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: fg,
+            ),
           ),
         ],
       ),
@@ -1849,13 +2101,19 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           onPressed: () => _acceptTask(task, t),
           icon: const Icon(Icons.thumb_up_alt_rounded, size: 18),
           label: Text(
-            t('Accept Delivery Task', 'ऑर्डर स्वीकार करें', 'Accept Delivery Task'),
+            t(
+              'Accept Delivery Task',
+              'ऑर्डर स्वीकार करें',
+              'Accept Delivery Task',
+            ),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF2563EB),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
             elevation: 0,
           ),
         ),
@@ -1871,13 +2129,19 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
           onPressed: () => _confirmPickup(task, t),
           icon: const Icon(Icons.inventory_2_rounded, size: 18),
           label: Text(
-            t('Confirm Store Pickup', 'दुकान से पार्सल लिया', 'Confirm Store Pickup'),
+            t(
+              'Confirm Store Pickup',
+              'दुकान से पार्सल लिया',
+              'Confirm Store Pickup',
+            ),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0C831F),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
             elevation: 0,
           ),
         ),
@@ -1888,22 +2152,28 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
     return SizedBox(
       width: double.infinity,
       height: 50,
-          child: ElevatedButton.icon(
-            onPressed: () => _showDeliveryCompletionDialog(task, t),
-            icon: const Icon(Icons.task_alt_rounded, size: 20),
-            label: Text(
-              task.isCOD
-                  ? '${t('Collect', 'कैश लें', 'Collect')} ₹${task.totalAmount.toStringAsFixed(0)} & ${t('Mark Delivered', 'डिलीवरी पूरी करें', 'Mark Delivered')}'
-                  : t('Mark Delivered (Prepaid)', 'डिलीवरी पूर्ण करें', 'Mark Delivered (Prepaid)'),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0C831F),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-            ),
+      child: ElevatedButton.icon(
+        onPressed: () => _showDeliveryCompletionDialog(task, t),
+        icon: const Icon(Icons.task_alt_rounded, size: 20),
+        label: Text(
+          task.isCOD
+              ? '${t('Collect', 'कैश लें', 'Collect')} ₹${task.totalAmount.toStringAsFixed(0)} & ${t('Mark Delivered', 'डिलीवरी पूरी करें', 'Mark Delivered')}'
+              : t(
+                  'Mark Delivered (Prepaid)',
+                  'डिलीवरी पूर्ण करें',
+                  'Mark Delivered (Prepaid)',
+                ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF0C831F),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
+          elevation: 0,
+        ),
+      ),
     );
   }
 
@@ -1918,14 +2188,24 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
         backgroundColor: Colors.white,
         appBar: AppBar(
           title: Text(
-            t('Delivery Partner Portal', 'डिलीवरी पार्टनर पोर्टल', 'Delivery Partner Portal'),
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+            t(
+              'Delivery Partner Portal',
+              'डिलीवरी पार्टनर पोर्टल',
+              'Delivery Partner Portal',
+            ),
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF0F172A),
+            ),
           ),
           backgroundColor: Colors.white,
           elevation: 0,
           surfaceTintColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: Color(0xFF0F172A),
+            ),
             onPressed: _handleBackNavigation,
           ),
         ),
@@ -1954,7 +2234,11 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    t('NearKirana Express Fleet', 'NearKirana एक्सप्रेस डिलीवरी पार्टनर', 'NearKirana Express Fleet'),
+                    t(
+                      'NearKirana Express Fleet',
+                      'NearKirana एक्सप्रेस डिलीवरी पार्टनर',
+                      'NearKirana Express Fleet',
+                    ),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
                       fontSize: 22,
@@ -1970,20 +2254,36 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       'Delivery tasks accept karne aur navigate karne ke liye login karein',
                     ),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF64748B),
+                      height: 1.4,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   TextField(
                     controller: _loginPhoneController,
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
-                      labelText: t('Mobile Number', 'मोबाइल नंबर', 'Mobile Number'),
+                      labelText: t(
+                        'Mobile Number',
+                        'मोबाइल नंबर',
+                        'Mobile Number',
+                      ),
                       hintText: '9876543210',
-                      prefixIcon: const Icon(Icons.phone_rounded, color: Color(0xFF0C831F)),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      prefixIcon: const Icon(
+                        Icons.phone_rounded,
+                        color: Color(0xFF0C831F),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFF0C831F), width: 2),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF0C831F),
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -1991,13 +2291,25 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   TextField(
                     controller: _loginNameController,
                     decoration: InputDecoration(
-                      labelText: t('Rider Full Name', 'डिलीवरी बॉय का पूरा नाम', 'Rider Full Name'),
+                      labelText: t(
+                        'Rider Full Name',
+                        'डिलीवरी बॉय का पूरा नाम',
+                        'Rider Full Name',
+                      ),
                       hintText: 'e.g. Rahul Sharma',
-                      prefixIcon: const Icon(Icons.person_rounded, color: Color(0xFF0C831F)),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      prefixIcon: const Icon(
+                        Icons.person_rounded,
+                        color: Color(0xFF0C831F),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFF0C831F), width: 2),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF0C831F),
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -2005,22 +2317,36 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: _isLoggingIn ? null : () => _handlePartnerLogin(t),
+                      onPressed: _isLoggingIn
+                          ? null
+                          : () => _handlePartnerLogin(t),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0C831F),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         elevation: 0,
                       ),
                       child: _isLoggingIn
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
                           : Text(
-                              t('Start Delivering Now', 'ड्यूटी शुरू करें', 'Duty Shuru Karein'),
-                              style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
+                              t(
+                                'Start Delivering Now',
+                                'ड्यूटी शुरू करें',
+                                'Duty Shuru Karein',
+                              ),
+                              style: GoogleFonts.outfit(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     ),
                   ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../language_provider.dart';
 import '../staff_audit_models.dart';
@@ -54,7 +53,11 @@ class AuditLogDetailsDialog extends StatelessWidget {
                             color: log.actionType.color.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(log.actionType.icon, color: log.actionType.color, size: 22),
+                          child: Icon(
+                            log.actionType.icon,
+                            color: log.actionType.color,
+                            size: 22,
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -72,7 +75,10 @@ class AuditLogDetailsDialog extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: AppColors.textLight),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textLight,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -96,8 +102,13 @@ class AuditLogDetailsDialog extends StatelessWidget {
                         child: Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: AppColors.primaryDark.withValues(alpha: 0.1),
-                              child: const Icon(Icons.person_rounded, color: AppColors.primaryDark),
+                              backgroundColor: AppColors.primaryDark.withValues(
+                                alpha: 0.1,
+                              ),
+                              child: const Icon(
+                                Icons.person_rounded,
+                                color: AppColors.primaryDark,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -106,13 +117,19 @@ class AuditLogDetailsDialog extends StatelessWidget {
                                 children: [
                                   Text(
                                     log.actorName,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     '${t('Role', 'पद', 'Role')}: ${log.actorRole.toUpperCase()}${log.actorPhone != null ? ' • +91 ${log.actorPhone}' : ''}',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -124,13 +141,24 @@ class AuditLogDetailsDialog extends StatelessWidget {
 
                       // Description
                       Text(
-                        t('Action Summary', 'गतिविधि का विवरण', 'Action Summary'),
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        t(
+                          'Action Summary',
+                          'गतिविधि का विवरण',
+                          'Action Summary',
+                        ),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         log.description,
-                        style: const TextStyle(fontSize: 14, color: AppColors.textDark, height: 1.3),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textDark,
+                          height: 1.3,
+                        ),
                       ),
                       const SizedBox(height: 14),
 
@@ -139,8 +167,14 @@ class AuditLogDetailsDialog extends StatelessWidget {
                         children: [
                           Expanded(
                             child: _buildInfoTile(
-                              t('Target Item', 'संबंधित सामान / खाता', 'Target Item'),
-                              log.entityName.isNotEmpty ? log.entityName : log.entityId,
+                              t(
+                                'Target Item',
+                                'संबंधित सामान / खाता',
+                                'Target Item',
+                              ),
+                              log.entityName.isNotEmpty
+                                  ? log.entityName
+                                  : log.entityId,
                               Icons.category_rounded,
                             ),
                           ),
@@ -176,8 +210,15 @@ class AuditLogDetailsDialog extends StatelessWidget {
                       // Before vs After Diff Comparison
                       if (log.oldValue != null || log.newValue != null) ...[
                         Text(
-                          t('Before & After Changes', 'बदलाव का तुलनात्मक विवरण', 'Before & After Changes'),
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          t(
+                            'Before & After Changes',
+                            'बदलाव का तुलनात्मक विवरण',
+                            'Before & After Changes',
+                          ),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -190,17 +231,27 @@ class AuditLogDetailsDialog extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: Colors.red.shade50,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.red.shade200),
+                                  border: Border.all(
+                                    color: Colors.red.shade200,
+                                  ),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       children: [
-                                        Icon(Icons.remove_circle_outline, color: Colors.red.shade700, size: 16),
+                                        Icon(
+                                          Icons.remove_circle_outline,
+                                          color: Colors.red.shade700,
+                                          size: 16,
+                                        ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          t('OLD VALUE', 'पुराना मान', 'OLD VALUE'),
+                                          t(
+                                            'OLD VALUE',
+                                            'पुराना मान',
+                                            'OLD VALUE',
+                                          ),
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
@@ -212,9 +263,16 @@ class AuditLogDetailsDialog extends StatelessWidget {
                                     const SizedBox(height: 6),
                                     Text(
                                       log.oldValue != null
-                                          ? log.oldValue!.entries.map((e) => '${e.key}: ${e.value}').join('\n')
+                                          ? log.oldValue!.entries
+                                                .map(
+                                                  (e) => '${e.key}: ${e.value}',
+                                                )
+                                                .join('\n')
                                           : 'N/A',
-                                      style: TextStyle(fontSize: 12, color: Colors.red.shade900),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.red.shade900,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -229,17 +287,27 @@ class AuditLogDetailsDialog extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: Colors.green.shade50,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.green.shade200),
+                                  border: Border.all(
+                                    color: Colors.green.shade200,
+                                  ),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       children: [
-                                        Icon(Icons.check_circle_outline, color: Colors.green.shade700, size: 16),
+                                        Icon(
+                                          Icons.check_circle_outline,
+                                          color: Colors.green.shade700,
+                                          size: 16,
+                                        ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          t('NEW VALUE', 'नया मान', 'NEW VALUE'),
+                                          t(
+                                            'NEW VALUE',
+                                            'नया मान',
+                                            'NEW VALUE',
+                                          ),
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
@@ -251,9 +319,16 @@ class AuditLogDetailsDialog extends StatelessWidget {
                                     const SizedBox(height: 6),
                                     Text(
                                       log.newValue != null
-                                          ? log.newValue!.entries.map((e) => '${e.key}: ${e.value}').join('\n')
+                                          ? log.newValue!.entries
+                                                .map(
+                                                  (e) => '${e.key}: ${e.value}',
+                                                )
+                                                .join('\n')
                                           : 'N/A',
-                                      style: TextStyle(fontSize: 12, color: Colors.green.shade900),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green.shade900,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -273,9 +348,14 @@ class AuditLogDetailsDialog extends StatelessWidget {
                 onPressed: () => Navigator.pop(context),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: Text(t('Close', 'बंद करें', 'Close'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  t('Close', 'बंद करें', 'Close'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -284,17 +364,28 @@ class AuditLogDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoTile(String title, String value, IconData icon, {bool highlight = false}) {
+  Widget _buildInfoTile(
+    String title,
+    String value,
+    IconData icon, {
+    bool highlight = false,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: highlight ? Colors.amber.shade50 : AppColors.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: highlight ? Colors.amber.shade200 : Colors.grey.shade200),
+        border: Border.all(
+          color: highlight ? Colors.amber.shade200 : Colors.grey.shade200,
+        ),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: highlight ? Colors.amber.shade900 : Colors.grey.shade700),
+          Icon(
+            icon,
+            size: 16,
+            color: highlight ? Colors.amber.shade900 : Colors.grey.shade700,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -302,14 +393,20 @@ class AuditLogDetailsDialog extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Text(
                   value,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: highlight ? Colors.amber.shade900 : AppColors.textDark,
+                    color: highlight
+                        ? Colors.amber.shade900
+                        : AppColors.textDark,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

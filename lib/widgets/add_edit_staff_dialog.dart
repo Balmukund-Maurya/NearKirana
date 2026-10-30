@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../language_provider.dart';
 import '../staff_audit_models.dart';
@@ -161,7 +160,10 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
@@ -202,10 +204,16 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryLight.withValues(alpha: 0.3),
+                              color: AppColors.primaryLight.withValues(
+                                alpha: 0.3,
+                              ),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.badge_rounded, color: AppColors.primaryDark, size: 22),
+                            child: const Icon(
+                              Icons.badge_rounded,
+                              color: AppColors.primaryDark,
+                              size: 22,
+                            ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -214,8 +222,16 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                               children: [
                                 Text(
                                   isEditing
-                                      ? t('Edit Staff Account', 'कर्मचारी विवरण बदलें', 'Edit Staff Account')
-                                      : t('Add Staff Account', 'नया कर्मचारी जोड़ें', 'Add Staff Account'),
+                                      ? t(
+                                          'Edit Staff Account',
+                                          'कर्मचारी विवरण बदलें',
+                                          'Edit Staff Account',
+                                        )
+                                      : t(
+                                          'Add Staff Account',
+                                          'नया कर्मचारी जोड़ें',
+                                          'Add Staff Account',
+                                        ),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -224,7 +240,11 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
-                                  t('Roles & Permissions', 'अधिकार एवं अनुमतियां', 'Roles & Permissions'),
+                                  t(
+                                    'Roles & Permissions',
+                                    'अधिकार एवं अनुमतियां',
+                                    'Roles & Permissions',
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -238,7 +258,10 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AppColors.textLight),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: AppColors.textLight,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -253,22 +276,45 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                       children: [
                         // Staff Name
                         Text(
-                          t('Staff Full Name *', 'कर्मचारी का पूरा नाम *', 'Staff Full Name *'),
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          t(
+                            'Staff Full Name *',
+                            'कर्मचारी का पूरा नाम *',
+                            'Staff Full Name *',
+                          ),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _nameController,
                           textCapitalization: TextCapitalization.words,
                           decoration: InputDecoration(
-                            hintText: t('e.g. Ramesh Kumar', 'उदा. रमेश कुमार', 'e.g. Ramesh Kumar'),
-                            prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            hintText: t(
+                              'e.g. Ramesh Kumar',
+                              'उदा. रमेश कुमार',
+                              'e.g. Ramesh Kumar',
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.person_outline_rounded,
+                              size: 20,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
                           ),
                           validator: (val) {
                             if (val == null || val.trim().isEmpty) {
-                              return t('Please enter staff name', 'कृपया कर्मचारी का नाम लिखें', 'Please enter staff name');
+                              return t(
+                                'Please enter staff name',
+                                'कृपया कर्मचारी का नाम लिखें',
+                                'Please enter staff name',
+                              );
                             }
                             return null;
                           },
@@ -286,8 +332,15 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    t('Mobile Number *', 'मोबाइल नंबर *', 'Mobile Number *'),
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                    t(
+                                      'Mobile Number *',
+                                      'मोबाइल नंबर *',
+                                      'Mobile Number *',
+                                    ),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                   const SizedBox(height: 6),
                                   TextFormField(
@@ -298,15 +351,33 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                                       LengthLimitingTextInputFormatter(10),
                                     ],
                                     decoration: InputDecoration(
-                                      hintText: t('10-digit number', '10 अंकों का नंबर', '10-digit number'),
+                                      hintText: t(
+                                        '10-digit number',
+                                        '10 अंकों का नंबर',
+                                        '10-digit number',
+                                      ),
                                       prefixText: '+91 ',
-                                      prefixIcon: const Icon(Icons.phone_android_rounded, size: 20),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                      prefixIcon: const Icon(
+                                        Icons.phone_android_rounded,
+                                        size: 20,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 12,
+                                          ),
                                     ),
                                     validator: (val) {
-                                      if (val == null || val.trim().length != 10) {
-                                        return t('10 digits required', '10 अंक आवश्यक हैं', '10 digits required');
+                                      if (val == null ||
+                                          val.trim().length != 10) {
+                                        return t(
+                                          '10 digits required',
+                                          '10 अंक आवश्यक हैं',
+                                          '10 digits required',
+                                        );
                                       }
                                       return null;
                                     },
@@ -323,8 +394,15 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    t('Action PIN *', 'एक्शन पिन *', 'Action PIN *'),
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                    t(
+                                      'Action PIN *',
+                                      'एक्शन पिन *',
+                                      'Action PIN *',
+                                    ),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                   const SizedBox(height: 6),
                                   TextFormField(
@@ -336,14 +414,32 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                                       LengthLimitingTextInputFormatter(4),
                                     ],
                                     decoration: InputDecoration(
-                                      hintText: t('4-digit PIN', '4 अंकों का पिन', '4-digit PIN'),
-                                      prefixIcon: const Icon(Icons.pin_rounded, size: 20),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                      hintText: t(
+                                        '4-digit PIN',
+                                        '4 अंकों का पिन',
+                                        '4-digit PIN',
+                                      ),
+                                      prefixIcon: const Icon(
+                                        Icons.pin_rounded,
+                                        size: 20,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 12,
+                                          ),
                                     ),
                                     validator: (val) {
-                                      if (val == null || val.trim().length != 4) {
-                                        return t('4 digits required', '4 अंक आवश्यक हैं', '4 digits required');
+                                      if (val == null ||
+                                          val.trim().length != 4) {
+                                        return t(
+                                          '4 digits required',
+                                          '4 अंक आवश्यक हैं',
+                                          '4 digits required',
+                                        );
                                       }
                                       return null;
                                     },
@@ -357,8 +453,15 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
 
                         // Role Selector
                         Text(
-                          t('Designated Role *', 'पद / भूमिका *', 'Designated Role *'),
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          t(
+                            'Designated Role *',
+                            'पद / भूमिका *',
+                            'Designated Role *',
+                          ),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -371,8 +474,12 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                                 role.localizedLabel(t),
                                 style: TextStyle(
                                   fontSize: 12,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                  color: isSelected ? Colors.white : AppColors.textDark,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppColors.textDark,
                                 ),
                               ),
                               selected: isSelected,
@@ -390,15 +497,26 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                           children: [
                             Expanded(
                               child: Text(
-                                t('Permissions *', 'अधिकार एवं अनुमतियां *', 'Permissions *'),
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                t(
+                                  'Permissions *',
+                                  'अधिकार एवं अनुमतियां *',
+                                  'Permissions *',
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               '${_selectedPermissions.length} ${t('selected', 'चुने गए', 'selected')}',
-                              style: const TextStyle(fontSize: 12, color: AppColors.primaryDark, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primaryDark,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -411,7 +529,9 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                           ),
                           child: Column(
                             children: StaffPermission.values.map((perm) {
-                              final isChecked = _selectedPermissions.contains(perm);
+                              final isChecked = _selectedPermissions.contains(
+                                perm,
+                              );
                               return CheckboxListTile(
                                 dense: true,
                                 visualDensity: VisualDensity.compact,
@@ -421,11 +541,14 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                                   perm.localizedLabel(t),
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: isChecked ? FontWeight.w600 : FontWeight.normal,
+                                    fontWeight: isChecked
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
                                     color: AppColors.textDark,
                                   ),
                                 ),
-                                onChanged: (val) => _togglePermission(perm, val),
+                                onChanged: (val) =>
+                                    _togglePermission(perm, val),
                               );
                             }).toList(),
                           ),
@@ -443,19 +566,35 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                     backgroundColor: AppColors.primaryDark,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: _isSaving
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : Text(
                           isEditing
-                              ? t('Save Changes', 'बदलाव सुरक्षित करें', 'Save Changes')
-                              : t('Create Staff Account', 'स्टाफ खाता बनाएं', 'Create Staff Account'),
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                              ? t(
+                                  'Save Changes',
+                                  'बदलाव सुरक्षित करें',
+                                  'Save Changes',
+                                )
+                              : t(
+                                  'Create Staff Account',
+                                  'स्टाफ खाता बनाएं',
+                                  'Create Staff Account',
+                                ),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ],

@@ -106,22 +106,25 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     _lastRouteStart = start;
     _lastRouteEnd = end;
 
-    _roadRoutingService.fetchRoadRoute(start: start, end: end).then((res) {
-      if (mounted) {
-        setState(() {
-          _isFetchingRoute = false;
-          if (res != null && res.points.isNotEmpty) {
-            _roadRoutePoints = res.points;
-            _roadDistanceMeters = res.distanceMeters;
-            _roadDurationSeconds = res.durationSeconds;
+    _roadRoutingService
+        .fetchRoadRoute(start: start, end: end)
+        .then((res) {
+          if (mounted) {
+            setState(() {
+              _isFetchingRoute = false;
+              if (res != null && res.points.isNotEmpty) {
+                _roadRoutePoints = res.points;
+                _roadDistanceMeters = res.distanceMeters;
+                _roadDurationSeconds = res.durationSeconds;
+              }
+            });
+          }
+        })
+        .catchError((_) {
+          if (mounted) {
+            setState(() => _isFetchingRoute = false);
           }
         });
-      }
-    }).catchError((_) {
-      if (mounted) {
-        setState(() => _isFetchingRoute = false);
-      }
-    });
   }
 
   @override
@@ -196,9 +199,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     }
     if (_targetRiderPoint == null) return _previousRiderPoint!;
     final t = Curves.easeInOut.transform(_riderMoveController.value);
-    final lat = _previousRiderPoint!.latitude +
+    final lat =
+        _previousRiderPoint!.latitude +
         (_targetRiderPoint!.latitude - _previousRiderPoint!.latitude) * t;
-    final lng = _previousRiderPoint!.longitude +
+    final lng =
+        _previousRiderPoint!.longitude +
         (_targetRiderPoint!.longitude - _previousRiderPoint!.longitude) * t;
     return LatLng(lat, lng);
   }
@@ -260,7 +265,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
       context: context,
       builder: (dlgCtx) => StatefulBuilder(
         builder: (context, setDlgState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               Container(
@@ -278,8 +285,15 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  t('Delivery PIN Verification', 'डिलीवरी PIN सत्यापन', 'Delivery PIN Verification'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  t(
+                    'Delivery PIN Verification',
+                    'डिलीवरी PIN सत्यापन',
+                    'Delivery PIN Verification',
+                  ),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],
@@ -311,7 +325,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   counterText: '',
                   hintText: '••••',
                   errorText: errorText,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -338,12 +354,18 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   return;
                 }
                 Navigator.pop(dlgCtx);
-                await FirebaseUtils.firestore.collection('orders').doc(widget.orderId).update({
-                  'status': OrderStatus.delivered,
-                  'delivered_at': FieldValue.serverTimestamp(),
-                  'delivery_status': 'delivered',
-                });
-                await _service.stopBroadcasting(widget.orderId, isDelivered: true);
+                await FirebaseUtils.firestore
+                    .collection('orders')
+                    .doc(widget.orderId)
+                    .update({
+                      'status': OrderStatus.delivered,
+                      'delivered_at': FieldValue.serverTimestamp(),
+                      'delivery_status': 'delivered',
+                    });
+                await _service.stopBroadcasting(
+                  widget.orderId,
+                  isDelivered: true,
+                );
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -362,10 +384,16 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0C831F),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: Text(
-                t('Verify & Complete', 'वेरिफाई व पूरा करें', 'Verify & Complete'),
+                t(
+                  'Verify & Complete',
+                  'वेरिफाई व पूरा करें',
+                  'Verify & Complete',
+                ),
               ),
             ),
           ],
@@ -400,10 +428,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
       maxLng = math.max(maxLng, p.longitude);
     }
 
-    final bounds = LatLngBounds(
-      LatLng(minLat, minLng),
-      LatLng(maxLat, maxLng),
-    );
+    final bounds = LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng));
 
     _mapController.fitCamera(
       CameraFit.bounds(
@@ -423,17 +448,25 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseUtils.firestore.collection('orders').doc(widget.orderId).snapshots(),
+        stream: FirebaseUtils.firestore
+            .collection('orders')
+            .doc(widget.orderId)
+            .snapshots(),
         builder: (context, orderSnapshot) {
-          final liveOrderData = orderSnapshot.data?.data() ?? widget.initialOrderData ?? {};
+          final liveOrderData =
+              orderSnapshot.data?.data() ?? widget.initialOrderData ?? {};
 
           return StreamBuilder<LiveTrackingSession?>(
             stream: _service.streamTrackingSession(widget.orderId),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting && widget.initialOrderData == null && !orderSnapshot.hasData) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  widget.initialOrderData == null &&
+                  !orderSnapshot.hasData) {
                 return const Scaffold(
                   body: Center(
-                    child: CircularProgressIndicator(color: AppColors.primaryDark),
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryDark,
+                    ),
                   ),
                 );
               }
@@ -443,54 +476,73 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
 
               // Fallback data from orderData if stream document is still initializing
               final customerName =
-                  session?.customerName ?? orderData['customer_name'] ?? 'Customer';
-              final customerAddress = session?.customerAddress ??
+                  session?.customerName ??
+                  orderData['customer_name'] ??
+                  'Customer';
+              final customerAddress =
+                  session?.customerAddress ??
                   orderData['delivery_address'] ??
                   'Delivery Address';
-              final customerPhone = session?.customerPhone ??
+              final customerPhone =
+                  session?.customerPhone ??
                   orderData['customer_phone'] ??
                   orderData['user_phone'] ??
                   orderData['phone'] ??
                   '';
-              final shopName = session?.shopName ??
+              final shopName =
+                  session?.shopName ??
                   orderData['shop_name'] ??
                   orderData['store_name'] ??
                   'Kirana Store';
-              final shopAddress = orderData['shop_address'] ??
+              final shopAddress =
+                  orderData['shop_address'] ??
                   orderData['store_address'] ??
                   'Store Location';
 
               // 1. Resolve Customer coordinates
-              final customerLat = session?.customerLat ??
+              final customerLat =
+                  session?.customerLat ??
                   (orderData['customer_lat'] as num?)?.toDouble() ??
-                  (orderData['selected_address']?['latitude'] as num?)?.toDouble() ??
+                  (orderData['selected_address']?['latitude'] as num?)
+                      ?.toDouble() ??
                   (orderData['selected_address']?['lat'] as num?)?.toDouble() ??
-                  (orderData['delivery_location']?['latitude'] as num?)?.toDouble() ??
-                  (orderData['delivery_location']?['lat'] as num?)?.toDouble() ??
+                  (orderData['delivery_location']?['latitude'] as num?)
+                      ?.toDouble() ??
+                  (orderData['delivery_location']?['lat'] as num?)
+                      ?.toDouble() ??
                   (orderData['address_lat'] as num?)?.toDouble();
-              final customerLng = session?.customerLng ??
+              final customerLng =
+                  session?.customerLng ??
                   (orderData['customer_lng'] as num?)?.toDouble() ??
-                  (orderData['selected_address']?['longitude'] as num?)?.toDouble() ??
+                  (orderData['selected_address']?['longitude'] as num?)
+                      ?.toDouble() ??
                   (orderData['selected_address']?['lng'] as num?)?.toDouble() ??
-                  (orderData['delivery_location']?['longitude'] as num?)?.toDouble() ??
-                  (orderData['delivery_location']?['lng'] as num?)?.toDouble() ??
+                  (orderData['delivery_location']?['longitude'] as num?)
+                      ?.toDouble() ??
+                  (orderData['delivery_location']?['lng'] as num?)
+                      ?.toDouble() ??
                   (orderData['address_lng'] as num?)?.toDouble();
 
-              final partnerName = session?.partnerName ??
+              final partnerName =
+                  session?.partnerName ??
                   orderData['delivery_boy_name'] ??
                   'Rider';
-              final partnerPhone = session?.partnerPhone ??
+              final partnerPhone =
+                  session?.partnerPhone ??
                   orderData['delivery_boy_phone'] ??
                   '';
-              final partnerVehicle = session?.partnerVehicle ??
+              final partnerVehicle =
+                  session?.partnerVehicle ??
                   orderData['delivery_partner_vehicle'];
 
               // 2. Resolve Store coordinates
-              double? shopLat = session?.shopLat ??
+              double? shopLat =
+                  session?.shopLat ??
                   (orderData['shop_lat'] as num?)?.toDouble() ??
                   (orderData['store_lat'] as num?)?.toDouble() ??
                   (orderData['shop_latitude'] as num?)?.toDouble();
-              double? shopLng = session?.shopLng ??
+              double? shopLng =
+                  session?.shopLng ??
                   (orderData['shop_lng'] as num?)?.toDouble() ??
                   (orderData['store_lng'] as num?)?.toDouble() ??
                   (orderData['shop_longitude'] as num?)?.toDouble();
@@ -503,13 +555,15 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               }
 
               // 3. Resolve Rider / Partner coordinates
-              double? partnerLat = session?.currentLocation?.latitude ??
+              double? partnerLat =
+                  session?.currentLocation?.latitude ??
                   (orderData['rider_lat'] as num?)?.toDouble() ??
                   (orderData['rider_latitude'] as num?)?.toDouble() ??
                   (orderData['delivery_boy_lat'] as num?)?.toDouble() ??
                   (orderData['partner_lat'] as num?)?.toDouble() ??
                   (orderData['driver_lat'] as num?)?.toDouble();
-              double? partnerLng = session?.currentLocation?.longitude ??
+              double? partnerLng =
+                  session?.currentLocation?.longitude ??
                   (orderData['rider_lng'] as num?)?.toDouble() ??
                   (orderData['rider_longitude'] as num?)?.toDouble() ??
                   (orderData['delivery_boy_lng'] as num?)?.toDouble() ??
@@ -519,29 +573,48 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               // Safe coordinate fallbacks
               final double finalCustomerLat = customerLat ?? 28.6139;
               final double finalCustomerLng = customerLng ?? 77.2090;
-              final double finalShopLat = shopLat ?? (finalCustomerLat - 0.0075);
-              final double finalShopLng = shopLng ?? (finalCustomerLng - 0.0065);
+              final double finalShopLat =
+                  shopLat ?? (finalCustomerLat - 0.0075);
+              final double finalShopLng =
+                  shopLng ?? (finalCustomerLng - 0.0065);
 
               // If rider hasn't broadcasted explicit coordinates yet, position rider on the active route
               if (partnerLat == null || partnerLng == null) {
-                final statusStr = (orderData['status'] ?? session?.status.label ?? '').toString().toLowerCase();
-                final isDispatched = statusStr.contains('delivery') ||
+                final statusStr =
+                    (orderData['status'] ?? session?.status.label ?? '')
+                        .toString()
+                        .toLowerCase();
+                final isDispatched =
+                    statusStr.contains('delivery') ||
                     statusStr.contains('transit') ||
                     statusStr.contains('pack') ||
                     statusStr.contains('ready') ||
-                    (orderData['delivery_boy_name'] != null && orderData['delivery_boy_name'].toString().isNotEmpty);
+                    (orderData['delivery_boy_name'] != null &&
+                        orderData['delivery_boy_name'].toString().isNotEmpty);
 
                 if (isDispatched) {
-                  partnerLat = finalShopLat + (finalCustomerLat - finalShopLat) * 0.45;
-                  partnerLng = finalShopLng + (finalCustomerLng - finalShopLng) * 0.45;
+                  partnerLat =
+                      finalShopLat + (finalCustomerLat - finalShopLat) * 0.45;
+                  partnerLng =
+                      finalShopLng + (finalCustomerLng - finalShopLng) * 0.45;
                 }
               }
 
-              final double finalPartnerLat = partnerLat ?? (finalShopLat + (finalCustomerLat - finalShopLat) * 0.45);
-              final double finalPartnerLng = partnerLng ?? (finalShopLng + (finalCustomerLng - finalShopLng) * 0.45);
+              final double finalPartnerLat =
+                  partnerLat ??
+                  (finalShopLat + (finalCustomerLat - finalShopLat) * 0.45);
+              final double finalPartnerLng =
+                  partnerLng ??
+                  (finalShopLng + (finalCustomerLng - finalShopLng) * 0.45);
 
-              final LatLng partnerPoint = LatLng(finalPartnerLat, finalPartnerLng);
-              final LatLng customerPoint = LatLng(finalCustomerLat, finalCustomerLng);
+              final LatLng partnerPoint = LatLng(
+                finalPartnerLat,
+                finalPartnerLng,
+              );
+              final LatLng customerPoint = LatLng(
+                finalCustomerLat,
+                finalCustomerLng,
+              );
               final LatLng storePoint = LatLng(finalShopLat, finalShopLng);
 
               final partnerHeading = session?.currentLocation?.heading ?? 45.0;
@@ -571,7 +644,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
 
               final bool isHeadingToStore = session?.isHeadingToStore ?? false;
               final bool isArrivedAtStore = session?.isArrivedAtStore ?? false;
-              final bool isDelivered = (orderData['status']?.toString().toLowerCase() == OrderStatus.delivered.toLowerCase()) ||
+              final bool isDelivered =
+                  (orderData['status']?.toString().toLowerCase() ==
+                      OrderStatus.delivered.toLowerCase()) ||
                   (session?.status == LiveTrackingStatus.delivered);
 
               // Auto-fit on first valid coordinate load
@@ -587,8 +662,12 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               }
 
               // Dynamic distance & ETA calculation based on real GPS coordinates
-              final double targetLat = (isHeadingToStore || isArrivedAtStore) ? finalShopLat : finalCustomerLat;
-              final double targetLng = (isHeadingToStore || isArrivedAtStore) ? finalShopLng : finalCustomerLng;
+              final double targetLat = (isHeadingToStore || isArrivedAtStore)
+                  ? finalShopLat
+                  : finalCustomerLat;
+              final double targetLng = (isHeadingToStore || isArrivedAtStore)
+                  ? finalShopLng
+                  : finalCustomerLng;
 
               final double calculatedDist = Geolocator.distanceBetween(
                 finalPartnerLat,
@@ -597,17 +676,23 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 targetLng,
               );
 
-              final double realDistMeters = (session?.distanceRemainingMeters != null && session!.distanceRemainingMeters! > 0)
-                  ? session.distanceRemainingMeters!
+              final double? sDist = session?.distanceRemainingMeters;
+              final double realDistMeters = (sDist != null && sDist > 0)
+                  ? sDist
                   : calculatedDist;
 
               // Speed approximation: ~20-22 km/h in city traffic = ~350 meters per minute
-              final int calculatedEta = ((realDistMeters / 350).ceil()).clamp(1, 90);
-              final int realEtaMins = (session?.estimatedMinutesRemaining != null && session!.estimatedMinutesRemaining! > 0)
-                  ? session.estimatedMinutesRemaining!
+              final int calculatedEta = ((realDistMeters / 350).ceil()).clamp(
+                1,
+                90,
+              );
+              final int? sMins = session?.estimatedMinutesRemaining;
+              final int realEtaMins = (sMins != null && sMins > 0)
+                  ? sMins
                   : calculatedEta;
 
-              final bool realIsNearby = (session?.isNearby ?? false) || realDistMeters <= 200.0;
+              final bool realIsNearby =
+                  (session?.isNearby ?? false) || realDistMeters <= 200.0;
 
               final String dynamicDistStr = realDistMeters < 1000
                   ? '${realDistMeters.round()} m'
@@ -616,12 +701,16 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               final String dynamicEtaStr = isDelivered
                   ? t('Delivered', 'डिलीवर हो गया', 'Delivered')
                   : isArrivedAtStore
-                      ? t('At Store', 'दुकान पर पहुंचे', 'Store par pahuche')
-                      : realIsNearby
-                          ? t('1–2 mins', '1–2 मिनट', '1–2 mins')
-                          : realEtaMins <= 2
-                              ? t('1–2 mins', '1–2 मिनट', '1–2 mins')
-                              : t('$realEtaMins mins', '$realEtaMins मिनट', '$realEtaMins mins');
+                  ? t('At Store', 'दुकान पर पहुंचे', 'Store par pahuche')
+                  : realIsNearby
+                  ? t('1–2 mins', '1–2 मिनट', '1–2 mins')
+                  : realEtaMins <= 2
+                  ? t('1–2 mins', '1–2 मिनट', '1–2 mins')
+                  : t(
+                      '$realEtaMins mins',
+                      '$realEtaMins मिनट',
+                      '$realEtaMins mins',
+                    );
 
               final String distAwayStr = t(
                 '$dynamicDistStr away',
@@ -637,7 +726,10 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
 
                   // Determine active navigation start & target
                   final LatLng navStart = animatedRiderPoint;
-                  final LatLng navTarget = (isHeadingToStore || isArrivedAtStore) ? storePoint : customerPoint;
+                  final LatLng navTarget =
+                      (isHeadingToStore || isArrivedAtStore)
+                      ? storePoint
+                      : customerPoint;
 
                   // Request turn-by-turn road route along real streets (OSRM / OpenStreetMap)
                   _fetchRoadRouteIfNeeded(navStart, navTarget);
@@ -670,22 +762,28 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   // Bike (~21 km/h): 350 m/min (or OSRM calculated road duration)
                   // Car (~18 km/h): 300 m/min
                   // Walk (~4.8 km/h): 80 m/min
-                  final double activeDistanceMeters = _roadDistanceMeters > 0 ? _roadDistanceMeters : realDistMeters;
+                  final double activeDistanceMeters = _roadDistanceMeters > 0
+                      ? _roadDistanceMeters
+                      : realDistMeters;
                   final int bikeEtaMins = _roadDurationSeconds > 0
                       ? (_roadDurationSeconds / 60).ceil().clamp(1, 120)
-                      : (session?.estimatedMinutesRemaining != null && session!.estimatedMinutesRemaining! > 0)
-                          ? session.estimatedMinutesRemaining!
-                          : ((activeDistanceMeters / 350).ceil()).clamp(1, 120);
+                      : (sMins != null && sMins > 0)
+                      ? sMins
+                      : ((activeDistanceMeters / 350).ceil()).clamp(1, 120);
                   final int carEtaMins = _roadDurationSeconds > 0
-                      ? ((_roadDurationSeconds * 1.15) / 60).ceil().clamp(1, 120)
+                      ? ((_roadDurationSeconds * 1.15) / 60).ceil().clamp(
+                          1,
+                          120,
+                        )
                       : ((activeDistanceMeters / 300).ceil()).clamp(1, 120);
-                  final int walkEtaMins = ((activeDistanceMeters / 80).ceil()).clamp(1, 180);
+                  final int walkEtaMins = ((activeDistanceMeters / 80).ceil())
+                      .clamp(1, 180);
 
                   final int selectedEtaMins = _selectedTransportMode == 'car'
                       ? carEtaMins
                       : _selectedTransportMode == 'walk'
-                          ? walkEtaMins
-                          : bikeEtaMins;
+                      ? walkEtaMins
+                      : bikeEtaMins;
 
                   final String selectedDistStr = activeDistanceMeters < 1000
                       ? '${activeDistanceMeters.round()} m'
@@ -700,14 +798,27 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
 
                   // Top header labels
                   final String originLabel = widget.viewerRole == 'customer'
-                      ? (partnerName.isNotEmpty ? '$partnerName (Live)' : t('Rider Live Location', 'राइडर की लोकेशन', 'Rider Live Location'))
+                      ? (partnerName.isNotEmpty
+                            ? '$partnerName (Live)'
+                            : t(
+                                'Rider Live Location',
+                                'राइडर की लोकेशन',
+                                'Rider Live Location',
+                              ))
                       : widget.viewerRole == 'rider'
-                          ? t('Your Location', 'आपकी लोकेशन', 'Your Location')
-                          : t('Delivery Partner', 'डिलीवरी पार्टनर', 'Delivery Partner');
+                      ? t('Your Location', 'आपकी लोकेशन', 'Your Location')
+                      : t(
+                          'Delivery Partner',
+                          'डिलीवरी पार्टनर',
+                          'Delivery Partner',
+                        );
 
-                  final String destinationLabel = isHeadingToStore || isArrivedAtStore
+                  final String destinationLabel =
+                      isHeadingToStore || isArrivedAtStore
                       ? (shopAddress.isNotEmpty ? shopAddress : shopName)
-                      : (customerAddress.isNotEmpty ? customerAddress : customerName);
+                      : (customerAddress.isNotEmpty
+                            ? customerAddress
+                            : customerName);
 
                   return Stack(
                     children: [
@@ -724,7 +835,8 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                               urlTemplate: _isSatellite
                                   ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
                                   : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-                              userAgentPackageName: 'com.adityakirana.aditya_kirana',
+                              userAgentPackageName:
+                                  'com.adityakirana.aditya_kirana',
                             ),
 
                           // Google Maps 2-Layer Road Polyline (exact match to screenshot)
@@ -754,8 +866,12 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                                   point: storePoint,
                                   radius: 80,
                                   useRadiusInMeter: true,
-                                  color: const Color(0xFF6366F1).withValues(alpha: 0.10),
-                                  borderColor: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                                  color: const Color(
+                                    0xFF6366F1,
+                                  ).withValues(alpha: 0.10),
+                                  borderColor: const Color(
+                                    0xFF6366F1,
+                                  ).withValues(alpha: 0.4),
                                   borderStrokeWidth: 1.5,
                                 )
                               else
@@ -764,7 +880,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                                   radius: 120,
                                   useRadiusInMeter: true,
                                   color: Colors.blue.withValues(alpha: 0.08),
-                                  borderColor: Colors.blue.withValues(alpha: 0.35),
+                                  borderColor: Colors.blue.withValues(
+                                    alpha: 0.35,
+                                  ),
                                   borderStrokeWidth: 1.5,
                                 ),
                             ],
@@ -781,14 +899,22 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                                   height: 32,
                                   alignment: Alignment.center,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF1D4ED8),
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: Colors.white, width: 1.8),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1.8,
+                                      ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.35),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.35,
+                                          ),
                                           blurRadius: 5,
                                           offset: const Offset(0, 2),
                                         ),
@@ -813,7 +939,8 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                                 width: 85,
                                 height: 65,
                                 child: _buildStoreMarker(
-                                  isTarget: isHeadingToStore || isArrivedAtStore,
+                                  isTarget:
+                                      isHeadingToStore || isArrivedAtStore,
                                   storeName: shopName,
                                   lang: lang,
                                 ),
@@ -827,7 +954,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                                 alignment: Alignment.topCenter,
                                 child: _buildGoogleMapsDestinationPin(
                                   label: widget.viewerRole == 'customer'
-                                      ? t('Your Location', 'आपका पता', 'Aapka Address')
+                                      ? t(
+                                          'Your Location',
+                                          'आपका पता',
+                                          'Aapka Address',
+                                        )
                                       : '${t('Customer', 'ग्राहक', 'Customer')}: $customerName',
                                 ),
                               ),
@@ -842,7 +973,8 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                                   partnerName,
                                   animatedRiderHeading,
                                   realIsNearby,
-                                  isHeadingToStore: isHeadingToStore || isArrivedAtStore,
+                                  isHeadingToStore:
+                                      isHeadingToStore || isArrivedAtStore,
                                   lang: lang,
                                 ),
                               ),
@@ -885,7 +1017,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                               icon: _isSatellite
                                   ? Icons.map_outlined
                                   : Icons.satellite_alt_rounded,
-                              tooltip: t('Toggle Satellite', 'सैटेलाइट व्यू बदलें', 'Toggle Satellite'),
+                              tooltip: t(
+                                'Toggle Satellite',
+                                'सैटेलाइट व्यू बदलें',
+                                'Toggle Satellite',
+                              ),
                               onTap: () {
                                 setState(() => _isSatellite = !_isSatellite);
                               },
@@ -893,7 +1029,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                             const SizedBox(height: 10),
                             _buildMapControlButton(
                               icon: Icons.two_wheeler_rounded,
-                              tooltip: t('Center Rider', 'राइडर पर केंद्रित करें', 'Center Rider'),
+                              tooltip: t(
+                                'Center Rider',
+                                'राइडर पर केंद्रित करें',
+                                'Center Rider',
+                              ),
                               color: AppColors.primaryDark,
                               iconColor: Colors.white,
                               onTap: () => _centerOn(animatedRiderPoint),
@@ -904,8 +1044,16 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                                   ? Icons.storefront_rounded
                                   : Icons.home_rounded,
                               tooltip: (isHeadingToStore || isArrivedAtStore)
-                                  ? t('Center Store', 'दुकान पर केंद्रित करें', 'Center Store')
-                                  : t('Center Destination', 'गंतव्य पर केंद्रित करें', 'Center Destination'),
+                                  ? t(
+                                      'Center Store',
+                                      'दुकान पर केंद्रित करें',
+                                      'Center Store',
+                                    )
+                                  : t(
+                                      'Center Destination',
+                                      'गंतव्य पर केंद्रित करें',
+                                      'Center Destination',
+                                    ),
                               onTap: () => _centerOn(
                                 (isHeadingToStore || isArrivedAtStore)
                                     ? storePoint
@@ -957,7 +1105,8 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                           bikeEtaMins: bikeEtaMins,
                           carEtaMins: carEtaMins,
                           walkEtaMins: walkEtaMins,
-                          onStartNavigation: () => _centerOn(animatedRiderPoint, zoom: 17.5),
+                          onStartNavigation: () =>
+                              _centerOn(animatedRiderPoint, zoom: 17.5),
                         ),
                       ),
                     ],
@@ -1009,7 +1158,10 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: AppColors.textDark,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
             const SizedBox(width: 4),
@@ -1034,7 +1186,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                         width: 10,
                         height: 10,
                         decoration: const BoxDecoration(
-                          color: Color(0xFF1A73E8), // Google Maps origin blue dot
+                          color: Color(
+                            0xFF1A73E8,
+                          ), // Google Maps origin blue dot
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -1055,12 +1209,30 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   ),
                   // 3 vertical connector dots
                   Padding(
-                    padding: const EdgeInsets.only(left: 3.5, top: 2, bottom: 2),
+                    padding: const EdgeInsets.only(
+                      left: 3.5,
+                      top: 2,
+                      bottom: 2,
+                    ),
                     child: Column(
                       children: [
-                        Container(width: 3, height: 3, decoration: BoxDecoration(color: Colors.grey.shade400, shape: BoxShape.circle)),
+                        Container(
+                          width: 3,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade400,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Container(width: 3, height: 3, decoration: BoxDecoration(color: Colors.grey.shade400, shape: BoxShape.circle)),
+                        Container(
+                          width: 3,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade400,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1099,7 +1271,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 if (onFitAll != null)
                   IconButton(
                     visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.swap_vert_rounded, size: 20, color: Color(0xFF475569)),
+                    icon: const Icon(
+                      Icons.swap_vert_rounded,
+                      size: 20,
+                      color: Color(0xFF475569),
+                    ),
                     tooltip: t('Fit Route', 'रूट देखें', 'Fit Route'),
                     onPressed: onFitAll,
                   ),
@@ -1127,7 +1303,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
         ),
         child: Text(
           t('ENDED', 'समाप्त', 'ENDED'),
-          style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+          style: GoogleFonts.inter(
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade700,
+          ),
         ),
       );
     }
@@ -1138,10 +1318,14 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: Colors.green.withValues(alpha: 0.15 + (_pulseController.value * 0.1)),
+            color: Colors.green.withValues(
+              alpha: 0.15 + (_pulseController.value * 0.1),
+            ),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Colors.green.withValues(alpha: 0.4 + (_pulseController.value * 0.4)),
+              color: Colors.green.withValues(
+                alpha: 0.4 + (_pulseController.value * 0.4),
+              ),
             ),
           ),
           child: Row(
@@ -1222,7 +1406,10 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 color: const Color(0xFF0F172A),
                 borderRadius: BorderRadius.circular(6),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 4),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 4,
+                  ),
                 ],
               ),
               child: Text(
@@ -1246,9 +1433,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   height: 38 + (_pulseController.value * 14),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF1A73E8).withValues(
-                      alpha: 0.24 * (1 - _pulseController.value),
-                    ),
+                    color: const Color(
+                      0xFF1A73E8,
+                    ).withValues(alpha: 0.24 * (1 - _pulseController.value)),
                   ),
                 ),
                 // Heading rotation with outer white ring and intense blue dot
@@ -1261,7 +1448,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1A73E8).withValues(alpha: 0.35),
+                          color: const Color(
+                            0xFF1A73E8,
+                          ).withValues(alpha: 0.35),
                           blurRadius: 8,
                           spreadRadius: 2,
                         ),
@@ -1291,7 +1480,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                           height: 18,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Color(0xFF1A73E8), // Google Maps live dot blue
+                            color: Color(
+                              0xFF1A73E8,
+                            ), // Google Maps live dot blue
                           ),
                         ),
                         // Mini rider bike
@@ -1352,12 +1543,18 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
             color: Colors.white,
             borderRadius: BorderRadius.circular(5),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 3),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 3,
+              ),
             ],
           ),
           child: Text(
             label,
-            style: GoogleFonts.inter(fontSize: 8.5, fontWeight: FontWeight.bold),
+            style: GoogleFonts.inter(
+              fontSize: 8.5,
+              fontWeight: FontWeight.bold,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1388,7 +1585,8 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
             border: Border.all(color: Colors.white, width: 2),
             boxShadow: [
               BoxShadow(
-                color: (isTarget ? const Color(0xFF6366F1) : Colors.black).withValues(alpha: 0.25),
+                color: (isTarget ? const Color(0xFF6366F1) : Colors.black)
+                    .withValues(alpha: 0.25),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
@@ -1407,7 +1605,10 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
             color: Colors.white,
             borderRadius: BorderRadius.circular(4),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 2),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 2,
+              ),
             ],
           ),
           child: Text(
@@ -1443,7 +1644,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
           decoration: BoxDecoration(
             color: isSelected ? const Color(0xFFE0F2FE) : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
-            border: isSelected ? Border.all(color: const Color(0xFF0284C7), width: 1.5) : null,
+            border: isSelected
+                ? Border.all(color: const Color(0xFF0284C7), width: 1.5)
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1451,7 +1654,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               Icon(
                 icon,
                 size: 18,
-                color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF64748B),
+                color: isSelected
+                    ? const Color(0xFF0284C7)
+                    : const Color(0xFF64748B),
               ),
               const SizedBox(width: 5),
               Text(
@@ -1459,7 +1664,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF334155),
+                  color: isSelected
+                      ? const Color(0xFF0284C7)
+                      : const Color(0xFF334155),
                 ),
               ),
             ],
@@ -1527,7 +1734,8 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
           if (details.primaryVelocity! > 150 && !_isBottomCardMinimized) {
             HapticFeedback.selectionClick();
             setState(() => _isBottomCardMinimized = true);
-          } else if (details.primaryVelocity! < -150 && _isBottomCardMinimized) {
+          } else if (details.primaryVelocity! < -150 &&
+              _isBottomCardMinimized) {
             HapticFeedback.selectionClick();
             setState(() => _isBottomCardMinimized = false);
           }
@@ -1549,7 +1757,12 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
               ),
             ],
           ),
-          padding: EdgeInsets.fromLTRB(16, 10, 16, _isBottomCardMinimized ? 12 : 16),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            10,
+            16,
+            _isBottomCardMinimized ? 12 : 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1559,11 +1772,16 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.selectionClick();
-                    setState(() => _isBottomCardMinimized = !_isBottomCardMinimized);
+                    setState(
+                      () => _isBottomCardMinimized = !_isBottomCardMinimized,
+                    );
                   },
                   borderRadius: BorderRadius.circular(10),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 16,
+                    ),
                     child: Container(
                       width: 40,
                       height: 4,
@@ -1612,7 +1830,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                                 children: [
                                   Text(
                                     isDelivered
-                                        ? t('Delivered', 'डिलीवर हुआ', 'Delivered')
+                                        ? t(
+                                            'Delivered',
+                                            'डिलीवर हुआ',
+                                            'Delivered',
+                                          )
                                         : '$selectedEtaMins min',
                                     style: GoogleFonts.outfit(
                                       fontSize: 20,
@@ -1634,7 +1856,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                               Text(
                                 isHeadingToStore || isArrivedAtStore
                                     ? shopName
-                                    : (customerAddress.isNotEmpty ? customerAddress : customerName),
+                                    : (customerAddress.isNotEmpty
+                                          ? customerAddress
+                                          : customerName),
                                 style: GoogleFonts.inter(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
@@ -1653,14 +1877,22 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                           icon: const Icon(Icons.navigation_rounded, size: 15),
                           label: Text(
                             t('Start', 'शुरू', 'Start'),
-                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF007A87),
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             minimumSize: Size.zero,
                           ),
                         ),
@@ -1736,7 +1968,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                         child: Padding(
                           padding: const EdgeInsets.all(8),
                           child: Icon(
-                            _isSatellite ? Icons.map_outlined : Icons.tune_rounded,
+                            _isSatellite
+                                ? Icons.map_outlined
+                                : Icons.tune_rounded,
                             size: 18,
                             color: const Color(0xFF475569),
                           ),
@@ -1752,10 +1986,20 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                         customBorder: const CircleBorder(),
                         onTap: () {
                           HapticFeedback.lightImpact();
-                          Clipboard.setData(ClipboardData(text: 'Tracking Order #${widget.orderId}'));
+                          Clipboard.setData(
+                            ClipboardData(
+                              text: 'Tracking Order #${widget.orderId}',
+                            ),
+                          );
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(t('Tracking link copied', 'ट्रैकिंग लिंक कॉपी हुआ', 'Tracking link copied')),
+                              content: Text(
+                                t(
+                                  'Tracking link copied',
+                                  'ट्रैकिंग लिंक कॉपी हुआ',
+                                  'Tracking link copied',
+                                ),
+                              ),
                               duration: const Duration(seconds: 2),
                             ),
                           );
@@ -1824,7 +2068,10 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 if (realIsNearby && !isDelivered) ...[
                   Container(
                     margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEF3C7),
                       borderRadius: BorderRadius.circular(12),
@@ -1832,7 +2079,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.notifications_active_rounded, color: Color(0xFFD97706), size: 20),
+                        const Icon(
+                          Icons.notifications_active_rounded,
+                          color: Color(0xFFD97706),
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
@@ -1840,12 +2091,19 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                             children: [
                               Text(
                                 'आस-पास पहुंच गए हैं',
-                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF92400E)),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: const Color(0xFF92400E),
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 'कृपया पार्सल रिसीव करने के लिए तैयार रहें',
-                                style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFFB45309)),
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: const Color(0xFFB45309),
+                                ),
                               ),
                             ],
                           ),
@@ -1861,9 +2119,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(
-                      isDelivered
-                          ? 'डिलीवरी सफल हुई'
-                          : '$selectedEtaMins min',
+                      isDelivered ? 'डिलीवरी सफल हुई' : '$selectedEtaMins min',
                       style: GoogleFonts.outfit(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -1887,7 +2143,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 Text(
                   isDelivered
                       ? 'आपका सामान सुरक्षित डिलीवर हो चुका है'
-                      : t('Fastest route, the usual traffic', 'सबसे तेज़ रास्ता, सामान्य ट्रैफ़िक', 'Fastest route, normal traffic'),
+                      : t(
+                          'Fastest route, the usual traffic',
+                          'सबसे तेज़ रास्ता, सामान्य ट्रैफ़िक',
+                          'Fastest route, normal traffic',
+                        ),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -1898,7 +2158,10 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 if (widget.viewerRole != 'rider' && partnerName.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
@@ -1909,7 +2172,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                         const CircleAvatar(
                           radius: 16,
                           backgroundColor: Color(0xFFE2E8F0),
-                          child: Icon(Icons.two_wheeler_rounded, size: 18, color: Color(0xFF334155)),
+                          child: Icon(
+                            Icons.two_wheeler_rounded,
+                            size: 18,
+                            color: Color(0xFF334155),
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -1918,12 +2185,20 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                             children: [
                               Text(
                                 partnerName,
-                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF0F172A)),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: const Color(0xFF0F172A),
+                                ),
                               ),
-                              if (partnerVehicle != null && partnerVehicle.isNotEmpty)
+                              if (partnerVehicle != null &&
+                                  partnerVehicle.isNotEmpty)
                                 Text(
                                   'वाहन: $partnerVehicle',
-                                  style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: const Color(0xFF64748B),
+                                  ),
                                 ),
                             ],
                           ),
@@ -1946,32 +2221,47 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                         icon: const Icon(Icons.navigation_rounded, size: 18),
                         label: Text(
                           t('Start', 'शुरू करें', 'Start'),
-                          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF007A87), // Google Maps Teal Navigation
+                          backgroundColor: const Color(
+                            0xFF007A87,
+                          ), // Google Maps Teal Navigation
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 11),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     // Quick Call Button
-                    if ((widget.viewerRole == 'customer' && partnerPhone.isNotEmpty) ||
-                        (widget.viewerRole == 'rider' && customerPhone.isNotEmpty) ||
-                        (widget.viewerRole == 'shop_owner' && partnerPhone.isNotEmpty))
+                    if ((widget.viewerRole == 'customer' &&
+                            partnerPhone.isNotEmpty) ||
+                        (widget.viewerRole == 'rider' &&
+                            customerPhone.isNotEmpty) ||
+                        (widget.viewerRole == 'shop_owner' &&
+                            partnerPhone.isNotEmpty))
                       Expanded(
                         flex: 4,
                         child: OutlinedButton.icon(
                           onPressed: () => _callNumber(
-                            widget.viewerRole == 'rider' ? customerPhone : partnerPhone,
+                            widget.viewerRole == 'rider'
+                                ? customerPhone
+                                : partnerPhone,
                           ),
                           icon: const Icon(Icons.call_rounded, size: 16),
                           label: Text(
                             'कॉल करें',
-                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1979,7 +2269,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                             foregroundColor: const Color(0xFF0F172A),
                             side: BorderSide(color: Colors.grey.shade300),
                             padding: const EdgeInsets.symmetric(vertical: 11),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
                           ),
                         ),
                       ),
@@ -1987,7 +2279,10 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                     // Delivery PIN pill
                     if (deliveryPin.isNotEmpty && !isDelivered)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFECFDF5),
                           borderRadius: BorderRadius.circular(20),
@@ -1996,7 +2291,11 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.vpn_key_rounded, size: 13, color: Color(0xFF059669)),
+                            const Icon(
+                              Icons.vpn_key_rounded,
+                              size: 13,
+                              color: Color(0xFF059669),
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'PIN',
@@ -2023,14 +2322,20 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 const SizedBox(height: 8),
                 Text(
                   'गोपनीयता: लोकेशन सिर्फ इस डिलीवरी के दौरान लाइव है',
-                  style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF94A3B8)),
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: const Color(0xFF94A3B8),
+                  ),
                   textAlign: TextAlign.center,
                 ),
 
                 // 6. Active Destination / Target Address Info Pill
                 Container(
                   margin: const EdgeInsets.only(top: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: isHeadingToStore || isArrivedAtStore
                         ? const Color(0xFFEEF2FF)
@@ -2073,7 +2378,13 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                             Text(
                               isHeadingToStore || isArrivedAtStore
                                   ? shopAddress
-                                  : (customerAddress.isNotEmpty ? customerAddress : t('Customer Address', 'ग्राहक का पता', 'Customer Address')),
+                                  : (customerAddress.isNotEmpty
+                                        ? customerAddress
+                                        : t(
+                                            'Customer Address',
+                                            'ग्राहक का पता',
+                                            'Customer Address',
+                                          )),
                               style: GoogleFonts.inter(
                                 fontSize: 10,
                                 color: AppColors.textMid,
@@ -2095,35 +2406,50 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _launchGoogleMaps(targetLat, targetLng),
+                          onPressed: () =>
+                              _launchGoogleMaps(targetLat, targetLng),
                           icon: const Icon(Icons.navigation_rounded, size: 15),
                           label: Text(
                             t('Google Maps', 'गूगल मैप्स', 'Google Maps'),
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFF0284C7),
                             side: const BorderSide(color: Color(0xFFBAE6FD)),
                             padding: const EdgeInsets.symmetric(vertical: 9),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => _showRiderPinDialog(context, orderData, lang),
-                          icon: const Icon(Icons.check_circle_outline_rounded, size: 15),
+                          onPressed: () =>
+                              _showRiderPinDialog(context, orderData, lang),
+                          icon: const Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 15,
+                          ),
                           label: Text(
                             t('Verify PIN', 'PIN दर्ज करें', 'Verify PIN'),
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF0C831F),
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 9),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),
@@ -2138,4 +2464,3 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
     );
   }
 }
-

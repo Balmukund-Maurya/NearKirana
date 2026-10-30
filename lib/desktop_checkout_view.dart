@@ -3583,9 +3583,6 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           }
         } catch (_) {}
       }
-      if (rzpKey.isEmpty) {
-        rzpKey = 'rzp_test_1DP5mmOlF5G5ag';
-      }
 
       // Check if user is banned and verify shop Khata record
       String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
@@ -3721,6 +3718,26 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         };
       } else {
         // Instant UPI Payment via Razorpay Gateway (Google Pay, PhonePe, Paytm, BHIM, etc.)
+        if (rzpKey.isEmpty) {
+          setState(() => _isProcessingCheckout = false);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  _tr(
+                    'Online payment is not configured for this shop. Please select Cash on Delivery or Pay via UPI.',
+                    'इस दुकान के लिए ऑनलाइन भुगतान सक्रिय नहीं है। कृपया कैश ऑन डिलीवरी या सीधा UPI चुनें।',
+                    'Is shop ke liye online payment active nahi hai. Kripya Cash on Delivery ya direct UPI select karein.',
+                  ),
+                ),
+                backgroundColor: Colors.orange.shade800,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return;
+        }
+
         RazorpayCheckoutResult rzpResult;
         try {
           rzpResult = await RazorpayService().checkout(

@@ -6,6 +6,7 @@ import 'package:near_kirana/user_provider.dart';
 import 'package:near_kirana/language_provider.dart';
 import 'package:near_kirana/shop_provider.dart';
 import 'package:near_kirana/shop_selector_screen.dart';
+import 'widgets/legal_policy_dialog.dart';
 
 class DesktopSettingsView extends StatefulWidget {
   final Function(int) onNavigate;
@@ -869,7 +870,7 @@ class _DesktopSettingsViewState extends State<DesktopSettingsView> {
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy Policy',
             subtitle: 'Read our privacy policy',
-            onTap: () => _showNotImplemented('Privacy Policy'),
+            onTap: () => LegalPolicyDialog.showPrivacyPolicy(context),
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 4),
@@ -879,7 +880,7 @@ class _DesktopSettingsViewState extends State<DesktopSettingsView> {
             icon: Icons.description_outlined,
             title: 'Terms & Conditions',
             subtitle: 'Read our terms and conditions',
-            onTap: () => _showNotImplemented('Terms & Conditions'),
+            onTap: () => LegalPolicyDialog.showTerms(context),
           ),
         ],
       ),

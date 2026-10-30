@@ -29,6 +29,7 @@ import 'auth_service.dart';
 import 'crash_reporting_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'widgets/language_bottom_sheet.dart';
+import 'widgets/legal_policy_dialog.dart';
 
 import 'package:flutter/foundation.dart'; // Added for kIsWeb
 
@@ -980,30 +981,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
           const SizedBox(height: 14),
 
-          // Terms and Privacy Footer (With lock icon, NO emojis)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.lock_outline_rounded,
-                size: 13,
-                color: Color(0xFF94A3B8),
-              ),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  termsText,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF64748B),
-                    height: 1.35,
+          // Terms and Privacy Footer (With lock icon, clickable for policy viewer)
+          GestureDetector(
+            onTap: () => LegalPolicyDialog.showPrivacyPolicy(context),
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 13,
+                  color: Color(0xFF94A3B8),
+                ),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    termsText,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF64748B),
+                      height: 1.35,
+                      decoration: TextDecoration.underline,
+                      decorationColor: const Color(0xFFCBD5E1),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ).animate().fadeIn(delay: 500.ms),
 
           const SizedBox(height: 18),

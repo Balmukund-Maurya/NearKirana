@@ -2183,7 +2183,18 @@ class _CartScreenState extends State<CartScreen> {
                                             ? shopProvider.razorpayKeyId!
                                             : ((settingsDoc.data()?['razorpay_key_id'] as String?)?.trim().isNotEmpty == true
                                                 ? (settingsDoc.data()!['razorpay_key_id'] as String).trim()
-                                                : 'rzp_test_1DP5mmOlF5G5ag');
+                                                : '');
+
+                                    if (rzpKey.isEmpty) {
+                                      if (context.mounted) {
+                                        setState(() => isProcessing = false);
+                                        showBottomSheetError(
+                                          context,
+                                          'Is shop ke liye online card/gateway active nahi hai. Kripya UPI ya Cash on Delivery select karein.',
+                                        );
+                                      }
+                                      return;
+                                    }
 
                                     bool isPaymentSuccess = false;
                                     String? failureReason;

@@ -486,6 +486,87 @@ class LoyaltyReferralService {
     );
   }
 
+  /// Refunds redeemed loyalty points and reverses provisionally earned points when an order is cancelled
+  Future<void> refundCancelledOrderPoints({
+    required String shopId,
+    required String customerPhone,
+    required String orderId,
+    int pointsRedeemed = 0,
+    int pointsEarned = 0,
+    String? customerUid,
+  }) async {
+    if (pointsRedeemed <= 0 && pointsEarned <= 0) return;
+    final cleanPhone = _cleanPhone(customerPhone);
+    final accountDoc = await _accountsRef.doc(_accountId(shopId, cleanPhone)).get();
+    if (!accountDoc.exists || accountDoc.data() == null) return;
+
+    final account = CustomerLoyaltyAccount.fromMap(
+      accountDoc.data() as Map<String, dynamic>,
+      accountDoc.id,
+    );
+
+    int newBalance = account.currentPoints;
+    int newRedeemedLifetime = account.lifetimeRedeemedPoints;
+    int newEarnedLifetime = account.lifetimeEarnedPoints;
+
+    final batch = _firestore.batch();
+    final now = DateTime.now();
+
+    // 1. Restore redeemed points
+    if (pointsRedeemed > 0) {
+      newBalance += pointsRedeemed;
+      newRedeemedLifetime = max(0, newRedeemedLifetime - pointsRedeemed);
+
+      final txDoc = _transactionsRef.doc();
+      final tx = LoyaltyTransaction(
+        id: txDoc.id,
+        shopId: shopId,
+        customerPhone: cleanPhone,
+        customerUid: customerUid,
+        points: pointsRedeemed,
+        type: LoyaltyTransactionType.refundRestored,
+        description: 'ऑर्डर #$orderId कैंसिल होने पर भुनाए गए अंक वापस किए गए',
+        orderId: orderId,
+        balanceAfter: newBalance,
+        createdAt: now,
+      );
+      batch.set(txDoc, tx.toMap());
+    }
+
+    // 2. Reverse earned points
+    if (pointsEarned > 0) {
+      newBalance = max(0, newBalance - pointsEarned);
+      newEarnedLifetime = max(0, newEarnedLifetime - pointsEarned);
+
+      final txDoc2 = _transactionsRef.doc();
+      final tx2 = LoyaltyTransaction(
+        id: txDoc2.id,
+        shopId: shopId,
+        customerPhone: cleanPhone,
+        customerUid: customerUid,
+        points: -pointsEarned,
+        type: LoyaltyTransactionType.expired,
+        description: 'ऑर्डर #$orderId कैंसिल होने पर अर्जित अंक निरस्त किए गए',
+        orderId: orderId,
+        balanceAfter: newBalance,
+        createdAt: now,
+      );
+      batch.set(txDoc2, tx2.toMap());
+    }
+
+    final newTier = LoyaltyTier.fromPoints(newEarnedLifetime);
+
+    batch.update(_accountsRef.doc(account.id), {
+      'current_points': newBalance,
+      'lifetime_redeemed_points': newRedeemedLifetime,
+      'lifetime_earned_points': newEarnedLifetime,
+      'tier': newTier.simpleName.toLowerCase(),
+      'updated_at': now.toIso8601String(),
+    });
+
+    await batch.commit();
+  }
+
   // ==========================================
   // ADMIN STORE MANAGEMENT
   // ==========================================

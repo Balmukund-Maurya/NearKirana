@@ -287,7 +287,23 @@ class DeliveryOrderTask {
     this.rawFirestoreData = const {},
   });
 
-  bool get isCOD => paymentMode.toUpperCase() == 'COD' || paymentStatus.toLowerCase() == 'unpaid';
+  bool get isKhata {
+    final mode = paymentMode.trim().toLowerCase();
+    return mode == 'khata' || mode == 'kirana khata';
+  }
+
+  bool get isPrepaid {
+    final mode = paymentMode.trim().toLowerCase();
+    final status = paymentStatus.trim().toLowerCase();
+    return mode == 'upi' || mode == 'online' || mode == 'razorpay' || status == 'paid';
+  }
+
+  bool get isCOD {
+    if (isKhata || isPrepaid) return false;
+    final mode = paymentMode.trim().toUpperCase();
+    final status = paymentStatus.trim().toLowerCase();
+    return mode == 'COD' || mode == 'CASH ON DELIVERY' || status == 'unpaid';
+  }
   bool get isPickedUp => deliveryTaskStatus == DeliveryTaskStatus.pickedUp;
   bool get isDelivered => deliveryTaskStatus == DeliveryTaskStatus.delivered;
 

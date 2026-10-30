@@ -124,11 +124,19 @@ class _AdminWhatsappReminderScreenState extends State<AdminWhatsappReminderScree
     final message = Uri.encodeComponent(_messageController.text);
     final Uri launchUri = Uri.parse('https://wa.me/$phone?text=$message');
     
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri, mode: LaunchMode.externalApplication);
-      
-      // Optionally save to history if collection exists. But prompt says "ONLY use statuses supported by existing system".
-      // We'll skip writing to DB if no history system exists, or just show success.
+    bool launched = false;
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        launched = await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
+    if (!launched) {
+      try {
+        launched = await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      } catch (_) {}
+    }
+
+    if (launched) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Opening WhatsApp...'), backgroundColor: Colors.green),

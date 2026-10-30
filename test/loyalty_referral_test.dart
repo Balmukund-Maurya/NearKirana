@@ -299,6 +299,63 @@ void main() {
       expect(txQuery.docs.first.data()['type'], 'redeemed_purchase');
     });
 
+    test('refundCancelledOrderPoints restores redeemed loyalty points to customer account', () async {
+      await service.updateProgramConfig(LoyaltyProgramConfig(
+        shopId: testShopId,
+        isEnabled: true,
+        welcomeBonusPoints: 200,
+        minPointsToRedeem: 50,
+        pointsPerHundredRupees: 10,
+        pointValueInRupees: 0.1,
+      ));
+
+      await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9555555555',
+        customerName: 'Kavita Singh',
+      );
+
+      // Redeem 100 points
+      await service.redeemPoints(
+        shopId: testShopId,
+        customerPhone: '9555555555',
+        pointsToRedeem: 100,
+        orderSubtotal: 500.0,
+        orderId: 'ORD_REFUND_1',
+      );
+
+      var acc = await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9555555555',
+        customerName: 'Kavita Singh',
+      );
+      expect(acc.currentPoints, 100);
+
+      // Order gets cancelled -> points refunded
+      await service.refundCancelledOrderPoints(
+        shopId: testShopId,
+        customerPhone: '9555555555',
+        orderId: 'ORD_REFUND_1',
+        pointsRedeemed: 100,
+      );
+
+      acc = await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9555555555',
+        customerName: 'Kavita Singh',
+      );
+      expect(acc.currentPoints, 200);
+      expect(acc.lifetimeRedeemedPoints, 0);
+
+      final txQuery = await fakeFirestore
+          .collection('loyalty_transactions')
+          .where('order_id', isEqualTo: 'ORD_REFUND_1')
+          .where('type', isEqualTo: 'refund_restored')
+          .get();
+      expect(txQuery.docs.length, 1);
+      expect(txQuery.docs.first.data()['points'], 100);
+    });
+
     test('getShopAnalytics aggregates metrics across accounts and referrals', () async {
       await service.getOrCreateAccount(
         shopId: testShopId,

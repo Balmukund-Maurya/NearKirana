@@ -22,6 +22,7 @@ import 'package:near_kirana/widgets/order_complaint_section.dart';
 import 'package:near_kirana/widgets/reorder_summary_dialog.dart';
 import 'package:near_kirana/shopping_list_service.dart';
 import 'package:near_kirana/customer_live_tracking_screen.dart';
+import 'loyalty_referral_service.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   final bool isTab;
@@ -1542,6 +1543,31 @@ class MyOrdersScreen extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(dialogCtx);
               try {
+                final phone = data['phone_number'] as String?;
+                final paymentMethod = data['payment_method'] as String?;
+                final shopId = data['shop_id'] as String?;
+                final isKhataPayment = (paymentMethod == 'Khata' || paymentMethod == 'Kirana Khata');
+                DocumentReference? customerRef;
+
+                if (isKhataPayment && phone != null) {
+                  final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+                  var customerQuery = await FirebaseUtils.firestore
+                      .collection('customers')
+                      .where('mobile', isEqualTo: cleanPhone)
+                      .limit(1)
+                      .get();
+                  if (customerQuery.docs.isEmpty) {
+                    customerQuery = await FirebaseUtils.firestore
+                        .collection('customers')
+                        .where('mobile', isEqualTo: phone)
+                        .limit(1)
+                        .get();
+                  }
+                  if (customerQuery.docs.isNotEmpty) {
+                    customerRef = customerQuery.docs.first.reference;
+                  }
+                }
+
                 await FirebaseUtils.firestore.runTransaction((transaction) async {
                   final orderRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
                   final snapshot = await transaction.get(orderRef);
@@ -1567,6 +1593,24 @@ class MyOrdersScreen extends StatelessWidget {
                   final currentPaymentStatus = orderData['payment_status'] as String?;
                   final bool wasPaid = currentPaymentStatus == PaymentStatus.paid;
                   final double orderTotal = (orderData['total_amount'] as num?)?.toDouble() ?? 0.0;
+                  final khataWasRecorded = orderData['khata_recorded'] == true;
+
+                  // If paid with Khata, reverse the customer's ledger balance
+                  if (customerRef != null && isKhataPayment && khataWasRecorded && shopId != null) {
+                    transaction.update(customerRef, {
+                      'shop_balances.$shopId': FieldValue.increment(-orderTotal),
+                      'total_udhaar': FieldValue.increment(-orderTotal),
+                    });
+                    final khataTxRef = customerRef.collection('khata_transactions').doc();
+                    transaction.set(khataTxRef, {
+                      'amount': orderTotal,
+                      'type': 'credit',
+                      'shop_id': shopId,
+                      'order_id': orderId,
+                      'description': 'Order #$orderId cancelled by customer (Khata refund)',
+                      'timestamp': FieldValue.serverTimestamp(),
+                    });
+                  }
 
                   final orderUpdates = <String, dynamic>{
                     'status': 'Cancelled',
@@ -1584,6 +1628,20 @@ class MyOrdersScreen extends StatelessWidget {
 
                   transaction.update(orderRef, orderUpdates);
                 });
+
+                // Feature 60: Refund redeemed loyalty points if any
+                final pointsRedeemed = (data['loyalty_points_redeemed'] as num?)?.toInt() ?? 0;
+                if (pointsRedeemed > 0 && phone != null && shopId != null) {
+                  try {
+                    await LoyaltyReferralService(firestore: FirebaseUtils.firestore).refundCancelledOrderPoints(
+                      shopId: shopId,
+                      customerPhone: phone,
+                      orderId: orderId,
+                      pointsRedeemed: pointsRedeemed,
+                      customerUid: data['customer_uid']?.toString(),
+                    );
+                  } catch (_) {}
+                }
 
                 if (context.mounted) {
                   SoundService().success();

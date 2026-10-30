@@ -19,6 +19,8 @@ import 'package:near_kirana/widgets/assign_delivery_partner_dialog.dart';
 import 'package:near_kirana/customer_live_tracking_screen.dart';
 import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 import 'shop_provider.dart';
+import 'loyalty_referral_service.dart';
+import 'delivery_partner_models.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;
@@ -1903,11 +1905,27 @@ class AdminOrderCard extends StatelessWidget {
                                 final phone = data['phone_number'] as String?;
                                 final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
                                 if (phone != null && total > 0) {
-                                  final customerQuery = await FirebaseUtils.firestore
+                                  final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+                                  final phone10 = cleanPhone.length > 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
+                                  var customerQuery = await FirebaseUtils.firestore
                                       .collection('customers')
-                                      .where('mobile', isEqualTo: phone)
+                                      .where('mobile', isEqualTo: cleanPhone)
                                       .limit(1)
                                       .get();
+                                  if (customerQuery.docs.isEmpty && phone10 != cleanPhone) {
+                                    customerQuery = await FirebaseUtils.firestore
+                                        .collection('customers')
+                                        .where('mobile', isEqualTo: phone10)
+                                        .limit(1)
+                                        .get();
+                                  }
+                                  if (customerQuery.docs.isEmpty) {
+                                    customerQuery = await FirebaseUtils.firestore
+                                        .collection('customers')
+                                        .where('mobile', isEqualTo: phone)
+                                        .limit(1)
+                                        .get();
+                                  }
                                   if (customerQuery.docs.isNotEmpty) {
                                     final customerRef = customerQuery.docs.first.reference;
                                     batch.update(customerRef, {
@@ -1996,11 +2014,27 @@ class AdminOrderCard extends StatelessWidget {
                             final phone = data['phone_number'] as String?;
                             final total = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
                             if (phone != null && total > 0) {
-                              final customerQuery = await FirebaseUtils.firestore
+                              final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+                              final phone10 = cleanPhone.length > 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
+                              var customerQuery = await FirebaseUtils.firestore
                                   .collection('customers')
-                                  .where('mobile', isEqualTo: phone)
+                                  .where('mobile', isEqualTo: cleanPhone)
                                   .limit(1)
                                   .get();
+                              if (customerQuery.docs.isEmpty && phone10 != cleanPhone) {
+                                customerQuery = await FirebaseUtils.firestore
+                                    .collection('customers')
+                                    .where('mobile', isEqualTo: phone10)
+                                    .limit(1)
+                                    .get();
+                              }
+                              if (customerQuery.docs.isEmpty) {
+                                customerQuery = await FirebaseUtils.firestore
+                                    .collection('customers')
+                                    .where('mobile', isEqualTo: phone)
+                                    .limit(1)
+                                    .get();
+                              }
                               if (customerQuery.docs.isNotEmpty) {
                                 final customerRef = customerQuery.docs.first.reference;
                                 batch.update(customerRef, {
@@ -2960,15 +2994,32 @@ class AdminOrderCard extends StatelessWidget {
       final phone = data['phone_number'] as String?;
       // FIX-2: Check payment_method, not delivery_type (delivery_type is 'Delivery'/'Pickup' only)
       final paymentMethod = data['payment_method'] as String?;
+      final isKhataPayment = paymentMethod == 'Khata' || paymentMethod == 'Kirana Khata';
       DocumentReference? customerRef;
 
-      // Prepare Khata logic outside transaction
-      if (paymentMethod == 'Khata' && phone != null) {
-        final customerQuery = await FirebaseUtils.firestore
+      // Prepare Khata logic outside transaction with sanitized mobile
+      if (isKhataPayment && phone != null) {
+        final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+        final phone10 = cleanPhone.length > 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
+        var customerQuery = await FirebaseUtils.firestore
             .collection('customers')
-            .where('mobile', isEqualTo: phone)
+            .where('mobile', isEqualTo: cleanPhone)
             .limit(1)
             .get();
+        if (customerQuery.docs.isEmpty && phone10 != cleanPhone) {
+          customerQuery = await FirebaseUtils.firestore
+              .collection('customers')
+              .where('mobile', isEqualTo: phone10)
+              .limit(1)
+              .get();
+        }
+        if (customerQuery.docs.isEmpty) {
+          customerQuery = await FirebaseUtils.firestore
+              .collection('customers')
+              .where('mobile', isEqualTo: phone)
+              .limit(1)
+              .get();
+        }
         if (customerQuery.docs.isNotEmpty) {
           customerRef = customerQuery.docs.first.reference;
         }
@@ -3035,6 +3086,11 @@ class AdminOrderCard extends StatelessWidget {
           orderUpdates['rejection_reason'] = selectedReason;
         }
 
+        final deliveryBoyId = data['delivery_boy_id'] as String?;
+        if (deliveryBoyId != null && deliveryBoyId.isNotEmpty) {
+          orderUpdates['delivery_status'] = DeliveryTaskStatus.cancelled.key;
+        }
+
         final currentPaymentStatus = data['payment_status'] as String?;
         final wasPaid = currentPaymentStatus == PaymentStatus.paid;
         if (wasPaid) {
@@ -3066,6 +3122,37 @@ class AdminOrderCard extends StatelessWidget {
           }
         }
       });
+
+      // If order was assigned to a rider, decrement their active task count
+      final assignedBoyId = data['delivery_boy_id'] as String?;
+      if (assignedBoyId != null && assignedBoyId.isNotEmpty) {
+        try {
+          final partnerRef = FirebaseUtils.firestore.collection('delivery_partners').doc(assignedBoyId);
+          final partnerSnap = await partnerRef.get();
+          if (partnerSnap.exists) {
+            final currentCount = (partnerSnap.data()?['active_orders_count'] as num?)?.toInt() ?? 1;
+            final newCount = (currentCount - 1).clamp(0, 999);
+            await partnerRef.update({
+              'active_orders_count': newCount,
+              if (newCount == 0) 'status': DeliveryPartnerStatus.available.key,
+            });
+          }
+        } catch (_) {}
+      }
+
+      // Feature 60: Refund redeemed loyalty points if any
+      final pointsRedeemed = (data['loyalty_points_redeemed'] as num?)?.toInt() ?? 0;
+      if (pointsRedeemed > 0 && phone != null) {
+        try {
+          await LoyaltyReferralService(firestore: FirebaseUtils.firestore).refundCancelledOrderPoints(
+            shopId: data['shop_id']?.toString() ?? '',
+            customerPhone: phone,
+            orderId: orderId,
+            pointsRedeemed: pointsRedeemed,
+            customerUid: data['customer_uid']?.toString(),
+          );
+        } catch (_) {}
+      }
 
       NotificationService.dispatchOrderStatusNotification(
         orderId: orderId,

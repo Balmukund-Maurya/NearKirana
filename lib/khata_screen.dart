@@ -45,6 +45,8 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
     try {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
+      } else {
+        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
       debugPrint('Error launching call: $e');
@@ -68,6 +70,8 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
     final uri = Uri.parse('https://wa.me/$fullPhone?text=${Uri.encodeComponent(messageText)}');
     try {
       if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {

@@ -150,7 +150,7 @@ class CartProvider with ChangeNotifier {
     _items.forEach((key, cartItem) {
       total += cartItem.price * cartItem.quantity;
     });
-    return total;
+    return double.parse(total.toStringAsFixed(2));
   }
 
   bool addItem(
@@ -262,7 +262,7 @@ class CartProvider with ChangeNotifier {
 
     final existingCartItem = _items[productId]!;
     final double currentQty = existingCartItem.quantity;
-    final double newQty = currentQty + change;
+    final double newQty = double.parse((currentQty + change).toStringAsFixed(3));
 
     if (newQty <= 0) {
       CrashReportingService().addBreadcrumb('Cart: Removed item $productId (quantity <= 0)', category: 'cart');

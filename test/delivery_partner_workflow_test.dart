@@ -337,6 +337,128 @@ void main() {
       expect(completedTasks.length, equals(1));
       expect(completedTasks.first.orderId, equals('order_1001'));
     });
+
+    test('Khata Delivery: DeliveryOrderTask recognizes Khata and completeDelivery updates customer Khata ledger', () async {
+      // 1. Create registered delivery partner
+      final partner = await service.registerOrUpdatePartner(DeliveryPartner(
+        id: 'partner_khata',
+        shopId: testShopId,
+        name: 'Vansh',
+        phone: '9876543220',
+        vehicleNumber: 'DL01 CD 5678',
+        status: DeliveryPartnerStatus.available,
+        createdAt: DateTime.now(),
+      ));
+
+      // 2. Create customer document
+      final customerRef = fakeFirestore.collection('customers').doc('cust_101');
+      await customerRef.set({
+        'mobile': '9876500001',
+        'name': 'Pooja Verma',
+        'shop_ids': [testShopId],
+        'shop_balances': {testShopId: 0.0},
+        'total_udhaar': 0.0,
+      });
+
+      // 3. Create Khata order
+      final orderRef = fakeFirestore.collection('orders').doc('order_khata_1');
+      await orderRef.set({
+        'shop_id': testShopId,
+        'customer_name': 'Pooja Verma',
+        'phone_number': '9876500001',
+        'delivery_address': 'Flat 202, Gokul Dham',
+        'total_amount': 450.0,
+        'payment_method': 'Kirana Khata',
+        'payment_status': 'Unpaid',
+        'status': OrderStatus.ready,
+        'items': [{'name': 'Tata Tea 500g', 'quantity': 1}],
+      });
+
+      // Verify DeliveryOrderTask properties
+      final taskDoc = await orderRef.get();
+      final task = DeliveryOrderTask.fromFirestoreDoc(taskDoc.data()!, taskDoc.id);
+      expect(task.isKhata, isTrue);
+      expect(task.isCOD, isFalse);
+
+      // Assign to partner
+      await service.assignOrderToPartner(
+        shopId: testShopId,
+        orderId: 'order_khata_1',
+        partner: partner,
+      );
+
+      // Complete delivery with Khata
+      await service.completeDelivery(
+        orderId: 'order_khata_1',
+        partnerId: 'partner_khata',
+        shopId: testShopId,
+        customerPhone: '9876500001',
+        orderTotal: 450.0,
+        isKhata: true,
+      );
+
+      // Verify order status
+      final updatedOrder = await orderRef.get();
+      expect(updatedOrder.data()!['status'], equals(OrderStatus.delivered));
+      expect(updatedOrder.data()!['khata_recorded'], isTrue);
+
+      // Verify customer ledger is updated and khata_transaction created
+      final updatedCustomer = await customerRef.get();
+      expect(updatedCustomer.data()!['total_udhaar'], equals(450.0));
+      expect(updatedCustomer.data()!['shop_balances'][testShopId], equals(450.0));
+
+      final txSnap = await customerRef.collection('khata_transactions').get();
+      expect(txSnap.docs.length, equals(1));
+      expect(txSnap.docs.first.data()['amount'], equals(450.0));
+      expect(txSnap.docs.first.data()['type'], equals('debit'));
+
+      // Verify partner did NOT have cash collected incremented
+      final updatedPartner = await service.getPartner('partner_khata');
+      expect(updatedPartner!.cashCollected, equals(0.0));
+    });
+
+    test('reportDeliveryFailure transitions status to deliveryFailed and frees partner', () async {
+      final partner = await service.registerOrUpdatePartner(DeliveryPartner(
+        id: 'partner_fail',
+        shopId: testShopId,
+        name: 'Deepak',
+        phone: '9876543299',
+        status: DeliveryPartnerStatus.available,
+        createdAt: DateTime.now(),
+      ));
+
+      final orderRef = fakeFirestore.collection('orders').doc('order_fail_1');
+      await orderRef.set({
+        'shop_id': testShopId,
+        'status': OrderStatus.outForDelivery,
+        'delivery_status': 'picked_up',
+        'total_amount': 300.0,
+      });
+
+      await service.assignOrderToPartner(
+        shopId: testShopId,
+        orderId: 'order_fail_1',
+        partner: partner,
+      );
+
+      // Partner reports customer not home
+      await service.reportDeliveryFailure(
+        orderId: 'order_fail_1',
+        partnerId: 'partner_fail',
+        shopId: testShopId,
+        reason: 'Door locked / Customer not home',
+        customerPhone: '9876543210',
+      );
+
+      final updatedOrder = await orderRef.get();
+      expect(updatedOrder.data()!['status'], equals(OrderStatus.deliveryFailed));
+      expect(updatedOrder.data()!['delivery_status'], equals('cancelled'));
+      expect(updatedOrder.data()!['delivery_failure_reason'], equals('Door locked / Customer not home'));
+
+      final updatedPartner = await service.getPartner('partner_fail');
+      expect(updatedPartner!.activeOrdersCount, equals(0));
+      expect(updatedPartner.status, equals(DeliveryPartnerStatus.available));
+    });
   });
 
   group('Feature 58: UI Widgets - Dialogs & Screens', () {

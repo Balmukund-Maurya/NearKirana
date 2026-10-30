@@ -308,6 +308,10 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
         } else if (await canLaunchUrl(webNavUri)) {
           await launchUrl(webNavUri, mode: LaunchMode.externalApplication);
           return;
+        } else {
+          // Direct fallback for Android 11+ where canLaunchUrl can return false
+          final launched = await launchUrl(webNavUri, mode: LaunchMode.externalApplication);
+          if (launched) return;
         }
       } catch (_) {}
     }
@@ -749,6 +753,66 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                     const SizedBox(height: 14),
                   ],
 
+                  if (task.isKhata) ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F3FF),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFDDD6FE)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEDE9FE),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.menu_book_rounded,
+                              color: Color(0xFF7C3AED),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t(
+                                    'Kirana Khata Order (Pay Later)',
+                                    'किराना खाता ऑर्डर (उधार)',
+                                    'Kirana Khata Order (Udhaar)',
+                                  ),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Color(0xFF5B21B6),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  t(
+                                    'No cash to be collected at doorstep. ₹${task.totalAmount.toStringAsFixed(0)} will be charged to customer\'s Khata.',
+                                    'नकद नहीं लेना है। ₹${task.totalAmount.toStringAsFixed(0)} ग्राहक के खाते में जुड़ जाएगा।',
+                                    'Cash nahi lena hai. ₹${task.totalAmount.toStringAsFixed(0)} customer ke khate me add hoga.',
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF6D28D9),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
                   if (task.isCOD)
                     Container(
                       padding: const EdgeInsets.all(14),
@@ -948,6 +1012,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                       customerPhone: task.customerPhone,
                       orderTotal: task.totalAmount,
                       partnerName: _currentPartner?.name ?? task.partnerName,
+                      isKhata: task.isKhata,
                     );
 
                     await _trackingService.stopBroadcasting(
@@ -1020,6 +1085,161 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
             ],
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _showDeliveryFailureDialog(
+    DeliveryOrderTask task,
+    String Function(String, String, String) t,
+  ) async {
+    String selectedReason = t(
+      'Customer phone not reachable / Not answering',
+      'ग्राहक का फोन नहीं लग रहा',
+      'Customer phone unreachable',
+    );
+    final customNotesCtrl = TextEditingController();
+
+    final failureReasons = [
+      t('Customer phone not reachable / Not answering', 'ग्राहक का फोन नहीं लग रहा', 'Customer phone unreachable'),
+      t('Customer refused to accept order', 'ग्राहक ने सामान लेने से मना कर दिया', 'Customer refused delivery'),
+      t('Incorrect / incomplete delivery address', 'पता गलत या अधूरा है', 'Incorrect / incomplete address'),
+      t('Door locked / Customer not home', 'ताला लगा है / घर पर कोई नहीं है', 'Door locked / not home'),
+      t('Customer requested cancellation at doorstep', 'ग्राहक ने डिलीवरी रद्द करने को कहा', 'Customer cancelled at doorstep'),
+    ];
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  t('Unable to Deliver', 'डिलीवरी संभव नहीं', 'Delivery Issue'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t(
+                    'Select reason why order could not be delivered to customer:',
+                    'ऑर्डर डिलीवर न होने का कारण चुनें:',
+                    'Order deliver na hone ka reason chunein:',
+                  ),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 10),
+                ...failureReasons.map((r) {
+                  final isSelected = selectedReason == r;
+                  return InkWell(
+                    onTap: () => setDialogState(() => selectedReason = r),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                            size: 18,
+                            color: isSelected ? const Color(0xFFDC2626) : const Color(0xFF94A3B8),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              r,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF475569),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: customNotesCtrl,
+                  decoration: InputDecoration(
+                    hintText: t('Optional extra remarks...', 'अतिरिक्त टिप्पणी (वैकल्पिक)...', 'Extra remarks...'),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(t('Cancel', 'रद्द करें', 'Cancel')),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                HapticFeedback.heavyImpact();
+                try {
+                  await _service.reportDeliveryFailure(
+                    orderId: task.orderId,
+                    partnerId: _currentPartner?.id ?? task.partnerId,
+                    shopId: task.shopId,
+                    reason: selectedReason,
+                    notes: customNotesCtrl.text.trim(),
+                    customerPhone: task.customerPhone,
+                    partnerName: _currentPartner?.name ?? task.partnerName,
+                  );
+                  await _trackingService.stopBroadcasting(task.orderId);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: const Color(0xFFDC2626),
+                        content: Text(
+                          t(
+                            'Delivery failure recorded. Please return parcel to store.',
+                            'डिलीवरी विफलता दर्ज की गई। कृपया सामान दुकान पर वापस लौटाएं।',
+                            'Delivery failure recorded. Parcel store par wapas laayein.',
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+              ),
+              child: Text(t('Report Issue', 'रिपोर्ट दर्ज करें', 'Report Issue')),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1653,21 +1873,27 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: item.isCOD
-                              ? const Color(0xFFFFFBEB)
-                              : const Color(0xFFECFDF5),
+                          color: item.isKhata
+                              ? const Color(0xFFF5F3FF)
+                              : (item.isCOD
+                                  ? const Color(0xFFFFFBEB)
+                                  : const Color(0xFFECFDF5)),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          item.isCOD
-                              ? t('COD Collected', 'नकद प्राप्त', 'COD Cash')
-                              : t('Prepaid', 'ऑनलाइन पेड', 'Prepaid'),
+                          item.isKhata
+                              ? t('Khata / Udhaar', 'खाता (उधार)', 'Khata')
+                              : (item.isCOD
+                                  ? t('COD Collected', 'नकद प्राप्त', 'COD Cash')
+                                  : t('Prepaid', 'ऑनलाइन पेड', 'Prepaid')),
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: item.isCOD
-                                ? const Color(0xFFB45309)
-                                : const Color(0xFF065F46),
+                            color: item.isKhata
+                                ? const Color(0xFF6D28D9)
+                                : (item.isCOD
+                                    ? const Color(0xFFB45309)
+                                    : const Color(0xFF065F46)),
                           ),
                         ),
                       ),
@@ -1913,25 +2139,31 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: task.isCOD
-                                  ? const Color(0xFFFFFBEB)
-                                  : const Color(0xFFECFDF5),
+                              color: task.isKhata
+                                  ? const Color(0xFFF5F3FF)
+                                  : (task.isCOD
+                                      ? const Color(0xFFFFFBEB)
+                                      : const Color(0xFFECFDF5)),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              task.isCOD
-                                  ? t('Collect Cash', 'नकद लें', 'Collect Cash')
-                                  : t(
-                                      'Prepaid Online',
-                                      'ऑनलाइन पेड',
-                                      'Prepaid Online',
-                                    ),
+                              task.isKhata
+                                  ? t('Khata / Pay Later', 'खाता (उधार)', 'Khata (Pay Later)')
+                                  : (task.isCOD
+                                      ? t('Collect Cash', 'नकद लें', 'Collect Cash')
+                                      : t(
+                                          'Prepaid Online',
+                                          'ऑनलाइन पेड',
+                                          'Prepaid Online',
+                                        )),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: task.isCOD
-                                    ? const Color(0xFFB45309)
-                                    : const Color(0xFF065F46),
+                                color: task.isKhata
+                                    ? const Color(0xFF6D28D9)
+                                    : (task.isCOD
+                                        ? const Color(0xFFB45309)
+                                        : const Color(0xFF065F46)),
                               ),
                             ),
                           ),
@@ -2148,32 +2380,62 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
       );
     }
 
-    // 3. Stage: Picked up -> Mark Delivered
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton.icon(
-        onPressed: () => _showDeliveryCompletionDialog(task, t),
-        icon: const Icon(Icons.task_alt_rounded, size: 20),
-        label: Text(
-          task.isCOD
-              ? '${t('Collect', 'कैश लें', 'Collect')} ₹${task.totalAmount.toStringAsFixed(0)} & ${t('Mark Delivered', 'डिलीवरी पूरी करें', 'Mark Delivered')}'
-              : t(
-                  'Mark Delivered (Prepaid)',
-                  'डिलीवरी पूर्ण करें',
-                  'Mark Delivered (Prepaid)',
-                ),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0C831F),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+    // 3. Stage: Picked up -> Mark Delivered or Report Undeliverable
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            onPressed: () => _showDeliveryCompletionDialog(task, t),
+            icon: const Icon(Icons.task_alt_rounded, size: 20),
+            label: Text(
+              task.isKhata
+                  ? t(
+                      'Mark Delivered (Khata Order)',
+                      'डिलीवरी पूरी करें (खाता)',
+                      'Mark Delivered (Khata)',
+                    )
+                  : (task.isCOD
+                      ? '${t('Collect', 'कैश लें', 'Collect')} ₹${task.totalAmount.toStringAsFixed(0)} & ${t('Mark Delivered', 'डिलीवरी पूरी करें', 'Mark Delivered')}'
+                      : t(
+                          'Mark Delivered (Prepaid)',
+                          'डिलीवरी पूर्ण करें',
+                          'Mark Delivered (Prepaid)',
+                        )),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0C831F),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 0,
+            ),
           ),
-          elevation: 0,
         ),
-      ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          height: 38,
+          child: OutlinedButton.icon(
+            onPressed: () => _showDeliveryFailureDialog(task, t),
+            icon: const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFDC2626)),
+            label: Text(
+              t('Unable to Deliver / Issue at Doorstep', 'डिलीवरी नहीं हो सकी / समस्या', 'Unable to Deliver'),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFDC2626)),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFFECACA)),
+              backgroundColor: const Color(0xFFFEF2F2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

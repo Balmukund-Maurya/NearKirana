@@ -230,6 +230,7 @@ class DeliveryPartnerService {
     String? customerUid,
     double? orderTotal,
     String? partnerName,
+    bool isKhata = false,
   }) async {
     if (orderId.isEmpty) return;
 
@@ -243,7 +244,8 @@ class DeliveryPartnerService {
       'delivered_at': FieldValue.serverTimestamp(),
     };
 
-    if (codCollected) {
+    // Khata orders should not collect COD cash
+    if (codCollected && !isKhata) {
       orderUpdates['payment_status'] = 'Paid';
       orderUpdates['cod_collected_by_partner'] = true;
       orderUpdates['cod_amount_collected'] = codAmount;
@@ -254,6 +256,55 @@ class DeliveryPartnerService {
       orderUpdates['delivery_completion_notes'] = completionNotes;
     }
 
+    // Handle Khata balance sync if order was on Khata
+    try {
+      final orderSnap = await orderDoc.get();
+      if (orderSnap.exists) {
+        final data = orderSnap.data() as Map<String, dynamic>? ?? {};
+        final pMethod = (data['payment_method'] ?? data['payment_mode'])?.toString().toLowerCase();
+        final orderIsKhata = isKhata || pMethod == 'khata' || pMethod == 'kirana khata';
+        final khataAlreadyRecorded = data['khata_recorded'] == true;
+
+        if (orderIsKhata && !khataAlreadyRecorded) {
+          final phone = customerPhone ?? data['phone_number']?.toString();
+          final total = orderTotal ?? (data['total_amount'] as num?)?.toDouble() ?? 0.0;
+          if (phone != null && phone.isNotEmpty && total > 0) {
+            final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+            final phone10 = cleanPhone.length > 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
+
+            var cq = await _firestore.collection('customers').where('mobile', isEqualTo: cleanPhone).limit(1).get();
+            if (cq.docs.isEmpty && phone10 != cleanPhone) {
+              cq = await _firestore.collection('customers').where('mobile', isEqualTo: phone10).limit(1).get();
+            }
+            if (cq.docs.isEmpty) {
+              cq = await _firestore.collection('customers').where('mobile', isEqualTo: phone).limit(1).get();
+            }
+
+            if (cq.docs.isNotEmpty) {
+              final customerRef = cq.docs.first.reference;
+              batch.update(customerRef, {
+                'shop_balances.$shopId': FieldValue.increment(total),
+                'total_udhaar': FieldValue.increment(total),
+                'shop_ids': FieldValue.arrayUnion([shopId]),
+              });
+              batch.set(
+                customerRef.collection('khata_transactions').doc(),
+                {
+                  'amount': total,
+                  'type': 'debit',
+                  'shop_id': shopId,
+                  'order_id': orderId,
+                  'description': 'Order Delivered (#${orderId.length > 5 ? orderId.substring(0, 5) : orderId})',
+                  'timestamp': FieldValue.serverTimestamp(),
+                },
+              );
+              orderUpdates['khata_recorded'] = true;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
     batch.set(orderDoc, orderUpdates, SetOptions(merge: true));
 
     if (partnerId.isNotEmpty) {
@@ -263,7 +314,7 @@ class DeliveryPartnerService {
         'total_delivered_count': FieldValue.increment(1),
         'last_active_at': FieldValue.serverTimestamp(),
       };
-      if (codCollected && codAmount > 0) {
+      if (codCollected && codAmount > 0 && !isKhata) {
         partnerUpdates['cash_collected'] = FieldValue.increment(codAmount);
       }
       batch.update(partnerDoc, partnerUpdates);
@@ -297,6 +348,73 @@ class DeliveryPartnerService {
           customerUid: customerUid,
           shopId: shopId,
           orderTotal: orderTotal,
+          deliveryBoyName: partnerName,
+          firestore: _firestore,
+        );
+      } catch (_) {}
+    }
+  }
+
+  /// Step 4B: Partner reports delivery failure (e.g. customer unreachable, refused, wrong address)
+  Future<void> reportDeliveryFailure({
+    required String orderId,
+    required String partnerId,
+    required String shopId,
+    required String reason,
+    String? notes,
+    String? customerPhone,
+    String? partnerName,
+  }) async {
+    if (orderId.isEmpty) return;
+
+    final batch = _firestore.batch();
+    final orderDoc = _ordersRef.doc(orderId);
+
+    final orderUpdates = <String, dynamic>{
+      'status': OrderStatus.deliveryFailed,
+      'delivery_status': DeliveryTaskStatus.cancelled.key,
+      'delivery_failure_reason': reason,
+      'delivery_failed_at': FieldValue.serverTimestamp(),
+      if (notes != null && notes.isNotEmpty) 'delivery_failure_notes': notes,
+    };
+
+    batch.set(orderDoc, orderUpdates, SetOptions(merge: true));
+
+    if (partnerId.isNotEmpty) {
+      final partnerDoc = _partnersRef.doc(partnerId);
+      batch.update(partnerDoc, {
+        'active_orders_count': FieldValue.increment(-1),
+        'last_active_at': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+
+    // Revert rider status if no more active tasks
+    if (partnerId.isNotEmpty) {
+      try {
+        final partnerSnap = await _partnersRef.doc(partnerId).get();
+        if (partnerSnap.exists && partnerSnap.data() != null) {
+          final count = (partnerSnap.data() as Map<String, dynamic>)['active_orders_count'] as num? ?? 0;
+          if (count <= 0) {
+            await _partnersRef.doc(partnerId).update({
+              'status': DeliveryPartnerStatus.available.key,
+              'active_orders_count': 0,
+            });
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Dispatch status update notification
+    if (customerPhone != null && customerPhone.isNotEmpty) {
+      try {
+        await NotificationService.dispatchOrderStatusNotification(
+          orderId: orderId,
+          newStatus: OrderStatus.deliveryFailed,
+          customerPhone: customerPhone,
+          shopId: shopId,
+          failureReason: reason,
           deliveryBoyName: partnerName,
           firestore: _firestore,
         );

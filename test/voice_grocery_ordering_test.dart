@@ -110,37 +110,40 @@ void main() {
       ),
     ];
 
-    test('Parses classic user example: "Do kilo atta aur ek litre doodh add karo"', () {
-      final result = VoiceOrderParser.parseSpokenOrder(
-        spokenText: 'Do kilo atta aur ek litre doodh add karo',
-        catalog: catalog,
-      );
+    test(
+      'Parses classic user example: "Do kilo atta aur ek litre doodh add karo"',
+      () {
+        final result = VoiceOrderParser.parseSpokenOrder(
+          spokenText: 'Do kilo atta aur ek litre doodh add karo',
+          catalog: catalog,
+        );
 
-      expect(result.parsedItems.length, 2);
-      expect(result.detectedLanguage, 'Hinglish');
+        expect(result.parsedItems.length, 2);
+        expect(result.detectedLanguage, 'Hinglish');
 
-      // Item 1: Atta
-      final attaItem = result.parsedItems[0];
-      expect(attaItem.rawItemName.toLowerCase(), contains('atta'));
-      expect(attaItem.requestedQuantity, 2.0);
-      expect(attaItem.unit, 'kg');
-      expect(attaItem.matchedProduct?.id, 'p_atta_5kg');
-      expect(attaItem.status, VoiceItemStatus.ready);
+        // Item 1: Atta
+        final attaItem = result.parsedItems[0];
+        expect(attaItem.rawItemName.toLowerCase(), contains('atta'));
+        expect(attaItem.requestedQuantity, 2.0);
+        expect(attaItem.unit, 'kg');
+        expect(attaItem.matchedProduct?.id, 'p_atta_5kg');
+        expect(attaItem.status, VoiceItemStatus.ready);
 
-      // Item 2: Milk (Multiple matching milk brands -> ambiguous)
-      final milkItem = result.parsedItems[1];
-      expect(milkItem.rawItemName.toLowerCase(), contains('doodh'));
-      expect(milkItem.unit, 'litre');
-      expect(milkItem.status, VoiceItemStatus.ambiguous);
-      expect(milkItem.candidateProducts.length, greaterThanOrEqualTo(2));
-      expect(
-        milkItem.candidateProducts.map((p) => p.name),
-        containsAll([
-          'Amul Taaza Toned Milk 500ml',
-          'Amul Gold Full Cream Milk 500ml',
-        ]),
-      );
-    });
+        // Item 2: Milk (Multiple matching milk brands -> ambiguous)
+        final milkItem = result.parsedItems[1];
+        expect(milkItem.rawItemName.toLowerCase(), contains('doodh'));
+        expect(milkItem.unit, 'litre');
+        expect(milkItem.status, VoiceItemStatus.ambiguous);
+        expect(milkItem.candidateProducts.length, greaterThanOrEqualTo(2));
+        expect(
+          milkItem.candidateProducts.map((p) => p.name),
+          containsAll([
+            'Amul Taaza Toned Milk 500ml',
+            'Amul Gold Full Cream Milk 500ml',
+          ]),
+        );
+      },
+    );
 
     test('Parses fractional quantities: aadha kilo, paav, dedh, dhai', () {
       // 1. aadha kilo (0.5 kg)
@@ -183,7 +186,8 @@ void main() {
 
     test('Strips common action fillers and polite words', () {
       final r = VoiceOrderParser.parseSpokenOrder(
-        spokenText: 'kripya 2 packet maggi cart me daal do aur humko 1 kg cheeni chahiye',
+        spokenText:
+            'kripya 2 packet maggi cart me daal do aur humko 1 kg cheeni chahiye',
         catalog: catalog,
       );
 
@@ -219,31 +223,34 @@ void main() {
       expect(r.parsedItems[0].isReadyToAdd, isFalse);
     });
 
-    test('Disambiguation resolution allows user to select specific candidate', () {
-      final r = VoiceOrderParser.parseSpokenOrder(
-        spokenText: 'ek packet doodh',
-        catalog: catalog,
-      );
+    test(
+      'Disambiguation resolution allows user to select specific candidate',
+      () {
+        final r = VoiceOrderParser.parseSpokenOrder(
+          spokenText: 'ek packet doodh',
+          catalog: catalog,
+        );
 
-      expect(r.parsedItems.length, 1);
-      final ambiguousItem = r.parsedItems[0];
-      expect(ambiguousItem.status, VoiceItemStatus.ambiguous);
-      expect(ambiguousItem.isReadyToAdd, isFalse);
+        expect(r.parsedItems.length, 1);
+        final ambiguousItem = r.parsedItems[0];
+        expect(ambiguousItem.status, VoiceItemStatus.ambiguous);
+        expect(ambiguousItem.isReadyToAdd, isFalse);
 
-      // Customer picks Amul Gold
-      final chosenCandidate = ambiguousItem.candidateProducts.firstWhere(
-        (p) => p.name.contains('Gold'),
-      );
-      final resolvedItem = ambiguousItem.copyWith(
-        selectedProduct: chosenCandidate,
-        status: VoiceItemStatus.ready,
-      );
+        // Customer picks Amul Gold
+        final chosenCandidate = ambiguousItem.candidateProducts.firstWhere(
+          (p) => p.name.contains('Gold'),
+        );
+        final resolvedItem = ambiguousItem.copyWith(
+          selectedProduct: chosenCandidate,
+          status: VoiceItemStatus.ready,
+        );
 
-      expect(resolvedItem.effectiveProduct?.id, 'p_milk_amul_gold');
-      expect(resolvedItem.status, VoiceItemStatus.ready);
-      expect(resolvedItem.isReadyToAdd, isTrue);
-      expect(resolvedItem.effectivePrice, 33.0);
-    });
+        expect(resolvedItem.effectiveProduct?.id, 'p_milk_amul_gold');
+        expect(resolvedItem.status, VoiceItemStatus.ready);
+        expect(resolvedItem.isReadyToAdd, isTrue);
+        expect(resolvedItem.effectivePrice, 33.0);
+      },
+    );
   });
 
   group('Feature 61: VoiceOrderService Integration Tests', () {
@@ -282,37 +289,40 @@ void main() {
       expect(products.first.price, 250.0);
     });
 
-    test('addItemsToCart commits parsed voice items to CartProvider with correct quantities', () {
-      final cartProvider = CartProvider();
-      const product = VoiceCatalogProduct(
-        id: 'p_atta_loose',
-        name: 'Fresh Chakki Atta',
-        price: 35.0,
-        stockQuantity: 100.0,
-        isLoose: true,
-      );
+    test(
+      'addItemsToCart commits parsed voice items to CartProvider with correct quantities',
+      () {
+        final cartProvider = CartProvider();
+        const product = VoiceCatalogProduct(
+          id: 'p_atta_loose',
+          name: 'Fresh Chakki Atta',
+          price: 35.0,
+          stockQuantity: 100.0,
+          isLoose: true,
+        );
 
-      final items = [
-        const ParsedVoiceItem(
-          rawSegment: '2 kilo atta',
-          rawItemName: 'atta',
-          requestedQuantity: 2.0,
-          matchedProduct: product,
-          status: VoiceItemStatus.ready,
-          finalQuantity: 2.0,
-        ),
-      ];
+        final items = [
+          const ParsedVoiceItem(
+            rawSegment: '2 kilo atta',
+            rawItemName: 'atta',
+            requestedQuantity: 2.0,
+            matchedProduct: product,
+            status: VoiceItemStatus.ready,
+            finalQuantity: 2.0,
+          ),
+        ];
 
-      final count = service.addItemsToCart(
-        cartProvider: cartProvider,
-        items: items,
-      );
+        final count = service.addItemsToCart(
+          cartProvider: cartProvider,
+          items: items,
+        );
 
-      expect(count, 1);
-      expect(cartProvider.items.containsKey('p_atta_loose'), isTrue);
-      expect(cartProvider.items['p_atta_loose']!.quantity, 2.0);
-      expect(cartProvider.cartTotal, 70.0);
-    });
+        expect(count, 1);
+        expect(cartProvider.items.containsKey('p_atta_loose'), isTrue);
+        expect(cartProvider.items['p_atta_loose']!.quantity, 2.0);
+        expect(cartProvider.cartTotal, 70.0);
+      },
+    );
 
     test('saveVoiceOrderLog saves audit record in Firestore', () async {
       const product = VoiceCatalogProduct(
@@ -382,10 +392,7 @@ void main() {
       ),
     ];
 
-    Widget createTestApp({
-      required Widget child,
-      CartProvider? cartProvider,
-    }) {
+    Widget createTestApp({required Widget child, CartProvider? cartProvider}) {
       final shopProvider = ShopProvider();
       final userProvider = UserProvider();
       userProvider.setUser('Aarav Patel', '9876543210');
@@ -402,56 +409,65 @@ void main() {
       );
     }
 
-    testWidgets('VoiceOrderSheet renders mic button, quick chips and transcript field', (tester) async {
-      await tester.pumpWidget(
-        createTestApp(
-          child: VoiceOrderSheet(
-            shopId: 'shop_123',
-            initialCatalog: testCatalog,
-            isPulsingEnabled: false,
+    testWidgets(
+      'VoiceOrderSheet renders mic button, quick chips and transcript field',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestApp(
+            child: VoiceOrderSheet(
+              shopId: 'shop_123',
+              initialCatalog: testCatalog,
+              isPulsingEnabled: false,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Voice Grocery Ordering'), findsOneWidget);
-      expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
-      expect(find.textContaining('Tap mic to speak'), findsOneWidget);
-      expect(find.textContaining('Quick Sample Voice Prompts'), findsOneWidget);
-      expect(find.byType(ActionChip), findsWidgets);
-    });
+        expect(find.text('Voice Grocery Ordering'), findsOneWidget);
+        expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
+        expect(find.textContaining('Tap mic to speak'), findsOneWidget);
+        expect(
+          find.textContaining('Quick Sample Voice Prompts'),
+          findsOneWidget,
+        );
+        expect(find.byType(ActionChip), findsWidgets);
+      },
+    );
 
-    testWidgets('VoiceOrderSheet parses items with prompt and confirms addition to CartProvider', (tester) async {
-      final cart = CartProvider();
+    testWidgets(
+      'VoiceOrderSheet parses items with prompt and confirms addition to CartProvider',
+      (tester) async {
+        final cart = CartProvider();
 
-      await tester.pumpWidget(
-        createTestApp(
-          cartProvider: cart,
-          child: VoiceOrderSheet(
-            shopId: 'shop_123',
-            initialCatalog: testCatalog,
-            initialPrompt: '2 kilo atta',
-            isPulsingEnabled: false,
+        await tester.pumpWidget(
+          createTestApp(
+            cartProvider: cart,
+            child: VoiceOrderSheet(
+              shopId: 'shop_123',
+              initialCatalog: testCatalog,
+              initialPrompt: '2 kilo atta',
+              isPulsingEnabled: false,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Verify item card is displayed
-      expect(find.text('Recognized Items (1)'), findsOneWidget);
-      expect(find.text('Aashirvaad Shudh Chakki Atta 5kg'), findsOneWidget);
-      expect(find.text('Ready to Add (तैयार है)'), findsOneWidget);
+        // Verify item card is displayed
+        expect(find.text('Recognized Items (1)'), findsOneWidget);
+        expect(find.text('Aashirvaad Shudh Chakki Atta 5kg'), findsOneWidget);
+        expect(find.text('Ready to Add (तैयार है)'), findsOneWidget);
 
-      // Verify confirm button
-      final confirmBtn = find.text('Confirm & Add to Cart');
-      expect(confirmBtn, findsOneWidget);
+        // Verify confirm button
+        final confirmBtn = find.text('Confirm & Add to Cart');
+        expect(confirmBtn, findsOneWidget);
 
-      await tester.tap(confirmBtn);
-      await tester.pumpAndSettle();
+        await tester.tap(confirmBtn);
+        await tester.pumpAndSettle();
 
-      // Check item was added to CartProvider
-      expect(cart.items.containsKey('p1'), isTrue);
-      expect(cart.items['p1']!.quantity, 2.0);
-    });
+        // Check item was added to CartProvider
+        expect(cart.items.containsKey('p1'), isTrue);
+        expect(cart.items['p1']!.quantity, 2.0);
+      },
+    );
   });
 }

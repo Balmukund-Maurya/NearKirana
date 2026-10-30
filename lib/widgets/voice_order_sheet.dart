@@ -144,7 +144,9 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
       _controller.addListener(listener);
       // Start REAL microphone listening with user's selected language
       final langProvider = LanguageProvider.of(context, listen: false);
-      final targetLocale = (langProvider.isHindi || langProvider.isHinglish) ? 'hi_IN' : 'en_IN';
+      final targetLocale = (langProvider.isHindi || langProvider.isHinglish)
+          ? 'hi_IN'
+          : 'en_IN';
       _controller.startListening(localeId: targetLocale);
     }
   }
@@ -355,7 +357,10 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, color: AppColors.textMid),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: AppColors.textMid,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                   tooltip: 'Close',
                 ),
@@ -370,7 +375,9 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32),
-                      child: CircularProgressIndicator(color: AppColors.primaryDark),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryDark,
+                      ),
                     ),
                   )
                 : SingleChildScrollView(
@@ -473,7 +480,9 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                           boxShadow: [
                             BoxShadow(
                               color: isListening
-                                  ? AppColors.primaryDark.withValues(alpha: 0.45)
+                                  ? AppColors.primaryDark.withValues(
+                                      alpha: 0.45,
+                                    )
                                   : Colors.black.withValues(alpha: 0.15),
                               blurRadius: isListening ? 22 : 10,
                               spreadRadius: isListening ? 6 : 2,
@@ -498,19 +507,27 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
               Text(
                 isListening
                     ? (LanguageProvider.of(context, listen: false).isHindi
-                        ? 'सुन रहे हैं... बोलिए'
-                        : LanguageProvider.of(context, listen: false).isHinglish
-                            ? 'Sun rahe hain... Abhi bolein'
-                            : 'Listening... Speak now')
+                          ? 'सुन रहे हैं... बोलिए'
+                          : LanguageProvider.of(
+                              context,
+                              listen: false,
+                            ).isHinglish
+                          ? 'Sun rahe hain... Abhi bolein'
+                          : 'Listening... Speak now')
                     : (LanguageProvider.of(context, listen: false).isHindi
-                        ? 'बोलने के लिए माइक दबाएं'
-                        : LanguageProvider.of(context, listen: false).isHinglish
-                            ? 'Bolne ke liye mic dabayein'
-                            : 'Tap mic to speak'),
+                          ? 'बोलने के लिए माइक दबाएं'
+                          : LanguageProvider.of(
+                              context,
+                              listen: false,
+                            ).isHinglish
+                          ? 'Bolne ke liye mic dabayein'
+                          : 'Tap mic to speak'),
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isListening ? AppColors.primaryDark : AppColors.textDark,
+                  color: isListening
+                      ? AppColors.primaryDark
+                      : AppColors.textDark,
                 ),
               ),
               const SizedBox(height: 4),
@@ -518,8 +535,8 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                 LanguageProvider.of(context, listen: false).isHindi
                     ? 'उदाहरण: "२ किलो आटा और १ लीटर दूध जोड़ें"'
                     : LanguageProvider.of(context, listen: false).isHinglish
-                        ? 'Example: "Do kilo atta aur ek litre doodh add karo"'
-                        : 'Example: "Add 2 kg flour and 1 litre milk"',
+                    ? 'Example: "Do kilo atta aur ek litre doodh add karo"'
+                    : 'Example: "Add 2 kg flour and 1 litre milk"',
                 style: GoogleFonts.poppins(
                   fontSize: 11,
                   color: AppColors.textLight,
@@ -620,8 +637,8 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
     final headerText = isHindi
         ? 'बोलकर देखने के उदाहरण:'
         : isHinglish
-            ? 'Quick Bolkar Dekhein:'
-            : 'Quick Sample Voice Prompts:';
+        ? 'Quick Bolkar Dekhein:'
+        : 'Quick Sample Voice Prompts:';
 
     final prompts = isHindi
         ? [
@@ -633,29 +650,33 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
             'एक पैकेट नमक और चाय पत्ती',
           ]
         : isHinglish
-            ? [
-                '2 kilo atta aur 1 litre doodh',
-                '1 packet bread aur 2 packet doodh',
-                '500 gram paneer aur aadha kilo tamatar',
-                '2 packet maggi aur 1 kg cheeni',
-                '2 kg aloo aur 1 kg pyaaz',
-                'ek packet surf excel aur ek packet namak',
-              ]
-            : [
-                '2 kg flour and 1 litre milk',
-                '1 packet bread and 2 packets milk',
-                '500g paneer and half kg tomatoes',
-                '2 packets maggi and 1 kg sugar',
-                '2 kg potatoes and 1 kg onions',
-                '1 packet salt and tea powder',
-              ];
+        ? [
+            '2 kilo atta aur 1 litre doodh',
+            '1 packet bread aur 2 packet doodh',
+            '500 gram paneer aur aadha kilo tamatar',
+            '2 packet maggi aur 1 kg cheeni',
+            '2 kg aloo aur 1 kg pyaaz',
+            'ek packet surf excel aur ek packet namak',
+          ]
+        : [
+            '2 kg flour and 1 litre milk',
+            '1 packet bread and 2 packets milk',
+            '500g paneer and half kg tomatoes',
+            '2 packets maggi and 1 kg sugar',
+            '2 kg potatoes and 1 kg onions',
+            '1 packet salt and tea powder',
+          ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.tips_and_updates_rounded, color: Colors.amber, size: 16),
+            const Icon(
+              Icons.tips_and_updates_rounded,
+              color: Colors.amber,
+              size: 16,
+            ),
             const SizedBox(width: 6),
             Text(
               headerText,
@@ -673,14 +694,23 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
           runSpacing: 8,
           children: prompts.map((p) {
             return ActionChip(
-              avatar: const Icon(Icons.volume_up_rounded, size: 14, color: AppColors.primaryDark),
+              avatar: const Icon(
+                Icons.volume_up_rounded,
+                size: 14,
+                color: AppColors.primaryDark,
+              ),
               label: Text(
                 p,
-                style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500),
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               backgroundColor: Colors.white,
               side: BorderSide(color: Colors.grey.shade300),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               onPressed: () => _onQuickPromptSelected(p),
             );
           }).toList(),
@@ -704,12 +734,19 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 24),
+            const Icon(
+              Icons.info_outline_rounded,
+              color: Colors.amber,
+              size: 24,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 'Could not recognize grocery items in phrase. Please speak clearly or try sample prompts.',
-                style: GoogleFonts.poppins(fontSize: 12, color: Colors.amber.shade900),
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.amber.shade900,
+                ),
               ),
             ),
           ],
@@ -772,7 +809,9 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
         statusIcon = Icons.check_circle_rounded;
         break;
       case VoiceItemStatus.ambiguous:
-        statusColor = item.selectedProduct != null ? Colors.green : Colors.amber.shade800;
+        statusColor = item.selectedProduct != null
+            ? Colors.green
+            : Colors.amber.shade800;
         statusIcon = item.selectedProduct != null
             ? Icons.check_circle_rounded
             : Icons.help_outline_rounded;
@@ -794,10 +833,16 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: status == VoiceItemStatus.ambiguous && item.selectedProduct == null
+          color:
+              status == VoiceItemStatus.ambiguous &&
+                  item.selectedProduct == null
               ? Colors.amber.shade400
               : Colors.grey.shade200,
-          width: status == VoiceItemStatus.ambiguous && item.selectedProduct == null ? 1.5 : 1,
+          width:
+              status == VoiceItemStatus.ambiguous &&
+                  item.selectedProduct == null
+              ? 1.5
+              : 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -870,7 +915,11 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
 
               // Delete button
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 18, color: Colors.grey),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: Colors.grey,
+                ),
                 onPressed: () => _onRemoveItem(index),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -881,7 +930,8 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
           const SizedBox(height: 8),
 
           // Ambiguity Disambiguation Banner & Choices
-          if (status == VoiceItemStatus.ambiguous && item.selectedProduct == null) ...[
+          if (status == VoiceItemStatus.ambiguous &&
+              item.selectedProduct == null) ...[
             Container(
               margin: const EdgeInsets.symmetric(vertical: 6),
               padding: const EdgeInsets.all(10),
@@ -895,7 +945,11 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.help_outline_rounded, color: Colors.amber.shade900, size: 16),
+                      Icon(
+                        Icons.help_outline_rounded,
+                        color: Colors.amber.shade900,
+                        size: 16,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -923,7 +977,9 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                           ),
                         ),
                         selected: item.selectedProduct?.id == cand.id,
-                        selectedColor: AppColors.primaryLight.withValues(alpha: 0.35),
+                        selectedColor: AppColors.primaryLight.withValues(
+                          alpha: 0.35,
+                        ),
                         backgroundColor: Colors.white,
                         onSelected: (selected) {
                           if (selected) {
@@ -949,7 +1005,8 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (effectiveProd != null && status != VoiceItemStatus.outOfStock) ...[
+                  if (effectiveProd != null &&
+                      status != VoiceItemStatus.outOfStock) ...[
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
@@ -1011,7 +1068,8 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                     Icon(statusIcon, color: statusColor, size: 12),
                     const SizedBox(width: 4),
                     Text(
-                      item.status == VoiceItemStatus.ambiguous && item.selectedProduct != null
+                      item.status == VoiceItemStatus.ambiguous &&
+                              item.selectedProduct != null
                           ? 'Choice Selected'
                           : item.status.label,
                       style: GoogleFonts.poppins(
@@ -1058,14 +1116,21 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.warning_amber_rounded, size: 16, color: Colors.amber.shade900),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: Colors.amber.shade900,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       LanguageProvider.of(context, listen: false).isHindi
                           ? 'कृपया ऊपर से अपने ब्रांड का चुनाव करें'
-                          : LanguageProvider.of(context, listen: false).isHinglish
-                              ? 'Kripya upar se brand choice chunein'
-                              : 'Please pick brand choice for items above',
+                          : LanguageProvider.of(
+                              context,
+                              listen: false,
+                            ).isHinglish
+                          ? 'Kripya upar se brand choice chunein'
+                          : 'Please pick brand choice for items above',
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: Colors.amber.shade900,
@@ -1086,9 +1151,12 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                       Text(
                         LanguageProvider.of(context, listen: false).isHindi
                             ? '${result.readyCount} सामान तैयार'
-                            : LanguageProvider.of(context, listen: false).isHinglish
-                                ? '${result.readyCount} items ready'
-                                : '${result.readyCount} items ready',
+                            : LanguageProvider.of(
+                                context,
+                                listen: false,
+                              ).isHinglish
+                            ? '${result.readyCount} items ready'
+                            : '${result.readyCount} items ready',
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           color: AppColors.textLight,
@@ -1119,13 +1187,16 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  icon: const Icon(Icons.add_shopping_cart_rounded, color: Colors.white),
+                  icon: const Icon(
+                    Icons.add_shopping_cart_rounded,
+                    color: Colors.white,
+                  ),
                   label: Text(
                     LanguageProvider.of(context, listen: false).isHindi
                         ? 'पुष्टि करें और जोड़ें'
                         : LanguageProvider.of(context, listen: false).isHinglish
-                            ? 'Confirm & Cart me Dalein'
-                            : 'Confirm & Add to Cart',
+                        ? 'Confirm & Cart me Dalein'
+                        : 'Confirm & Add to Cart',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,

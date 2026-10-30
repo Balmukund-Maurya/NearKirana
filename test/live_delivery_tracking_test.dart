@@ -18,29 +18,29 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('xyz.luan/audioplayers.global'),
-      (methodCall) async => null,
-    );
+          const MethodChannel('xyz.luan/audioplayers.global'),
+          (methodCall) async => null,
+        );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('xyz.luan/audioplayers'),
-      (methodCall) async => null,
-    );
+          const MethodChannel('xyz.luan/audioplayers'),
+          (methodCall) async => null,
+        );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('dexterous.com/flutter/local_notifications'),
-      (methodCall) async => null,
-    );
+          const MethodChannel('dexterous.com/flutter/local_notifications'),
+          (methodCall) async => null,
+        );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('flutter.baseflow.com/geolocator'),
-      (methodCall) async {
-        if (methodCall.method == 'isLocationServiceEnabled') return true;
-        if (methodCall.method == 'checkPermission') return 3; // whileInUse
-        if (methodCall.method == 'requestPermission') return 3;
-        return null;
-      },
-    );
+          const MethodChannel('flutter.baseflow.com/geolocator'),
+          (methodCall) async {
+            if (methodCall.method == 'isLocationServiceEnabled') return true;
+            if (methodCall.method == 'checkPermission') return 3; // whileInUse
+            if (methodCall.method == 'requestPermission') return 3;
+            return null;
+          },
+        );
   });
 
   late FakeFirebaseFirestore fakeFirestore;
@@ -68,12 +68,30 @@ void main() {
       expect(LiveTrackingStatus.nearby.label, contains('आस-पास'));
       expect(LiveTrackingStatus.delivered.label, contains('पूरी हुई'));
 
-      expect(LiveTrackingStatus.fromString('in_transit'), equals(LiveTrackingStatus.transit));
-      expect(LiveTrackingStatus.fromString('nearby'), equals(LiveTrackingStatus.nearby));
-      expect(LiveTrackingStatus.fromString('arrived_nearby'), equals(LiveTrackingStatus.nearby));
-      expect(LiveTrackingStatus.fromString('delivered'), equals(LiveTrackingStatus.delivered));
-      expect(LiveTrackingStatus.fromString('ended'), equals(LiveTrackingStatus.ended));
-      expect(LiveTrackingStatus.fromString('cancelled'), equals(LiveTrackingStatus.ended));
+      expect(
+        LiveTrackingStatus.fromString('in_transit'),
+        equals(LiveTrackingStatus.transit),
+      );
+      expect(
+        LiveTrackingStatus.fromString('nearby'),
+        equals(LiveTrackingStatus.nearby),
+      );
+      expect(
+        LiveTrackingStatus.fromString('arrived_nearby'),
+        equals(LiveTrackingStatus.nearby),
+      );
+      expect(
+        LiveTrackingStatus.fromString('delivered'),
+        equals(LiveTrackingStatus.delivered),
+      );
+      expect(
+        LiveTrackingStatus.fromString('ended'),
+        equals(LiveTrackingStatus.ended),
+      );
+      expect(
+        LiveTrackingStatus.fromString('cancelled'),
+        equals(LiveTrackingStatus.ended),
+      );
     });
 
     test('DeliveryLocationPoint serialization roundtrip', () {
@@ -226,7 +244,10 @@ void main() {
       expect(trackingService.isBroadcasting, isTrue);
       expect(trackingService.activeBroadcastingOrderId, equals('ORD-TEST-1'));
 
-      final doc = await fakeFirestore.collection('delivery_tracking').doc('ORD-TEST-1').get();
+      final doc = await fakeFirestore
+          .collection('delivery_tracking')
+          .doc('ORD-TEST-1')
+          .get();
       expect(doc.exists, isTrue);
       final data = doc.data()!;
       expect(data['is_active'], isTrue);
@@ -237,79 +258,91 @@ void main() {
       await trackingService.stopBroadcasting('ORD-TEST-1');
     });
 
-    test('updateManualPosition updates coordinate, distance, and ETA', () async {
-      await trackingService.startBroadcasting(
-        orderId: 'ORD-TEST-2',
-        partnerId: 'partner-101',
-        partnerName: 'Vikram',
-        partnerPhone: '9988776655',
-        shopId: 'shop-1',
-        customerPhone: '9123456780',
-        customerName: 'Sanjay Gupta',
-        customerAddress: 'House 42, Green Park',
-        customerLat: 28.5500,
-        customerLng: 77.2000,
-        customPositionStreamForTesting: const Stream.empty(),
-      );
+    test(
+      'updateManualPosition updates coordinate, distance, and ETA',
+      () async {
+        await trackingService.startBroadcasting(
+          orderId: 'ORD-TEST-2',
+          partnerId: 'partner-101',
+          partnerName: 'Vikram',
+          partnerPhone: '9988776655',
+          shopId: 'shop-1',
+          customerPhone: '9123456780',
+          customerName: 'Sanjay Gupta',
+          customerAddress: 'House 42, Green Park',
+          customerLat: 28.5500,
+          customerLng: 77.2000,
+          customPositionStreamForTesting: const Stream.empty(),
+        );
 
-      // Inject position ~1 km away
-      await trackingService.updateManualPosition(
-        orderId: 'ORD-TEST-2',
-        latitude: 28.5410,
-        longitude: 77.2000,
-        speedMps: 6.0,
-        customerLat: 28.5500,
-        customerLng: 77.2000,
-      );
+        // Inject position ~1 km away
+        await trackingService.updateManualPosition(
+          orderId: 'ORD-TEST-2',
+          latitude: 28.5410,
+          longitude: 77.2000,
+          speedMps: 6.0,
+          customerLat: 28.5500,
+          customerLng: 77.2000,
+        );
 
-      final session = await trackingService.getTrackingSession('ORD-TEST-2');
-      expect(session, isNotNull);
-      expect(session!.currentLocation?.latitude, equals(28.5410));
-      expect(session.distanceRemainingMeters, isNotNull);
-      expect(session.distanceRemainingMeters!, greaterThan(500));
-      expect(session.estimatedMinutesRemaining, isNotNull);
-      expect(session.status, equals(LiveTrackingStatus.transit));
+        final session = await trackingService.getTrackingSession('ORD-TEST-2');
+        expect(session, isNotNull);
+        expect(session!.currentLocation?.latitude, equals(28.5410));
+        expect(session.distanceRemainingMeters, isNotNull);
+        expect(session.distanceRemainingMeters!, greaterThan(500));
+        expect(session.estimatedMinutesRemaining, isNotNull);
+        expect(session.status, equals(LiveTrackingStatus.transit));
 
-      // Also verify order document updated with delivery_location
-      final orderDoc = await fakeFirestore.collection('orders').doc('ORD-TEST-2').get();
-      expect(orderDoc.exists, isTrue);
-      expect(orderDoc.data()?['delivery_location']?['latitude'], equals(28.5410));
+        // Also verify order document updated with delivery_location
+        final orderDoc = await fakeFirestore
+            .collection('orders')
+            .doc('ORD-TEST-2')
+            .get();
+        expect(orderDoc.exists, isTrue);
+        expect(
+          orderDoc.data()?['delivery_location']?['latitude'],
+          equals(28.5410),
+        );
 
-      await trackingService.stopBroadcasting('ORD-TEST-2');
-    });
+        await trackingService.stopBroadcasting('ORD-TEST-2');
+      },
+    );
 
-    test('Proximity detection triggers nearby status when within 180m', () async {
-      await trackingService.startBroadcasting(
-        orderId: 'ORD-TEST-3',
-        partnerId: 'partner-101',
-        partnerName: 'Vikram',
-        partnerPhone: '9988776655',
-        shopId: 'shop-1',
-        customerPhone: '9123456780',
-        customerName: 'Sanjay Gupta',
-        customerAddress: 'House 42, Green Park',
-        customerLat: 28.5500,
-        customerLng: 77.2000,
-        customPositionStreamForTesting: const Stream.empty(),
-      );
+    test(
+      'Proximity detection triggers nearby status when within 180m',
+      () async {
+        await trackingService.startBroadcasting(
+          orderId: 'ORD-TEST-3',
+          partnerId: 'partner-101',
+          partnerName: 'Vikram',
+          partnerPhone: '9988776655',
+          shopId: 'shop-1',
+          customerPhone: '9123456780',
+          customerName: 'Sanjay Gupta',
+          customerAddress: 'House 42, Green Park',
+          customerLat: 28.5500,
+          customerLng: 77.2000,
+          customPositionStreamForTesting: const Stream.empty(),
+        );
 
-      // Inject position very close (~50m away)
-      await trackingService.updateManualPosition(
-        orderId: 'ORD-TEST-3',
-        latitude: 28.5504,
-        longitude: 77.2000,
-        customerLat: 28.5500,
-        customerLng: 77.2000,
-      );
+        // Inject position very close (~50m away)
+        await trackingService.updateManualPosition(
+          orderId: 'ORD-TEST-3',
+          latitude: 28.5504,
+          longitude: 77.2000,
+          customerLat: 28.5500,
+          customerLng: 77.2000,
+        );
 
-      final session = await trackingService.getTrackingSession('ORD-TEST-3');
-      expect(session, isNotNull);
-      expect(session!.distanceRemainingMeters, lessThanOrEqualTo(180));
-      expect(session.status, equals(LiveTrackingStatus.nearby));
-      expect(session.isNearby, isTrue);
+        final session = await trackingService.getTrackingSession('ORD-TEST-3');
+        expect(session, isNotNull);
+        expect(session!.distanceRemainingMeters, lessThanOrEqualTo(180));
+        expect(session.status, equals(LiveTrackingStatus.nearby));
+        expect(session.isNearby, isTrue);
 
-      await trackingService.stopBroadcasting('ORD-TEST-3');
-    });
+        await trackingService.stopBroadcasting('ORD-TEST-3');
+      },
+    );
 
     test('stopBroadcasting terminates session and updates Firestore', () async {
       await trackingService.startBroadcasting(
@@ -365,154 +398,181 @@ void main() {
   });
 
   group('Feature 59: CustomerLiveTrackingScreen UI Widget Tests', () {
-    testWidgets('CustomerLiveTrackingScreen renders top header, live pulse, and bottom card', (tester) async {
-      final now = DateTime.now();
+    testWidgets(
+      'CustomerLiveTrackingScreen renders top header, live pulse, and bottom card',
+      (tester) async {
+        final now = DateTime.now();
 
-      // Seed tracking session in fake firestore
-      await fakeFirestore.collection('delivery_tracking').doc('ORD-WIDGET-1').set({
-        'order_id': 'ORD-WIDGET-1',
-        'partner_id': 'partner-1',
-        'partner_name': 'Rahul Sharma',
-        'partner_phone': '9876543210',
-        'partner_vehicle': 'DL 01 AB 1234',
-        'shop_id': 'shop-1',
-        'customer_phone': '9123456780',
-        'customer_name': 'Amit Verma',
-        'customer_address': 'Flat 101, Sector 4, Noida',
-        'customer_lat': 28.5355,
-        'customer_lng': 77.3910,
-        'current_location': {
-          'latitude': 28.5320,
-          'longitude': 77.3905,
-          'timestamp': Timestamp.fromDate(now),
-        },
-        'is_active': true,
-        'status': 'in_transit',
-        'distance_remaining_meters': 1200.0,
-        'estimated_minutes_remaining': 6,
-        'session_started_at': Timestamp.fromDate(now),
-        'last_updated_at': Timestamp.fromDate(now),
-      });
+        // Seed tracking session in fake firestore
+        await fakeFirestore
+            .collection('delivery_tracking')
+            .doc('ORD-WIDGET-1')
+            .set({
+              'order_id': 'ORD-WIDGET-1',
+              'partner_id': 'partner-1',
+              'partner_name': 'Rahul Sharma',
+              'partner_phone': '9876543210',
+              'partner_vehicle': 'DL 01 AB 1234',
+              'shop_id': 'shop-1',
+              'customer_phone': '9123456780',
+              'customer_name': 'Amit Verma',
+              'customer_address': 'Flat 101, Sector 4, Noida',
+              'customer_lat': 28.5355,
+              'customer_lng': 77.3910,
+              'current_location': {
+                'latitude': 28.5320,
+                'longitude': 77.3905,
+                'timestamp': Timestamp.fromDate(now),
+              },
+              'is_active': true,
+              'status': 'in_transit',
+              'distance_remaining_meters': 1200.0,
+              'estimated_minutes_remaining': 6,
+              'session_started_at': Timestamp.fromDate(now),
+              'last_updated_at': Timestamp.fromDate(now),
+            });
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: CustomerLiveTrackingScreen(
-            orderId: 'ORD-WIDGET-1',
-            service: trackingService,
-            enableTiles: false,
-            enableAnimations: false,
-            initialOrderData: const {
-              'delivery_pin': '4321',
-            },
+        await tester.pumpWidget(
+          MaterialApp(
+            home: CustomerLiveTrackingScreen(
+              orderId: 'ORD-WIDGET-1',
+              service: trackingService,
+              enableTiles: false,
+              enableAnimations: false,
+              initialOrderData: const {'delivery_pin': '4321'},
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
 
-      // 1. Verify Top Header
-      expect(find.text('Live Delivery Track'), findsOneWidget);
-      expect(find.text('LIVE'), findsOneWidget);
+        // 1. Verify Top Header
+        expect(find.text('Live Delivery Track'), findsOneWidget);
+        expect(find.text('LIVE'), findsOneWidget);
 
-      // 2. Verify Partner Info & Vehicle
-      expect(find.text('Rahul Sharma'), findsWidgets);
-      expect(find.text('वाहन: DL 01 AB 1234'), findsOneWidget);
+        // 2. Verify Partner Info & Vehicle
+        expect(find.text('Rahul Sharma'), findsWidgets);
+        expect(find.text('वाहन: DL 01 AB 1234'), findsOneWidget);
 
-      // 3. Verify ETA & Distance
-      expect(find.textContaining('6 min'), findsWidgets);
-      expect(find.textContaining('1.2 km'), findsWidgets);
+        // 3. Verify ETA & Distance
+        expect(find.textContaining('6 min'), findsWidgets);
+        expect(find.textContaining('1.2 km'), findsWidgets);
 
-      // 4. Verify Delivery PIN pill
-      expect(find.text('4321'), findsOneWidget);
-      expect(find.text('PIN'), findsOneWidget);
+        // 4. Verify Delivery PIN pill
+        expect(find.text('4321'), findsOneWidget);
+        expect(find.text('PIN'), findsOneWidget);
 
-      // 5. Verify Privacy Safeguard Notice
-      expect(find.textContaining('गोपनीयता: लोकेशन सिर्फ इस डिलीवरी के दौरान लाइव है'), findsOneWidget);
-
-      // 6. Verify Call Button
-      expect(find.text('कॉल करें'), findsOneWidget);
-    });
-
-    testWidgets('CustomerLiveTrackingScreen renders Arrived Nearby state correctly', (tester) async {
-      final now = DateTime.now();
-
-      await fakeFirestore.collection('delivery_tracking').doc('ORD-WIDGET-2').set({
-        'order_id': 'ORD-WIDGET-2',
-        'partner_id': 'partner-1',
-        'partner_name': 'Rahul Sharma',
-        'partner_phone': '9876543210',
-        'customer_phone': '9123456780',
-        'customer_name': 'Amit Verma',
-        'customer_address': 'Sector 4',
-        'customer_lat': 28.5355,
-        'customer_lng': 77.3910,
-        'current_location': {
-          'latitude': 28.5350,
-          'longitude': 77.3910,
-          'timestamp': Timestamp.fromDate(now),
-        },
-        'is_active': true,
-        'status': 'nearby',
-        'distance_remaining_meters': 80.0,
-        'estimated_minutes_remaining': 1,
-        'session_started_at': Timestamp.fromDate(now),
-        'last_updated_at': Timestamp.fromDate(now),
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: CustomerLiveTrackingScreen(
-            orderId: 'ORD-WIDGET-2',
-            service: trackingService,
-            enableTiles: false,
-            enableAnimations: false,
+        // 5. Verify Privacy Safeguard Notice
+        expect(
+          find.textContaining(
+            'गोपनीयता: लोकेशन सिर्फ इस डिलीवरी के दौरान लाइव है',
           ),
-        ),
-      );
+          findsOneWidget,
+        );
 
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
+        // 6. Verify Call Button
+        expect(find.text('कॉल करें'), findsOneWidget);
+      },
+    );
 
-      expect(find.textContaining('आस-पास पहुंच गए हैं'), findsWidgets);
-      expect(find.textContaining('कृपया पार्सल रिसीव करने के लिए तैयार रहें'), findsOneWidget);
-    });
+    testWidgets(
+      'CustomerLiveTrackingScreen renders Arrived Nearby state correctly',
+      (tester) async {
+        final now = DateTime.now();
 
-    testWidgets('CustomerLiveTrackingScreen renders Delivered completed state', (tester) async {
-      final now = DateTime.now();
+        await fakeFirestore
+            .collection('delivery_tracking')
+            .doc('ORD-WIDGET-2')
+            .set({
+              'order_id': 'ORD-WIDGET-2',
+              'partner_id': 'partner-1',
+              'partner_name': 'Rahul Sharma',
+              'partner_phone': '9876543210',
+              'customer_phone': '9123456780',
+              'customer_name': 'Amit Verma',
+              'customer_address': 'Sector 4',
+              'customer_lat': 28.5355,
+              'customer_lng': 77.3910,
+              'current_location': {
+                'latitude': 28.5350,
+                'longitude': 77.3910,
+                'timestamp': Timestamp.fromDate(now),
+              },
+              'is_active': true,
+              'status': 'nearby',
+              'distance_remaining_meters': 80.0,
+              'estimated_minutes_remaining': 1,
+              'session_started_at': Timestamp.fromDate(now),
+              'last_updated_at': Timestamp.fromDate(now),
+            });
 
-      await fakeFirestore.collection('delivery_tracking').doc('ORD-WIDGET-3').set({
-        'order_id': 'ORD-WIDGET-3',
-        'partner_id': 'partner-1',
-        'partner_name': 'Rahul Sharma',
-        'partner_phone': '9876543210',
-        'customer_phone': '9123456780',
-        'customer_name': 'Amit Verma',
-        'customer_address': 'Sector 4',
-        'is_active': false,
-        'status': 'delivered',
-        'session_started_at': Timestamp.fromDate(now),
-        'last_updated_at': Timestamp.fromDate(now),
-        'session_ended_at': Timestamp.fromDate(now),
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: CustomerLiveTrackingScreen(
-            orderId: 'ORD-WIDGET-3',
-            service: trackingService,
-            enableTiles: false,
-            enableAnimations: false,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: CustomerLiveTrackingScreen(
+              orderId: 'ORD-WIDGET-2',
+              service: trackingService,
+              enableTiles: false,
+              enableAnimations: false,
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('ENDED'), findsOneWidget);
-      expect(find.text('डिलीवरी सफल हुई'), findsOneWidget);
-      expect(find.text('आपका सामान सुरक्षित डिलीवर हो चुका है'), findsOneWidget);
-    });
+        expect(find.textContaining('आस-पास पहुंच गए हैं'), findsWidgets);
+        expect(
+          find.textContaining('कृपया पार्सल रिसीव करने के लिए तैयार रहें'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'CustomerLiveTrackingScreen renders Delivered completed state',
+      (tester) async {
+        final now = DateTime.now();
+
+        await fakeFirestore
+            .collection('delivery_tracking')
+            .doc('ORD-WIDGET-3')
+            .set({
+              'order_id': 'ORD-WIDGET-3',
+              'partner_id': 'partner-1',
+              'partner_name': 'Rahul Sharma',
+              'partner_phone': '9876543210',
+              'customer_phone': '9123456780',
+              'customer_name': 'Amit Verma',
+              'customer_address': 'Sector 4',
+              'is_active': false,
+              'status': 'delivered',
+              'session_started_at': Timestamp.fromDate(now),
+              'last_updated_at': Timestamp.fromDate(now),
+              'session_ended_at': Timestamp.fromDate(now),
+            });
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: CustomerLiveTrackingScreen(
+              orderId: 'ORD-WIDGET-3',
+              service: trackingService,
+              enableTiles: false,
+              enableAnimations: false,
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(find.text('ENDED'), findsOneWidget);
+        expect(find.text('डिलीवरी सफल हुई'), findsOneWidget);
+        expect(
+          find.text('आपका सामान सुरक्षित डिलीवर हो चुका है'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

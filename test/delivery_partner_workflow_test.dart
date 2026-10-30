@@ -17,19 +17,19 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('xyz.luan/audioplayers.global'),
-      (methodCall) async => null,
-    );
+          const MethodChannel('xyz.luan/audioplayers.global'),
+          (methodCall) async => null,
+        );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('xyz.luan/audioplayers'),
-      (methodCall) async => null,
-    );
+          const MethodChannel('xyz.luan/audioplayers'),
+          (methodCall) async => null,
+        );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('dexterous.com/flutter/local_notifications'),
-      (methodCall) async => null,
-    );
+          const MethodChannel('dexterous.com/flutter/local_notifications'),
+          (methodCall) async => null,
+        );
   });
 
   const testShopId = 'shop_test_101';
@@ -56,12 +56,30 @@ void main() {
       expect(DeliveryPartnerStatus.onDelivery.hindiLabel, contains('डिलीवरी'));
       expect(DeliveryPartnerStatus.offline.hindiLabel, contains('ऑफलाइन'));
 
-      expect(DeliveryPartnerStatus.fromString('available'), equals(DeliveryPartnerStatus.available));
-      expect(DeliveryPartnerStatus.fromString('active'), equals(DeliveryPartnerStatus.available));
-      expect(DeliveryPartnerStatus.fromString('on_delivery'), equals(DeliveryPartnerStatus.onDelivery));
-      expect(DeliveryPartnerStatus.fromString('busy'), equals(DeliveryPartnerStatus.onDelivery));
-      expect(DeliveryPartnerStatus.fromString('offline'), equals(DeliveryPartnerStatus.offline));
-      expect(DeliveryPartnerStatus.fromString(null), equals(DeliveryPartnerStatus.offline));
+      expect(
+        DeliveryPartnerStatus.fromString('available'),
+        equals(DeliveryPartnerStatus.available),
+      );
+      expect(
+        DeliveryPartnerStatus.fromString('active'),
+        equals(DeliveryPartnerStatus.available),
+      );
+      expect(
+        DeliveryPartnerStatus.fromString('on_delivery'),
+        equals(DeliveryPartnerStatus.onDelivery),
+      );
+      expect(
+        DeliveryPartnerStatus.fromString('busy'),
+        equals(DeliveryPartnerStatus.onDelivery),
+      );
+      expect(
+        DeliveryPartnerStatus.fromString('offline'),
+        equals(DeliveryPartnerStatus.offline),
+      );
+      expect(
+        DeliveryPartnerStatus.fromString(null),
+        equals(DeliveryPartnerStatus.offline),
+      );
     });
 
     test('DeliveryTaskStatus enum keys, labels, and string parsing', () {
@@ -71,13 +89,34 @@ void main() {
       expect(DeliveryTaskStatus.delivered.key, equals('delivered'));
       expect(DeliveryTaskStatus.cancelled.key, equals('cancelled'));
 
-      expect(DeliveryTaskStatus.fromString('assigned'), equals(DeliveryTaskStatus.assigned));
-      expect(DeliveryTaskStatus.fromString('accepted'), equals(DeliveryTaskStatus.accepted));
-      expect(DeliveryTaskStatus.fromString('picked_up'), equals(DeliveryTaskStatus.pickedUp));
-      expect(DeliveryTaskStatus.fromString('out for delivery'), equals(DeliveryTaskStatus.pickedUp));
-      expect(DeliveryTaskStatus.fromString('delivered'), equals(DeliveryTaskStatus.delivered));
-      expect(DeliveryTaskStatus.fromString('cancelled'), equals(DeliveryTaskStatus.cancelled));
-      expect(DeliveryTaskStatus.fromString('unknown'), equals(DeliveryTaskStatus.assigned));
+      expect(
+        DeliveryTaskStatus.fromString('assigned'),
+        equals(DeliveryTaskStatus.assigned),
+      );
+      expect(
+        DeliveryTaskStatus.fromString('accepted'),
+        equals(DeliveryTaskStatus.accepted),
+      );
+      expect(
+        DeliveryTaskStatus.fromString('picked_up'),
+        equals(DeliveryTaskStatus.pickedUp),
+      );
+      expect(
+        DeliveryTaskStatus.fromString('out for delivery'),
+        equals(DeliveryTaskStatus.pickedUp),
+      );
+      expect(
+        DeliveryTaskStatus.fromString('delivered'),
+        equals(DeliveryTaskStatus.delivered),
+      );
+      expect(
+        DeliveryTaskStatus.fromString('cancelled'),
+        equals(DeliveryTaskStatus.cancelled),
+      );
+      expect(
+        DeliveryTaskStatus.fromString('unknown'),
+        equals(DeliveryTaskStatus.assigned),
+      );
     });
 
     test('DeliveryPartner toMap and fromMap serialization roundtrip', () {
@@ -137,8 +176,12 @@ void main() {
           {'name': 'Fortune Oil 1L', 'quantity': 2},
           {'name': 'Sugar 1kg', 'quantity': 1},
         ],
-        'delivery_assigned_at': Timestamp.fromDate(DateTime(2026, 10, 14, 13, 10)),
-        'delivery_picked_up_at': Timestamp.fromDate(DateTime(2026, 10, 14, 13, 20)),
+        'delivery_assigned_at': Timestamp.fromDate(
+          DateTime(2026, 10, 14, 13, 10),
+        ),
+        'delivery_picked_up_at': Timestamp.fromDate(
+          DateTime(2026, 10, 14, 13, 20),
+        ),
       };
 
       final task = DeliveryOrderTask.fromFirestoreDoc(orderData, 'order_999');
@@ -157,54 +200,63 @@ void main() {
   });
 
   group('Feature 58: DeliveryPartnerService - Operations & Workflows', () {
-    test('registerOrUpdatePartner creates and retrieves partner profile', () async {
-      final partner = DeliveryPartner(
-        id: '',
-        shopId: testShopId,
-        name: 'Rahul Sharma',
-        phone: '9876543210',
-        vehicleNumber: 'MP04 AB 1234',
-        createdAt: DateTime.now(),
-      );
+    test(
+      'registerOrUpdatePartner creates and retrieves partner profile',
+      () async {
+        final partner = DeliveryPartner(
+          id: '',
+          shopId: testShopId,
+          name: 'Rahul Sharma',
+          phone: '9876543210',
+          vehicleNumber: 'MP04 AB 1234',
+          createdAt: DateTime.now(),
+        );
 
-      final saved = await service.registerOrUpdatePartner(partner);
-      expect(saved.id, isNotEmpty);
-      expect(saved.name, equals('Rahul Sharma'));
+        final saved = await service.registerOrUpdatePartner(partner);
+        expect(saved.id, isNotEmpty);
+        expect(saved.name, equals('Rahul Sharma'));
 
-      final fetched = await service.getPartner(saved.id);
-      expect(fetched, isNotNull);
-      expect(fetched!.phone, equals('9876543210'));
-      expect(fetched.vehicleNumber, equals('MP04 AB 1234'));
+        final fetched = await service.getPartner(saved.id);
+        expect(fetched, isNotNull);
+        expect(fetched!.phone, equals('9876543210'));
+        expect(fetched.vehicleNumber, equals('MP04 AB 1234'));
 
-      final byPhone = await service.getPartnerByPhone('9876543210');
-      expect(byPhone, isNotNull);
-      expect(byPhone!.id, equals(saved.id));
-    });
+        final byPhone = await service.getPartnerByPhone('9876543210');
+        expect(byPhone, isNotNull);
+        expect(byPhone!.id, equals(saved.id));
+      },
+    );
 
     test('streamShopPartners filters by shopId and sorts by name', () async {
-      await service.registerOrUpdatePartner(DeliveryPartner(
-        id: 'p1',
-        shopId: testShopId,
-        name: 'Suresh Patel',
-        phone: '9876543211',
-        createdAt: DateTime.now(),
-      ));
+      await service.registerOrUpdatePartner(
+        DeliveryPartner(
+          id: 'p1',
+          shopId: testShopId,
+          name: 'Suresh Patel',
+          phone: '9876543211',
+          createdAt: DateTime.now(),
+        ),
+      );
 
-      await service.registerOrUpdatePartner(DeliveryPartner(
-        id: 'p2',
-        shopId: testShopId,
-        name: 'Amit Yadav',
-        phone: '9876543212',
-        createdAt: DateTime.now(),
-      ));
+      await service.registerOrUpdatePartner(
+        DeliveryPartner(
+          id: 'p2',
+          shopId: testShopId,
+          name: 'Amit Yadav',
+          phone: '9876543212',
+          createdAt: DateTime.now(),
+        ),
+      );
 
-      await service.registerOrUpdatePartner(DeliveryPartner(
-        id: 'p3',
-        shopId: 'other_shop',
-        name: 'Other Shop Partner',
-        phone: '9876543213',
-        createdAt: DateTime.now(),
-      ));
+      await service.registerOrUpdatePartner(
+        DeliveryPartner(
+          id: 'p3',
+          shopId: 'other_shop',
+          name: 'Other Shop Partner',
+          phone: '9876543213',
+          createdAt: DateTime.now(),
+        ),
+      );
 
       final shopPartners = await service.streamShopPartners(testShopId).first;
       expect(shopPartners.length, equals(2));
@@ -213,134 +265,154 @@ void main() {
     });
 
     test('updatePartnerStatus updates status and last_active_at', () async {
-      final saved = await service.registerOrUpdatePartner(DeliveryPartner(
-        id: 'p_status',
-        shopId: testShopId,
-        name: 'Raju',
-        phone: '9876543215',
-        status: DeliveryPartnerStatus.available,
-        createdAt: DateTime.now(),
-      ));
+      final saved = await service.registerOrUpdatePartner(
+        DeliveryPartner(
+          id: 'p_status',
+          shopId: testShopId,
+          name: 'Raju',
+          phone: '9876543215',
+          status: DeliveryPartnerStatus.available,
+          createdAt: DateTime.now(),
+        ),
+      );
 
-      await service.updatePartnerStatus(saved.id, DeliveryPartnerStatus.offline);
+      await service.updatePartnerStatus(
+        saved.id,
+        DeliveryPartnerStatus.offline,
+      );
       final updated = await service.getPartner(saved.id);
       expect(updated!.status, equals(DeliveryPartnerStatus.offline));
       expect(updated.isOnline, isFalse);
     });
 
-    test('End-to-End Workflow: Assign -> Accept -> Store Pickup -> Mark Delivered', () async {
-      // 1. Create registered delivery partner
-      final partner = await service.registerOrUpdatePartner(DeliveryPartner(
-        id: 'partner_rahul',
-        shopId: testShopId,
-        name: 'Rahul',
-        phone: '9876543210',
-        vehicleNumber: 'MP04 AB 1234',
-        status: DeliveryPartnerStatus.available,
-        createdAt: DateTime.now(),
-      ));
+    test(
+      'End-to-End Workflow: Assign -> Accept -> Store Pickup -> Mark Delivered',
+      () async {
+        // 1. Create registered delivery partner
+        final partner = await service.registerOrUpdatePartner(
+          DeliveryPartner(
+            id: 'partner_rahul',
+            shopId: testShopId,
+            name: 'Rahul',
+            phone: '9876543210',
+            vehicleNumber: 'MP04 AB 1234',
+            status: DeliveryPartnerStatus.available,
+            createdAt: DateTime.now(),
+          ),
+        );
 
-      // 2. Shopkeeper creates packed order
-      final orderRef = fakeFirestore.collection('orders').doc('order_1001');
-      await orderRef.set({
-        'shop_id': testShopId,
-        'customer_name': 'Ramesh Kumar',
-        'phone_number': '9988776655',
-        'delivery_address': '12 Sector B, Bhopal',
-        'total_amount': 500.0,
-        'payment_mode': 'COD',
-        'payment_status': 'Unpaid',
-        'status': OrderStatus.ready,
-        'items': [{'name': 'Aashirvaad Atta 5kg', 'quantity': 1}],
-      });
+        // 2. Shopkeeper creates packed order
+        final orderRef = fakeFirestore.collection('orders').doc('order_1001');
+        await orderRef.set({
+          'shop_id': testShopId,
+          'customer_name': 'Ramesh Kumar',
+          'phone_number': '9988776655',
+          'delivery_address': '12 Sector B, Bhopal',
+          'total_amount': 500.0,
+          'payment_mode': 'COD',
+          'payment_status': 'Unpaid',
+          'status': OrderStatus.ready,
+          'items': [
+            {'name': 'Aashirvaad Atta 5kg', 'quantity': 1},
+          ],
+        });
 
-      // 3. Shopkeeper assigns order to Rahul
-      await service.assignOrderToPartner(
-        shopId: testShopId,
-        orderId: 'order_1001',
-        partner: partner,
-        notes: 'Handle with care',
-      );
+        // 3. Shopkeeper assigns order to Rahul
+        await service.assignOrderToPartner(
+          shopId: testShopId,
+          orderId: 'order_1001',
+          partner: partner,
+          notes: 'Handle with care',
+        );
 
-      var orderSnap = await orderRef.get();
-      expect(orderSnap.data()!['delivery_boy_id'], equals('partner_rahul'));
-      expect(orderSnap.data()!['delivery_boy_name'], equals('Rahul'));
-      expect(orderSnap.data()!['delivery_status'], equals('assigned'));
-      expect(orderSnap.data()!['delivery_notes'], equals('Handle with care'));
+        var orderSnap = await orderRef.get();
+        expect(orderSnap.data()!['delivery_boy_id'], equals('partner_rahul'));
+        expect(orderSnap.data()!['delivery_boy_name'], equals('Rahul'));
+        expect(orderSnap.data()!['delivery_status'], equals('assigned'));
+        expect(orderSnap.data()!['delivery_notes'], equals('Handle with care'));
 
-      var partnerSnap = await service.getPartner('partner_rahul');
-      expect(partnerSnap!.activeOrdersCount, equals(1));
+        var partnerSnap = await service.getPartner('partner_rahul');
+        expect(partnerSnap!.activeOrdersCount, equals(1));
 
-      // 4. Partner accepts delivery task
-      await service.acceptDeliveryTask(
-        orderId: 'order_1001',
-        partnerId: 'partner_rahul',
-      );
+        // 4. Partner accepts delivery task
+        await service.acceptDeliveryTask(
+          orderId: 'order_1001',
+          partnerId: 'partner_rahul',
+        );
 
-      orderSnap = await orderRef.get();
-      expect(orderSnap.data()!['delivery_status'], equals('accepted'));
+        orderSnap = await orderRef.get();
+        expect(orderSnap.data()!['delivery_status'], equals('accepted'));
 
-      // 5. Partner confirms store pickup
-      await service.confirmStorePickup(
-        orderId: 'order_1001',
-        partnerId: 'partner_rahul',
-        shopId: testShopId,
-        customerPhone: '9988776655',
-        orderTotal: 500.0,
-        partnerName: 'Rahul',
-      );
+        // 5. Partner confirms store pickup
+        await service.confirmStorePickup(
+          orderId: 'order_1001',
+          partnerId: 'partner_rahul',
+          shopId: testShopId,
+          customerPhone: '9988776655',
+          orderTotal: 500.0,
+          partnerName: 'Rahul',
+        );
 
-      orderSnap = await orderRef.get();
-      expect(orderSnap.data()!['status'], equals(OrderStatus.outForDelivery));
-      expect(orderSnap.data()!['delivery_status'], equals('picked_up'));
+        orderSnap = await orderRef.get();
+        expect(orderSnap.data()!['status'], equals(OrderStatus.outForDelivery));
+        expect(orderSnap.data()!['delivery_status'], equals('picked_up'));
 
-      partnerSnap = await service.getPartner('partner_rahul');
-      expect(partnerSnap!.status, equals(DeliveryPartnerStatus.onDelivery));
+        partnerSnap = await service.getPartner('partner_rahul');
+        expect(partnerSnap!.status, equals(DeliveryPartnerStatus.onDelivery));
 
-      // Verify active task appears in streamPartnerActiveTasks
-      final activeTasks = await service.streamPartnerActiveTasks('partner_rahul').first;
-      expect(activeTasks.length, equals(1));
-      expect(activeTasks.first.orderId, equals('order_1001'));
-      expect(activeTasks.first.isPickedUp, isTrue);
+        // Verify active task appears in streamPartnerActiveTasks
+        final activeTasks = await service
+            .streamPartnerActiveTasks('partner_rahul')
+            .first;
+        expect(activeTasks.length, equals(1));
+        expect(activeTasks.first.orderId, equals('order_1001'));
+        expect(activeTasks.first.isPickedUp, isTrue);
 
-      // 6. Partner delivers parcel to customer & collects COD cash
-      await service.completeDelivery(
-        orderId: 'order_1001',
-        partnerId: 'partner_rahul',
-        shopId: testShopId,
-        codCollected: true,
-        codAmount: 500.0,
-        completionNotes: 'Handed to customer at door',
-        customerPhone: '9988776655',
-        orderTotal: 500.0,
-        partnerName: 'Rahul',
-      );
+        // 6. Partner delivers parcel to customer & collects COD cash
+        await service.completeDelivery(
+          orderId: 'order_1001',
+          partnerId: 'partner_rahul',
+          shopId: testShopId,
+          codCollected: true,
+          codAmount: 500.0,
+          completionNotes: 'Handed to customer at door',
+          customerPhone: '9988776655',
+          orderTotal: 500.0,
+          partnerName: 'Rahul',
+        );
 
-      orderSnap = await orderRef.get();
-      expect(orderSnap.data()!['status'], equals(OrderStatus.delivered));
-      expect(orderSnap.data()!['delivery_status'], equals('delivered'));
-      expect(orderSnap.data()!['payment_status'], equals('Paid'));
-      expect(orderSnap.data()!['cod_collected_by_partner'], isTrue);
-      expect(orderSnap.data()!['cod_amount_collected'], equals(500.0));
+        orderSnap = await orderRef.get();
+        expect(orderSnap.data()!['status'], equals(OrderStatus.delivered));
+        expect(orderSnap.data()!['delivery_status'], equals('delivered'));
+        expect(orderSnap.data()!['payment_status'], equals('Paid'));
+        expect(orderSnap.data()!['cod_collected_by_partner'], isTrue);
+        expect(orderSnap.data()!['cod_amount_collected'], equals(500.0));
 
-      partnerSnap = await service.getPartner('partner_rahul');
-      expect(partnerSnap!.activeOrdersCount, equals(0));
-      expect(partnerSnap.totalDeliveredCount, equals(1));
-      expect(partnerSnap.cashCollected, equals(500.0));
-      expect(partnerSnap.status, equals(DeliveryPartnerStatus.available));
+        partnerSnap = await service.getPartner('partner_rahul');
+        expect(partnerSnap!.activeOrdersCount, equals(0));
+        expect(partnerSnap.totalDeliveredCount, equals(1));
+        expect(partnerSnap.cashCollected, equals(500.0));
+        expect(partnerSnap.status, equals(DeliveryPartnerStatus.available));
 
-      // Active tasks stream should now be empty and history should have 1 entry
-      final remainingActive = await service.streamPartnerActiveTasks('partner_rahul').first;
-      expect(remainingActive, isEmpty);
+        // Active tasks stream should now be empty and history should have 1 entry
+        final remainingActive = await service
+            .streamPartnerActiveTasks('partner_rahul')
+            .first;
+        expect(remainingActive, isEmpty);
 
-      final completedTasks = await service.streamPartnerCompletedTasks('partner_rahul').first;
-      expect(completedTasks.length, equals(1));
-      expect(completedTasks.first.orderId, equals('order_1001'));
-    });
+        final completedTasks = await service
+            .streamPartnerCompletedTasks('partner_rahul')
+            .first;
+        expect(completedTasks.length, equals(1));
+        expect(completedTasks.first.orderId, equals('order_1001'));
+      },
+    );
   });
 
   group('Feature 58: UI Widgets - Dialogs & Screens', () {
-    testWidgets('AssignDeliveryPartnerDialog renders and assigns partner', (tester) async {
+    testWidgets('AssignDeliveryPartnerDialog renders and assigns partner', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -349,15 +421,17 @@ void main() {
       });
 
       // Pre-populate a partner
-      await service.registerOrUpdatePartner(DeliveryPartner(
-        id: 'p_rahul',
-        shopId: testShopId,
-        name: 'Rahul Sharma',
-        phone: '9876543210',
-        vehicleNumber: 'MP04 AB 1234',
-        status: DeliveryPartnerStatus.available,
-        createdAt: DateTime.now(),
-      ));
+      await service.registerOrUpdatePartner(
+        DeliveryPartner(
+          id: 'p_rahul',
+          shopId: testShopId,
+          name: 'Rahul Sharma',
+          phone: '9876543210',
+          vehicleNumber: 'MP04 AB 1234',
+          status: DeliveryPartnerStatus.available,
+          createdAt: DateTime.now(),
+        ),
+      );
 
       final orderData = {
         'customer_name': 'Anita Verma',
@@ -365,7 +439,10 @@ void main() {
         'total_amount': 450.0,
         'status': 'Ready',
       };
-      await fakeFirestore.collection('orders').doc('order_test_1').set(orderData);
+      await fakeFirestore
+          .collection('orders')
+          .doc('order_test_1')
+          .set(orderData);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -408,12 +485,17 @@ void main() {
 
       // Verify dialog dismissed and order was updated in fakeFirestore
       expect(find.text('Assign Delivery Partner'), findsNothing);
-      final doc = await fakeFirestore.collection('orders').doc('order_test_1').get();
+      final doc = await fakeFirestore
+          .collection('orders')
+          .doc('order_test_1')
+          .get();
       expect(doc.data()!['delivery_boy_id'], equals('p_rahul'));
       expect(doc.data()!['delivery_boy_name'], equals('Rahul Sharma'));
     });
 
-    testWidgets('DeliveryPartnerScreen renders duty toggle and active tasks', (tester) async {
+    testWidgets('DeliveryPartnerScreen renders duty toggle and active tasks', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -421,15 +503,17 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final partner = await service.registerOrUpdatePartner(DeliveryPartner(
-        id: 'partner_hero',
-        shopId: testShopId,
-        name: 'Vikas Kumar',
-        phone: '9876543222',
-        vehicleNumber: 'MP04 XY 9999',
-        status: DeliveryPartnerStatus.available,
-        createdAt: DateTime.now(),
-      ));
+      final partner = await service.registerOrUpdatePartner(
+        DeliveryPartner(
+          id: 'partner_hero',
+          shopId: testShopId,
+          name: 'Vikas Kumar',
+          phone: '9876543222',
+          vehicleNumber: 'MP04 XY 9999',
+          status: DeliveryPartnerStatus.available,
+          createdAt: DateTime.now(),
+        ),
+      );
 
       // Add active assigned order
       await fakeFirestore.collection('orders').doc('order_live_1').set({
@@ -445,7 +529,9 @@ void main() {
         'payment_status': 'Unpaid',
         'status': 'Ready',
         'delivery_status': 'assigned',
-        'items': [{'name': 'Milk 500ml', 'quantity': 2}],
+        'items': [
+          {'name': 'Milk 500ml', 'quantity': 2},
+        ],
       });
 
       await tester.pumpWidget(

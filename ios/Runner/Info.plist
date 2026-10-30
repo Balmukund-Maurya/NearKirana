@@ -18,10 +18,14 @@
 	<string>NearKirana needs access to your microphone to allow voice-based grocery ordering in Hindi and English.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>NearKirana needs speech recognition to convert your spoken grocery list into cart items.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>NearKirana requires camera access to scan product barcodes and take photos for item verification and complaints.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>NearKirana requires photo library access to upload photos for order verification, complaints, and product catalog items.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Aditya Kirana</string>
+	<string>NearKirana</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

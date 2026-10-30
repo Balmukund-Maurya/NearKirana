@@ -43,8 +43,8 @@ service cloud.firestore {
       return isAuthenticated() && (
         getUserRole() == 'super_admin' ||
         (request.auth.token.role != null && request.auth.token.role == 'super_admin') ||
-        exists(/databases/$(database)/documents/super_admins/$(request.auth.uid)) ||
-        getUserPhone() in ['9999999999', '+919999999999']
+        (request.auth.token.admin != null && request.auth.token.admin == true) ||
+        exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
       );
     }
 

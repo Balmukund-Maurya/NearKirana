@@ -1399,25 +1399,28 @@ class _GatewayScreenState extends State<GatewayScreen> {
                   ),
                   onPressed: () async {
                     final enteredPin = pinController.text.trim();
-                    if (enteredPin == '999999') {
-                      Navigator.pop(dialogCtx);
-                      await AuthService().elevateToSuperAdmin();
-                      if (parentContext.mounted) {
-                        Navigator.push(
-                          parentContext,
-                          MaterialPageRoute(
-                            builder: (_) => const SuperAdminScreen(),
-                          ),
-                        );
+                    final isValid = await AuthService().verifySuperAdminPin(enteredPin);
+                    if (dialogCtx.mounted) {
+                      if (isValid) {
+                        Navigator.pop(dialogCtx);
+                        await AuthService().elevateToSuperAdmin();
+                        if (parentContext.mounted) {
+                          Navigator.push(
+                            parentContext,
+                            MaterialPageRoute(
+                              builder: (_) => const SuperAdminScreen(),
+                            ),
+                          );
+                        }
+                      } else {
+                        setDialogState(() {
+                          errorMessage = isHindi
+                              ? 'अमान्य सुपर एडमिन पिन!'
+                              : (isHinglish
+                                  ? 'Galat Super Admin PIN hai!'
+                                  : 'Invalid Super Admin PIN!');
+                        });
                       }
-                    } else {
-                      setDialogState(() {
-                        errorMessage = isHindi
-                            ? 'अमान्य सुपर एडमिन पिन!'
-                            : (isHinglish
-                                ? 'Galat Super Admin PIN hai!'
-                                : 'Invalid Super Admin PIN!');
-                      });
                     }
                   },
                   child: Text(

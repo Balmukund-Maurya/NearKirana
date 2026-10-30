@@ -1217,18 +1217,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     final enteredPin = pinController.text.trim();
-                    if (enteredPin == '999999') {
-                      Navigator.pop(dialogCtx, true);
-                    } else {
-                      setDialogState(() {
-                        errorMessage = isHindi
-                            ? 'अमान्य सुपर एडमिन पिन!'
-                            : (isHinglish
-                                ? 'Galat Super Admin PIN hai!'
-                                : 'Invalid Super Admin PIN!');
-                      });
+                    final isValid = await AuthService().verifySuperAdminPin(enteredPin);
+                    if (dialogCtx.mounted) {
+                      if (isValid) {
+                        Navigator.pop(dialogCtx, true);
+                      } else {
+                        setDialogState(() {
+                          errorMessage = isHindi
+                              ? 'अमान्य सुपर एडमिन पिन!'
+                              : (isHinglish
+                                  ? 'Galat Super Admin PIN hai!'
+                                  : 'Invalid Super Admin PIN!');
+                        });
+                      }
                     }
                   },
                   child: Text(

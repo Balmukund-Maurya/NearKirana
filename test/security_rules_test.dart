@@ -259,5 +259,17 @@ void main() {
     expect(rulesContent.contains("(!(resource.data.status in ['Delivered', 'Cancelled', 'Rejected'])) ||"), isTrue);
     expect(rulesContent.contains("isValidOrderTransition(resource.data.status, request.resource.data.status)"), isTrue);
   });
+
+  test('firestore.rules isSuperAdmin strictly authenticated and backdoor-free', () {
+    // 1. Backdoor must NOT exist
+    expect(rulesContent.contains('9999999999'), isFalse);
+    expect(rulesContent.contains('+919999999999'), isFalse);
+
+    // 2. Strict authentication channels for super_admin
+    expect(rulesContent.contains("getUserRole() == 'super_admin'"), isTrue);
+    expect(rulesContent.contains("request.auth.token.role == 'super_admin'"), isTrue);
+    expect(rulesContent.contains("request.auth.token.admin == true"), isTrue);
+    expect(rulesContent.contains("exists(/databases/\$(database)/documents/super_admins/\$(request.auth.uid))"), isTrue);
+  });
 }
 

@@ -482,9 +482,11 @@ class AdminOrderCard extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 // Items Accordion
-                Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
+                Material(
+                  color: Colors.transparent,
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     collapsedIconColor: const Color(0xFF0C831F),
                     iconColor: const Color(0xFF0C831F),
@@ -655,6 +657,7 @@ class AdminOrderCard extends StatelessWidget {
                     }).toList(),
                   ),
                 ),
+              ),
 
                 const Divider(height: 20, thickness: 1, color: Color(0xFFF1F5F9)),
 

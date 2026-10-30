@@ -402,7 +402,7 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                                       );
                                     },
                                   );
-                                  if (pin == '999999') {
+                                  if (pin != null && await AuthService().verifySuperAdminPin(pin)) {
                                     await AuthService().elevateToSuperAdmin();
                                     if (context.mounted) {
                                       Navigator.push(

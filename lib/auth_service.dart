@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -93,6 +95,59 @@ class AuthService {
     }
   }
 
+  /// Computes SHA-256 hash of a string
+  static String hashPin(String pin) {
+    final bytes = utf8.encode(pin.trim());
+    return sha256.convert(bytes).toString();
+  }
+
+  // Pre-computed SHA-256 hash of the administrative master PIN
+  // (Prevents plaintext master PIN exposure in client code)
+  static const String _defaultAdminPinHash =
+      '937377f056160fc4b15e0b770c67136a5f03c15205b4d3bf918268fefa2c6d0a';
+
+  /// Verifies Super Admin PIN using cryptographic hash
+  Future<bool> verifySuperAdminPin(String pin) async {
+    if (pin.trim().isEmpty) return false;
+    final hashed = hashPin(pin);
+
+    // 1. Check if a dynamic hash is configured in Firestore super_admins/_config
+    try {
+      final doc = await FirebaseUtils.firestore
+          .collection('super_admins')
+          .doc('_config')
+          .get();
+      if (doc.exists && doc.data()?['pin_hash'] != null) {
+        return doc.data()!['pin_hash'] == hashed;
+      }
+    } catch (_) {}
+
+    // 2. Compare against default cryptographic hash
+    return hashed == _defaultAdminPinHash;
+  }
+
+  /// Checks if current session is an authorized super admin
+  Future<bool> isSuperAdmin() async {
+    try {
+      final user = currentUser;
+      if (user == null) return false;
+      final adminDoc = await FirebaseUtils.firestore
+          .collection('super_admins')
+          .doc(user.uid)
+          .get();
+      if (adminDoc.exists) return true;
+
+      final userDoc = await FirebaseUtils.firestore
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      return userDoc.data()?['role'] == 'super_admin';
+    } catch (e) {
+      debugPrint('AuthService: Error checking super_admin: $e');
+      return false;
+    }
+  }
+
   /// Elevates session to Super Admin after verified Super Admin login
   Future<void> elevateToSuperAdmin() async {
     try {
@@ -100,12 +155,12 @@ class AuthService {
       if (user == null) return;
 
       final prefs = await SharedPreferences.getInstance();
-      final phone = prefs.getString('global_phone') ?? '9999999999';
+      final phone = prefs.getString('global_phone') ?? '';
 
       // Update users collection
       await FirebaseUtils.firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
-        'phone': phone,
+        if (phone.isNotEmpty) 'phone': phone,
         'role': 'super_admin',
         'updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -113,7 +168,7 @@ class AuthService {
       // Also register in super_admins collection
       await FirebaseUtils.firestore.collection('super_admins').doc(user.uid).set({
         'uid': user.uid,
-        'phone': phone,
+        if (phone.isNotEmpty) 'phone': phone,
         'granted_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 

@@ -171,7 +171,7 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final lang = Provider.of<LanguageProvider>(context);
+    final lang = LanguageProvider.of(context);
     String t(String en, String hi, String hinglish) {
       if (lang.isHindi) return hi;
       if (lang.isHinglish) return hinglish;

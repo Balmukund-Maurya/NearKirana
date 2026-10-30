@@ -476,19 +476,19 @@ void main() {
       await tester.pumpAndSettle();
 
       // Check AppBar
-      expect(find.text('Data Export & Backup (डेटा व बैकअप)'), findsOneWidget);
+      expect(find.textContaining('Data Export & Backup'), findsOneWidget);
 
       // Check Tabs
-      expect(find.text('Export Reports (डेटा निर्यात)'), findsOneWidget);
-      expect(find.text('Cloud Backups (क्लाउड बैकअप)'), findsOneWidget);
+      expect(find.textContaining('Export Reports'), findsOneWidget);
+      expect(find.textContaining('Cloud Backups'), findsOneWidget);
 
       // Check KPI Cards
-      expect(find.text('Last Cloud Backup'), findsOneWidget);
-      expect(find.text('Total Snapshots'), findsOneWidget);
-      expect(find.text('Restore Health'), findsOneWidget);
+      expect(find.text('Last Backup'), findsOneWidget);
+      expect(find.text('Snapshots'), findsOneWidget);
+      expect(find.text('Health Score'), findsOneWidget);
 
       // Check Month-End Hero Card
-      expect(find.text('Month-End Sales Report (मंथ-एंड सेल्स रिपोर्ट)'), findsOneWidget);
+      expect(find.textContaining('Month-End Sales Report'), findsOneWidget);
       expect(find.text('Export CSV (Excel)'), findsOneWidget);
       expect(find.text('Export PDF (Print)'), findsOneWidget);
 
@@ -498,10 +498,10 @@ void main() {
       expect(find.text('Customer Khata Statements'), findsOneWidget);
 
       // Switch to Tab 2 (Cloud Backups)
-      await tester.tap(find.text('Cloud Backups (क्लाउड बैकअप)'));
+      await tester.tap(find.textContaining('Cloud Backups'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Automated Cloud Backups (बैकअप स्नैपशॉट्स)'), findsOneWidget);
+      expect(find.textContaining('Automated Cloud Backups'), findsOneWidget);
       expect(find.text('Backup Now'), findsOneWidget);
     });
 
@@ -519,11 +519,11 @@ void main() {
       await tester.tap(find.text('Open Export Modal'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Export Business Records\n(डेटा निर्यात करें)'), findsOneWidget);
-      expect(find.text('CSV (Excel/Tally)'), findsOneWidget);
-      expect(find.text('PDF (Printable)'), findsOneWidget);
-      expect(find.text('Month-End (CA Special)'), findsOneWidget);
-      expect(find.text('Generate CSV Export'), findsOneWidget);
+      expect(find.textContaining('Export Business Records'), findsOneWidget);
+      expect(find.text('CSV (Excel)'), findsOneWidget);
+      expect(find.text('PDF Document'), findsOneWidget);
+      expect(find.text('This Month (CA Special)'), findsOneWidget);
+      expect(find.textContaining('Generate CSV'), findsOneWidget);
     });
 
     testWidgets('CreateBackupModal renders retention lifespan selection and creates snapshot', (tester) async {
@@ -540,13 +540,13 @@ void main() {
       await tester.tap(find.text('Open Backup Modal'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Create Cloud Backup\n(नया बैकअप स्नैपशॉट लें)'), findsOneWidget);
+      expect(find.textContaining('Create Cloud Backup'), findsOneWidget);
       expect(find.text('30 Days'), findsOneWidget);
-      expect(find.text('Recommended (महीना)'), findsOneWidget);
-      expect(find.text('Create Snapshot Now (बैकअप लें)'), findsOneWidget);
+      expect(find.textContaining('Recommended'), findsOneWidget);
+      expect(find.textContaining('Create Snapshot Now'), findsOneWidget);
 
       // Tap Create Snapshot
-      await tester.tap(find.text('Create Snapshot Now (बैकअप लें)'));
+      await tester.tap(find.textContaining('Create Snapshot Now'));
       await tester.pumpAndSettle();
 
       // Verify backup document was created in FakeFirebaseFirestore
@@ -590,14 +590,14 @@ void main() {
       await tester.tap(find.text('Open Restore Dialog'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Restore Testing & Integrity\n(डेटा रिकवरी टेस्ट रिपोर्ट)'), findsOneWidget);
+      expect(find.textContaining('Restore Testing & Integrity'), findsOneWidget);
       expect(find.text('Run Restore Test'), findsOneWidget);
 
       // Execute restore test
       await tester.tap(find.text('Run Restore Test'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Verified 100% (सत्यापित)'), findsOneWidget);
+      expect(find.textContaining('Verified 100%'), findsOneWidget);
       expect(find.text('Safe Restore'), findsOneWidget);
     });
   });

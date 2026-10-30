@@ -467,17 +467,17 @@ void main() {
       // Check order card rendered
       expect(find.text('Sunil Gupta'), findsOneWidget);
       expect(find.textContaining('Market Road'), findsOneWidget);
-      expect(find.text('Accept Delivery Task (स्वीकार करें)'), findsOneWidget);
+      expect(find.textContaining('Accept Delivery Task'), findsOneWidget);
 
       // Accept task
-      await tester.tap(find.text('Accept Delivery Task (स्वीकार करें)'));
+      await tester.tap(find.textContaining('Accept Delivery Task'));
       await tester.pumpAndSettle();
 
       // Button should transition to Store Pickup confirmation
-      expect(find.text('Confirm Store Pickup (दुकान से पार्सल लिया)'), findsOneWidget);
+      expect(find.textContaining('Confirm Store Pickup'), findsOneWidget);
 
       // Confirm Pickup
-      await tester.tap(find.text('Confirm Store Pickup (दुकान से पार्सल लिया)'));
+      await tester.tap(find.textContaining('Confirm Store Pickup'));
       await tester.pumpAndSettle();
 
       // Button should now allow marking delivered

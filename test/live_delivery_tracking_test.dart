@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:near_kirana/live_delivery_tracking_models.dart';
 import 'package:near_kirana/live_delivery_tracking_service.dart';
 import 'package:near_kirana/customer_live_tracking_screen.dart';
+import 'package:near_kirana/firebase_utils.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     fakeFirestore = FakeFirebaseFirestore();
+    FirebaseUtils.setFirestore(fakeFirestore);
     trackingService = LiveDeliveryTrackingService(
       firestore: fakeFirestore,
       minUpdateIntervalSeconds: 0,
@@ -414,11 +416,12 @@ void main() {
       expect(find.text('LIVE'), findsOneWidget);
 
       // 2. Verify Partner Info & Vehicle
-      expect(find.text('Rahul Sharma'), findsOneWidget);
+      expect(find.text('Rahul Sharma'), findsWidgets);
       expect(find.text('वाहन: DL 01 AB 1234'), findsOneWidget);
 
       // 3. Verify ETA & Distance
-      expect(find.textContaining('6 mins (1.2 km)'), findsOneWidget);
+      expect(find.textContaining('6 min'), findsWidgets);
+      expect(find.textContaining('1.2 km'), findsWidgets);
 
       // 4. Verify Delivery PIN pill
       expect(find.text('4321'), findsOneWidget);

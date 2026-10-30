@@ -149,7 +149,7 @@ class _RestoreTestDialogState extends State<RestoreTestDialog> {
   @override
   Widget build(BuildContext context) {
     final hasResult = _result != null;
-    final lang = Provider.of<LanguageProvider>(context);
+    final lang = LanguageProvider.of(context);
     String t(String en, String hi, String hinglish) {
       if (lang.isHindi) return hi;
       if (lang.isHinglish) return hinglish;

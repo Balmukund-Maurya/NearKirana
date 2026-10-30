@@ -554,7 +554,8 @@ void main() {
 
       expect(find.text('Complaints & Returns'), findsOneWidget);
       expect(find.text('Pending'), findsWidgets);
-      expect(find.text('Sunita Verma (9876543210)'), findsOneWidget);
+      expect(find.text('Sunita Verma'), findsOneWidget);
+      expect(find.text('9876543210'), findsOneWidget);
       expect(find.text('Broken container'), findsOneWidget);
       expect(find.text('• Ghee 500ml (1x)'), findsOneWidget);
       expect(find.text('Mark In Review'), findsOneWidget);

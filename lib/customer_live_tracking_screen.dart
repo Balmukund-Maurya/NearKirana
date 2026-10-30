@@ -563,7 +563,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 });
               }
 
-              final lang = Provider.of<LanguageProvider>(context);
+              final lang = LanguageProvider.of(context);
               String t(String en, String hi, String hinglish) {
                 if (lang.isHindi) return hi;
                 if (lang.isHinglish) return hinglish;
@@ -674,7 +674,9 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   final double activeDistanceMeters = _roadDistanceMeters > 0 ? _roadDistanceMeters : realDistMeters;
                   final int bikeEtaMins = _roadDurationSeconds > 0
                       ? (_roadDurationSeconds / 60).ceil().clamp(1, 120)
-                      : ((activeDistanceMeters / 350).ceil()).clamp(1, 120);
+                      : (session?.estimatedMinutesRemaining != null && session!.estimatedMinutesRemaining! > 0)
+                          ? session!.estimatedMinutesRemaining!
+                          : ((activeDistanceMeters / 350).ceil()).clamp(1, 120);
                   final int carEtaMins = _roadDurationSeconds > 0
                       ? ((_roadDurationSeconds * 1.15) / 60).ceil().clamp(1, 120)
                       : ((activeDistanceMeters / 300).ceil()).clamp(1, 120);
@@ -1017,6 +1019,15 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    'Live Delivery Track',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
                   // Origin row (Google Maps blue origin dot)
                   Row(
                     children: [
@@ -1811,6 +1822,40 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
 
                 const SizedBox(height: 10),
 
+                if (realIsNearby && !isDelivered) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF59E0B)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.notifications_active_rounded, color: Color(0xFFD97706), size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'आस-पास पहुंच गए हैं',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF92400E)),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'कृपया पार्सल रिसीव करने के लिए तैयार रहें',
+                                style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFFB45309)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // 4. Large Green Bold ETA Text
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -1818,7 +1863,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   children: [
                     Text(
                       isDelivered
-                          ? t('Delivered', 'डिलीवर हुआ', 'Delivered')
+                          ? 'डिलीवरी सफल हुई'
                           : '$selectedEtaMins min',
                       style: GoogleFonts.outfit(
                         fontSize: 24,
@@ -1826,21 +1871,23 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                         color: const Color(0xFF15803D), // Google Maps Green
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '($selectedDistStr)',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF475569),
+                    if (!isDelivered) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '($selectedDistStr)',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF475569),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(
                   isDelivered
-                      ? t('Delivery completed successfully', 'ऑर्डर सफलतापूर्वक डिलीवर हो चुका है', 'Order successfully deliver ho gaya')
+                      ? 'आपका सामान सुरक्षित डिलीवर हो चुका है'
                       : t('Fastest route, the usual traffic', 'सबसे तेज़ रास्ता, सामान्य ट्रैफ़िक', 'Fastest route, normal traffic'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
@@ -1848,6 +1895,44 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                     color: const Color(0xFF64748B),
                   ),
                 ),
+
+                if (widget.viewerRole != 'rider' && partnerName.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Color(0xFFE2E8F0),
+                          child: Icon(Icons.two_wheeler_rounded, size: 18, color: Color(0xFF334155)),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                partnerName,
+                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF0F172A)),
+                              ),
+                              if (partnerVehicle != null && partnerVehicle.isNotEmpty)
+                                Text(
+                                  'वाहन: $partnerVehicle',
+                                  style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 12),
 
@@ -1886,9 +1971,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                           ),
                           icon: const Icon(Icons.call_rounded, size: 16),
                           label: Text(
-                            widget.viewerRole == 'rider'
-                                ? t('Call Customer', 'कॉल ग्राहक', 'Call Customer')
-                                : t('Call Rider', 'कॉल राइडर', 'Call Rider'),
+                            'कॉल करें',
                             style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1917,7 +2000,16 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                             const Icon(Icons.vpn_key_rounded, size: 13, color: Color(0xFF059669)),
                             const SizedBox(width: 4),
                             Text(
-                              'PIN: $deliveryPin',
+                              'PIN',
+                              style: GoogleFonts.outfit(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF065F46),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              deliveryPin,
                               style: GoogleFonts.outfit(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -1928,6 +2020,12 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                         ),
                       ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'गोपनीयता: लोकेशन सिर्फ इस डिलीवरी के दौरान लाइव है',
+                  style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF94A3B8)),
+                  textAlign: TextAlign.center,
                 ),
 
                 // 6. Active Destination / Target Address Info Pill

@@ -61,7 +61,7 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final shopProvider = Provider.of<ShopProvider>(context);
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = LanguageProvider.of(context);
     final customerPhone = userProvider.phoneNumber;
     final shopId = shopProvider.currentShopId ?? '';
     final isHindi = langProvider.isHindi;

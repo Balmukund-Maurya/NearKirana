@@ -130,7 +130,7 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                 const SizedBox(height: 16),
 
                 Text(
-                  t('Resolution Action', 'समाधान का प्रकार चुनें', 'Resolution Action Select Karein'),
+                  t('Select Resolution Action', 'समाधान का प्रकार चुनें', 'Select Resolution Action'),
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
                 ),
                 const SizedBox(height: 8),
@@ -396,7 +396,7 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final lang = Provider.of<LanguageProvider>(context);
+    final lang = LanguageProvider.of(context);
     String t(String en, String hi, String hinglish) {
       if (lang.isHindi) return hi;
       if (lang.isHinglish) return hinglish;
@@ -529,7 +529,7 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                     ),
                     const SizedBox(width: 8),
                     _buildKpiCard(
-                      label: t('Action Needed', 'नया केस', 'Action Needed'),
+                      label: t('Pending', 'पेंडिंग', 'Pending'),
                       count: pendingCount,
                       icon: Icons.error_outline_rounded,
                       color: const Color(0xFFEA580C),
@@ -672,7 +672,7 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
     switch (complaint.status) {
       case ComplaintStatus.pending:
         statusColor = const Color(0xFFEA580C);
-        statusText = t('Needs Review', 'समीक्षा आवश्यक', 'Needs Review');
+        statusText = t('Pending', 'पेंडिंग', 'Pending');
         statusIcon = Icons.hourglass_top_rounded;
         break;
       case ComplaintStatus.inReview:

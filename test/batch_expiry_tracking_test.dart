@@ -525,7 +525,7 @@ void main() {
 
     testWidgets('BatchDetailsDialog displays timeline and promo share',
         (tester) async {
-      final now = DateTime(2026, 10, 14, 12, 0);
+      final now = DateTime.now();
       final batch = BatchModel(
         id: 'B-DETAILS',
         shopId: 'SHOP_TEST_BATCH',

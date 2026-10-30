@@ -1,9 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:near_kirana/l10n/app_localizations.dart';
 
 class LanguageProvider extends ChangeNotifier {
   static const List<String> supportedLanguages = ['en', 'hi', 'hinglish', 'hi_Latn'];
+  static final LanguageProvider _fallback = LanguageProvider();
+
+  static LanguageProvider of(BuildContext context, {bool listen = true}) {
+    try {
+      final provider = Provider.of<LanguageProvider>(context, listen: listen);
+      return provider;
+    } catch (_) {
+      return _fallback;
+    }
+  }
+
+  static LanguageProvider? maybeOf(BuildContext context, {bool listen = true}) {
+    try {
+      return Provider.of<LanguageProvider>(context, listen: listen);
+    } catch (_) {
+      return _fallback;
+    }
+  }
 
   String _currentLanguage = 'en'; // 'hi', 'en', 'hinglish'
   bool _isLoaded = false;

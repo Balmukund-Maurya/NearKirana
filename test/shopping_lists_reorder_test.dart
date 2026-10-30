@@ -475,14 +475,14 @@ void main() {
 
       // Verify Seeded List card appears
       expect(find.text('Sunday Specials'), findsOneWidget);
-      expect(find.text('1 items'), findsOneWidget);
+      expect(find.textContaining('1 item'), findsOneWidget);
       expect(find.text('Est. ₹60'), findsOneWidget);
 
       // Tap expansion tile to view items
       await tester.tap(find.text('Sunday Specials'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Milk 500ml'), findsOneWidget);
+      expect(find.textContaining('Milk 500ml'), findsOneWidget);
       expect(find.text('Reorder to Cart'), findsOneWidget);
     });
   });

@@ -222,7 +222,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final canPop = Navigator.canPop(context);
-    final lang = Provider.of<LanguageProvider>(context);
+    final lang = LanguageProvider.of(context);
     String t(String en, String hi, String hinglish) {
       if (lang.isHindi) return hi;
       if (lang.isHinglish) return hinglish;
@@ -452,7 +452,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
             children: [
               _buildTimeChip(AnalyticsTimePeriod.today, t('Today', 'आज', 'Today')),
               const SizedBox(width: 8),
-              _buildTimeChip(AnalyticsTimePeriod.thisWeek, t('This Week', 'इस हफ्ते', 'This Week')),
+              _buildTimeChip(AnalyticsTimePeriod.thisWeek, t('Last 7 Days', 'पिछले 7 दिन', 'Last 7 Days')),
               const SizedBox(width: 8),
               _buildTimeChip(AnalyticsTimePeriod.thisMonth, t('This Month', 'इस महीने', 'This Month')),
               const SizedBox(width: 8),

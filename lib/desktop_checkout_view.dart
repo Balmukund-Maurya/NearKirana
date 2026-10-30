@@ -75,7 +75,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
   final Color activeBorderGreen = const Color(0xFF22C55E);
 
   String _tr(String en, String hi, String hinglish, [LanguageProvider? lang]) {
-    final lp = lang ?? Provider.of<LanguageProvider>(context, listen: false);
+    final lp = lang ?? LanguageProvider.of(context, listen: false);
     if (lp.isHindi) return hi;
     if (lp.isHinglish) return hinglish;
     return en;
@@ -2051,7 +2051,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     required int cartItemsCount,
     required AppLocalizations? l10n,
   }) {
-    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final langProvider = LanguageProvider.of(context, listen: false);
     final double couponSavings = _appliedCouponResult?.totalSavings ?? 0.0;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2759,7 +2759,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     required bool isDesktop,
     AppLocalizations? l10n,
   }) {
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = LanguageProvider.of(context);
     final upiTitle = _tr(l10n?.pay_online_upi ?? "UPI", "ऑनलाइन भुगतान (UPI)", "Pay Online (UPI)", langProvider);
     final upiSub = _tr("Google Pay, PhonePe, Paytm, or BHIM", "Google Pay, PhonePe, Paytm या कोई भी UPI ऐप", "Google Pay, PhonePe, Paytm ya koi bhi UPI app", langProvider);
     final upiBadge = _tr("FASTEST", "सबसे तेज", "FASTEST", langProvider);
@@ -3921,7 +3921,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
 
       if (!context.mounted) return;
 
-      final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+      final langProvider = LanguageProvider.of(context, listen: false);
       final String deliveryPin = result.deliveryPin.trim();
 
       await showDialog(
@@ -4135,7 +4135,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       );
     } catch (e) {
       if (!context.mounted) return;
-      final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+      final langProvider = LanguageProvider.of(context, listen: false);
       final isHindi = langProvider.isHindi;
       final isHinglish = langProvider.isHinglish;
       final errStr = e.toString().toLowerCase();
@@ -4174,7 +4174,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
     required double finalTotal,
     required double deliveryFee,
   }) {
-    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final langProvider = LanguageProvider.of(context, listen: false);
 
     showModalBottomSheet(
       context: context,

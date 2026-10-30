@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../cart_provider.dart';
 import '../cart_screen.dart';
+import '../language_provider.dart';
 import '../shopping_list_model.dart';
 import '../shopping_list_service.dart';
 
@@ -75,6 +76,13 @@ class ReorderSummaryDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = LanguageProvider.of(context);
+    String t(String en, String hi, String hinglish) {
+      if (lang.isHindi) return hi;
+      if (lang.isHinglish) return hinglish;
+      return en;
+    }
+
     final available = validationResult.availableItems;
     final priceChanged = validationResult.priceChangedItems;
     final outOfStock = validationResult.outOfStockItems;
@@ -118,9 +126,9 @@ class ReorderSummaryDialog extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Review & Reorder',
-                          style: TextStyle(
+                        Text(
+                          t('Review & Reorder', 'सामान जांचें व दोबारा ऑर्डर करें', 'Review & Reorder'),
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textDark,
@@ -155,7 +163,7 @@ class ReorderSummaryDialog extends StatelessWidget {
                 children: [
                   _buildMetricPill(
                     icon: Icons.check_circle_rounded,
-                    label: '${available.length} Available',
+                    label: '${available.length} ${t('Available', 'उपलब्ध', 'Available')}',
                     bgColor: const Color(0xFFECFDF5),
                     textColor: const Color(0xFF047857),
                     borderColor: const Color(0xFFA7F3D0),
@@ -163,7 +171,7 @@ class ReorderSummaryDialog extends StatelessWidget {
                   if (priceChanged.isNotEmpty)
                     _buildMetricPill(
                       icon: Icons.price_change_outlined,
-                      label: '${priceChanged.length} Price Updated',
+                      label: '${priceChanged.length} ${t('Price Updated', 'दाम बदला हुआ', 'Price Updated')}',
                       bgColor: const Color(0xFFFFFBEB),
                       textColor: const Color(0xFFB45309),
                       borderColor: const Color(0xFFFDE68A),
@@ -171,7 +179,7 @@ class ReorderSummaryDialog extends StatelessWidget {
                   if (unavailableCount > 0)
                     _buildMetricPill(
                       icon: Icons.remove_shopping_cart_rounded,
-                      label: '$unavailableCount Unavailable',
+                      label: '$unavailableCount ${t('Unavailable', 'अनुपलब्ध', 'Unavailable')}',
                       bgColor: const Color(0xFFFEF2F2),
                       textColor: const Color(0xFFB91C1C),
                       borderColor: const Color(0xFFFECACA),
@@ -189,7 +197,7 @@ class ReorderSummaryDialog extends StatelessWidget {
                     const Divider(height: 16, color: Color(0xFFF3F4F6)),
                 itemBuilder: (context, index) {
                   final item = validationResult.items[index];
-                  return _buildItemRow(item);
+                  return _buildItemRow(item, t);
                 },
               ),
             ),
@@ -210,9 +218,9 @@ class ReorderSummaryDialog extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Estimated Total',
-                            style: TextStyle(
+                          Text(
+                            t('Estimated Total', 'अनुमानित कुल बिल', 'Estimated Total'),
+                            style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textMid,
                             ),
@@ -244,7 +252,7 @@ class ReorderSummaryDialog extends StatelessWidget {
                         ],
                       ),
                       Text(
-                        '${available.length} of ${validationResult.items.length} items',
+                        '${available.length} of ${validationResult.items.length} ${t('items', 'सामान', 'items')}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textMid,
@@ -266,9 +274,9 @@ class ReorderSummaryDialog extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(
+                          child: Text(
+                            t('Cancel', 'रद्द करें', 'Cancel'),
+                            style: const TextStyle(
                               color: Color(0xFF4B5563),
                               fontWeight: FontWeight.w600,
                             ),
@@ -281,7 +289,7 @@ class ReorderSummaryDialog extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: available.isEmpty
                               ? null
-                              : () => _handleAddToCart(context),
+                              : () => _handleAddToCart(context, t),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryDark,
                             foregroundColor: Colors.white,
@@ -293,8 +301,12 @@ class ReorderSummaryDialog extends StatelessWidget {
                           ),
                           child: Text(
                             available.isEmpty
-                                ? 'No Items in Stock'
-                                : 'Add ${available.length} to Cart',
+                                ? t('No Items in Stock', 'कोई सामान उपलब्ध नहीं है', 'No Items in Stock')
+                                : (lang.isHindi
+                                    ? 'कार्ट में ${available.length} सामान जोड़ें'
+                                    : (lang.isHinglish
+                                        ? '${available.length} Cart me jodein'
+                                        : 'Add ${available.length} to Cart')),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -345,7 +357,7 @@ class ReorderSummaryDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildItemRow(ReorderItemValidation item) {
+  Widget _buildItemRow(ReorderItemValidation item, String Function(String, String, String) t) {
     Color statusBg;
     Color statusFg;
     String statusText;
@@ -354,27 +366,29 @@ class ReorderSummaryDialog extends StatelessWidget {
       case ReorderItemStatus.available:
         statusBg = const Color(0xFFECFDF5);
         statusFg = const Color(0xFF047857);
-        statusText = 'In Stock';
+        statusText = t('In Stock', 'उपलब्ध है', 'In Stock');
         break;
       case ReorderItemStatus.priceChanged:
         statusBg = const Color(0xFFFFFBEB);
         statusFg = const Color(0xFFB45309);
-        statusText = item.isPriceHigher ? 'Price Up' : 'Price Down';
+        statusText = item.isPriceHigher
+            ? t('Price Up', 'दाम बढ़ा', 'Price Up')
+            : t('Price Down', 'दाम घटा', 'Price Down');
         break;
       case ReorderItemStatus.partialStock:
         statusBg = const Color(0xFFEFF6FF);
         statusFg = const Color(0xFF1D4ED8);
-        statusText = 'Low Stock (${item.availableQuantity.toStringAsFixed(item.isLoose ? 1 : 0)})';
+        statusText = '${t('Low Stock', 'कम स्टॉक', 'Low Stock')} (${item.availableQuantity.toStringAsFixed(item.isLoose ? 1 : 0)})';
         break;
       case ReorderItemStatus.outOfStock:
         statusBg = const Color(0xFFFEF2F2);
         statusFg = const Color(0xFFDC2626);
-        statusText = 'Out of Stock';
+        statusText = t('Out of Stock', 'स्टॉक खत्म', 'Out of Stock');
         break;
       case ReorderItemStatus.discontinued:
         statusBg = const Color(0xFFF3F4F6);
         statusFg = const Color(0xFF6B7280);
-        statusText = 'Unavailable';
+        statusText = t('Unavailable', 'अनुपलब्ध', 'Unavailable');
         break;
     }
 
@@ -441,7 +455,7 @@ class ReorderSummaryDialog extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Qty: $qtyDisplay',
+                      '${t('Qty', 'मात्रा', 'Qty')}: $qtyDisplay',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textMid,
@@ -481,7 +495,7 @@ class ReorderSummaryDialog extends StatelessWidget {
     );
   }
 
-  void _handleAddToCart(BuildContext context) {
+  void _handleAddToCart(BuildContext context, String Function(String, String, String) t) {
     HapticFeedback.mediumImpact();
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final count = ShoppingListService().applyItemsToCart(
@@ -504,7 +518,11 @@ class ReorderSummaryDialog extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '$count items added to your cart!',
+                  t(
+                    '$count items added to your cart!',
+                    '$count सामान आपकी कार्ट में जोड़ दिए गए हैं!',
+                    '$count items cart me add ho gaye!',
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -513,7 +531,7 @@ class ReorderSummaryDialog extends StatelessWidget {
           backgroundColor: AppColors.primaryDark,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
-            label: 'View Cart',
+            label: t('View Cart', 'कार्ट देखें', 'View Cart'),
             textColor: Colors.amberAccent,
             onPressed: () {
               if (effectiveContext.mounted) {

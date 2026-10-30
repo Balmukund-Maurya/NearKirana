@@ -219,12 +219,16 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
 
   Future<void> _callNumber(String phone) async {
     HapticFeedback.lightImpact();
-    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
     if (cleanPhone.isEmpty) return;
     final uri = Uri.parse('tel:$cleanPhone');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
   }
 
   Future<void> _launchGoogleMaps(double lat, double lng) async {

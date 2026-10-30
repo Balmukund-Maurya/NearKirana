@@ -267,7 +267,7 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
   }
 
   Future<void> _launchCall(String phone) async {
-    final cleanPhone = phone.replaceAll(RegExp(r'\s+'), '');
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
     final uri = Uri(scheme: 'tel', path: cleanPhone);
     try {
       if (await canLaunchUrl(uri)) {

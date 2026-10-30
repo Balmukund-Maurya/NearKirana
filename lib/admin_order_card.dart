@@ -2487,20 +2487,44 @@ class AdminOrderCard extends StatelessWidget {
                                   ]),
                                 });
 
-                                // If order was paid via Khata and already delivered, adjust customer khata balance
-                                if (data['payment_method'] == 'Khata' && data['status'] == OrderStatus.delivered && totalDiff != 0) {
+                                // If order was paid via Khata and already recorded in customer ledger, adjust customer khata balance
+                                final isKhataPayment = data['payment_method'] == 'Khata' || data['payment_method'] == 'Kirana Khata';
+                                final khataWasRecorded = data['khata_recorded'] == true || data['status'] == OrderStatus.delivered;
+
+                                if (isKhataPayment && khataWasRecorded && totalDiff != 0) {
                                   final phone = data['phone_number'] as String?;
                                   if (phone != null) {
-                                    final cq = await FirebaseUtils.firestore
+                                    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+                                    var cq = await FirebaseUtils.firestore
                                         .collection('customers')
-                                        .where('mobile', isEqualTo: phone)
+                                        .where('mobile', isEqualTo: cleanPhone)
                                         .limit(1)
                                         .get();
+                                    if (cq.docs.isEmpty) {
+                                      cq = await FirebaseUtils.firestore
+                                          .collection('customers')
+                                          .where('mobile', isEqualTo: phone)
+                                          .limit(1)
+                                          .get();
+                                    }
                                     if (cq.docs.isNotEmpty) {
                                       final custRef = cq.docs.first.reference;
                                       batch.update(custRef, {
                                         'shop_balances.$shopId': FieldValue.increment(totalDiff),
                                         'total_udhaar': FieldValue.increment(totalDiff),
+                                      });
+
+                                      // Record audit entry in customer's khata statement
+                                      final txRef = custRef.collection('khata_transactions').doc();
+                                      batch.set(txRef, {
+                                        'amount': totalDiff.abs(),
+                                        'type': totalDiff < 0 ? 'credit' : 'debit',
+                                        'shop_id': shopId,
+                                        'order_id': orderId,
+                                        'description': totalDiff < 0
+                                            ? 'Order #$orderId item adjustment refund'
+                                            : 'Order #$orderId item adjustment addition',
+                                        'timestamp': FieldValue.serverTimestamp(),
                                       });
                                     }
                                   }

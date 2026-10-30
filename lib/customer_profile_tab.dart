@@ -97,7 +97,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
                 ?.map((e) => e.toString())
                 .toList() ??
             [];
-        final shopBalances = data['shop_balances'] as Map<String, dynamic>?;
+        final shopBalances = (data['shop_balances'] as Map?)?.cast<String, dynamic>();
 
         // Customer must be created by shop owner for this shop
         if (shopId.isEmpty ||

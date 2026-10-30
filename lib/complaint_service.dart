@@ -233,6 +233,7 @@ class ComplaintService {
         custRef = customersQuery.docs.first.reference;
         batch.update(custRef, {
           'shop_balances.$shopId': FieldValue.increment(-refundAmount),
+          'total_udhaar': FieldValue.increment(-refundAmount),
           'shop_ids': FieldValue.arrayUnion([shopId]),
         });
       } else {
@@ -240,6 +241,7 @@ class ComplaintService {
         batch.set(custRef, {
           'name': customerName,
           'mobile': customerPhone,
+          'total_udhaar': -refundAmount,
           'shop_balances': {shopId: -refundAmount},
           'shop_ids': [shopId],
           'created_at': FieldValue.serverTimestamp(),

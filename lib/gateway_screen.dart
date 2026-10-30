@@ -510,6 +510,12 @@ class _GatewayScreenState extends State<GatewayScreen> {
     HapticFeedback.lightImpact();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_role', 'delivery_partner');
+    if (_globalPhone != null && _globalPhone!.isNotEmpty) {
+      await AuthService().syncUserProfile(
+        phone: _globalPhone!,
+        role: 'customer',
+      );
+    }
     if (!mounted) return;
     Navigator.push(
       context,

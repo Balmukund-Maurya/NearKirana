@@ -263,6 +263,7 @@ class ShoppingListService {
             imageUrl: liveImg?.toString(),
             status: ReorderItemStatus.partialStock,
             notes: 'Only $liveStock left in stock',
+            maxStock: liveStock,
           ),
         );
       } else if (livePrice != origPrice) {
@@ -280,6 +281,7 @@ class ShoppingListService {
             notes: livePrice > origPrice
                 ? 'Price increased by ₹${(livePrice - origPrice).toStringAsFixed(1)}'
                 : 'Price decreased by ₹${(origPrice - livePrice).toStringAsFixed(1)}',
+            maxStock: liveStock,
           ),
         );
       } else {
@@ -294,6 +296,7 @@ class ShoppingListService {
             isLoose: isLoose,
             imageUrl: liveImg?.toString(),
             status: ReorderItemStatus.available,
+            maxStock: liveStock,
           ),
         );
       }
@@ -329,7 +332,7 @@ class ShoppingListService {
           item.name,
           item.currentPrice,
           item.isLoose,
-          item.availableQuantity, // maxStock
+          item.effectiveMaxStock, // maxStock
           imageUrl: item.imageUrl,
         );
         // Ensure quantity matches targetQty

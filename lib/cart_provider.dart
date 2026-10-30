@@ -128,6 +128,7 @@ class CartProvider with ChangeNotifier {
                 isLoose: _items[key]!.isLoose,
                 maxStock: liveStock,
                 quantity: updatedQuantity,
+                imageUrl: _items[key]!.imageUrl,
               );
               changed = true;
             }
@@ -224,6 +225,7 @@ class CartProvider with ChangeNotifier {
         isLoose: oldItem.isLoose,
         maxStock: oldItem.maxStock,
         quantity: oldItem.quantity,
+        imageUrl: oldItem.imageUrl,
       );
       notifyListeners();
       _saveCart();
@@ -236,13 +238,15 @@ class CartProvider with ChangeNotifier {
         _items.remove(productId);
       } else {
         final existing = _items[productId]!;
+        final clampedQty = qty > existing.maxStock ? existing.maxStock : qty;
         _items[productId] = CartItem(
           id: existing.id,
           name: existing.name,
           price: existing.price,
           isLoose: existing.isLoose,
           maxStock: existing.maxStock,
-          quantity: qty,
+          quantity: clampedQty,
+          imageUrl: existing.imageUrl,
         );
       }
       notifyListeners();
@@ -290,6 +294,7 @@ class CartProvider with ChangeNotifier {
         isLoose: existingCartItem.isLoose,
         maxStock: existingCartItem.maxStock,
         quantity: newQty,
+        imageUrl: existingCartItem.imageUrl,
       ),
     );
     notifyListeners();

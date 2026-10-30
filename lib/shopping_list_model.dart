@@ -189,6 +189,7 @@ class ReorderItemValidation {
   final String? imageUrl;
   final ReorderItemStatus status;
   final String? notes;
+  final double? maxStock;
 
   const ReorderItemValidation({
     required this.productId,
@@ -201,7 +202,10 @@ class ReorderItemValidation {
     this.imageUrl,
     required this.status,
     this.notes,
+    this.maxStock,
   });
+
+  double get effectiveMaxStock => maxStock ?? availableQuantity;
 
   bool get isFullyAvailable =>
       status == ReorderItemStatus.available ||

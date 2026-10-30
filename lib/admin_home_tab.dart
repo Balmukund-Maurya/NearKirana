@@ -478,7 +478,7 @@ class _AdminHomeTabState extends State<AdminHomeTab> {
                             if (khataSnapshot.hasData) {
                               for (var doc in khataSnapshot.data!.docs) {
                                 final cData = doc.data() as Map<String, dynamic>;
-                                final balances = cData['shop_balances'] as Map<String, dynamic>?;
+                                final balances = (cData['shop_balances'] as Map?)?.cast<String, dynamic>();
                                 if (balances != null && balances.containsKey(shopId)) {
                                   totalUdhaar += (balances[shopId] as num?)?.toDouble() ?? 0.0;
                                 } else {

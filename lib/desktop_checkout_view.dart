@@ -3430,7 +3430,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                 ?.map((e) => e.toString())
                 .toList() ??
             [];
-        final shopBalances = data['shop_balances'] as Map<String, dynamic>?;
+        final shopBalances = (data['shop_balances'] as Map?)?.cast<String, dynamic>();
 
         // Offline customer must be created by shop owner for this shop
         if (shopIds.contains(shopId) ||
@@ -3637,7 +3637,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                   ?.map((e) => e.toString())
                   .toList() ??
               [];
-          final shopBalances = data['shop_balances'] as Map<String, dynamic>?;
+          final shopBalances = (data['shop_balances'] as Map?)?.cast<String, dynamic>();
           if (shopIds.contains(shopId) ||
               (shopBalances != null && shopBalances.containsKey(shopId))) {
             shopCustomerDocRef = doc.reference;
@@ -3676,7 +3676,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       if (hasShopKhataRecord) {
         final double creditLimit =
             (shopCustomerData['credit_limit'] as num?)?.toDouble() ?? 5000.0;
-        final shopBalances = shopCustomerData['shop_balances'] as Map<String, dynamic>?;
+        final shopBalances = (shopCustomerData['shop_balances'] as Map?)?.cast<String, dynamic>();
         final double currentUdhaar =
             (shopBalances?[shopId] as num?)?.toDouble() ??
             ((shopCustomerData['total_udhaar'] as num?)?.toDouble() ?? 0.0);
@@ -3870,6 +3870,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           loyaltyDiscount: _appliedLoyaltyRedemption?.discountRupees,
           items: items,
           extraData: {
+            if (_selectedPaymentIndex == 2) 'khata_recorded': true,
             'estimated_delivery_window': estimate.formattedWindow,
             'estimated_delivery_min_minutes': estimate.minMinutes,
             'estimated_delivery_max_minutes': estimate.maxMinutes,
@@ -3907,6 +3908,8 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       if (_selectedPaymentIndex == 2 && shopCustomerDocRef != null) {
         try {
           final batch = FirebaseUtils.firestore.batch();
+          final orderDocRef = FirebaseUtils.firestore.collection('orders').doc(result.orderId);
+          batch.update(orderDocRef, {'khata_recorded': true});
           batch.update(shopCustomerDocRef, {
             'shop_balances.$shopId': FieldValue.increment(result.totalAmount),
             'total_udhaar': FieldValue.increment(result.totalAmount),
@@ -3944,7 +3947,7 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         'loyalty_discount': _appliedLoyaltyRedemption?.discountRupees ?? 0.0,
         'loyalty_points_redeemed': _appliedLoyaltyRedemption?.points ?? 0,
         'coupon_code': _appliedCouponResult?.coupon?.code,
-        'delivery_fee': deliveryFee,
+        'delivery_fee': _isPickup ? 0.0 : deliveryFee,
         'total_amount': result.totalAmount,
         'payment_method': paymentMethod,
         'payment_status': paymentStatus,

@@ -21,6 +21,7 @@ import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 import 'shop_provider.dart';
 import 'loyalty_referral_service.dart';
 import 'delivery_partner_models.dart';
+import 'live_delivery_tracking_service.dart';
 
 class AdminOrderCard extends StatelessWidget {
   final DocumentSnapshot orderDoc;
@@ -1900,6 +1901,9 @@ class AdminOrderCard extends StatelessWidget {
                                 'status': nextStatus,
                                 'payment_method': selectedPayment,
                                 'pin_bypassed': true,
+                                'delivered_at': FieldValue.serverTimestamp(),
+                                'delivery_completed_at': FieldValue.serverTimestamp(),
+                                'delivery_status': 'delivered',
                                 if (nextStatus == 'Delivered' && !isKhataSelected)
                                   'payment_status': PaymentStatus.paid,
                               });
@@ -1953,6 +1957,27 @@ class AdminOrderCard extends StatelessWidget {
                               }
 
                               await batch.commit();
+
+                              final assignedBoyId = data['delivery_boy_id'] as String?;
+                              if (assignedBoyId != null && assignedBoyId.isNotEmpty) {
+                                try {
+                                  final partnerRef = FirebaseUtils.firestore.collection('delivery_partners').doc(assignedBoyId);
+                                  final partnerSnap = await partnerRef.get();
+                                  if (partnerSnap.exists) {
+                                    final currentCount = (partnerSnap.data()?['active_orders_count'] as num?)?.toInt() ?? 1;
+                                    final newCount = (currentCount - 1).clamp(0, 999);
+                                    await partnerRef.update({
+                                      'active_orders_count': newCount,
+                                      'total_delivered_count': FieldValue.increment(1),
+                                      if (newCount == 0) 'status': DeliveryPartnerStatus.available.key,
+                                    });
+                                  }
+                                } catch (_) {}
+                              }
+                              try {
+                                await LiveDeliveryTrackingService().stopBroadcasting(orderId, isDelivered: true);
+                              } catch (_) {}
+
                               NotificationService.dispatchOrderStatusNotification(
                                 orderId: orderId,
                                 newStatus: nextStatus,
@@ -2009,6 +2034,9 @@ class AdminOrderCard extends StatelessWidget {
                           batch.update(orderRef, {
                             'status': nextStatus,
                             'payment_method': selectedPayment,
+                            'delivered_at': FieldValue.serverTimestamp(),
+                            'delivery_completed_at': FieldValue.serverTimestamp(),
+                            'delivery_status': 'delivered',
                             if (nextStatus == 'Delivered' && !isKhataSelected2)
                               'payment_status': PaymentStatus.paid,
                           });
@@ -2062,6 +2090,27 @@ class AdminOrderCard extends StatelessWidget {
                           }
 
                           await batch.commit();
+
+                          final assignedBoyId = data['delivery_boy_id'] as String?;
+                          if (assignedBoyId != null && assignedBoyId.isNotEmpty) {
+                            try {
+                              final partnerRef = FirebaseUtils.firestore.collection('delivery_partners').doc(assignedBoyId);
+                              final partnerSnap = await partnerRef.get();
+                              if (partnerSnap.exists) {
+                                final currentCount = (partnerSnap.data()?['active_orders_count'] as num?)?.toInt() ?? 1;
+                                final newCount = (currentCount - 1).clamp(0, 999);
+                                await partnerRef.update({
+                                  'active_orders_count': newCount,
+                                  'total_delivered_count': FieldValue.increment(1),
+                                  if (newCount == 0) 'status': DeliveryPartnerStatus.available.key,
+                                });
+                              }
+                            } catch (_) {}
+                          }
+                          try {
+                            await LiveDeliveryTrackingService().stopBroadcasting(orderId, isDelivered: true);
+                          } catch (_) {}
+
                           NotificationService.dispatchOrderStatusNotification(
                             orderId: orderId,
                             newStatus: nextStatus,
@@ -3127,7 +3176,7 @@ class AdminOrderCard extends StatelessWidget {
       });
 
       // If order was assigned to a rider, decrement their active task count
-      final assignedBoyId = data['delivery_boy_id'] as String?;
+      final assignedBoyId = (data['delivery_boy_id'] ?? data['delivery_partner_id']) as String?;
       if (assignedBoyId != null && assignedBoyId.isNotEmpty) {
         try {
           final partnerRef = FirebaseUtils.firestore.collection('delivery_partners').doc(assignedBoyId);
@@ -3143,19 +3192,29 @@ class AdminOrderCard extends StatelessWidget {
         } catch (_) {}
       }
 
-      // Feature 60: Refund redeemed loyalty points if any
-      final pointsRedeemed = (data['loyalty_points_redeemed'] as num?)?.toInt() ?? 0;
-      if (pointsRedeemed > 0 && phone != null) {
+      // Feature 60: Refund redeemed loyalty points and reverse earned points if any
+      final pointsRedeemed = ((data['loyalty_points_redeemed'] ?? data['points_redeemed']) as num?)?.toInt() ?? 0;
+      final pointsEarned = ((data['loyalty_points_earned'] ?? data['points_earned']) as num?)?.toInt() ?? 0;
+      if ((pointsRedeemed > 0 || pointsEarned > 0) && phone != null) {
         try {
           await LoyaltyReferralService(firestore: FirebaseUtils.firestore).refundCancelledOrderPoints(
             shopId: data['shop_id']?.toString() ?? '',
             customerPhone: phone,
             orderId: orderId,
             pointsRedeemed: pointsRedeemed,
-            customerUid: data['customer_uid']?.toString(),
+            pointsEarned: pointsEarned,
+            customerUid: (data['customer_uid'] ?? data['customer_id'])?.toString(),
           );
         } catch (_) {}
       }
+
+      // Stop live tracking if broadcasting
+      try {
+        await LiveDeliveryTrackingService(firestore: FirebaseUtils.firestore).stopBroadcasting(
+          orderId,
+          isDelivered: false,
+        );
+      } catch (_) {}
 
       NotificationService.dispatchOrderStatusNotification(
         orderId: orderId,

@@ -1047,7 +1047,10 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
 
     for (var doc in customers) {
       final data = doc.data() as Map<String, dynamic>;
-      final udhaar = ((data['shop_balances']?[shopId] ?? 0) as num).toDouble();
+      final udhaar = (data['shop_balances'] is Map
+              ? (data['shop_balances'][shopId] as num?)?.toDouble()
+              : null) ??
+          0.0;
       if (udhaar > 0) {
         totalMarketUdhaar += udhaar;
         pendingDebtorCount++;
@@ -1058,7 +1061,10 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
     final displayedCustomers = customers.where((doc) {
       if (_selectedFilter == 0) return true;
       final data = doc.data() as Map<String, dynamic>;
-      final udhaar = ((data['shop_balances']?[shopId] ?? 0) as num).toDouble();
+      final udhaar = (data['shop_balances'] is Map
+              ? (data['shop_balances'][shopId] as num?)?.toDouble()
+              : null) ??
+          0.0;
       if (_selectedFilter == 1) return udhaar > 0;
       if (_selectedFilter == 2) return udhaar <= 0;
       return true;
@@ -1319,7 +1325,10 @@ class _KhataScreenState extends State<KhataScreen> with SingleTickerProviderStat
                     final data = doc.data() as Map<String, dynamic>;
                     final String name = (data['name'] ?? 'Customer').toString();
                     final String mobile = (data['mobile'] ?? '').toString();
-                    final double udhaar = ((data['shop_balances']?[shopId] ?? 0) as num).toDouble();
+                    final double udhaar = (data['shop_balances'] is Map
+                            ? (data['shop_balances'][shopId] as num?)?.toDouble()
+                            : null) ??
+                        0.0;
                     final bool isBanned = data['is_banned'] ?? false;
 
                     final bool hasDue = udhaar > 0;

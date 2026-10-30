@@ -470,4 +470,26 @@ class DeliveryPartnerService {
         });
     });
   }
+
+  /// Step 5: Shopkeeper receives collected COD cash from delivery partner and settles balance
+  Future<void> settlePartnerCash({
+    required String partnerId,
+    required double amount,
+    String? notes,
+  }) async {
+    if (partnerId.isEmpty || amount <= 0) return;
+    final partnerDoc = _partnersRef.doc(partnerId);
+    final partnerSnap = await partnerDoc.get();
+    if (!partnerSnap.exists) return;
+
+    final currentCash = (partnerSnap.data() as Map<String, dynamic>?)?['cash_collected'] as num? ?? 0.0;
+    final newCash = (currentCash.toDouble() - amount).clamp(0.0, double.infinity);
+
+    await partnerDoc.update({
+      'cash_collected': newCash,
+      'last_cash_settled_at': FieldValue.serverTimestamp(),
+      'last_cash_settled_amount': amount,
+      if (notes != null && notes.isNotEmpty) 'last_cash_settle_notes': notes,
+    });
+  }
 }

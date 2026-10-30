@@ -701,7 +701,7 @@ class AtomicOrderService {
 
       // Feature 60: Automatically calculate and credit loyalty points and complete qualifying referrals
       try {
-        await LoyaltyReferralService(firestore: _firestore).processOrderPointsAndReferrals(
+        final loyaltyRes = await LoyaltyReferralService(firestore: _firestore).processOrderPointsAndReferrals(
           shopId: params.shopId,
           customerPhone: params.customerPhone,
           customerName: params.customerName,
@@ -709,6 +709,11 @@ class AtomicOrderService {
           orderSubtotal: result.subtotal,
           customerUid: params.customerUid,
         );
+        if (loyaltyRes.earnedPoints > 0) {
+          await _firestore.collection('orders').doc(result.orderId).update({
+            'loyalty_points_earned': loyaltyRes.earnedPoints,
+          });
+        }
       } catch (e) {
         // Loyalty failure should never block or fail order placement
       }
@@ -822,6 +827,90 @@ class AtomicOrderService {
             .get();
         final data = orderDoc.data();
         if (data != null) {
+          // If assigned to a rider, decrement active orders count
+          final assignedBoyId = (data['delivery_boy_id'] ?? data['delivery_partner_id']) as String?;
+          if (assignedBoyId != null && assignedBoyId.isNotEmpty) {
+            try {
+              final partnerRef = _firestore.collection('delivery_partners').doc(assignedBoyId);
+              final partnerSnap = await partnerRef.get();
+              if (partnerSnap.exists) {
+                final currentCount = (partnerSnap.data()?['active_orders_count'] as num?)?.toInt() ?? 1;
+                final newCount = (currentCount - 1).clamp(0, 999);
+                await partnerRef.update({
+                  'active_orders_count': newCount,
+                  if (newCount == 0) 'status': 'available',
+                });
+              }
+            } catch (_) {}
+          }
+
+          // Feature 60: Refund redeemed loyalty points and reverse earned points if any
+          final pointsRedeemed = ((data['loyalty_points_redeemed'] ?? data['points_redeemed']) as num?)?.toInt() ?? 0;
+          final pointsEarned = ((data['loyalty_points_earned'] ?? data['points_earned']) as num?)?.toInt() ?? 0;
+          final phone = (data['phone_number'] ?? data['customer_phone'])?.toString();
+          final shopId = data['shop_id']?.toString() ?? '';
+          if ((pointsRedeemed > 0 || pointsEarned > 0) && phone != null && shopId.isNotEmpty) {
+            try {
+              await LoyaltyReferralService(firestore: _firestore).refundCancelledOrderPoints(
+                shopId: shopId,
+                customerPhone: phone,
+                orderId: orderId,
+                pointsRedeemed: pointsRedeemed,
+                pointsEarned: pointsEarned,
+                customerUid: (data['customer_uid'] ?? data['customer_id'])?.toString(),
+              );
+            } catch (_) {}
+          }
+
+          // Khata balance reversal if order was placed with Khata and recorded
+          final isKhataPayment = (data['payment_method'] as String?) == 'Khata' ||
+              (data['payment_method'] as String?) == 'Kirana Khata';
+          final khataWasRecorded = data['khata_recorded'] == true;
+          final orderTotal = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
+          if (isKhataPayment && khataWasRecorded && phone != null && shopId.isNotEmpty && orderTotal > 0) {
+            try {
+              final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+              final phone10 = cleanPhone.length > 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
+              var customerQuery = await _firestore
+                  .collection('customers')
+                  .where('mobile', isEqualTo: cleanPhone)
+                  .limit(1)
+                  .get();
+              if (customerQuery.docs.isEmpty && phone10 != cleanPhone) {
+                customerQuery = await _firestore
+                    .collection('customers')
+                    .where('mobile', isEqualTo: phone10)
+                    .limit(1)
+                    .get();
+              }
+              if (customerQuery.docs.isEmpty) {
+                customerQuery = await _firestore
+                    .collection('customers')
+                    .where('mobile', isEqualTo: phone)
+                    .limit(1)
+                    .get();
+              }
+              if (customerQuery.docs.isNotEmpty) {
+                final customerRef = customerQuery.docs.first.reference;
+                final batch = _firestore.batch();
+                batch.update(customerRef, {
+                  'shop_balances.$shopId': FieldValue.increment(-orderTotal),
+                  'total_udhaar': FieldValue.increment(-orderTotal),
+                });
+                batch.set(customerRef.collection('khata_transactions').doc(), {
+                  'amount': orderTotal,
+                  'type': 'credit',
+                  'shop_id': shopId,
+                  'order_id': orderId,
+                  'description': 'Order Cancelled Refund (#${orderId.length > 5 ? orderId.substring(0, 5) : orderId})',
+                  'timestamp': FieldValue.serverTimestamp(),
+                });
+                batch.update(orderRef, {'khata_recorded': false});
+                await batch.commit();
+              }
+            } catch (_) {}
+          }
+
           await NotificationService.dispatchOrderStatusNotification(
             orderId: orderId,
             newStatus: 'Cancelled',

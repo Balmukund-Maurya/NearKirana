@@ -1629,15 +1629,17 @@ class MyOrdersScreen extends StatelessWidget {
                   transaction.update(orderRef, orderUpdates);
                 });
 
-                // Feature 60: Refund redeemed loyalty points if any
-                final pointsRedeemed = (data['loyalty_points_redeemed'] as num?)?.toInt() ?? 0;
-                if (pointsRedeemed > 0 && phone != null && shopId != null) {
+                // Feature 60: Refund redeemed loyalty points and reverse earned points if any
+                final pointsRedeemed = ((data['loyalty_points_redeemed'] ?? data['points_redeemed']) as num?)?.toInt() ?? 0;
+                final pointsEarned = ((data['loyalty_points_earned'] ?? data['points_earned']) as num?)?.toInt() ?? 0;
+                if ((pointsRedeemed > 0 || pointsEarned > 0) && phone != null && shopId != null) {
                   try {
                     await LoyaltyReferralService(firestore: FirebaseUtils.firestore).refundCancelledOrderPoints(
                       shopId: shopId,
                       customerPhone: phone,
                       orderId: orderId,
                       pointsRedeemed: pointsRedeemed,
+                      pointsEarned: pointsEarned,
                       customerUid: data['customer_uid']?.toString(),
                     );
                   } catch (_) {}

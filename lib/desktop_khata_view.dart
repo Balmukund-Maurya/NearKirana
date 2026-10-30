@@ -89,11 +89,11 @@ class _DesktopKhataViewState extends State<DesktopKhataView> {
     int activeShops = 0;
     
     if (_customerData != null && shopId != null) {
-      final balances = _customerData!['shop_balances'] as Map<String, dynamic>?;
+      final balances = (_customerData!['shop_balances'] as Map?)?.cast<String, dynamic>();
       if (balances != null && balances.containsKey(shopId)) {
-        currentBalance = (balances[shopId] as num).toDouble();
+        currentBalance = (balances[shopId] as num?)?.toDouble() ?? 0.0;
       }
-      totalBalance = (_customerData!['total_udhaar'] as num?)?.toDouble() ?? 0;
+      totalBalance = (_customerData!['total_udhaar'] as num?)?.toDouble() ?? 0.0;
       final shopIds = _customerData!['shop_ids'] as List<dynamic>?;
       activeShops = shopIds?.length ?? 0;
     }

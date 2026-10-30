@@ -108,7 +108,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     final totalCount = _customers.length;
     final udhaarCount = _customers.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
-      final balances = data['shop_balances'] as Map<String, dynamic>?;
+      final balances = (data['shop_balances'] as Map?)?.cast<String, dynamic>();
       double udhaar = 0.0;
       if (balances != null && shopId != null && balances.containsKey(shopId)) {
         udhaar = (balances[shopId] as num?)?.toDouble() ?? 0.0;
@@ -122,7 +122,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
     // Filter customers
     List<DocumentSnapshot> filtered = _customers.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
-      final balances = data['shop_balances'] as Map<String, dynamic>?;
+      final balances = (data['shop_balances'] as Map?)?.cast<String, dynamic>();
       double udhaar = 0.0;
       if (balances != null && shopId != null && balances.containsKey(shopId)) {
         udhaar = (balances[shopId] as num?)?.toDouble() ?? 0.0;
@@ -366,7 +366,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                             final String phone = (data['phone'] ?? '').toString().trim();
                             final bool isBanned = data['is_banned'] ?? false;
 
-                            final balances = data['shop_balances'] as Map<String, dynamic>?;
+                            final balances = (data['shop_balances'] as Map?)?.cast<String, dynamic>();
                             double udhaar = 0.0;
                             if (balances != null && shopId != null && balances.containsKey(shopId)) {
                               udhaar = (balances[shopId] as num?)?.toDouble() ?? 0.0;

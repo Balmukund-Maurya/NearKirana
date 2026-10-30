@@ -322,9 +322,9 @@ class _KhataStatementScreenState extends State<KhataStatementScreen> {
         (shopId != null &&
                 _customerData?['shop_balances'] is Map &&
                 _customerData!['shop_balances'][shopId] != null)
-            ? (_customerData!['shop_balances'][shopId] as num).toDouble()
-            : (_customerData?['total_udhaar']?.toDouble() ?? 0.0);
-    double creditLimit = _customerData?['credit_limit']?.toDouble() ?? 5000.0;
+            ? ((_customerData!['shop_balances'][shopId] as num?)?.toDouble() ?? 0.0)
+            : ((_customerData?['total_udhaar'] as num?)?.toDouble() ?? 0.0);
+    double creditLimit = (_customerData?['credit_limit'] as num?)?.toDouble() ?? 5000.0;
     double availableCredit = creditLimit - currentBalance;
     if (availableCredit < 0) availableCredit = 0;
 

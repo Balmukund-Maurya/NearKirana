@@ -255,15 +255,76 @@ class _DeliveryPartnerScreenState extends State<DeliveryPartnerScreen>
 
   Future<void> _toggleDutyStatus(bool isOnline) async {
     if (_currentPartner == null) return;
+
+    if (!isOnline && (_currentPartner!.activeOrdersCount > 0)) {
+      final lang = LanguageProvider.of(context, listen: false);
+      String t(String en, String hi, String hinglish) {
+        if (lang.isHindi) return hi;
+        if (lang.isHinglish) return hinglish;
+        return en;
+      }
+
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  t(
+                    'Active Deliveries in Progress',
+                    'सक्रिय डिलीवरी प्रगति पर है',
+                    'Active Deliveries Chalu Hain',
+                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            t(
+              'You currently have ${_currentPartner!.activeOrdersCount} active delivery order(s). Going offline will not cancel them, but customers might miss updates. Do you still want to go offline?',
+              'आपके पास वर्तमान में ${_currentPartner!.activeOrdersCount} सक्रिय डिलीवरी ऑर्डर हैं। ऑफलाइन जाने से वे रद्द नहीं होंगे, लेकिन ग्राहकों को अपडेट नहीं मिलेंगे। क्या आप अभी भी ऑफलाइन जाना चाहते हैं?',
+              'Aapke paas abhi ${_currentPartner!.activeOrdersCount} active order(s) hain. Offline hone se delivery cancel nahi hogi par updates ruk sakte hain. Kya aap offline hona chahte hain?',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(t('Stay Online', 'ऑनलाइन रहें', 'Online Rahein')),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(t('Go Offline', 'ऑफलाइन जाएं', 'Offline Jayein')),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+    }
+
     final newStatus = isOnline
         ? DeliveryPartnerStatus.available
         : DeliveryPartnerStatus.offline;
 
     HapticFeedback.lightImpact();
     await _service.updatePartnerStatus(_currentPartner!.id, newStatus);
-    setState(() {
-      _currentPartner = _currentPartner!.copyWith(status: newStatus);
-    });
+    if (mounted) {
+      setState(() {
+        _currentPartner = _currentPartner!.copyWith(status: newStatus);
+      });
+    }
   }
 
   Future<void> _launchCall(String phone) async {

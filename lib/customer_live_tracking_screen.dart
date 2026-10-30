@@ -13,6 +13,7 @@ import 'order_state_machine.dart';
 import 'app_theme.dart';
 import 'live_delivery_tracking_models.dart';
 import 'live_delivery_tracking_service.dart';
+import 'delivery_partner_service.dart';
 import 'road_routing_service.dart';
 
 /// Screen displayed to customers, store owners, and delivery partners to view real-time GPS location
@@ -358,14 +359,26 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   return;
                 }
                 Navigator.pop(dlgCtx);
-                await FirebaseUtils.firestore
-                    .collection('orders')
-                    .doc(widget.orderId)
-                    .update({
-                      'status': OrderStatus.delivered,
-                      'delivered_at': FieldValue.serverTimestamp(),
-                      'delivery_status': 'delivered',
-                    });
+                final partnerId = (orderData['delivery_boy_id'] ?? orderData['delivery_partner_id'])?.toString() ?? '';
+                final shopId = orderData['shop_id']?.toString() ?? '';
+                final customerPhone = (orderData['phone_number'] ?? orderData['customer_phone'])?.toString();
+                final total = (orderData['total_amount'] as num?)?.toDouble() ?? 0.0;
+                final partnerName = (orderData['delivery_boy_name'] ?? orderData['delivery_partner_name'])?.toString();
+                final paymentMethod = (orderData['payment_method'] ?? orderData['payment_mode'])?.toString().toLowerCase();
+                final isKhata = paymentMethod == 'khata' || paymentMethod == 'kirana khata';
+                final isCOD = paymentMethod == 'cod' || paymentMethod == 'cash on delivery';
+
+                await DeliveryPartnerService(firestore: FirebaseUtils.firestore).completeDelivery(
+                  orderId: widget.orderId,
+                  partnerId: partnerId,
+                  shopId: shopId,
+                  codCollected: isCOD,
+                  codAmount: isCOD ? total : 0.0,
+                  customerPhone: customerPhone,
+                  orderTotal: total,
+                  partnerName: partnerName,
+                  isKhata: isKhata,
+                );
                 await _service.stopBroadcasting(
                   widget.orderId,
                   isDelivered: true,

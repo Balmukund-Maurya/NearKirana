@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_utils.dart';
 import 'substitution_model.dart';
 import 'notification_service.dart';
+import 'payment_service.dart';
 
 /// Service managing product substitution workflows for out-of-stock items:
 /// - Merchant proposes an alternative product with price, quantity, and reason.
@@ -190,6 +191,32 @@ class ProductSubstitutionService {
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
 
+      final previousTotal = (data['total_amount'] as num?)?.toDouble() ?? 0.0;
+      final khataRecorded = data['khata_recorded'] == true;
+      final paymentMethod = (data['payment_method'] ?? data['payment_mode'])?.toString().toLowerCase();
+      final isKhata = paymentMethod == 'khata' || paymentMethod == 'kirana khata';
+      final shopId = data['shop_id']?.toString() ?? '';
+      final phone = (data['phone_number'] ?? data['customer_phone'])?.toString();
+
+      // Read customer document for Khata balance reconciliation if applicable (Must read before writes)
+      DocumentReference? customerRef;
+      DocumentSnapshot? customerSnap;
+      if (khataRecorded && isKhata && phone != null && shopId.isNotEmpty) {
+        final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+        final phone10 = cleanPhone.length > 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
+        var cq = await _firestore.collection('customers').where('mobile', isEqualTo: cleanPhone).limit(1).get();
+        if (cq.docs.isEmpty && phone10 != cleanPhone) {
+          cq = await _firestore.collection('customers').where('mobile', isEqualTo: phone10).limit(1).get();
+        }
+        if (cq.docs.isEmpty) {
+          cq = await _firestore.collection('customers').where('mobile', isEqualTo: phone).limit(1).get();
+        }
+        if (cq.docs.isNotEmpty) {
+          customerRef = cq.docs.first.reference;
+          customerSnap = await transaction.get(customerRef);
+        }
+      }
+
       if (isAccepted) {
         // Find and replace original item in items array
         final itemIndex = items.indexWhere((i) =>
@@ -283,7 +310,9 @@ class ProductSubstitutionService {
         });
       }
 
-      final updatePayload = {
+      final totalDelta = revisedTotal - previousTotal;
+
+      final updatePayload = <String, dynamic>{
         'items': items,
         'subtotal': revisedSubtotal,
         'total_amount': revisedTotal,
@@ -293,7 +322,30 @@ class ProductSubstitutionService {
         'last_substitution_resolved_at': Timestamp.fromDate(now),
       };
 
+      if (!isKhata && totalDelta < 0) {
+        final paymentStatus = data['payment_status']?.toString();
+        if (paymentStatus == PaymentStatus.paid || paymentStatus == 'Paid') {
+          updatePayload['refund_due'] = ((data['refund_due'] as num?)?.toDouble() ?? 0.0) + totalDelta.abs();
+          updatePayload['partial_refund_pending'] = true;
+        }
+      }
+
       transaction.update(orderRef, updatePayload);
+
+      if (customerRef != null && customerSnap != null && customerSnap.exists && totalDelta != 0) {
+        transaction.update(customerRef, {
+          'shop_balances.$shopId': FieldValue.increment(totalDelta),
+          'total_udhaar': FieldValue.increment(totalDelta),
+        });
+        transaction.set(customerRef.collection('khata_transactions').doc(), {
+          'amount': totalDelta.abs(),
+          'type': totalDelta > 0 ? 'debit' : 'credit',
+          'shop_id': shopId,
+          'order_id': orderId,
+          'description': 'Substitution Adjustment (Order #${orderId.length > 5 ? orderId.substring(0, 5) : orderId})',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
 
       return {
         'orderId': orderId,

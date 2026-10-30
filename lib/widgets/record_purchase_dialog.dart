@@ -719,11 +719,13 @@ class _RecordPurchaseDialogState extends State<RecordPurchaseDialog> {
                       item.productId = selected['id'] as String;
                       item.productName = selected['name'] as String;
                       item.unit = selected['unit'] as String? ?? 'Pcs';
-                      if ((selected['cost_price'] as double) > 0) {
-                        item.costPrice = selected['cost_price'] as double;
+                      final cp = (selected['cost_price'] as num?)?.toDouble() ?? 0.0;
+                      if (cp > 0) {
+                        item.costPrice = cp;
                       }
-                      if ((selected['selling_price'] as double) > 0) {
-                        item.sellingPrice = selected['selling_price'] as double;
+                      final sp = (selected['selling_price'] as num?)?.toDouble() ?? 0.0;
+                      if (sp > 0) {
+                        item.sellingPrice = sp;
                       }
                     });
                   },

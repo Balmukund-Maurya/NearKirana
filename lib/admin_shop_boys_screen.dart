@@ -66,6 +66,105 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
     SoundService().play('switch.mp3');
   }
 
+  Future<void> _showSettleCashDialog(
+    BuildContext context,
+    DeliveryPartner partner,
+    String Function(String, String, String) t,
+  ) async {
+    final amountCtrl = TextEditingController(text: partner.cashCollected.toStringAsFixed(0));
+    final notesCtrl = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEA580C).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.payments_rounded, color: Color(0xFFEA580C), size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                t('Settle COD Cash', 'कैश जमा करें', 'COD Cash Settle Karein'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${partner.name} • ${t('Cash in hand', 'हाथ में नकद', 'Cash in hand')}: ₹${partner.cashCollected.toStringAsFixed(0)}',
+              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: amountCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: t('Settlement Amount (₹)', 'जमा राशि (₹)', 'Settlement Amount (₹)'),
+                prefixIcon: const Icon(Icons.currency_rupee),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesCtrl,
+              decoration: InputDecoration(
+                labelText: t('Notes (Optional)', 'विवरण (वैकल्पिक)', 'Notes (Optional)'),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(t('Cancel', 'रद्द करें', 'Cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+              if (amt <= 0) return;
+              Navigator.pop(ctx);
+              await _service.settlePartnerCash(
+                partnerId: partner.id,
+                amount: amt,
+                notes: notesCtrl.text.trim(),
+              );
+              HapticFeedback.mediumImpact();
+              SoundService().play('coins.mp3');
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: const Color(0xFF0C831F),
+                    content: Text(
+                      t('₹${amt.toStringAsFixed(0)} cash settled successfully!', '₹${amt.toStringAsFixed(0)} कैश जमा हुआ!', '₹${amt.toStringAsFixed(0)} cash settle ho gaya!'),
+                    ),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0C831F),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(t('Confirm & Settle', 'पुष्टि करें व जमा करें', 'Confirm & Settle')),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showAddPartnerDialog(BuildContext context, String Function(String, String, String) t) async {
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
@@ -572,41 +671,90 @@ class _AdminShopBoysScreenState extends State<AdminShopBoysScreen> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      // Total Deliveries Badge
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF0C831F)),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${partner.totalDeliveredCount} ${t('Delivered', 'डिलीवरी', 'Delivered')}',
-                                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                                      // Total Deliveries Badge & Cash Badge
+                                      Wrap(
+                                        spacing: 6,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(8),
                                             ),
-                                          ],
-                                        ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF0C831F)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${partner.totalDeliveredCount} ${t('Delivered', 'डिलीवरी', 'Delivered')}',
+                                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (partner.cashCollected > 0)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFFF7ED),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: const Color(0xFFFED7AA)),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.payments_rounded, size: 13, color: Color(0xFFEA580C)),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '₹${partner.cashCollected.toStringAsFixed(0)}',
+                                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFC2410C)),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
                                       ),
 
-                                      // Call Rider Button
-                                      OutlinedButton.icon(
-                                        onPressed: () => _callPartner(partner.phone),
-                                        icon: const Icon(Icons.call_rounded, size: 14, color: Color(0xFF0C831F)),
-                                        label: Text(
-                                          t('Call Rider', 'कॉल करें', 'Call Rider'),
-                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0C831F)),
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: Color(0xFFA7F3D0)),
-                                          backgroundColor: const Color(0xFFECFDF5),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          visualDensity: VisualDensity.compact,
-                                        ),
+                                      // Actions: Settle Cash & Call
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (partner.cashCollected > 0) ...[
+                                            OutlinedButton(
+                                              onPressed: () => _showSettleCashDialog(context, partner, t),
+                                              style: OutlinedButton.styleFrom(
+                                                side: const BorderSide(color: Color(0xFFFDBA74)),
+                                                backgroundColor: const Color(0xFFFFF7ED),
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                visualDensity: VisualDensity.compact,
+                                              ),
+                                              child: Text(
+                                                t('Settle Cash', 'कैश जमा', 'Settle Cash'),
+                                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFC2410C)),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                          ],
+                                          // Call Rider Button
+                                          OutlinedButton.icon(
+                                            onPressed: () => _callPartner(partner.phone),
+                                            icon: const Icon(Icons.call_rounded, size: 14, color: Color(0xFF0C831F)),
+                                            label: Text(
+                                              t('Call', 'कॉल', 'Call'),
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0C831F)),
+                                            ),
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(color: Color(0xFFA7F3D0)),
+                                              backgroundColor: const Color(0xFFECFDF5),
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              visualDensity: VisualDensity.compact,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),

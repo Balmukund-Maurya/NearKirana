@@ -144,13 +144,49 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Receive Payment')),
+        body: const Center(child: ModernLoader()),
+      );
+    }
 
-    // Mobile fallback (standard scaffold)
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Receive Payment')),
-      body: _isLoading 
-          ? const Center(child: ModernLoader()) 
-          : SingleChildScrollView(child: _buildDesktopContent(context)), // Using same layout logic for simplicity in this task, but normally would have mobile layout.
+      backgroundColor: const Color(0xFFF0F2F5),
+      appBar: isDesktop ? null : AppBar(
+        title: const Text('Receive Payment'),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textDark,
+        elevation: 0.5,
+      ),
+      body: isDesktop ? _buildDesktopContent(context) : _buildMobileContent(context),
+    );
+  }
+
+  Widget _buildMobileContent(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildCustomerCard(isMobile: true),
+          const SizedBox(height: 16),
+          _buildKhataSummaryCard(),
+          const SizedBox(height: 16),
+          _buildPaymentForm(isMobile: true),
+          const SizedBox(height: 16),
+          _buildBalanceAfterPaymentCard(),
+          if (_recentPayments.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildRecentPaymentsCard(),
+          ],
+          const SizedBox(height: 16),
+          _buildHelpCard(),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
@@ -267,112 +303,147 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
     );
   }
 
-  Widget _buildCustomerCard() {
+  Widget _buildCustomerCard({bool isMobile = false}) {
     String email = _customerData?['email'] ?? '';
     String address = _customerData?['address'] ?? '';
     if (email.isEmpty) email = '${widget.customerName.toLowerCase().replaceAll(' ', '.')}@example.com';
     if (address.isEmpty) address = 'Address not available';
 
-    return Container(
-      padding: const EdgeInsets.all(24),
+    final outstandingWidget = Container(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 20, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade100),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          Row(
+          Icon(Icons.receipt_long, color: Colors.red.shade400, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Current Outstanding', style: TextStyle(color: Colors.red.shade700, fontSize: 12, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text('₹${_currentBalance.toStringAsFixed(0)}', style: TextStyle(color: Colors.red.shade700, fontSize: isMobile ? 20 : 22, fontWeight: FontWeight.bold)),
+                Text('Amount to be paid', style: TextStyle(color: Colors.red.shade400, fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final detailsWidget = Row(
+      children: [
+        CircleAvatar(
+          radius: isMobile ? 28 : 40,
+          backgroundColor: AppColors.primaryDark.withValues(alpha: 0.1),
+          child: Text(
+            widget.customerName.isNotEmpty ? widget.customerName[0].toUpperCase() : '?',
+            style: TextStyle(fontSize: isMobile ? 22 : 32, color: AppColors.primaryDark, fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(width: isMobile ? 14 : 24),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 40,
-                backgroundColor: AppColors.primaryDark.withValues(alpha: 0.1),
-                child: Text(
-                  widget.customerName.isNotEmpty ? widget.customerName[0].toUpperCase() : '?',
-                  style: const TextStyle(fontSize: 32, color: AppColors.primaryDark, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(width: 24),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(widget.customerName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.circle, color: Colors.green, size: 8),
-                            SizedBox(width: 4),
-                            Text('Active', style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      )
-                    ],
+                  Flexible(
+                    child: Text(
+                      widget.customerName,
+                      style: TextStyle(fontSize: isMobile ? 17 : 20, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.phone_outlined, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(widget.customerPhone ?? 'N/A', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.email_outlined, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(email, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(address, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                    ],
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.circle, color: Colors.green, size: 6),
+                        SizedBox(width: 3),
+                        Text('Active', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  )
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(Icons.phone_outlined, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(widget.customerPhone ?? 'N/A', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                ],
+              ),
+              if (!isMobile) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.email_outlined, size: 14, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(email, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      address,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
+        ),
+      ],
+    );
+
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.receipt_long, color: Colors.red.shade400, size: 32),
+                detailsWidget,
+                const SizedBox(height: 16),
+                outstandingWidget,
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: detailsWidget),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Current Outstanding', style: TextStyle(color: Colors.red.shade700, fontSize: 12, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    Text('₹${_currentBalance.toStringAsFixed(0)}', style: TextStyle(color: Colors.red.shade700, fontSize: 24, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 2),
-                    Text('Amount to be paid', style: TextStyle(color: Colors.red.shade400, fontSize: 11)),
-                  ],
-                ),
+                outstandingWidget,
               ],
             ),
-          )
-        ],
-      ),
     );
   }
 
-  Widget _buildPaymentForm() {
+  Widget _buildPaymentForm({bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 18 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -408,31 +479,30 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
           const SizedBox(height: 24),
           const Text('Quick Amounts', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _buildQuickAmountBtn(500),
-              const SizedBox(width: 12),
               _buildQuickAmountBtn(1000),
-              const SizedBox(width: 12),
               _buildQuickAmountBtn(2000),
-              const SizedBox(width: 12),
               if (_currentBalance > 0)
-                _buildQuickAmountBtn(_currentBalance, label: 'Full Amount (₹${_currentBalance.toStringAsFixed(0)})'),
+                _buildQuickAmountBtn(_currentBalance, label: 'Full (₹${_currentBalance.toStringAsFixed(0)})'),
             ],
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           const Text('Payment Method', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(child: _buildPaymentMethodCard('Cash', Icons.payments_rounded, 'Pay with cash')),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(child: _buildPaymentMethodCard('UPI', Icons.qr_code_2_rounded, 'Pay via UPI / QR')),
             ],
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           const Text('Payment Note (Optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           const SizedBox(height: 12),
           TextField(
@@ -446,11 +516,11 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
             ),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           const Text('Transaction Date', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           const SizedBox(height: 12),
           SizedBox(
-            width: 300,
+            width: isMobile ? double.infinity : 300,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
@@ -471,10 +541,10 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
           const SizedBox(height: 8),
           Text('Payment will be recorded on this date', style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
-            height: 56,
+            height: 52,
             child: ElevatedButton.icon(
               onPressed: _isProcessing ? null : _savePayment,
               icon: _isProcessing 
@@ -566,7 +636,9 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
             children: [
               const Icon(Icons.receipt_long, size: 18),
               const SizedBox(width: 8),
-              const Text('Khata Summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Expanded(
+                child: Text('Khata Summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -613,7 +685,9 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
             children: [
               Icon(Icons.calculate_outlined, size: 18, color: Colors.green.shade700),
               const SizedBox(width: 8),
-              const Text('Balance After Payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Expanded(
+                child: Text('Balance After Payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -631,7 +705,14 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
         Text(
           value,
           style: TextStyle(

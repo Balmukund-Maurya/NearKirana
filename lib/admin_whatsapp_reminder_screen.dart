@@ -69,7 +69,7 @@ class _AdminWhatsappReminderScreenState extends State<AdminWhatsappReminderScree
         : 'NearKirana';
     final balances = data['shop_balances'] as Map<String, dynamic>? ?? {};
     final double balance = shopId != null && balances.containsKey(shopId)
-        ? (balances[shopId] as num).toDouble()
+        ? ((balances[shopId] as num?)?.toDouble() ?? 0.0)
         : (data['total_udhaar'] as num?)?.toDouble() ?? 0.0;
     
     if (_reminderType == 'Payment Reminder') {

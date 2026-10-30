@@ -156,7 +156,9 @@ class _ShopStockScreenState extends State<ShopStockScreen> {
     HapticFeedback.lightImpact();
     final data = doc.data() as Map<String, dynamic>;
     final isLoose = data['is_loose'] ?? false;
-    final currentStock = ((data['stock_quantity'] ?? 0.0) as num).toDouble();
+    final currentStock = (data['stock_quantity'] as num?)?.toDouble() ??
+        double.tryParse(data['stock_quantity']?.toString() ?? '0') ??
+        0.0;
     final step = isLoose ? (delta > 0 ? 0.5 : -0.5) : delta;
     final newStock = (currentStock + step).clamp(0.0, 99999.0);
 

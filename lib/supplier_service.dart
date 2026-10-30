@@ -576,7 +576,7 @@ class SupplierService {
           'id': doc.id,
           'barcode': data['barcode'] ?? doc.id,
           'name': data['name'] ?? 'Product',
-          'cost_price': (data['cost_price'] ?? data['purchase_price'] as num?)?.toDouble() ?? 0.0,
+          'cost_price': ((data['cost_price'] ?? data['purchase_price']) as num?)?.toDouble() ?? 0.0,
           'selling_price': (data['price'] as num?)?.toDouble() ?? 0.0,
           'stock_quantity': (data['stock_quantity'] as num?)?.toDouble() ?? 0.0,
           'unit': data['unit'] ?? (data['is_loose'] == true ? 'Kg' : 'Pcs'),

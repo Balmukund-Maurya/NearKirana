@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'complaint_model.dart';
@@ -381,7 +382,16 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                         base64Decode(imageUrl.split(',').last),
                         fit: BoxFit.contain,
                       )
-                    : Image.network(imageUrl, fit: BoxFit.contain),
+                    : CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.contain,
+                        placeholder: (_, _) => const Center(
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        ),
+                        errorWidget: (_, _, _) => const Center(
+                          child: Icon(Icons.broken_image, color: Colors.white, size: 48),
+                        ),
+                      ),
               ),
             ),
             IconButton(
@@ -917,11 +927,22 @@ class _AdminComplaintsScreenState extends State<AdminComplaintsScreen> {
                                 height: 44,
                                 fit: BoxFit.cover,
                               )
-                            : Image.network(
-                                complaint.imageUrl!,
+                            : CachedNetworkImage(
+                                imageUrl: complaint.imageUrl!,
                                 width: 44,
                                 height: 44,
                                 fit: BoxFit.cover,
+                                placeholder: (_, _) => Container(
+                                  width: 44,
+                                  height: 44,
+                                  color: Colors.grey.shade200,
+                                ),
+                                errorWidget: (_, _, _) => Container(
+                                  width: 44,
+                                  height: 44,
+                                  color: Colors.grey.shade200,
+                                  child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                                ),
                               ),
                       ),
                       const SizedBox(width: 8),

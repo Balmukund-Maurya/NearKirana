@@ -2,6 +2,7 @@ import 'package:near_kirana/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -538,10 +539,20 @@ class _CustomerShopTabState extends State<CustomerShopTab> {
                   child: SizedBox(
                     height: 85,
                     width: double.infinity,
-                    child: Image.network(
-                      shopProvider.shopBannerUrl!,
+                    child: CachedNetworkImage(
+                      imageUrl: shopProvider.shopBannerUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                      placeholder: (context, url) => Container(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
                         color: Colors.white.withValues(alpha: 0.15),
                         child: const Center(
                           child: Icon(Icons.image_not_supported_rounded, color: Colors.white),

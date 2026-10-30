@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'user_provider.dart';
 import 'cart_provider.dart';
@@ -910,11 +911,17 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
               ],
             ),
             child: imageUrl != null
-                ? Image.network(
-                    imageUrl,
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
                     width: 28,
                     height: 28,
-                    errorBuilder: (_, _, _) => const Icon(
+                    fit: BoxFit.contain,
+                    placeholder: (_, _) => const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+                    ),
+                    errorWidget: (_, _, _) => const Icon(
                       Icons.category_rounded,
                       color: AppColors.primaryDark,
                       size: 28,
@@ -1058,10 +1065,22 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
             child: SizedBox(
               height: 100,
               width: 100,
-              child: Image.network(
-                data['image'],
+              child: CachedNetworkImage(
+                imageUrl: data['image']?.toString() ?? '',
                 fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const Icon(Icons.image, size: 50),
+                placeholder: (_, _) => Container(
+                  height: 100,
+                  width: 100,
+                  color: Colors.grey.shade50,
+                  child: const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+                errorWidget: (_, _, _) => const Icon(Icons.image, size: 50, color: Colors.grey),
               ),
             ),
           ),
@@ -1216,9 +1235,23 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: item.imageUrl != null
-                                ? Image.network(
-                                    item.imageUrl!,
+                                ? CachedNetworkImage(
+                                    imageUrl: item.imageUrl!,
                                     fit: BoxFit.contain,
+                                    placeholder: (_, _) => Container(
+                                      color: Colors.grey.shade50,
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: (_, _, _) => const Icon(
+                                      Icons.image_not_supported,
+                                      color: Colors.grey,
+                                    ),
                                   )
                                 : const Icon(
                                     Icons.image_not_supported,
@@ -1613,7 +1646,14 @@ class _DesktopCustomerDashboardState extends State<DesktopCustomerDashboard> {
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Image.network(order['image']),
+                      child: (order['image'] != null && order['image'].toString().isNotEmpty)
+                          ? CachedNetworkImage(
+                              imageUrl: order['image'].toString(),
+                              fit: BoxFit.cover,
+                              placeholder: (_, _) => Container(color: Colors.grey.shade100),
+                              errorWidget: (_, _, _) => const Icon(Icons.inventory_2_outlined, size: 18, color: Colors.grey),
+                            )
+                          : const Icon(Icons.inventory_2_outlined, size: 18, color: Colors.grey),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

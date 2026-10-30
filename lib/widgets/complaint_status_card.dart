@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../complaint_model.dart';
 import '../complaint_service.dart';
 import '../app_theme.dart';
@@ -366,11 +367,23 @@ class _ComplaintDetailsModalState extends State<_ComplaintDetailsModal> {
                                 width: double.infinity,
                                 fit: BoxFit.cover,
                               )
-                            : Image.network(
-                                c.imageUrl!,
+                            : CachedNetworkImage(
+                                imageUrl: c.imageUrl!,
                                 height: 160,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
+                                placeholder: (_, _) => Container(
+                                  height: 160,
+                                  width: double.infinity,
+                                  color: Colors.grey.shade100,
+                                  child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                ),
+                                errorWidget: (_, _, _) => Container(
+                                  height: 160,
+                                  width: double.infinity,
+                                  color: Colors.grey.shade100,
+                                  child: const Icon(Icons.broken_image, color: Colors.grey),
+                                ),
                               ),
                       ),
                     ],

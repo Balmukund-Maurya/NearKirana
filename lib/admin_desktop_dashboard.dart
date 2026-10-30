@@ -468,7 +468,12 @@ class AdminDesktopHome extends StatelessWidget {
     if (shopId == null || shopId.isEmpty) return const SizedBox();
 
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseUtils.firestore.collection('orders').where('shop_id', isEqualTo: shopId).snapshots(),
+      stream: FirebaseUtils.firestore
+          .collection('orders')
+          .where('shop_id', isEqualTo: shopId)
+          .orderBy('created_at', descending: true)
+          .limit(100)
+          .snapshots(),
       builder: (context, ordersSnapshot) {
         int todaysOrders = 0;
         double todaysRevenue = 0;

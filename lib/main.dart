@@ -133,6 +133,7 @@ class NearKiranaApp extends StatelessWidget {
         return MaterialApp(
           title: 'NearKirana',
           theme: AppTheme.theme,
+          themeMode: ThemeMode.light,
           debugShowCheckedModeBanner: false,
           locale: langProvider.currentLocale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,

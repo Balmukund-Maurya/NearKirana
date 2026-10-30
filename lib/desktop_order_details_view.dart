@@ -9,6 +9,7 @@ import 'package:near_kirana/widgets/digital_receipt_dialog.dart';
 import 'package:near_kirana/widgets/order_complaint_section.dart';
 import 'package:near_kirana/widgets/reorder_summary_dialog.dart';
 import 'package:near_kirana/shopping_list_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class DesktopOrderDetailsView extends StatefulWidget {
   final QueryDocumentSnapshot order;
@@ -455,7 +456,7 @@ class _DesktopOrderDetailsViewState extends State<DesktopOrderDetailsView> {
                                                   border: Border.all(color: Colors.grey.shade200),
                                                 ),
                                                 child: image != null && image.toString().isNotEmpty
-                                                    ? ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.network(image, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image, color: Colors.grey)))
+                                                    ? ClipRRect(borderRadius: BorderRadius.circular(7), child: CachedNetworkImage(imageUrl: image.toString(), fit: BoxFit.cover, errorWidget: (_, _, _) => const Icon(Icons.image, color: Colors.grey)))
                                                     : const Icon(Icons.image, color: Colors.grey),
                                               ),
                                               const SizedBox(width: 16),

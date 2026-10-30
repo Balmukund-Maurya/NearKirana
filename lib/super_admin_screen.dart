@@ -231,7 +231,11 @@ class _SuperAdminScreenState extends State<SuperAdminScreen>
       stream: FirebaseUtils.firestore.collection('shops').snapshots(),
       builder: (context, shopsSnap) {
         return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseUtils.firestore.collection('orders').snapshots(),
+          stream: FirebaseUtils.firestore
+              .collection('orders')
+              .orderBy('created_at', descending: true)
+              .limit(200)
+              .snapshots(),
           builder: (context, ordersSnap) {
             final shops = shopsSnap.data?.docs ?? [];
             final orders = ordersSnap.data?.docs ?? [];
@@ -680,7 +684,11 @@ class _SuperAdminScreenState extends State<SuperAdminScreen>
   // ==========================================
   Widget _buildPlatformAnalyticsTab(LanguageProvider lang) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseUtils.firestore.collection('orders').snapshots(),
+      stream: FirebaseUtils.firestore
+          .collection('orders')
+          .orderBy('created_at', descending: true)
+          .limit(200)
+          .snapshots(),
       builder: (context, ordersSnap) {
         if (!ordersSnap.hasData) {
           return const Center(

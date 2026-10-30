@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -899,10 +900,20 @@ class _ShopSelectorScreenState extends State<ShopSelectorScreen> {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: (imageUrl != null && imageUrl.startsWith('http'))
-                      ? Image.network(
-                          imageUrl,
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(
+                          placeholder: (context, url) => Container(
+                            color: AppColors.primaryDark.withValues(alpha: 0.05),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryDark),
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => const Center(
                             child: Icon(Icons.storefront_rounded, color: AppColors.primaryDark, size: 28),
                           ),
                         )

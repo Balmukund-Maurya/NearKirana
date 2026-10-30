@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'desktop_order_tracking_view.dart';
 import 'desktop_order_details_view.dart';
 import 'package:intl/intl.dart';
@@ -461,7 +462,15 @@ class _MyOrdersDesktopWrapperState extends State<MyOrdersDesktopWrapper> {
                       border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: image != null && image.toString().isNotEmpty
-                        ? ClipRRect(borderRadius: BorderRadius.circular(5), child: Image.network(image, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image, size: 16, color: Colors.grey)))
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(5),
+                            child: CachedNetworkImage(
+                              imageUrl: image.toString(),
+                              fit: BoxFit.cover,
+                              placeholder: (_, _) => Container(color: Colors.grey.shade100),
+                              errorWidget: (_, _, _) => const Icon(Icons.image, size: 16, color: Colors.grey),
+                            ),
+                          )
                         : const Icon(Icons.image, size: 16, color: Colors.grey),
                   );
                 }),

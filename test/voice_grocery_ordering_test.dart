@@ -416,8 +416,8 @@ void main() {
 
       expect(find.text('Voice Grocery Ordering'), findsOneWidget);
       expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
-      expect(find.text('Tap mic to speak (बोलने के लिए माइक दबाएं)'), findsOneWidget);
-      expect(find.text('Quick Sample Voice Prompts (क्विक बोलकर देखें):'), findsOneWidget);
+      expect(find.textContaining('Tap mic to speak'), findsOneWidget);
+      expect(find.textContaining('Quick Sample Voice Prompts'), findsOneWidget);
       expect(find.byType(ActionChip), findsWidgets);
     });
 

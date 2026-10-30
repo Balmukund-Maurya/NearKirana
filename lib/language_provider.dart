@@ -5,13 +5,21 @@ import 'package:near_kirana/l10n/app_localizations.dart';
 
 class LanguageProvider extends ChangeNotifier {
   static const List<String> supportedLanguages = ['en', 'hi', 'hinglish', 'hi_Latn'];
-  static final LanguageProvider _fallback = LanguageProvider();
+  static final LanguageProvider _fallback = LanguageProvider(autoLoad: false);
 
   static LanguageProvider of(BuildContext context, {bool listen = true}) {
     try {
       final provider = Provider.of<LanguageProvider>(context, listen: listen);
       return provider;
     } catch (_) {
+      try {
+        final loc = Localizations.maybeLocaleOf(context);
+        if (loc != null && loc.languageCode == 'hi') {
+          final fallbackHi = LanguageProvider(autoLoad: false);
+          fallbackHi._currentLanguage = 'hi';
+          return fallbackHi;
+        }
+      } catch (_) {}
       return _fallback;
     }
   }
@@ -20,6 +28,14 @@ class LanguageProvider extends ChangeNotifier {
     try {
       return Provider.of<LanguageProvider>(context, listen: listen);
     } catch (_) {
+      try {
+        final loc = Localizations.maybeLocaleOf(context);
+        if (loc != null && loc.languageCode == 'hi') {
+          final fallbackHi = LanguageProvider(autoLoad: false);
+          fallbackHi._currentLanguage = 'hi';
+          return fallbackHi;
+        }
+      } catch (_) {}
       return _fallback;
     }
   }
@@ -50,8 +66,10 @@ class LanguageProvider extends ChangeNotifier {
       _currentLanguage == 'hinglish' || _currentLanguage == 'hi_Latn';
   bool get isEnglish => _currentLanguage == 'en';
 
-  LanguageProvider() {
-    loadSavedLanguage();
+  LanguageProvider({bool autoLoad = true}) {
+    if (autoLoad) {
+      loadSavedLanguage();
+    }
   }
 
   Future<void> loadSavedLanguage() async {

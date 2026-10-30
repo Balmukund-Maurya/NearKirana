@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../language_provider.dart';
 import '../loyalty_referral_models.dart';
@@ -103,7 +102,7 @@ class _LoyaltyRedemptionCardState extends State<LoyaltyRedemptionCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final langProvider = LanguageProvider.of(context, listen: false);
     final isHindi = langProvider.isHindi;
     final isHinglish = langProvider.isHinglish;
 

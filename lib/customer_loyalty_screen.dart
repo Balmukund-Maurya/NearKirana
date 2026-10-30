@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'app_theme.dart';
 import 'language_provider.dart';
@@ -220,7 +219,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
 
   @override
   Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
+    final langProvider = LanguageProvider.of(context);
     final isHindi = langProvider.isHindi;
     final isHinglish = langProvider.isHinglish;
 
@@ -333,7 +332,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                         Tab(
                           icon: const Icon(Icons.receipt_long_rounded, size: 18),
                           child: Text(
-                            isHindi ? 'पासबुक (इतिहास)' : (isHinglish ? 'Passbook' : 'Passbook'),
+                            isHindi ? 'पासबुक' : (isHinglish ? 'Passbook' : 'Passbook'),
                             maxLines: 1,
                           ),
                         ),
@@ -561,7 +560,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                       icon: Icons.share_rounded,
                       step: '1',
                       title: isHindi ? 'कोड भेजें' : 'Share Code',
-                      desc: isHindi ? 'व्हाट्सएप पर शेयर करें' : 'Invite friends',
+                      desc: isHindi ? 'दोस्तों को आमंत्रित करें' : 'Invite friends',
                     ),
                     const SizedBox(width: 8),
                     _buildReferralStepItem(
@@ -658,7 +657,7 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen>
                         onPressed: () => _copyToClipboard(account.referralCode, isHindi, isHinglish),
                         icon: const Icon(Icons.copy_rounded, size: 14),
                         label: Text(
-                          isHindi ? 'कॉपी' : 'Copy',
+                          isHindi ? 'कॉपी करें' : 'Copy',
                           style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 12.5),
                         ),
                         style: ElevatedButton.styleFrom(

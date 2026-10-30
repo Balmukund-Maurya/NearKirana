@@ -143,7 +143,7 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
 
       _controller.addListener(listener);
       // Start REAL microphone listening with user's selected language
-      final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+      final langProvider = LanguageProvider.of(context, listen: false);
       final targetLocale = (langProvider.isHindi || langProvider.isHinglish) ? 'hi_IN' : 'en_IN';
       _controller.startListening(localeId: targetLocale);
     }
@@ -497,14 +497,14 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
               // Status message
               Text(
                 isListening
-                    ? (Provider.of<LanguageProvider>(context, listen: false).isHindi
+                    ? (LanguageProvider.of(context, listen: false).isHindi
                         ? 'सुन रहे हैं... बोलिए'
-                        : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                        : LanguageProvider.of(context, listen: false).isHinglish
                             ? 'Sun rahe hain... Abhi bolein'
                             : 'Listening... Speak now')
-                    : (Provider.of<LanguageProvider>(context, listen: false).isHindi
+                    : (LanguageProvider.of(context, listen: false).isHindi
                         ? 'बोलने के लिए माइक दबाएं'
-                        : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                        : LanguageProvider.of(context, listen: false).isHinglish
                             ? 'Bolne ke liye mic dabayein'
                             : 'Tap mic to speak'),
                 style: GoogleFonts.poppins(
@@ -515,9 +515,9 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
               ),
               const SizedBox(height: 4),
               Text(
-                Provider.of<LanguageProvider>(context, listen: false).isHindi
+                LanguageProvider.of(context, listen: false).isHindi
                     ? 'उदाहरण: "२ किलो आटा और १ लीटर दूध जोड़ें"'
-                    : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                    : LanguageProvider.of(context, listen: false).isHinglish
                         ? 'Example: "Do kilo atta aur ek litre doodh add karo"'
                         : 'Example: "Add 2 kg flour and 1 litre milk"',
                 style: GoogleFonts.poppins(
@@ -613,7 +613,7 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
   }
 
   Widget _buildQuickPromptChips() {
-    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final langProvider = LanguageProvider.of(context, listen: false);
     final isHindi = langProvider.isHindi;
     final isHinglish = langProvider.isHinglish;
 
@@ -1061,9 +1061,9 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                     Icon(Icons.warning_amber_rounded, size: 16, color: Colors.amber.shade900),
                     const SizedBox(width: 6),
                     Text(
-                      Provider.of<LanguageProvider>(context, listen: false).isHindi
+                      LanguageProvider.of(context, listen: false).isHindi
                           ? 'कृपया ऊपर से अपने ब्रांड का चुनाव करें'
-                          : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                          : LanguageProvider.of(context, listen: false).isHinglish
                               ? 'Kripya upar se brand choice chunein'
                               : 'Please pick brand choice for items above',
                       style: GoogleFonts.poppins(
@@ -1084,9 +1084,9 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        Provider.of<LanguageProvider>(context, listen: false).isHindi
+                        LanguageProvider.of(context, listen: false).isHindi
                             ? '${result.readyCount} सामान तैयार'
-                            : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                            : LanguageProvider.of(context, listen: false).isHinglish
                                 ? '${result.readyCount} items ready'
                                 : '${result.readyCount} items ready',
                         style: GoogleFonts.poppins(
@@ -1121,9 +1121,9 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet>
                   ),
                   icon: const Icon(Icons.add_shopping_cart_rounded, color: Colors.white),
                   label: Text(
-                    Provider.of<LanguageProvider>(context, listen: false).isHindi
+                    LanguageProvider.of(context, listen: false).isHindi
                         ? 'पुष्टि करें और जोड़ें'
-                        : Provider.of<LanguageProvider>(context, listen: false).isHinglish
+                        : LanguageProvider.of(context, listen: false).isHinglish
                             ? 'Confirm & Cart me Dalein'
                             : 'Confirm & Add to Cart',
                     style: GoogleFonts.poppins(

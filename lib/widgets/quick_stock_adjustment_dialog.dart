@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:near_kirana/firebase_utils.dart';
 import '../app_theme.dart';
 import '../language_provider.dart';
@@ -224,7 +223,7 @@ class _QuickStockAdjustmentDialogState extends State<QuickStockAdjustmentDialog>
 
   @override
   Widget build(BuildContext context) {
-    final lang = Provider.of<LanguageProvider>(context);
+    final lang = LanguageProvider.of(context);
     String t(String en, String hi, String hinglish) {
       if (lang.isHindi) return hi;
       if (lang.isHinglish) return hinglish;

@@ -7,7 +7,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:provider/provider.dart';
 import 'firebase_utils.dart';
 import 'language_provider.dart';
 import 'order_state_machine.dart';
@@ -675,7 +674,7 @@ class _CustomerLiveTrackingScreenState extends State<CustomerLiveTrackingScreen>
                   final int bikeEtaMins = _roadDurationSeconds > 0
                       ? (_roadDurationSeconds / 60).ceil().clamp(1, 120)
                       : (session?.estimatedMinutesRemaining != null && session!.estimatedMinutesRemaining! > 0)
-                          ? session!.estimatedMinutesRemaining!
+                          ? session.estimatedMinutesRemaining!
                           : ((activeDistanceMeters / 350).ceil()).clamp(1, 120);
                   final int carEtaMins = _roadDurationSeconds > 0
                       ? ((_roadDurationSeconds * 1.15) / 60).ceil().clamp(1, 120)

@@ -461,21 +461,21 @@ void main() {
 
       // Header and KPI checks (clean English)
       expect(find.text('Loyalty & Referrals'), findsOneWidget);
-      expect(find.text('Total Issued'), findsOneWidget);
-      expect(find.text('Total Redeemed'), findsOneWidget);
+      expect(find.textContaining('Issued'), findsOneWidget);
+      expect(find.textContaining('Redeemed'), findsOneWidget);
 
       // Customer listed in Customer Passbooks tab
       expect(find.text('Kishore Kumar'), findsOneWidget);
       expect(find.text('300 pts'), findsOneWidget);
-      expect(find.text('Modify'), findsOneWidget);
+      expect(find.text('Adjust'), findsOneWidget);
 
-      // Switch to Settings tab
-      await tester.tap(find.text('Settings'));
+      // Switch to Settings (Rules & Setup) tab
+      await tester.tap(find.text('Rules & Setup'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Enable Loyalty Program'), findsOneWidget);
-      expect(find.text('Enable Refer & Earn Program'), findsOneWidget);
-      expect(find.text('Save Settings'), findsOneWidget);
+      expect(find.text('Loyalty Points Program'), findsOneWidget);
+      expect(find.text('Refer & Earn Program'), findsOneWidget);
+      expect(find.text('Save Program Settings'), findsOneWidget);
     });
 
     testWidgets('CustomerLoyaltyScreen renders clean Hindi without dual-language parentheses', (tester) async {

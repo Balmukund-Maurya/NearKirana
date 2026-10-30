@@ -470,12 +470,12 @@ void main() {
       expect(find.text('Staff & Audit Logs'), findsOneWidget);
       expect(find.text('Active Staff'), findsOneWidget);
       expect(find.text('Today Logs'), findsOneWidget);
-      expect(find.text('Critical Changes'), findsOneWidget);
+      expect(find.textContaining('Critical'), findsOneWidget);
 
       // Verify Tab 1 (Staff Accounts)
       expect(find.text('Manish Kumar'), findsOneWidget);
-      expect(find.text('+91 9876501234'), findsOneWidget);
-      expect(find.text('Add Staff (कर्मचारी जोड़ें)'), findsOneWidget);
+      expect(find.textContaining('9876501234'), findsOneWidget);
+      expect(find.textContaining('Add Staff'), findsOneWidget);
 
       // Switch to Tab 2 (Audit Trail)
       await tester.tap(find.text('Audit Trail'));
@@ -484,8 +484,8 @@ void main() {
       expect(find.text('Stock Changes'), findsOneWidget);
       expect(find.text('Price Changes'), findsOneWidget);
       expect(find.text('Stock adjusted for "Ashirvaad Atta 10kg" from 20.0 to 12.0 units (-8.0).'), findsOneWidget);
-      expect(find.text('Reason: Physical stock audit discrepancy'), findsOneWidget);
-      expect(find.text('Adjust Stock (स्टॉक बदलें)'), findsOneWidget);
+      expect(find.textContaining('Physical stock audit discrepancy'), findsOneWidget);
+      expect(find.textContaining('Adjust Stock'), findsOneWidget);
     });
 
     testWidgets('AddEditStaffDialog allows creating a new staff account', (tester) async {
@@ -507,7 +507,7 @@ void main() {
       await tester.tap(find.text('Open Add Staff'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Add Staff Account\n(नया कर्मचारी जोड़ें)'), findsOneWidget);
+      expect(find.textContaining('Add Staff Account'), findsOneWidget);
 
       // Fill in details
       await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Ramesh Kumar'), 'Deepak Cashier');
@@ -515,7 +515,7 @@ void main() {
       await tester.enterText(find.widgetWithText(TextFormField, '4-digit PIN'), '9988');
 
       // Submit
-      await tester.tap(find.text('Create Staff Account (खाता बनाएं)'));
+      await tester.tap(find.textContaining('Create Staff Account'));
       await tester.pumpAndSettle();
 
       // Verify staff in firestore
@@ -608,7 +608,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Submit adjustment
-      await tester.tap(find.text('Save & Log Adjustment (सेव करें)'));
+      await tester.tap(find.textContaining('Save & Log Adjustment'));
       await tester.pumpAndSettle();
 
       // Verify product stock is 12

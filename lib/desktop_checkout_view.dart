@@ -76,8 +76,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
 
   String _tr(String en, String hi, String hinglish, [LanguageProvider? lang]) {
     final lp = lang ?? LanguageProvider.of(context, listen: false);
-    if (lp.isHindi) return hi;
-    if (lp.isHinglish) return hinglish;
+    if (lp.isHindi) {
+      return hi;
+    }
+    if (lp.isHinglish) {
+      return hinglish;
+    }
     return en;
   }
 
@@ -289,7 +293,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                     context,
                                     isCheckoutMode: true,
                                   );
-                                  if (mounted) setState(() {});
+                                  if (mounted) {
+                                    setState(() {});
+                                  }
                                 },
                                 icon: const Icon(
                                   Icons.add,
@@ -348,7 +354,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                         context,
                                         isCheckoutMode: true,
                                       );
-                                      if (mounted) setState(() {});
+                                      if (mounted) {
+                                        setState(() {});
+                                      }
                                     },
                                   ),
                                 );
@@ -371,14 +379,18 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
                                     context,
                                     isCheckoutMode: true,
                                   );
-                                  if (mounted) setState(() {});
+                                  if (mounted) {
+                                    setState(() {});
+                                  }
                                 },
                                 onEdit: () async {
                                   await AddressSelectionBottomSheet.show(
                                     context,
                                     isCheckoutMode: true,
                                   );
-                                  if (mounted) setState(() {});
+                                  if (mounted) {
+                                    setState(() {});
+                                  }
                                 },
                               ),
                           ],
@@ -1687,7 +1699,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               OutlinedButton(
                 onPressed: () async {
                   await AddressSelectionBottomSheet.show(context, isCheckoutMode: true);
-                  if (mounted) setState(() {});
+                  if (mounted) {
+                    setState(() {});
+                  }
                 },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primaryDark,
@@ -1871,8 +1885,12 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
             _selectedInstructionChips.remove(rawText);
             String current = _instructionsController.text;
             current = current.replaceAll(rawText, '').replaceAll(', ,', ',').trim();
-            if (current.startsWith(',')) current = current.substring(1).trim();
-            if (current.endsWith(',')) current = current.substring(0, current.length - 1).trim();
+            if (current.startsWith(',')) {
+              current = current.substring(1).trim();
+            }
+            if (current.endsWith(',')) {
+              current = current.substring(0, current.length - 1).trim();
+            }
             _instructionsController.text = current;
           } else {
             _selectedInstructionChips.add(rawText);
@@ -3377,7 +3395,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
           setState(() {
             _isLoadingKhata = false;
             _hasShopKhata = false;
-            if (_selectedPaymentIndex == 2) _selectedPaymentIndex = 0;
+            if (_selectedPaymentIndex == 2) {
+              _selectedPaymentIndex = 0;
+            }
           });
         }
         return;
@@ -3579,7 +3599,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
               .get();
           if (settingsDoc.exists && settingsDoc.data()?['razorpay_key_id'] != null) {
             final key = (settingsDoc.data()!['razorpay_key_id'] as String).trim();
-            if (key.isNotEmpty) rzpKey = key;
+            if (key.isNotEmpty) {
+              rzpKey = key;
+            }
           }
         } catch (_) {}
       }
@@ -3936,7 +3958,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
       cartProvider.clearCart();
       SoundService().orderSuccess();
 
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       final langProvider = LanguageProvider.of(context, listen: false);
       final String deliveryPin = result.deliveryPin.trim();
@@ -3947,7 +3971,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         builder: (ctx) => PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
-            if (didPop) return;
+            if (didPop) {
+              return;
+            }
             Navigator.pop(ctx);
             widget.onOrderPlaced();
           },
@@ -4138,20 +4164,28 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         ),
       );
 
-      if (mounted) widget.onOrderPlaced();
+      if (mounted) {
+        widget.onOrderPlaced();
+      }
 
     } on InsufficientStockException catch (e) {
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.userFriendlyMessage), backgroundColor: AppColors.error),
       );
     } on InvalidCouponException catch (e) {
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Coupon Error: ${e.message}"), backgroundColor: AppColors.error),
       );
     } catch (e) {
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       final langProvider = LanguageProvider.of(context, listen: false);
       final isHindi = langProvider.isHindi;
       final isHinglish = langProvider.isHinglish;
@@ -4180,7 +4214,9 @@ class _DesktopCheckoutViewState extends State<DesktopCheckoutView> {
         ),
       );
     } finally {
-      if (mounted) setState(() => _isProcessingCheckout = false);
+      if (mounted) {
+        setState(() => _isProcessingCheckout = false);
+      }
     }
   }
 

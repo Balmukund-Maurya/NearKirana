@@ -20,43 +20,22 @@ void main() {
   group('Feature 51: Domain Models - ComplaintModel & ComplaintItem', () {
     test('Enum conversion and fallback tests', () {
       expect(ComplaintType.fromString('damaged'), ComplaintType.damaged);
-      expect(
-        ComplaintType.fromString('missing_item'),
-        ComplaintType.missingItem,
-      );
+      expect(ComplaintType.fromString('missing_item'), ComplaintType.missingItem);
       expect(ComplaintType.fromString('wrong_item'), ComplaintType.wrongItem);
-      expect(
-        ComplaintType.fromString('expired_quality'),
-        ComplaintType.expiredOrQuality,
-      );
-      expect(
-        ComplaintType.fromString('billing_issue'),
-        ComplaintType.billingIssue,
-      );
+      expect(ComplaintType.fromString('expired_quality'), ComplaintType.expiredOrQuality);
+      expect(ComplaintType.fromString('billing_issue'), ComplaintType.billingIssue);
       expect(ComplaintType.fromString('unknown_val'), ComplaintType.other);
 
       expect(ComplaintStatus.fromString('pending'), ComplaintStatus.pending);
       expect(ComplaintStatus.fromString('in_review'), ComplaintStatus.inReview);
-      expect(
-        ComplaintStatus.fromString('resolved_refund'),
-        ComplaintStatus.resolvedRefund,
-      );
-      expect(
-        ComplaintStatus.fromString('resolved_replacement'),
-        ComplaintStatus.resolvedReplacement,
-      );
+      expect(ComplaintStatus.fromString('resolved_refund'), ComplaintStatus.resolvedRefund);
+      expect(ComplaintStatus.fromString('resolved_replacement'), ComplaintStatus.resolvedReplacement);
       expect(ComplaintStatus.fromString('rejected'), ComplaintStatus.rejected);
-      expect(
-        ComplaintStatus.fromString('cancelled'),
-        ComplaintStatus.cancelled,
-      );
+      expect(ComplaintStatus.fromString('cancelled'), ComplaintStatus.cancelled);
       expect(ComplaintStatus.fromString('unknown'), ComplaintStatus.pending);
 
       expect(ResolutionType.fromString('refund'), ResolutionType.refund);
-      expect(
-        ResolutionType.fromString('replacement'),
-        ResolutionType.replacement,
-      );
+      expect(ResolutionType.fromString('replacement'), ResolutionType.replacement);
       expect(ResolutionType.fromString('no_action'), ResolutionType.noAction);
       expect(ResolutionType.fromString('invalid'), ResolutionType.noAction);
 
@@ -177,86 +156,69 @@ void main() {
       });
     });
 
-    test(
-      'createComplaint persists complaint and updates order metadata',
-      () async {
-        final complaint = await service.createComplaint(
-          orderId: 'ORD-001',
-          shopId: 'SHOP_KIRANA_1',
-          customerPhone: '9876543210',
-          customerName: 'Aarav Patel',
-          type: ComplaintType.damaged,
-          description: '1 packet was torn and leaking',
-          affectedItems: const [
-            ComplaintItem(
-              itemId: 'p1',
-              name: 'Milk 1L',
-              quantityOrdered: 2,
-              quantityAffected: 1,
-              pricePerUnit: 60.0,
-            ),
-          ],
-          requestedResolution: ResolutionType.refund,
-        );
+    test('createComplaint persists complaint and updates order metadata', () async {
+      final complaint = await service.createComplaint(
+        orderId: 'ORD-001',
+        shopId: 'SHOP_KIRANA_1',
+        customerPhone: '9876543210',
+        customerName: 'Aarav Patel',
+        type: ComplaintType.damaged,
+        description: '1 packet was torn and leaking',
+        affectedItems: const [
+          ComplaintItem(
+            itemId: 'p1',
+            name: 'Milk 1L',
+            quantityOrdered: 2,
+            quantityAffected: 1,
+            pricePerUnit: 60.0,
+          ),
+        ],
+        requestedResolution: ResolutionType.refund,
+      );
 
-        expect(complaint.id.startsWith('CMP-'), isTrue);
-        expect(complaint.estimatedClaimAmount, 60.0);
+      expect(complaint.id.startsWith('CMP-'), isTrue);
+      expect(complaint.estimatedClaimAmount, 60.0);
 
-        // Verify Firestore record in complaints collection
-        final compDoc = await fakeFirestore
-            .collection('complaints')
-            .doc(complaint.id)
-            .get();
-        expect(compDoc.exists, isTrue);
-        expect(compDoc.data()?['type'], 'damaged');
-        expect(compDoc.data()?['status'], 'pending');
+      // Verify Firestore record in complaints collection
+      final compDoc = await fakeFirestore.collection('complaints').doc(complaint.id).get();
+      expect(compDoc.exists, isTrue);
+      expect(compDoc.data()?['type'], 'damaged');
+      expect(compDoc.data()?['status'], 'pending');
 
-        // Verify order metadata updated
-        final orderDoc = await fakeFirestore
-            .collection('orders')
-            .doc('ORD-001')
-            .get();
-        expect(orderDoc.data()?['has_complaint'], isTrue);
-        expect(orderDoc.data()?['complaint_id'], complaint.id);
-        expect(orderDoc.data()?['complaint_status'], 'pending');
-      },
-    );
+      // Verify order metadata updated
+      final orderDoc = await fakeFirestore.collection('orders').doc('ORD-001').get();
+      expect(orderDoc.data()?['has_complaint'], isTrue);
+      expect(orderDoc.data()?['complaint_id'], complaint.id);
+      expect(orderDoc.data()?['complaint_status'], 'pending');
+    });
 
-    test(
-      'streamShopComplaints streams complaints filtered by shopId',
-      () async {
-        final c1 = await service.createComplaint(
-          orderId: 'ORD-001',
-          shopId: 'SHOP_KIRANA_1',
-          customerPhone: '9876543210',
-          customerName: 'Aarav Patel',
-          type: ComplaintType.missingItem,
-          description: 'Missing bread',
-        );
+    test('streamShopComplaints streams complaints filtered by shopId', () async {
+      final c1 = await service.createComplaint(
+        orderId: 'ORD-001',
+        shopId: 'SHOP_KIRANA_1',
+        customerPhone: '9876543210',
+        customerName: 'Aarav Patel',
+        type: ComplaintType.missingItem,
+        description: 'Missing bread',
+      );
 
-        await service.createComplaint(
-          orderId: 'ORD-OTHER',
-          shopId: 'SHOP_OTHER_SHOP',
-          customerPhone: '9123456789',
-          customerName: 'Other Person',
-          type: ComplaintType.damaged,
-          description: 'Other shop complaint',
-        );
+      await service.createComplaint(
+        orderId: 'ORD-OTHER',
+        shopId: 'SHOP_OTHER_SHOP',
+        customerPhone: '9123456789',
+        customerName: 'Other Person',
+        type: ComplaintType.damaged,
+        description: 'Other shop complaint',
+      );
 
-        final doc = await fakeFirestore
-            .collection('complaints')
-            .doc(c1.id)
-            .get();
-        expect(doc.exists, isTrue);
+      final doc = await fakeFirestore.collection('complaints').doc(c1.id).get();
+      expect(doc.exists, isTrue);
 
-        final list = await service
-            .streamShopComplaints('SHOP_KIRANA_1')
-            .firstWhere((l) => l.isNotEmpty);
-        expect(list.length, 1);
-        expect(list.first.shopId, 'SHOP_KIRANA_1');
-        expect(list.first.customerName, 'Aarav Patel');
-      },
-    );
+      final list = await service.streamShopComplaints('SHOP_KIRANA_1').firstWhere((l) => l.isNotEmpty);
+      expect(list.length, 1);
+      expect(list.first.shopId, 'SHOP_KIRANA_1');
+      expect(list.first.customerName, 'Aarav Patel');
+    });
 
     test('markInReview updates complaint status to in_review', () async {
       final complaint = await service.createComplaint(
@@ -268,98 +230,77 @@ void main() {
         description: 'Extra amount charged',
       );
 
-      await service.markInReview(
-        complaint.id,
-        notes: 'Shopkeeper checking with delivery staff',
-      );
+      await service.markInReview(complaint.id, notes: 'Shopkeeper checking with delivery staff');
 
-      final updated = await fakeFirestore
-          .collection('complaints')
-          .doc(complaint.id)
-          .get();
+      final updated = await fakeFirestore.collection('complaints').doc(complaint.id).get();
       expect(updated.data()?['status'], 'in_review');
-      expect(
-        updated.data()?['resolution_notes'],
-        'Shopkeeper checking with delivery staff',
-      );
+      expect(updated.data()?['resolution_notes'], 'Shopkeeper checking with delivery staff');
     });
 
-    test(
-      'resolveComplaint with Khata credit updates complaint and customer Khata ledger',
-      () async {
-        // Seed customer with existing Khata balance (150 owed)
-        await fakeFirestore.collection('customers').doc('9876543210').set({
-          'name': 'Aarav Patel',
-          'mobile': '9876543210',
-          'shop_balances': {'SHOP_KIRANA_1': 150.0},
-          'shop_ids': ['SHOP_KIRANA_1'],
-        });
+    test('resolveComplaint with Khata credit updates complaint and customer Khata ledger', () async {
+      // Seed customer with existing Khata balance (150 owed)
+      await fakeFirestore.collection('customers').doc('9876543210').set({
+        'name': 'Aarav Patel',
+        'mobile': '9876543210',
+        'shop_balances': {'SHOP_KIRANA_1': 150.0},
+        'shop_ids': ['SHOP_KIRANA_1'],
+      });
 
-        final complaint = await service.createComplaint(
-          orderId: 'ORD-001',
-          shopId: 'SHOP_KIRANA_1',
-          customerPhone: '9876543210',
-          customerName: 'Aarav Patel',
-          type: ComplaintType.damaged,
-          description: 'Milk pack damaged',
-          affectedItems: const [
-            ComplaintItem(
-              itemId: 'p1',
-              name: 'Milk 1L',
-              quantityOrdered: 2,
-              quantityAffected: 1,
-              pricePerUnit: 60.0,
-            ),
-          ],
-        );
+      final complaint = await service.createComplaint(
+        orderId: 'ORD-001',
+        shopId: 'SHOP_KIRANA_1',
+        customerPhone: '9876543210',
+        customerName: 'Aarav Patel',
+        type: ComplaintType.damaged,
+        description: 'Milk pack damaged',
+        affectedItems: const [
+          ComplaintItem(
+            itemId: 'p1',
+            name: 'Milk 1L',
+            quantityOrdered: 2,
+            quantityAffected: 1,
+            pricePerUnit: 60.0,
+          ),
+        ],
+      );
 
-        // Resolve with ₹60 Khata credit
-        await service.resolveComplaint(
-          complaintId: complaint.id,
-          resolutionType: ResolutionType.refund,
-          resolutionNotes: 'Refund credited to Khata ledger',
-          resolvedBy: 'Shop Owner',
-          refundAmount: 60.0,
-          refundMethod: RefundMethod.khataCredit,
-        );
+      // Resolve with ₹60 Khata credit
+      await service.resolveComplaint(
+        complaintId: complaint.id,
+        resolutionType: ResolutionType.refund,
+        resolutionNotes: 'Refund credited to Khata ledger',
+        resolvedBy: 'Shop Owner',
+        refundAmount: 60.0,
+        refundMethod: RefundMethod.khataCredit,
+      );
 
-        // Verify complaint doc
-        final compDoc = await fakeFirestore
-            .collection('complaints')
-            .doc(complaint.id)
-            .get();
-        expect(compDoc.data()?['status'], 'resolved_refund');
-        expect(compDoc.data()?['refund_amount'], 60.0);
-        expect(compDoc.data()?['refund_method'], 'khata_credit');
+      // Verify complaint doc
+      final compDoc = await fakeFirestore.collection('complaints').doc(complaint.id).get();
+      expect(compDoc.data()?['status'], 'resolved_refund');
+      expect(compDoc.data()?['refund_amount'], 60.0);
+      expect(compDoc.data()?['refund_method'], 'khata_credit');
 
-        // Verify order doc
-        final orderDoc = await fakeFirestore
-            .collection('orders')
-            .doc('ORD-001')
-            .get();
-        expect(orderDoc.data()?['complaint_status'], 'resolved_refund');
-        expect(orderDoc.data()?['complaint_refund_amount'], 60.0);
+      // Verify order doc
+      final orderDoc = await fakeFirestore.collection('orders').doc('ORD-001').get();
+      expect(orderDoc.data()?['complaint_status'], 'resolved_refund');
+      expect(orderDoc.data()?['complaint_refund_amount'], 60.0);
 
-        // Verify Khata balance decremented (150 - 60 = 90)
-        final custDoc = await fakeFirestore
-            .collection('customers')
-            .doc('9876543210')
-            .get();
-        expect(custDoc.data()?['shop_balances']['SHOP_KIRANA_1'], 90.0);
+      // Verify Khata balance decremented (150 - 60 = 90)
+      final custDoc = await fakeFirestore.collection('customers').doc('9876543210').get();
+      expect(custDoc.data()?['shop_balances']['SHOP_KIRANA_1'], 90.0);
 
-        // Verify Khata transaction credit entry recorded
-        final txs = await fakeFirestore
-            .collection('customers')
-            .doc('9876543210')
-            .collection('khata_transactions')
-            .get();
-        expect(txs.docs.isNotEmpty, isTrue);
-        final tx = txs.docs.first.data();
-        expect(tx['amount'], 60.0);
-        expect(tx['type'], 'credit');
-        expect(tx['complaint_id'], complaint.id);
-      },
-    );
+      // Verify Khata transaction credit entry recorded
+      final txs = await fakeFirestore
+          .collection('customers')
+          .doc('9876543210')
+          .collection('khata_transactions')
+          .get();
+      expect(txs.docs.isNotEmpty, isTrue);
+      final tx = txs.docs.first.data();
+      expect(tx['amount'], 60.0);
+      expect(tx['type'], 'credit');
+      expect(tx['complaint_id'], complaint.id);
+    });
 
     test('resolveComplaint with Replacement and with Reject', () async {
       final complaint1 = await service.createComplaint(
@@ -379,15 +320,9 @@ void main() {
         replacementDetails: '1x Harvest Gold Brown Bread',
       );
 
-      var compDoc = await fakeFirestore
-          .collection('complaints')
-          .doc(complaint1.id)
-          .get();
+      var compDoc = await fakeFirestore.collection('complaints').doc(complaint1.id).get();
       expect(compDoc.data()?['status'], 'resolved_replacement');
-      expect(
-        compDoc.data()?['replacement_details'],
-        '1x Harvest Gold Brown Bread',
-      );
+      expect(compDoc.data()?['replacement_details'], '1x Harvest Gold Brown Bread');
 
       // Reject
       final complaint2 = await service.createComplaint(
@@ -405,44 +340,29 @@ void main() {
         resolutionNotes: 'Cannot return consumed perishable product',
       );
 
-      compDoc = await fakeFirestore
-          .collection('complaints')
-          .doc(complaint2.id)
-          .get();
+      compDoc = await fakeFirestore.collection('complaints').doc(complaint2.id).get();
       expect(compDoc.data()?['status'], 'rejected');
-      expect(
-        compDoc.data()?['resolution_notes'],
-        'Cannot return consumed perishable product',
-      );
+      expect(compDoc.data()?['resolution_notes'], 'Cannot return consumed perishable product');
     });
 
-    test(
-      'cancelComplaint allows customer to cancel pending complaint',
-      () async {
-        final complaint = await service.createComplaint(
-          orderId: 'ORD-001',
-          shopId: 'SHOP_KIRANA_1',
-          customerPhone: '9876543210',
-          customerName: 'Aarav Patel',
-          type: ComplaintType.damaged,
-          description: 'Accidental report',
-        );
+    test('cancelComplaint allows customer to cancel pending complaint', () async {
+      final complaint = await service.createComplaint(
+        orderId: 'ORD-001',
+        shopId: 'SHOP_KIRANA_1',
+        customerPhone: '9876543210',
+        customerName: 'Aarav Patel',
+        type: ComplaintType.damaged,
+        description: 'Accidental report',
+      );
 
-        await service.cancelComplaint(complaint.id, 'ORD-001');
+      await service.cancelComplaint(complaint.id, 'ORD-001');
 
-        final compDoc = await fakeFirestore
-            .collection('complaints')
-            .doc(complaint.id)
-            .get();
-        expect(compDoc.data()?['status'], 'cancelled');
+      final compDoc = await fakeFirestore.collection('complaints').doc(complaint.id).get();
+      expect(compDoc.data()?['status'], 'cancelled');
 
-        final orderDoc = await fakeFirestore
-            .collection('orders')
-            .doc('ORD-001')
-            .get();
-        expect(orderDoc.data()?['complaint_status'], 'cancelled');
-      },
-    );
+      final orderDoc = await fakeFirestore.collection('orders').doc('ORD-001').get();
+      expect(orderDoc.data()?['complaint_status'], 'cancelled');
+    });
   });
 
   group('Feature 51: Customer UI Widget Tests', () {
@@ -454,163 +374,135 @@ void main() {
       service = ComplaintService(firestore: fakeFirestore);
     });
 
-    testWidgets(
-      'RaiseComplaintDialog renders items, validates description, and submits',
-      (tester) async {
-        await fakeFirestore.collection('orders').doc('ORD-WIDGET-1').set({
-          'shop_id': 'SHOP_TEST',
-          'status': 'Delivered',
-        });
+    testWidgets('RaiseComplaintDialog renders items, validates description, and submits', (tester) async {
+      await fakeFirestore.collection('orders').doc('ORD-WIDGET-1').set({
+        'shop_id': 'SHOP_TEST',
+        'status': 'Delivered',
+      });
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RaiseComplaintDialog(
-                orderId: 'ORD-WIDGET-1',
-                shopId: 'SHOP_TEST',
-                customerPhone: '9876543210',
-                customerName: 'Kavita',
-                orderItems: const [
-                  {
-                    'id': 'item1',
-                    'name': 'Fortune Sunflower Oil 1L',
-                    'quantity': 2,
-                    'price': 140.0,
-                  },
-                  {
-                    'id': 'item2',
-                    'name': 'Tata Salt 1kg',
-                    'quantity': 1,
-                    'price': 28.0,
-                  },
-                ],
-                complaintService: service,
-              ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RaiseComplaintDialog(
+              orderId: 'ORD-WIDGET-1',
+              shopId: 'SHOP_TEST',
+              customerPhone: '9876543210',
+              customerName: 'Kavita',
+              orderItems: const [
+                {'id': 'item1', 'name': 'Fortune Sunflower Oil 1L', 'quantity': 2, 'price': 140.0},
+                {'id': 'item2', 'name': 'Tata Salt 1kg', 'quantity': 1, 'price': 28.0},
+              ],
+              complaintService: service,
             ),
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Header and options check
-        expect(find.text('Report Issue / Return Item'), findsOneWidget);
-        expect(find.text('Fortune Sunflower Oil 1L'), findsOneWidget);
-        expect(find.text('Tata Salt 1kg'), findsOneWidget);
-        expect(find.text('Damaged Item'), findsOneWidget);
-        expect(find.text('Missing Item'), findsOneWidget);
+      // Header and options check
+      expect(find.text('Report Issue / Return Item'), findsOneWidget);
+      expect(find.text('Fortune Sunflower Oil 1L'), findsOneWidget);
+      expect(find.text('Tata Salt 1kg'), findsOneWidget);
+      expect(find.text('Damaged Item'), findsOneWidget);
+      expect(find.text('Missing Item'), findsOneWidget);
 
-        // Attempt to submit without description should show snackbar
-        await tester.tap(find.text('Submit Complaint'));
-        await tester.pumpAndSettle();
-        expect(
-          find.text('Please describe the issue with your product'),
-          findsOneWidget,
-        );
+      // Attempt to submit without description should show snackbar
+      await tester.tap(find.text('Submit Complaint'));
+      await tester.pumpAndSettle();
+      expect(find.text('Please describe the issue with your product'), findsOneWidget);
 
-        // Enter description
-        await tester.enterText(
-          find.byType(TextField).first,
-          'Oil packet was torn and spilled in carry bag',
-        );
-        await tester.pumpAndSettle();
+      // Enter description
+      await tester.enterText(
+        find.byType(TextField).first,
+        'Oil packet was torn and spilled in carry bag',
+      );
+      await tester.pumpAndSettle();
 
-        // Submit complaint
-        await tester.tap(find.text('Submit Complaint'));
-        await tester.pumpAndSettle();
+      // Submit complaint
+      await tester.tap(find.text('Submit Complaint'));
+      await tester.pumpAndSettle();
 
-        // Verify Firestore has the new complaint
-        final snapshot = await fakeFirestore.collection('complaints').get();
-        expect(snapshot.docs.length, 1);
-        final data = snapshot.docs.first.data();
-        expect(data['order_id'], 'ORD-WIDGET-1');
-        expect(
-          data['description'],
-          'Oil packet was torn and spilled in carry bag',
-        );
-      },
-    );
+      // Verify Firestore has the new complaint
+      final snapshot = await fakeFirestore.collection('complaints').get();
+      expect(snapshot.docs.length, 1);
+      final data = snapshot.docs.first.data();
+      expect(data['order_id'], 'ORD-WIDGET-1');
+      expect(data['description'], 'Oil packet was torn and spilled in carry bag');
+    });
 
-    testWidgets(
-      'ComplaintStatusCard renders status badge and opens details modal',
-      (tester) async {
-        final now = DateTime.now();
-        final complaint = ComplaintModel(
-          id: 'CMP-8877',
-          orderId: 'ORD-WIDGET-2',
-          shopId: 'SHOP_TEST',
-          customerPhone: '9876543210',
-          customerName: 'Kavita',
-          type: ComplaintType.damaged,
-          status: ComplaintStatus.pending,
-          description: 'Packet was broken',
-          createdAt: now,
-          updatedAt: now,
-        );
+    testWidgets('ComplaintStatusCard renders status badge and opens details modal', (tester) async {
+      final now = DateTime.now();
+      final complaint = ComplaintModel(
+        id: 'CMP-8877',
+        orderId: 'ORD-WIDGET-2',
+        shopId: 'SHOP_TEST',
+        customerPhone: '9876543210',
+        customerName: 'Kavita',
+        type: ComplaintType.damaged,
+        status: ComplaintStatus.pending,
+        description: 'Packet was broken',
+        createdAt: now,
+        updatedAt: now,
+      );
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: ComplaintStatusCard(
-                complaint: complaint,
-                complaintService: service,
-              ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ComplaintStatusCard(
+              complaint: complaint,
+              complaintService: service,
             ),
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('Complaint CMP-8877: Pending Review'), findsOneWidget);
-        expect(find.text('Details'), findsOneWidget);
+      expect(find.text('Complaint CMP-8877: Pending Review'), findsOneWidget);
+      expect(find.text('Details'), findsOneWidget);
 
-        // Tap details
-        await tester.tap(find.text('Details'));
-        await tester.pumpAndSettle();
+      // Tap details
+      await tester.tap(find.text('Details'));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Complaint Details (CMP-8877)'), findsOneWidget);
-        expect(find.text('Packet was broken'), findsOneWidget);
-        expect(find.text('Cancel This Complaint'), findsOneWidget);
-      },
-    );
+      expect(find.text('Complaint Details (CMP-8877)'), findsOneWidget);
+      expect(find.text('Packet was broken'), findsOneWidget);
+      expect(find.text('Cancel This Complaint'), findsOneWidget);
+    });
 
-    testWidgets(
-      'OrderComplaintSection renders report button for delivered order and handles click',
-      (tester) async {
-        await fakeFirestore.collection('orders').doc('ORD-DELIVERED').set({
-          'shop_id': 'SHOP_TEST',
-          'status': 'Delivered',
-        });
+    testWidgets('OrderComplaintSection renders report button for delivered order and handles click', (tester) async {
+      await fakeFirestore.collection('orders').doc('ORD-DELIVERED').set({
+        'shop_id': 'SHOP_TEST',
+        'status': 'Delivered',
+      });
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: OrderComplaintSection(
-                orderId: 'ORD-DELIVERED',
-                shopId: 'SHOP_TEST',
-                customerPhone: '9876543210',
-                customerName: 'Customer Test',
-                orderItems: const [
-                  {'id': 'p1', 'name': 'Milk', 'quantity': 1, 'price': 30.0},
-                ],
-                orderStatus: 'Delivered',
-                orderData: const {'has_complaint': false},
-                complaintService: service,
-              ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: OrderComplaintSection(
+              orderId: 'ORD-DELIVERED',
+              shopId: 'SHOP_TEST',
+              customerPhone: '9876543210',
+              customerName: 'Customer Test',
+              orderItems: const [
+                {'id': 'p1', 'name': 'Milk', 'quantity': 1, 'price': 30.0},
+              ],
+              orderStatus: 'Delivered',
+              orderData: const {'has_complaint': false},
+              complaintService: service,
             ),
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(
-          find.text('Wrong or Damaged Item? Report Issue'),
-          findsOneWidget,
-        );
+      expect(find.text('Wrong or Damaged Item? Report Issue'), findsOneWidget);
 
-        // Click Report Issue button
-        await tester.tap(find.text('Wrong or Damaged Item? Report Issue'));
-        await tester.pumpAndSettle();
+      // Click Report Issue button
+      await tester.tap(find.text('Wrong or Damaged Item? Report Issue'));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Report Issue / Return Item'), findsOneWidget);
-      },
-    );
+      expect(find.text('Report Issue / Return Item'), findsOneWidget);
+    });
   });
 
   group('Feature 51: Admin Complaints Screen Widget Tests', () {
@@ -620,9 +512,7 @@ void main() {
 
     setUp(() async {
       setupFirebaseAuthMocks();
-      SharedPreferences.setMockInitialValues({
-        'current_shop_id': 'SHOP_ADMIN_1',
-      });
+      SharedPreferences.setMockInitialValues({'current_shop_id': 'SHOP_ADMIN_1'});
       fakeFirestore = FakeFirebaseFirestore();
       FirebaseUtils.setFirestore(fakeFirestore);
       service = ComplaintService(firestore: fakeFirestore);
@@ -630,61 +520,58 @@ void main() {
       await shopProvider.loadCurrentShop();
     });
 
-    testWidgets(
-      'AdminComplaintsScreen renders KPI cards, filter chips, and complaint list',
-      (tester) async {
-        // Seed complaints
-        await service.createComplaint(
-          orderId: 'ORD-101',
-          shopId: 'SHOP_ADMIN_1',
-          customerPhone: '9876543210',
-          customerName: 'Sunita Verma',
-          type: ComplaintType.damaged,
-          description: 'Broken container',
-          affectedItems: const [
-            ComplaintItem(
-              itemId: 'p1',
-              name: 'Ghee 500ml',
-              quantityOrdered: 1,
-              quantityAffected: 1,
-              pricePerUnit: 350.0,
-            ),
-          ],
-        );
-
-        await tester.pumpWidget(
-          MultiProvider(
-            providers: [
-              ChangeNotifierProvider<ShopProvider>.value(value: shopProvider),
-            ],
-            child: MaterialApp(
-              home: AdminComplaintsScreen(complaintService: service),
-            ),
+    testWidgets('AdminComplaintsScreen renders KPI cards, filter chips, and complaint list', (tester) async {
+      // Seed complaints
+      await service.createComplaint(
+        orderId: 'ORD-101',
+        shopId: 'SHOP_ADMIN_1',
+        customerPhone: '9876543210',
+        customerName: 'Sunita Verma',
+        type: ComplaintType.damaged,
+        description: 'Broken container',
+        affectedItems: const [
+          ComplaintItem(
+            itemId: 'p1',
+            name: 'Ghee 500ml',
+            quantityOrdered: 1,
+            quantityAffected: 1,
+            pricePerUnit: 350.0,
           ),
-        );
-        await tester.pumpAndSettle();
+        ],
+      );
 
-        expect(find.text('Complaints & Returns'), findsOneWidget);
-        expect(find.text('Pending'), findsWidgets);
-        expect(find.text('Sunita Verma'), findsOneWidget);
-        expect(find.text('9876543210'), findsOneWidget);
-        expect(find.text('Broken container'), findsOneWidget);
-        expect(find.text('• Ghee 500ml (1x)'), findsOneWidget);
-        expect(find.text('Mark In Review'), findsOneWidget);
-        expect(find.text('Resolve Case'), findsOneWidget);
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<ShopProvider>.value(value: shopProvider),
+          ],
+          child: MaterialApp(
+            home: AdminComplaintsScreen(complaintService: service),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Tap Mark in Review
-        await tester.tap(find.text('Mark In Review'));
-        await tester.pumpAndSettle();
+      expect(find.text('Complaints & Returns'), findsOneWidget);
+      expect(find.text('Pending'), findsWidgets);
+      expect(find.text('Sunita Verma'), findsOneWidget);
+      expect(find.text('9876543210'), findsOneWidget);
+      expect(find.text('Broken container'), findsOneWidget);
+      expect(find.text('• Ghee 500ml (1x)'), findsOneWidget);
+      expect(find.text('Mark In Review'), findsOneWidget);
+      expect(find.text('Resolve Case'), findsOneWidget);
 
-        // Tap Resolve Case
-        await tester.tap(find.text('Resolve Case'));
-        await tester.pumpAndSettle();
+      // Tap Mark in Review
+      await tester.tap(find.text('Mark In Review'));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Select Resolution Action'), findsOneWidget);
-        expect(find.text('Refund Amount (₹)'), findsOneWidget);
-        expect(find.text('Confirm Resolution'), findsOneWidget);
-      },
-    );
+      // Tap Resolve Case
+      await tester.tap(find.text('Resolve Case'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Select Resolution Action'), findsOneWidget);
+      expect(find.text('Refund Amount (₹)'), findsOneWidget);
+      expect(find.text('Confirm Resolution'), findsOneWidget);
+    });
   });
 }

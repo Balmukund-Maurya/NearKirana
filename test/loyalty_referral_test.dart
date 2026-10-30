@@ -63,40 +63,37 @@ void main() {
       expect(reconstructed.tier, LoyaltyTier.bronze);
     });
 
-    test(
-      'LoyaltyProgramConfig calculates earned points and max redemption limits',
-      () {
-        const config = LoyaltyProgramConfig(
-          shopId: 'shop1',
-          isEnabled: true,
-          pointsPerHundredRupees: 10, // 1 pt per ₹10
-          pointValueInRupees: 0.10, // 100 pts = ₹10
-          minPointsToRedeem: 50,
-          maxRedemptionPercentage: 0.30, // max 30% discount
-          minQualifyingOrderForPoints: 50.0,
-        );
+    test('LoyaltyProgramConfig calculates earned points and max redemption limits', () {
+      const config = LoyaltyProgramConfig(
+        shopId: 'shop1',
+        isEnabled: true,
+        pointsPerHundredRupees: 10, // 1 pt per ₹10
+        pointValueInRupees: 0.10, // 100 pts = ₹10
+        minPointsToRedeem: 50,
+        maxRedemptionPercentage: 0.30, // max 30% discount
+        minQualifyingOrderForPoints: 50.0,
+      );
 
-        // Order ₹400 with 1.0x Bronze multiplier => 40 points
-        expect(config.calculateEarnedPoints(400.0, tierMultiplier: 1.0), 40);
+      // Order ₹400 with 1.0x Bronze multiplier => 40 points
+      expect(config.calculateEarnedPoints(400.0, tierMultiplier: 1.0), 40);
 
-        // Order ₹400 with 1.5x Gold multiplier => 60 points
-        expect(config.calculateEarnedPoints(400.0, tierMultiplier: 1.5), 60);
+      // Order ₹400 with 1.5x Gold multiplier => 60 points
+      expect(config.calculateEarnedPoints(400.0, tierMultiplier: 1.5), 60);
 
-        // Order ₹30 below min qualifying order ₹50 => 0 points
-        expect(config.calculateEarnedPoints(30.0), 0);
+      // Order ₹30 below min qualifying order ₹50 => 0 points
+      expect(config.calculateEarnedPoints(30.0), 0);
 
-        // Max redeemable: Subtotal ₹500, max 30% = ₹150 discount = 1500 points
-        // Customer has 200 points available => can redeem all 200
-        expect(config.calculateMaxRedeemablePoints(500.0, 200), 200);
+      // Max redeemable: Subtotal ₹500, max 30% = ₹150 discount = 1500 points
+      // Customer has 200 points available => can redeem all 200
+      expect(config.calculateMaxRedeemablePoints(500.0, 200), 200);
 
-        // Subtotal ₹100, max 30% = ₹30 discount = 300 points
-        // Customer has 500 points available => capped at 300 points
-        expect(config.calculateMaxRedeemablePoints(100.0, 500), 300);
+      // Subtotal ₹100, max 30% = ₹30 discount = 300 points
+      // Customer has 500 points available => capped at 300 points
+      expect(config.calculateMaxRedeemablePoints(100.0, 500), 300);
 
-        // Subtotal ₹500, customer has only 40 points (< 50 min points required) => 0
-        expect(config.calculateMaxRedeemablePoints(500.0, 40), 0);
-      },
-    );
+      // Subtotal ₹500, customer has only 40 points (< 50 min points required) => 0
+      expect(config.calculateMaxRedeemablePoints(500.0, 40), 0);
+    });
   });
 
   group('Feature 60: LoyaltyReferralService Backend Operations', () {
@@ -109,158 +106,144 @@ void main() {
       service = LoyaltyReferralService(firestore: fakeFirestore);
     });
 
-    test(
-      'getOrCreateAccount initializes account with referral code and welcome points',
-      () async {
-        final account = await service.getOrCreateAccount(
-          shopId: testShopId,
-          customerPhone: '9888877777',
-          customerName: 'Pooja Verma',
-        );
+    test('getOrCreateAccount initializes account with referral code and welcome points', () async {
+      final account = await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9888877777',
+        customerName: 'Pooja Verma',
+      );
 
-        expect(account.customerPhone, '9888877777');
-        expect(account.customerName, 'Pooja Verma');
-        expect(account.referralCode.isNotEmpty, true);
-        expect(account.currentPoints, 20); // Default welcome points
+      expect(account.customerPhone, '9888877777');
+      expect(account.customerName, 'Pooja Verma');
+      expect(account.referralCode.isNotEmpty, true);
+      expect(account.currentPoints, 20); // Default welcome points
 
-        // Check stored document
-        final snap = await fakeFirestore
-            .collection('loyalty_accounts')
-            .doc(account.id)
-            .get();
-        expect(snap.exists, true);
-        expect(snap.data()?['referral_code'], account.referralCode);
+      // Check stored document
+      final snap = await fakeFirestore.collection('loyalty_accounts').doc(account.id).get();
+      expect(snap.exists, true);
+      expect(snap.data()?['referral_code'], account.referralCode);
 
-        // Verify welcome transaction ledger was written
-        final txQuery = await fakeFirestore
-            .collection('loyalty_transactions')
-            .get();
-        expect(txQuery.docs.length, 1);
-        expect(txQuery.docs.first.data()['type'], 'welcome_bonus');
-        expect(txQuery.docs.first.data()['points'], 20);
-      },
-    );
+      // Verify welcome transaction ledger was written
+      final txQuery = await fakeFirestore.collection('loyalty_transactions').get();
+      expect(txQuery.docs.length, 1);
+      expect(txQuery.docs.first.data()['type'], 'welcome_bonus');
+      expect(txQuery.docs.first.data()['points'], 20);
+    });
 
-    test(
-      'applyReferralCode validates code, prevents self-referral, and creates pending referral',
-      () async {
-        // 1. Create Referrer
-        final referrer = await service.getOrCreateAccount(
-          shopId: testShopId,
-          customerPhone: '9111111111',
-          customerName: 'Rahul Mehra',
-        );
+    test('applyReferralCode validates code, prevents self-referral, and creates pending referral', () async {
+      // 1. Create Referrer
+      final referrer = await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9111111111',
+        customerName: 'Rahul Mehra',
+      );
 
-        // 2. Self referral attempt
-        final selfRes = await service.applyReferralCode(
-          shopId: testShopId,
-          refereePhone: '9111111111',
-          refereeName: 'Rahul',
-          referralCode: referrer.referralCode,
-        );
-        expect(selfRes.success, false);
-        expect(selfRes.message.contains('स्वयं'), true);
+      // 2. Self referral attempt
+      final selfRes = await service.applyReferralCode(
+        shopId: testShopId,
+        refereePhone: '9111111111',
+        refereeName: 'Rahul',
+        referralCode: referrer.referralCode,
+      );
+      expect(selfRes.success, false);
+      expect(selfRes.message.contains('स्वयं'), true);
 
-        // 3. Invalid code attempt
-        final invalidRes = await service.applyReferralCode(
-          shopId: testShopId,
-          refereePhone: '9222222222',
-          refereeName: 'Suresh Friend',
-          referralCode: 'FAKE9999',
-        );
-        expect(invalidRes.success, false);
+      // 3. Invalid code attempt
+      final invalidRes = await service.applyReferralCode(
+        shopId: testShopId,
+        refereePhone: '9222222222',
+        refereeName: 'Suresh Friend',
+        referralCode: 'FAKE9999',
+      );
+      expect(invalidRes.success, false);
 
-        // 4. Valid referral application
-        final validRes = await service.applyReferralCode(
-          shopId: testShopId,
-          refereePhone: '9222222222',
-          refereeName: 'Suresh Friend',
-          referralCode: referrer.referralCode,
-        );
-        expect(validRes.success, true);
-        expect(validRes.referral?.status, ReferralStatus.pending);
+      // 4. Valid referral application
+      final validRes = await service.applyReferralCode(
+        shopId: testShopId,
+        refereePhone: '9222222222',
+        refereeName: 'Suresh Friend',
+        referralCode: referrer.referralCode,
+      );
+      expect(validRes.success, true);
+      expect(validRes.referral?.status, ReferralStatus.pending);
 
-        // 5. Duplicate referral rejection
-        final dupRes = await service.applyReferralCode(
-          shopId: testShopId,
-          refereePhone: '9222222222',
-          refereeName: 'Suresh Friend',
-          referralCode: referrer.referralCode,
-        );
-        expect(dupRes.success, false);
-        expect(dupRes.message.contains('पहले ही'), true);
-      },
-    );
+      // 5. Duplicate referral rejection
+      final dupRes = await service.applyReferralCode(
+        shopId: testShopId,
+        refereePhone: '9222222222',
+        refereeName: 'Suresh Friend',
+        referralCode: referrer.referralCode,
+      );
+      expect(dupRes.success, false);
+      expect(dupRes.message.contains('पहले ही'), true);
+    });
 
-    test(
-      'Full End-to-End: Qualifying purchase awards points and completes referral',
-      () async {
-        // Step A: Referrer creates account
-        final referrer = await service.getOrCreateAccount(
-          shopId: testShopId,
-          customerPhone: '9333333333',
-          customerName: 'Deepak Boss',
-        );
-        final initialReferrerPoints = referrer.currentPoints; // 20
+    test('Full End-to-End: Qualifying purchase awards points and completes referral', () async {
+      // Step A: Referrer creates account
+      final referrer = await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9333333333',
+        customerName: 'Deepak Boss',
+      );
+      final initialReferrerPoints = referrer.currentPoints; // 20
 
-        // Step B: Friend applies referral code
-        final applyResult = await service.applyReferralCode(
-          shopId: testShopId,
-          refereePhone: '9444444444',
-          refereeName: 'Anil Friend',
-          referralCode: referrer.referralCode,
-        );
-        expect(applyResult.success, true);
+      // Step B: Friend applies referral code
+      final applyResult = await service.applyReferralCode(
+        shopId: testShopId,
+        refereePhone: '9444444444',
+        refereeName: 'Anil Friend',
+        referralCode: referrer.referralCode,
+      );
+      expect(applyResult.success, true);
 
-        // Step C: Friend places non-qualifying small order (₹40 < min qualifying ₹100)
-        final smallOrderRes = await service.processOrderPointsAndReferrals(
-          shopId: testShopId,
-          customerPhone: '9444444444',
-          customerName: 'Anil Friend',
-          orderId: 'ORD_SMALL',
-          orderSubtotal: 40.0,
-        );
-        expect(smallOrderRes.referralCompleted, false);
+      // Step C: Friend places non-qualifying small order (₹40 < min qualifying ₹100)
+      final smallOrderRes = await service.processOrderPointsAndReferrals(
+        shopId: testShopId,
+        customerPhone: '9444444444',
+        customerName: 'Anil Friend',
+        orderId: 'ORD_SMALL',
+        orderSubtotal: 40.0,
+      );
+      expect(smallOrderRes.referralCompleted, false);
 
-        // Step D: Friend places qualifying order of ₹350 (>= ₹100)
-        final qualifyingRes = await service.processOrderPointsAndReferrals(
-          shopId: testShopId,
-          customerPhone: '9444444444',
-          customerName: 'Anil Friend',
-          orderId: 'ORD_BIG',
-          orderSubtotal: 350.0,
-        );
-        expect(qualifyingRes.referralCompleted, true);
-        // ₹350 / 100 * 10 pts = 35 purchase points
-        expect(qualifyingRes.earnedPoints, 35);
+      // Step D: Friend places qualifying order of ₹350 (>= ₹100)
+      final qualifyingRes = await service.processOrderPointsAndReferrals(
+        shopId: testShopId,
+        customerPhone: '9444444444',
+        customerName: 'Anil Friend',
+        orderId: 'ORD_BIG',
+        orderSubtotal: 350.0,
+      );
+      expect(qualifyingRes.referralCompleted, true);
+      // ₹350 / 100 * 10 pts = 35 purchase points
+      expect(qualifyingRes.earnedPoints, 35);
 
-        // Step E: Verify Referrer received 100 bonus points
-        final updatedReferrer = await service.getOrCreateAccount(
-          shopId: testShopId,
-          customerPhone: '9333333333',
-          customerName: 'Deepak Boss',
-        );
-        expect(updatedReferrer.currentPoints, initialReferrerPoints + 100);
+      // Step E: Verify Referrer received 100 bonus points
+      final updatedReferrer = await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9333333333',
+        customerName: 'Deepak Boss',
+      );
+      expect(updatedReferrer.currentPoints, initialReferrerPoints + 100);
 
-        // Step F: Verify Friend received purchase points (35) + referee bonus (50) + welcome (20) = 105
-        final updatedFriend = await service.getOrCreateAccount(
-          shopId: testShopId,
-          customerPhone: '9444444444',
-          customerName: 'Anil Friend',
-        );
-        expect(updatedFriend.currentPoints, 20 + 35 + 50);
+      // Step F: Verify Friend received purchase points (35) + referee bonus (50) + welcome (20) = 105
+      final updatedFriend = await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9444444444',
+        customerName: 'Anil Friend',
+      );
+      expect(updatedFriend.currentPoints, 20 + 35 + 50);
 
-        // Step G: Verify referral document is now marked 'completed'
-        final refSnap = await fakeFirestore
-            .collection('referrals')
-            .where('referee_phone', isEqualTo: '9444444444')
-            .get();
-        expect(refSnap.docs.first.data()['status'], 'completed');
-        expect(refSnap.docs.first.data()['qualifying_order_id'], 'ORD_BIG');
-        expect(refSnap.docs.first.data()['referrer_points_awarded'], 100);
-        expect(refSnap.docs.first.data()['referee_points_awarded'], 50);
-      },
-    );
+      // Step G: Verify referral document is now marked 'completed'
+      final refSnap = await fakeFirestore
+          .collection('referrals')
+          .where('referee_phone', isEqualTo: '9444444444')
+          .get();
+      expect(refSnap.docs.first.data()['status'], 'completed');
+      expect(refSnap.docs.first.data()['qualifying_order_id'], 'ORD_BIG');
+      expect(refSnap.docs.first.data()['referrer_points_awarded'], 100);
+      expect(refSnap.docs.first.data()['referee_points_awarded'], 50);
+    });
 
     test('redeemPoints debits points and enforces minimums & caps', () async {
       // Create customer with 200 points
@@ -316,26 +299,23 @@ void main() {
       expect(txQuery.docs.first.data()['type'], 'redeemed_purchase');
     });
 
-    test(
-      'getShopAnalytics aggregates metrics across accounts and referrals',
-      () async {
-        await service.getOrCreateAccount(
-          shopId: testShopId,
-          customerPhone: '9666666666',
-          customerName: 'User A',
-        );
-        await service.getOrCreateAccount(
-          shopId: testShopId,
-          customerPhone: '9777777777',
-          customerName: 'User B',
-        );
+    test('getShopAnalytics aggregates metrics across accounts and referrals', () async {
+      await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9666666666',
+        customerName: 'User A',
+      );
+      await service.getOrCreateAccount(
+        shopId: testShopId,
+        customerPhone: '9777777777',
+        customerName: 'User B',
+      );
 
-        final analytics = await service.getShopAnalytics(testShopId);
-        expect(analytics.totalAccounts, 2);
-        expect(analytics.totalPointsIssued, 40); // 20 welcome each
-        expect(analytics.totalPointsRedeemed, 0);
-      },
-    );
+      final analytics = await service.getShopAnalytics(testShopId);
+      expect(analytics.totalAccounts, 2);
+      expect(analytics.totalPointsIssued, 40); // 20 welcome each
+      expect(analytics.totalPointsRedeemed, 0);
+    });
   });
 
   group('Feature 60: UI Widgets - Loyalty Screens & Cards', () {
@@ -348,224 +328,197 @@ void main() {
       service = LoyaltyReferralService(firestore: fakeFirestore);
     });
 
-    testWidgets(
-      'CustomerLoyaltyScreen renders hero card, referral code and tabs',
-      (tester) async {
-        // Pre-populate account
-        await fakeFirestore
-            .collection('loyalty_accounts')
-            .doc('${testShopId}_9888811111')
-            .set({
-              'shop_id': testShopId,
-              'customer_phone': '9888811111',
-              'customer_name': 'Meera Jain',
-              'current_points': 240,
-              'lifetime_earned_points': 240,
-              'lifetime_redeemed_points': 0,
-              'referral_code': 'MEE7744',
-              'tier': 'silver',
-              'created_at': DateTime.now().toIso8601String(),
-              'updated_at': DateTime.now().toIso8601String(),
-            });
+    testWidgets('CustomerLoyaltyScreen renders hero card, referral code and tabs', (tester) async {
+      // Pre-populate account
+      await fakeFirestore.collection('loyalty_accounts').doc('${testShopId}_9888811111').set({
+        'shop_id': testShopId,
+        'customer_phone': '9888811111',
+        'customer_name': 'Meera Jain',
+        'current_points': 240,
+        'lifetime_earned_points': 240,
+        'lifetime_redeemed_points': 0,
+        'referral_code': 'MEE7744',
+        'tier': 'silver',
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
 
-        await tester.pumpWidget(
-          MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: const Locale('en'),
-            home: CustomerLoyaltyScreen(
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: CustomerLoyaltyScreen(
+            shopId: testShopId,
+            customerPhone: '9888811111',
+            customerName: 'Meera Jain',
+            service: service,
+            enableAnimations: false,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Hero Card verifies points balance & tier
+      expect(find.text('240'), findsOneWidget);
+      expect(find.textContaining('Silver'), findsWidgets);
+      expect(find.text('₹24.0'), findsOneWidget); // 240 * 0.10
+
+      // Referral tab verifies code and buttons (clean English, no dual language brackets)
+      expect(find.text('MEE7744'), findsOneWidget);
+      expect(find.text('Copy'), findsOneWidget);
+      expect(find.text('Share on WhatsApp'), findsOneWidget);
+
+      // Switch to Passbook Tab
+      await tester.tap(find.text('Passbook'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('No Points History'), findsOneWidget);
+    });
+
+    testWidgets('LoyaltyRedemptionCard renders points toggle and computes savings', (tester) async {
+      await fakeFirestore.collection('loyalty_accounts').doc('${testShopId}_9999900000').set({
+        'shop_id': testShopId,
+        'customer_phone': '9999900000',
+        'customer_name': 'Vikram Rathore',
+        'current_points': 100,
+        'lifetime_earned_points': 100,
+        'lifetime_redeemed_points': 0,
+        'referral_code': 'VIK1234',
+        'tier': 'bronze',
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+
+      ({int points, double discountRupees})? selectedRedemption;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: LoyaltyRedemptionCard(
               shopId: testShopId,
-              customerPhone: '9888811111',
-              customerName: 'Meera Jain',
+              customerPhone: '9999900000',
+              customerName: 'Vikram Rathore',
+              subtotal: 400.0,
               service: service,
-              enableAnimations: false,
+              onRedemptionChanged: (res) {
+                selectedRedemption = res;
+              },
             ),
           ),
-        );
+        ),
+      );
 
-        await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-        // Hero Card verifies points balance & tier
-        expect(find.text('240'), findsOneWidget);
-        expect(find.textContaining('Silver'), findsWidgets);
-        expect(find.text('₹24.0'), findsOneWidget); // 240 * 0.10
+      expect(find.text('Loyalty Rewards'), findsOneWidget);
+      expect(find.textContaining('Available: 100 pts'), findsOneWidget);
+      expect(find.byType(Switch), findsOneWidget);
 
-        // Referral tab verifies code and buttons (clean English, no dual language brackets)
-        expect(find.text('MEE7744'), findsOneWidget);
-        expect(find.text('Copy'), findsOneWidget);
-        expect(find.text('Share on WhatsApp'), findsOneWidget);
+      // Toggle switch to redeem points
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
 
-        // Switch to Passbook Tab
-        await tester.tap(find.text('Passbook'));
-        await tester.pumpAndSettle();
+      expect(selectedRedemption, isNotNull);
+      expect(selectedRedemption?.points, 100);
+      expect(selectedRedemption?.discountRupees, 10.0);
+      expect(find.text('100 points redeemed'), findsOneWidget);
+      expect(find.text('-₹10.0 off'), findsOneWidget);
+    });
 
-        expect(find.textContaining('No Points History'), findsOneWidget);
-      },
-    );
+    testWidgets('AdminLoyaltyScreen renders KPI metrics, customer passbooks, and settings', (tester) async {
+      // Seed a customer account
+      await fakeFirestore.collection('loyalty_accounts').doc('${testShopId}_9112233445').set({
+        'shop_id': testShopId,
+        'customer_phone': '9112233445',
+        'customer_name': 'Kishore Kumar',
+        'current_points': 300,
+        'lifetime_earned_points': 300,
+        'lifetime_redeemed_points': 0,
+        'referral_code': 'KIS5511',
+        'tier': 'silver',
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
 
-    testWidgets(
-      'LoyaltyRedemptionCard renders points toggle and computes savings',
-      (tester) async {
-        await fakeFirestore
-            .collection('loyalty_accounts')
-            .doc('${testShopId}_9999900000')
-            .set({
-              'shop_id': testShopId,
-              'customer_phone': '9999900000',
-              'customer_name': 'Vikram Rathore',
-              'current_points': 100,
-              'lifetime_earned_points': 100,
-              'lifetime_redeemed_points': 0,
-              'referral_code': 'VIK1234',
-              'tier': 'bronze',
-              'created_at': DateTime.now().toIso8601String(),
-              'updated_at': DateTime.now().toIso8601String(),
-            });
-
-        ({int points, double discountRupees})? selectedRedemption;
-
-        await tester.pumpWidget(
-          MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: const Locale('en'),
-            home: Scaffold(
-              body: LoyaltyRedemptionCard(
-                shopId: testShopId,
-                customerPhone: '9999900000',
-                customerName: 'Vikram Rathore',
-                subtotal: 400.0,
-                service: service,
-                onRedemptionChanged: (res) {
-                  selectedRedemption = res;
-                },
-              ),
-            ),
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: AdminLoyaltyScreen(
+            shopId: testShopId,
+            service: service,
           ),
-        );
+        ),
+      );
 
-        await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-        expect(find.text('Loyalty Rewards'), findsOneWidget);
-        expect(find.textContaining('Available: 100 pts'), findsOneWidget);
-        expect(find.byType(Switch), findsOneWidget);
+      // Header and KPI checks (clean English)
+      expect(find.text('Loyalty & Referrals'), findsOneWidget);
+      expect(find.textContaining('Issued'), findsOneWidget);
+      expect(find.textContaining('Redeemed'), findsOneWidget);
 
-        // Toggle switch to redeem points
-        await tester.tap(find.byType(Switch));
-        await tester.pumpAndSettle();
+      // Customer listed in Customer Passbooks tab
+      expect(find.text('Kishore Kumar'), findsOneWidget);
+      expect(find.text('300 pts'), findsOneWidget);
+      expect(find.text('Adjust'), findsOneWidget);
 
-        expect(selectedRedemption, isNotNull);
-        expect(selectedRedemption?.points, 100);
-        expect(selectedRedemption?.discountRupees, 10.0);
-        expect(find.text('100 points redeemed'), findsOneWidget);
-        expect(find.text('-₹10.0 off'), findsOneWidget);
-      },
-    );
+      // Switch to Settings (Rules & Setup) tab
+      await tester.tap(find.text('Rules & Setup'));
+      await tester.pumpAndSettle();
 
-    testWidgets(
-      'AdminLoyaltyScreen renders KPI metrics, customer passbooks, and settings',
-      (tester) async {
-        // Seed a customer account
-        await fakeFirestore
-            .collection('loyalty_accounts')
-            .doc('${testShopId}_9112233445')
-            .set({
-              'shop_id': testShopId,
-              'customer_phone': '9112233445',
-              'customer_name': 'Kishore Kumar',
-              'current_points': 300,
-              'lifetime_earned_points': 300,
-              'lifetime_redeemed_points': 0,
-              'referral_code': 'KIS5511',
-              'tier': 'silver',
-              'created_at': DateTime.now().toIso8601String(),
-              'updated_at': DateTime.now().toIso8601String(),
-            });
+      expect(find.text('Loyalty Points Program'), findsOneWidget);
+      expect(find.text('Refer & Earn Program'), findsOneWidget);
+      expect(find.text('Save Program Settings'), findsOneWidget);
+    });
 
-        await tester.pumpWidget(
-          MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: const Locale('en'),
-            home: AdminLoyaltyScreen(shopId: testShopId, service: service),
+    testWidgets('CustomerLoyaltyScreen renders clean Hindi without dual-language parentheses', (tester) async {
+      await fakeFirestore.collection('loyalty_accounts').doc('${testShopId}_9888822222').set({
+        'shop_id': testShopId,
+        'customer_phone': '9888822222',
+        'customer_name': 'पूजा वर्मा',
+        'current_points': 150,
+        'lifetime_earned_points': 150,
+        'lifetime_redeemed_points': 0,
+        'referral_code': 'POO1234',
+        'tier': 'bronze',
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('hi'),
+          home: CustomerLoyaltyScreen(
+            shopId: testShopId,
+            customerPhone: '9888822222',
+            customerName: 'पूजा वर्मा',
+            service: service,
+            enableAnimations: false,
           ),
-        );
+        ),
+      );
 
-        await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-        // Header and KPI checks (clean English)
-        expect(find.text('Loyalty & Referrals'), findsOneWidget);
-        expect(find.textContaining('Issued'), findsOneWidget);
-        expect(find.textContaining('Redeemed'), findsOneWidget);
+      // Ensure no dual language parentheses on buttons/tabs
+      expect(find.text('कॉपी (Copy)'), findsNothing);
+      expect(find.text('व्हाट्सएप पर शेयर करें (Share on WhatsApp)'), findsNothing);
+      expect(find.text('अंक पासबुक (Passbook)'), findsNothing);
 
-        // Customer listed in Customer Passbooks tab
-        expect(find.text('Kishore Kumar'), findsOneWidget);
-        expect(find.text('300 pts'), findsOneWidget);
-        expect(find.text('Adjust'), findsOneWidget);
-
-        // Switch to Settings (Rules & Setup) tab
-        await tester.tap(find.text('Rules & Setup'));
-        await tester.pumpAndSettle();
-
-        expect(find.text('Loyalty Points Program'), findsOneWidget);
-        expect(find.text('Refer & Earn Program'), findsOneWidget);
-        expect(find.text('Save Program Settings'), findsOneWidget);
-      },
-    );
-
-    testWidgets(
-      'CustomerLoyaltyScreen renders clean Hindi without dual-language parentheses',
-      (tester) async {
-        await fakeFirestore
-            .collection('loyalty_accounts')
-            .doc('${testShopId}_9888822222')
-            .set({
-              'shop_id': testShopId,
-              'customer_phone': '9888822222',
-              'customer_name': 'पूजा वर्मा',
-              'current_points': 150,
-              'lifetime_earned_points': 150,
-              'lifetime_redeemed_points': 0,
-              'referral_code': 'POO1234',
-              'tier': 'bronze',
-              'created_at': DateTime.now().toIso8601String(),
-              'updated_at': DateTime.now().toIso8601String(),
-            });
-
-        await tester.pumpWidget(
-          MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: const Locale('hi'),
-            home: CustomerLoyaltyScreen(
-              shopId: testShopId,
-              customerPhone: '9888822222',
-              customerName: 'पूजा वर्मा',
-              service: service,
-              enableAnimations: false,
-            ),
-          ),
-        );
-
-        await tester.pumpAndSettle();
-
-        // Ensure no dual language parentheses on buttons/tabs
-        expect(find.text('कॉपी (Copy)'), findsNothing);
-        expect(
-          find.text('व्हाट्सएप पर शेयर करें (Share on WhatsApp)'),
-          findsNothing,
-        );
-        expect(find.text('अंक पासबुक (Passbook)'), findsNothing);
-
-        // Verify clean single language Hindi
-        expect(find.text('कॉपी करें'), findsOneWidget);
-        expect(find.text('व्हाट्सएप पर शेयर करें'), findsOneWidget);
-        expect(find.text('पासबुक'), findsOneWidget);
-        expect(
-          find.text('कांस्य'),
-          findsWidgets,
-        ); // Clean Bronze in Hindi without (कांस्य)
-      },
-    );
+      // Verify clean single language Hindi
+      expect(find.text('कॉपी करें'), findsOneWidget);
+      expect(find.text('व्हाट्सएप पर शेयर करें'), findsOneWidget);
+      expect(find.text('पासबुक'), findsOneWidget);
+      expect(find.text('कांस्य'), findsWidgets); // Clean Bronze in Hindi without (कांस्य)
+    });
   });
 }

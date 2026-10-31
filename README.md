@@ -1,268 +1,518 @@
-# NearKirana - Hyperlocal Kirana Delivery and Store ERP Platform
+# 🛍️ NearKirana - Hyperlocal Kirana Delivery & Enterprise ERP Platform
 
-NearKirana is an enterprise-grade, multi-tenant Flutter application engineered to digitize traditional Indian neighborhood grocery stores (Kirana shops). The platform bridges local store owners, neighborhood customers, delivery agents, and platform administrators into a unified commerce ecosystem.
+<p align="center">
+  <img src="assets/images/logo.png" alt="NearKirana Logo" width="120" onerror="this.style.display='none'"/>
+</p>
+
+<p align="center">
+  <strong>Next-Generation Multi-Tenant Quick-Commerce & Store Digitization Engine for Neighborhood Retail</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Flutter-3.12+-02569B?logo=flutter&logoColor=white" alt="Flutter Version" />
+  <img src="https://img.shields.io/badge/Dart-3.0+-0175C2?logo=dart&logoColor=white" alt="Dart Version" />
+  <img src="https://img.shields.io/badge/Firebase-Firestore%20%7C%20Auth%20%7C%20Storage-FFCA28?logo=firebase&logoColor=black" alt="Firebase Stack" />
+  <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Web%20%7C%20macOS-4CAF50" alt="Cross Platform" />
+  <img src="https://img.shields.io/badge/License-Proprietary-blue.svg" alt="License" />
+</p>
 
 ---
 
-## Application Screenshots
+## 📑 Table of Contents
 
-All screenshots below are captured directly from the live NearKirana application interface and database:
+1. [Executive Summary & Problem Statement](#-executive-summary--problem-statement)
+2. [Complete Visual Tour & Screenshot Gallery](#-complete-visual-tour--screenshot-gallery)
+   - [Customer Onboarding & Role Architecture](#1-customer-onboarding--role-architecture)
+   - [Hyperlocal Store Discovery & Catalog Browsing](#2-hyperlocal-store-discovery--catalog-browsing)
+   - [Customer Ordering, PIN Verification & Smart Lists](#3-customer-ordering-pin-verification--smart-lists)
+   - [Merchant Control Center & Fulfillment Pipeline](#4-merchant-control-center--fulfillment-pipeline)
+   - [Store Inventory, Barcode Scanner & Batch Tracking](#5-store-inventory-barcode-scanner--batch-tracking)
+   - [Digital Khata Ledger & Financial Recovery](#6-digital-khata-ledger--financial-recovery)
+   - [Sales, COGS & Net Profit Analytics](#7-sales-cogs--net-profit-analytics)
+   - [Delivery Fleet Operations & Doorstep PIN Verification](#8-delivery-fleet-operations--doorstep-pin-verification)
+   - [Customer Support, Disputes & Loyalty Coins](#9-customer-support-disputes--loyalty-coins)
+   - [Enterprise Governance, Staff Audit & CA Data Export](#10-enterprise-governance-staff-audit--ca-data-export)
+3. [System Architecture & Core Engineering](#-system-architecture--core-engineering)
+   - [ACID Atomic Transaction Processing](#acid-atomic-transaction-processing)
+   - [Deterministic Order State Machine](#deterministic-order-state-machine)
+   - [Bilingual Voice-to-Cart NLP Engine](#bilingual-voice-to-cart-nlp-engine)
+   - [Live Road Navigation & Polyline Tracking](#live-road-navigation--polyline-tracking)
+   - [FIFO Inventory Valuation & COGS Margin Engine](#fifo-inventory-valuation--cogs-margin-engine)
+   - [Thermal ESC/POS & PDF Invoice System](#thermal-escpos--pdf-invoice-system)
+4. [Firestore Database Schema](#-firestore-database-schema)
+5. [Role-Based Access Control & Security Model](#-role-based-access-control--security-model)
+6. [Project Directory Structure](#-project-directory-structure)
+7. [Installation & Local Setup](#-installation--local-setup)
+8. [Configuration & Environment Flags](#-configuration--environment-flags)
+9. [Testing & Quality Assurance](#-testing--quality-assurance)
+10. [License & Production Guidelines](#-license--production-guidelines)
 
-### 1. Customer Onboarding and Store Discovery
+---
+
+## 🌟 Executive Summary & Problem Statement
+
+In the traditional Indian retail landscape, over 12 million neighborhood grocery shops (**Kirana stores**) handle more than 85% of everyday grocery purchases. However, traditional kirana merchants face severe structural vulnerabilities:
+1. **Loss of Market Share to Dark Stores**: Centralized 10-minute quick-commerce players deplete local footfall with instant mobile app convenience.
+2. **Bookkeeping Losses in Credit (Udhar/Khata)**: Informal customer credit ledgers written in paper diaries result in forgotten payments, disputes, and unrecoverable cash flow.
+3. **Delivery Disconnect & Leakage**: Dispatched store deliveries lack GPS tracking, delivery proof, or cash-on-delivery settlement reconciliation.
+4. **Inventory & Expiry Blindspots**: Absence of automated barcode tracking causes stockouts of high-velocity goods while perishable products quietly expire on shelves.
+
+**NearKirana** bridges this divide by delivering an **enterprise-grade, multi-tenant digital ERP and hyperlocal commerce platform**. It equips neighborhood stores with the speed and technology of modern quick-commerce operators while preserving the community trust, personalized service, and credit lines of local kirana merchants.
+
+---
+
+## 📸 Complete Visual Tour & Screenshot Gallery
+
+Every screenshot below is captured directly from the live NearKirana production application across its four integrated role portals: **Customer**, **Kirana Merchant**, **Delivery Partner**, and **Super Admin**.
+
+---
+
+### 1. Customer Onboarding & Role Architecture
 
 | Authentication Gateway | Multi-Role Portal Selection |
 | :---: | :---: |
-| <img src="docs/screenshots/app_login_gateway.png" width="340" alt="Customer Authentication Gateway" /> | <img src="docs/screenshots/app_role_selection.png" width="340" alt="Role-Based Access Selection" /> |
-| **Authentication Gateway**: Mobile authentication with country code, 10-25 mins instant delivery promise, language switch (English, Hindi, Hinglish), and discreet Super Admin entry. | **Unified Role Selection**: Dynamic interface allowing verified users to proceed as Customer (Grahak), Kirana Store Owner (Dukandar), or Delivery Partner. |
+| <img src="docs/screenshots/app_login_gateway.png" width="360" alt="Customer Authentication Gateway" /> | <img src="docs/screenshots/app_role_selection.png" width="360" alt="Multi-Role Portal Selection" /> |
+| **Mobile Authentication Gateway**: Ultra-clean mobile OTP entry with country code selection, dynamic 10-25 mins instant delivery value proposition, trilingual language switcher (English, Hindi, Hinglish), and discreet access to Super Admin governance. | **Multi-Tenant Role Selector**: Dynamic entry point allowing authenticated phone numbers to seamlessly transition between Customer (Grahak), Kirana Merchant (Dukandar), and Delivery Partner roles based on granular Firestore privileges. |
+
+---
+
+### 2. Hyperlocal Store Discovery & Catalog Browsing
 
 | Hyperlocal Store Discovery | Branded Storefront Landing |
 | :---: | :---: |
-| <img src="docs/screenshots/app_shop_selector.png" width="340" alt="Hyperlocal Store Discovery" /> | <img src="docs/screenshots/app_customer_storefront.png" width="340" alt="Customer Storefront" /> |
-| **Store Selector**: GPS-driven discovery of nearby open stores (with distance, ratings, delivery time), area search bar, and store QR code scanning. | **Storefront Branding**: Individual store landing page with custom branding, store operating status, and product catalog entry. |
+| <img src="docs/screenshots/app_shop_selector.png" width="360" alt="Hyperlocal Store Discovery" /> | <img src="docs/screenshots/app_customer_storefront.png" width="360" alt="Branded Storefront Landing" /> |
+| **GPS Hyperlocal Store Selector**: Calculates exact distance and estimated delivery window (e.g. 25-35 mins) within the store's geofenced radius. Supports area search and physical in-store QR code scanner for instant binding. | **Individual Storefront Branding**: Displays custom merchant banner, verified store badge, operating hours, delivery radius, and direct WhatsApp / phone contact hotline. |
 
----
-
-### 2. Shopping Experience and Merchant Operations
-
-| Customer Shopping Catalog | Merchant Store Onboarding |
+| Customer Catalog & Search | Interactive Empty Cart & Voice Ordering |
 | :---: | :---: |
-| <img src="docs/screenshots/app_customer_home.png" width="340" alt="Customer Shopping Catalog" /> | <img src="docs/screenshots/app_shop_registration.png" width="340" alt="Merchant Store Onboarding" /> |
-| **Customer Shopping Experience**: Address delivery bar, instant category filters (All, Dal, Rice, Spices, Oil, Snacks, Soap), bilingual voice search mic, and bottom navigation. | **Merchant Store Registration**: Zepto/Blinkit inspired onboarding with live GPS boundary auto-fetch, legal verification proof (GSTIN/FSSAI), and automated dispatch setup. |
+| <img src="docs/screenshots/app_customer_home.png" width="360" alt="Customer Shopping Catalog" /> | <img src="docs/screenshots/app_customer_cart_empty.png" width="360" alt="Empty Cart Screen" /> |
+| **Customer Shopping Experience**: Address delivery header, category chip carousels (Atta, Rice, Spices, Snacks, Soap), substring keyword search, bilingual voice mic, and product cards with MRP, sale price, and unit steppers. | **Interactive Cart Gateway**: Frictionless cart interface featuring one-tap bilingual voice order dictation and contextual shortcuts back to the merchant's catalog. |
 
-| Delivery Fleet Operations | Super Admin Governance |
+---
+
+### 3. Customer Ordering, PIN Verification & Smart Lists
+
+| Customer Live Orders & PIN Handover | Smart Shopping Lists & Reorder |
 | :---: | :---: |
-| <img src="docs/screenshots/app_delivery_partner.png" width="340" alt="Delivery Fleet Operations" /> | <img src="docs/screenshots/app_super_admin.png" width="340" alt="Super Admin Governance" /> |
-| **Delivery Partner Fleet**: Real-time duty toggle, live delivery counts, active order cards with items breakdown, customer calling, and Google Maps routing. | **Platform Super Admin**: Platform-wide store oversight, active store toggles, KYC verification, commission tracking, and dispute management. |
+| <img src="docs/screenshots/app_customer_orders.png" width="360" alt="Customer Live Orders & PIN" /> | <img src="docs/screenshots/app_customer_shopping_lists.png" width="360" alt="Smart Shopping Lists & Reorder" /> |
+| **Active Orders Pipeline**: Multi-stage fulfillment stepper (Placed → Packing → On the way → Delivered), dynamic ETA countdown, downloadable PDF bill, and a confidential **4-digit doorstep delivery PIN** required for order completion. | **Recurring Grocery Lists**: Lets households create custom monthly lists or generate instant 1-tap reorders directly from previous order history with estimated basket pricing. |
+
+| Customer Profile & Saved Addresses | Merchant Store Onboarding |
+| :---: | :---: |
+| <img src="docs/screenshots/app_customer_profile.png" width="360" alt="Customer Profile & Addresses" /> | <img src="docs/screenshots/app_shop_registration.png" width="360" alt="Merchant Store Onboarding" /> |
+| **Customer Profile & Account Hub**: Displays verified phone badge, active store switch, saved address manager with GPS pin mapping, loyalty reward coin balance, and language preferences. | **Zepto/Blinkit-Inspired Store Onboarding**: Multi-step registration wizard capturing shop name, merchant legal identity (GSTIN/FSSAI), GPS coordinates, delivery radius, and minimum order rules. |
 
 ---
 
-## System Overview and Core Concept
+### 4. Merchant Control Center & Fulfillment Pipeline
 
-In traditional local retail, neighborhood kirana stores face three primary challenges:
-1. Loss of grocery market share to centralized dark-store quick-commerce operators.
-2. Manual bookkeeping errors and delayed recovery of customer credit (Udhar/Khata).
-3. Inability to manage and track home deliveries with verified proof of handover.
-
-NearKirana addresses these problems by empowering existing kirana stores with a digital-first mobile architecture:
-- **For Neighborhood Customers**: Quick ordering from their trusted neighborhood kirana, live delivery tracking, bilingual voice-based ordering, and digital settlement options.
-- **For Kirana Merchants (Store Owners)**: A full-fledged digital Point-of-Sale (POS) and Enterprise Resource Planning (ERP) platform featuring live order dispatch, barcode inventory management, batch and expiry date tracking, and a digital Khata ledger with automated WhatsApp payment reminders.
-- **For Delivery Partners**: Dedicated dispatch dashboard, pickup verification, turn-by-turn road navigation, customer contact integration, and 4-digit PIN verification upon package handover.
-- **For Super Administrators**: Platform-wide governance, store onboarding verification, KYC compliance, and multi-tenant catalog management.
+| Merchant Partner Dashboard | Live Order Processing Pipeline |
+| :---: | :---: |
+| <img src="docs/screenshots/app_merchant_dashboard.png" width="360" alt="Merchant Partner Dashboard" /> | <img src="docs/screenshots/app_merchant_orders_pipeline.png" width="360" alt="Merchant Orders Pipeline" /> |
+| **Executive Store Hub**: Real-time KPI summary (Today's Sales, Active Orders, Low Stock Alerts, Collectable Khata Dues) alongside an interactive **Weekly Revenue Trend** line chart powered by `fl_chart`. | **Live Order Dispatch Queue**: Pipeline tabs (All Active, Ready/Pack, Out for Delivery, Store Pickup). Features one-tap Accept/Reject, itemized picker lists, invoice printing, and smart out-of-stock item substitution. |
 
 ---
 
-## How the Application Works
+### 5. Store Inventory, Barcode Scanner & Batch Tracking
 
-### 1. Customer Shopping Workflow
-
-1. **Authentication and Profile Initialization**:
-   - The user opens the app and enters their 10-digit mobile number.
-   - Upon verification via Firebase Authentication, the profile is synchronized with Firestore.
-   - Language preferences (English, Hindi, or Hinglish) can be selected at any point using the top-bar selector.
-
-2. **Hyperlocal Shop Discovery**:
-   - The app uses GPS geofencing via `Geolocator` to find registered kirana stores within the configurable delivery radius (typically 1 to 5 km).
-   - Customers can also browse stores by entering their area or pincode, or by scanning the merchant's physical Store QR Code.
-
-3. **Product Catalog and Search**:
-   - Products are categorized into Atta & Flours, Rice & Dals, Dairy & Eggs, Spices, and Packaged Snacks.
-   - Cloud Firestore substring indexing (`searchKeywords`) powers fast, instant keyword search suggestions.
-   - Each item displays real-time stock levels, MRP, discounted price, and unit measures (kg, g, litre, piece).
-
-4. **Cart and Dynamic Tiered Pricing**:
-   - Handled reactively using `CartProvider` and `CartCalculator`.
-   - Validates store-specific minimum order thresholds.
-   - Calculates dynamic delivery fees based on order amount (for example, free delivery on orders above Rs. 499).
-   - Allows applying promotional coupon codes and redeeming loyalty points for direct bill discounts.
-
-5. **Address Selection and Checkout**:
-   - Customers can save multiple delivery addresses with landmark and house number, complete with GPS map pin positioning (`flutter_map`).
-   - Payment options include Cash on Delivery (COD), UPI deep-linking, and online payments through Razorpay.
-
-6. **Live GPS Delivery Tracking and PIN Verification**:
-   - Dispatched orders feature live road navigation using Open Source Routing Machine (OSRM) polylines.
-   - Customers view real-time driver movement, dynamic ETA, and a confidential 4-digit Delivery PIN.
-   - The delivery partner must input this 4-digit PIN at the customer's doorstep to successfully finalize delivery.
-
-7. **Voice Ordering (Bilingual NLP)**:
-   - Speech-to-text integration (`voice_order_parser.dart` and `voice_order_service.dart`).
-   - Customers can speak their order in Hindi or English (such as "Do packet doodh aur ek kilo cheeni").
-   - A linguistic entity parser extracts quantities, units, and item names, mapping them directly into the cart.
+| Barcode Inventory & Stock Stepper | Staff Accounts & Audit Trail |
+| :---: | :---: |
+| <img src="docs/screenshots/app_merchant_inventory_stock.png" width="360" alt="Store Inventory & Stock" /> | <img src="docs/screenshots/app_merchant_staff_audit.png" width="360" alt="Staff Accounts & Audit Trail" /> |
+| **Live Catalog & Barcode Inventory**: Fast search by title, category, or barcode scan. Immediate inline stock increment/decrement steppers, low-stock threshold triggers, and new item creation. | **Staff Management & Audit Trail**: Granular employee roles (Cashier, Packer, Delivery Rider) paired with an immutable audit log recording who modified stock, prices, or discounts. |
 
 ---
 
-### 2. Merchant and Store Owner (Admin) Workflow
+### 6. Digital Khata Ledger & Financial Recovery
 
-1. **Store Onboarding and Geofencing**:
-   - Store owners register their shop by specifying name, contact numbers, exact GPS coordinates, delivery radius, operating hours, and minimum order rules.
-   - The app generates a customized printable UPI QR code for in-store payments.
-
-2. **Order Lifecycle State Machine**:
-   - Incoming customer orders pass through strict transactional phases:
-     - `Pending` -> `Accepted` -> `Packing` -> `Out for Delivery` -> `Delivered` (or `Cancelled`).
-   - If an ordered item is out of stock, the merchant can suggest alternative product substitutions directly in the order card.
-
-3. **Inventory, Barcode Scanning, and Expiry Management**:
-   - Camera-based barcode scanner (`simple_barcode_scanner`) allows instant product lookup and rapid stock replenishment.
-   - Batch numbers and expiry dates (`batch_service.dart`) enable automatic alerts for approaching expirations, minimizing stock spoilage.
-   - Automated low-stock triggers notify merchants when inventory drops below safety thresholds.
-
-4. **Digital Khata (Customer Credit Ledger)**:
-   - Eliminates traditional manual paper ledgers.
-   - Records credit given (Udhar) and payments received (Jama) per customer.
-   - Generates instant PDF account statements.
-   - Single-tap WhatsApp reminder triggers WhatsApp with a pre-filled transaction summary, total dues, and payment link.
-
-5. **Supplier Procurement and Expense Bookkeeping**:
-   - Complete directory of FMCG distributors and suppliers.
-   - Records purchase invoices, payment histories, and upcoming vendor payables.
-
-6. **Business Analytics and Tax Invoicing**:
-   - Real-time sales charts, revenue metrics, and high-demand product tracking via `fl_chart`.
-   - Generates formatted PDF tax invoices with shop branding and thermal printer support (`pdf` and `printing` packages).
+| Digital Khata Ledger (Udhaar Book) | Customer Accounts & Outstanding Dues |
+| :---: | :---: |
+| <img src="docs/screenshots/app_merchant_khata_ledger.png" width="360" alt="Digital Khata Ledger" /> | <img src="docs/screenshots/app_customers.png" width="360" alt="Customer Directory" /> |
+| **Digital Udhaar & Balance Ledger**: Tracks overall market dues, pending collections, and advance payments. Deep-links directly to WhatsApp with automated, localized payment reminder messages. | **Customer Directory & Credit Limits**: Unified ledger for both app users and walk-in offline customers. One-tap payment receipt recording and instant ledger transaction statements. |
 
 ---
 
-### 3. Delivery Partner Workflow
+### 7. Sales, COGS & Net Profit Analytics
 
-1. **Duty Management**:
-   - Delivery personnel toggle duty status between On Duty and Off Duty.
-2. **Order Pickup**:
-   - Dispatched parcels are assigned to the driver, displaying total item breakdown and customer address.
-3. **Navigation and Contact**:
-   - Direct one-tap customer calling and Google Maps turn-by-turn routing to the customer doorstep.
-4. **Secure PIN Handover**:
-   - Handover requires the customer to share their secret 4-digit PIN, eliminating fraudulent or misplaced deliveries.
+| Sales, COGS & Net Profit Analytics | CA Tax & Accounting Data Export |
+| :---: | :---: |
+| <img src="docs/screenshots/app_merchant_analytics_profit.png" width="360" alt="Sales & Profit Analytics" /> | <img src="docs/screenshots/app_merchant_data_export.png" width="360" alt="Data Export & CA Backup" /> |
+| **Executive Financial Analytics**: True profitability tracking combining Total Revenue, Cost of Goods Sold (COGS), Gross Profit, Operating Store Expenses, Net Profit, and Average Order Value (AOV). | **Accounting & CA Compliance Exporter**: One-click generation of month-end CSV spreadsheets and printable PDF financial statements for Chartered Accountant audit and GST tax filing. |
 
 ---
 
-### 4. Super Admin Governance
+### 8. Delivery Fleet Operations & Doorstep PIN Verification
 
-1. Master oversight of all onboarding applications, store verification, and status activation.
-2. Commission structure configuration and platform-wide revenue analytics.
-3. Master product catalog management to accelerate onboarding of new kirana stores.
+| Delivery Fleet Management | Doorstep 4-Digit Handover PIN Verification |
+| :---: | :---: |
+| <img src="docs/screenshots/app_merchant_fleet_dispatch.png" width="360" alt="Delivery Fleet Management" /> | <img src="docs/screenshots/app_delivery_pin_verification.png" width="360" alt="Delivery PIN Verification" /> |
+| **Delivery Fleet Roster**: Live rider duty toggles, current delivery assignments, vehicle registration, and direct calling hotline for real-time dispatch coordination. | **Anti-Fraud Delivery Handover**: Delivery partner verifies package delivery by submitting the customer's secret 4-digit PIN, simultaneously logging Cash on Delivery (COD) collection. |
 
----
-
-## Technical Architecture
-
-### Technology Stack
-
-- **Frontend**: Flutter 3.x / Dart 3.x
-- **Architecture**: Multi-tenant Provider pattern (`ChangeNotifierProvider`, `MultiProvider`)
-- **Backend Database**: Google Cloud Firestore (Real-time NoSQL document synchronization)
-- **Authentication**: Firebase Authentication, Phone/Email verification via InAppWebView
-- **Mapping and Routing**: `flutter_map`, `latlong2`, Open Source Routing Machine (OSRM)
-- **Geolocation**: `geolocator`, `geocoding`
-- **Charts and Analytics**: `fl_chart`
-- **Payment Gateway**: Razorpay Flutter SDK, UPI Intent deep-linking
-- **Hardware Integration**: Camera barcode scanner, Vibration engine, Local audio alerts
-- **Document Generation**: PDF invoice creation and thermal printing via `pdf` and `printing`
-- **Voice Recognition**: `speech_to_text` with custom regex and linguistic entity extraction
+| Delivery Partner Dispatch Portal | Platform Super Admin Governance |
+| :---: | :---: |
+| <img src="docs/screenshots/app_delivery_partner.png" width="360" alt="Delivery Partner Portal" /> | <img src="docs/screenshots/app_super_admin.png" width="360" alt="Super Admin Governance" /> |
+| **Delivery Rider Operating Mode**: Duty on/off toggle switch, assigned delivery tasks with item breakdowns, customer phone calling, and turn-by-turn road navigation via Google Maps. | **Platform Super Admin Governance**: Ecosystem-wide store verification, KYC document approvals, merchant suspension toggles, and multi-tenant performance analytics. |
 
 ---
 
-### Firestore Database Schema
+### 9. Customer Support, Disputes & Loyalty Coins
 
-- `shops`: Store configuration, business hours, GPS coordinates, delivery radius, fee structure, UPI QR.
-- `products`: Catalog entries indexed by `shopId`, categories, MRP, sale price, stock count, batch info, search keywords.
-- `orders`: Transactional records containing line items, pricing tiers, delivery address, live status, and 4-digit delivery PIN.
-- `users`: User profiles, role assignments (Customer, Admin, ShopBoy, SuperAdmin), saved addresses, and loyalty points.
-- `khata`: Customer credit/debit ledger entries with timestamps, transaction type, and payment proof.
-- `suppliers`: Vendor database, procurement invoices, and payables.
-- `coupons`: Promotional discount codes, minimum order value requirements, and validity windows.
-- `complaints`: Customer feedback, dispute records, and refund statuses.
+| Customer Complaints & Dispute Resolution | Tiered Loyalty Coins & Referrals |
+| :---: | :---: |
+| <img src="docs/screenshots/app_merchant_disputes_returns.png" width="360" alt="Complaints & Returns Desk" /> | <img src="docs/screenshots/app_merchant_loyalty_referrals.png" width="360" alt="Loyalty Coins & Referrals" /> |
+| **Merchant Dispute Desk**: Real-time management of customer complaints, missing or damaged item inspection with photographic proof, and direct refund authorization. | **Tiered Loyalty Program (Gold / Silver / Bronze)**: Customer coin passbook tracking earned and redeemed points, custom referral codes, and automated cart discount redemption. |
 
 ---
 
-## Project Directory Structure
+## 🏗️ System Architecture & Core Engineering
 
-```text
-NearKirana/
-├── android/                 # Android platform build configs
-├── ios/                     # iOS platform build configs
-├── web/                     # Web platform deployment assets
-├── assets/
-│   ├── images/              # Branding and vector assets
-│   ├── lottie/              # Animated Lottie illustrations
-│   └── sounds/              # Order alert notifications
-├── docs/
-│   └── screenshots/         # Application documentation screenshots
-├── lib/
-│   ├── l10n/                # Localization ARB files (English, Hindi, etc.)
-│   ├── widgets/             # Reusable UI widgets and custom components
-│   ├── admin_dashboard.dart # Merchant ERP control center
-│   ├── admin_orders_tab.dart# Order processing pipeline
-│   ├── atomic_order_service.dart # ACID-compliant Firestore order service
-│   ├── cart_provider.dart   # Shopping cart state management
-│   ├── cart_screen.dart     # Mobile and desktop checkout interface
-│   ├── custom_auth_screen.dart # User verification flow
-│   ├── customer_live_tracking_screen.dart # Real-time GPS delivery tracking
-│   ├── customer_shop_tab.dart # Customer storefront and catalog browser
-│   ├── khata_screen.dart    # Digital ledger bookkeeping
-│   ├── main.dart            # Application entry point and router
-│   ├── order_state_machine.dart # Order status progression engine
-│   ├── road_routing_service.dart# Road polyline and ETA calculations
-│   ├── shop_provider.dart   # Multi-shop selector and geofencing
-│   ├── voice_order_parser.dart # Bilingual voice order parsing logic
-│   └── ...
-└── pubspec.yaml             # Dart dependencies and asset registrations
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        NearKirana Presentation Layer                   │
+│   ┌──────────────────┐ ┌───────────────────┐ ┌──────────────────────┐  │
+│   │ Customer App     │ │ Merchant ERP Hub  │ │ Delivery Partner     │  │
+│   │ (Catalog, Voice, │ │ (Orders, Stock,   │ │ (Tasks, Nav,         │  │
+│   │ Cart, Live Nav)  │ │ Khata, Analytics) │ │ PIN Handover)        │  │
+│   └─────────┬────────┘ └─────────┬─────────┘ └──────────┬───────────┘  │
+└─────────────┼────────────────────┼──────────────────────┼──────────────┘
+              ▼                    ▼                      ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│               Business Logic & Reactive Providers (ChangeNotifier)     │
+│  UserProvider  •  ShopProvider  •  CartProvider  •  LanguageProvider   │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Core Platform Services                          │
+│ ┌─────────────────────────┐ ┌─────────────────────────┐ ┌────────────┐ │
+│ │ AtomicOrderService      │ │ OrderStateMachine       │ │ VoiceOrder │ │
+│ │ (ACID Transactions)     │ │ (Deterministic FSM)     │ │ (Bilingual)│ │
+│ └─────────────────────────┘ └─────────────────────────┘ └────────────┘ │
+│ ┌─────────────────────────┐ ┌─────────────────────────┐ ┌────────────┐ │
+│ │ RoadRoutingService      │ │ AnalyticsService        │ │ Invoice    │ │
+│ │ (OSRM Polyline + ETA)   │ │ (COGS + Net Profit)     │ │ (ESC/POS)  │ │
+│ └─────────────────────────┘ └─────────────────────────┘ └────────────┘ │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                    Cloud Infrastructure (Google Firebase)              │
+│  Cloud Firestore  •  Firebase Auth  •  Cloud Storage  •  Cloud Messaging│
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Getting Started
+### ACID Atomic Transaction Processing
+
+High-concurrency order placement and stock deduction cannot rely on simple client-side updates. NearKirana implements **ACID-compliant atomic transactions** in `lib/atomic_order_service.dart`:
+- **Inventory Reservation**: Inside `FirebaseFirestore.instance.runTransaction`, stock counts for all basket line items are verified and decremented simultaneously.
+- **Race Condition Prevention**: If another customer buys the last packet of milk while checkout is processing, the transaction aborts with a graceful out-of-stock warning.
+- **Rollback on Cancellation**: If an order is rejected by the merchant or cancelled, stock units are atomically restored to the inventory catalog.
+- **PIN Handover Verification**: The 4-digit PIN is verified atomically inside the completion transaction before transitioning status to `delivered`.
+
+---
+
+### Deterministic Order State Machine
+
+Order lifecycle progression is strictly enforced by `lib/order_state_machine.dart` to prevent illegal state jumps:
+
+```
+[ pending ] ──(Merchant Accepts)──► [ accepted ] ──(Packing Done)──► [ packing ]
+     │                                                                      │
+     ├──(Merchant Rejects)──► [ rejected ]                                  ▼
+     │                                                             [ out_for_delivery ]
+     └──(Customer Cancels)──► [ cancelled ]                                 │
+                                                                   (PIN Verification)
+                                                                            │
+                                                                            ▼
+                                                                      [ delivered ]
+```
+
+Invalid transitions (such as jumping directly from `pending` to `delivered` without packing) throw state machine exceptions and are rejected both client-side and at the Firestore security rule level.
+
+---
+
+### Bilingual Voice-to-Cart NLP Engine
+
+To serve non-tech-savvy customers and senior citizens, `lib/voice_order_parser.dart` implements an offline natural language parsing algorithm supporting Hindi, English, and Hinglish:
+1. **Phonetic Normalization**: Cleans conversational speech patterns (e.g. converting *"do kilo"*, *"do packet"*, *"aadha kilo"*, *"2 kg"*).
+2. **Entity Extraction**: Recognizes numbers (Hindi numerics *"ek"*, *"do"*, *"teen"*, *"paanch"*), metric units (*kg, g, packet, litre, piece, pouch*), and product keywords.
+3. **Fuzzy Product Resolution**: Matches the extracted product token against substring tokens in the active merchant's Firestore catalog (`searchKeywords`).
+4. **Instant Cart Insertion**: Directly populates `CartProvider` with the exact requested quantity and unit price.
+
+---
+
+### Live Road Navigation & Polyline Tracking
+
+Live delivery tracking (`lib/customer_live_tracking_screen.dart` and `lib/road_routing_service.dart`) integrates Open Source Routing Machine (OSRM) polylines with `flutter_map`:
+- Calculates accurate real-world road geometries rather than straight-line Euclidean distances.
+- Dynamically estimates arrival time (ETA) based on rider speed, distance, and current traffic conditions.
+- Smoothly animates rider motorcycle markers across route coordinates with automatic camera bearing adjustments.
+
+---
+
+### FIFO Inventory Valuation & COGS Margin Engine
+
+Traditional store software only calculates total revenue. `lib/analytics_service.dart` introduces **true retail profit accounting**:
+- **COGS Tracking**: Tracks wholesale purchase prices (`purchase_price`) for every inventory SKU.
+- **Gross Profit**: `Gross Profit = Total Revenue - COGS`.
+- **Operating Expense Ledger**: Merchants log daily store overheads (electricity, shop rent, delivery fuel, staff wages) via `AddExpenseDialog`.
+- **Net Profit**: `Net Profit = Gross Profit - Total Expenses`.
+- **Intelligent Fallback**: If an item lacks a recorded wholesale price, the system applies a configurable 15% kirana gross margin baseline with clear transparency notices.
+
+---
+
+### Thermal ESC/POS & PDF Invoice System
+
+`lib/invoice_service.dart` generates professional, tax-compliant documentation:
+- **Thermal Bluetooth Printing**: Formats lightweight 58mm / 80mm ESC/POS commands for standard portable receipt printers used at kirana counters.
+- **A4 PDF Invoicing**: Produces crisp vector PDF invoices with store logo, GSTIN, customer details, itemized HSN/SAC codes, CGST/SGST breakdowns, and a verification QR code.
+
+---
+
+## 🗄️ Firestore Database Schema
+
+The database architecture is structured around complete multi-tenant tenant isolation indexed by `shop_id`:
+
+```
+firestore/
+├── shops/{shopId}
+│   ├── shop_name: string
+│   ├── owner_name: string
+│   ├── mobile: string
+│   ├── address: string
+│   ├── location: geopoint (lat, lng)
+│   ├── delivery_radius_km: number (e.g. 3.0)
+│   ├── min_order_amount: number (e.g. 99)
+│   ├── is_active: boolean
+│   ├── upi_id: string
+│   └── created_at: timestamp
+│
+├── products/{productId}
+│   ├── shop_id: string (foreign key -> shops)
+│   ├── name: string
+│   ├── category: string (Atta, Rice, Spices, Dairy, Snacks)
+│   ├── price: number (Retail Sale Price)
+│   ├── mrp: number (Maximum Retail Price)
+│   ├── purchase_price: number (Wholesale COGS)
+│   ├── stock_qty: number
+│   ├── unit: string (kg, g, packet, litre, pc)
+│   ├── barcode: string
+│   ├── search_keywords: array<string>
+│   └── image_url: string
+│
+├── orders/{orderId}
+│   ├── shop_id: string
+│   ├── customer_phone: string
+│   ├── customer_name: string
+│   ├── delivery_address: map (house_no, locality, lat, lng)
+│   ├── items: array<map> (product_id, name, price, qty, unit)
+│   ├── total_amount: number
+│   ├── payment_method: string (COD, UPI, RAZORPAY)
+│   ├── payment_status: string (pending, paid)
+│   ├── status: string (pending, accepted, packing, out_for_delivery, delivered, cancelled)
+│   ├── delivery_pin: string (4-digit secret, e.g. "9616")
+│   ├── delivery_partner_id: string
+│   └── created_at: timestamp
+│
+├── users/{phone}
+│   ├── name: string
+│   ├── phone: string
+│   ├── role: string (customer, shop_owner, delivery_partner, super_admin)
+│   ├── saved_addresses: array<map>
+│   ├── loyalty_coins: number
+│   └── referral_code: string
+│
+├── khata/{khataId}
+│   ├── shop_id: string
+│   ├── customer_phone: string
+│   ├── customer_name: string
+│   ├── balance: number (positive = due, negative = advance)
+│   ├── transactions: subcollection
+│   │   ├── amount: number
+│   │   ├── type: string (credit / debit)
+│   │   ├── note: string
+│   │   └── timestamp: timestamp
+│
+├── complaints/{complaintId}
+│   ├── order_id: string
+│   ├── shop_id: string
+│   ├── customer_phone: string
+│   ├── reason: string (Damaged, Missing, Wrong Item)
+│   ├── status: string (pending, in_review, refunded, rejected)
+│   ├── proof_image_url: string
+│   └── resolution_notes: string
+│
+└── staff/{staffId}
+    ├── shop_id: string
+    ├── name: string
+    ├── phone: string
+    ├── role: string (cashier, packer, rider)
+    ├── permissions: array<string>
+    └── pin_hash: string
+```
+
+---
+
+## 🔒 Role-Based Access Control & Security Model
+
+NearKirana enforces strict tenant isolation using enterprise `firestore.rules`:
+1. **Multi-Tenant Boundary**: A merchant or staff member authenticated under `SHOP_A` cannot read, query, or mutate catalog, khata, or order documents belonging to `SHOP_B`.
+2. **PIN Protection**: The secret 4-digit order `delivery_pin` is strictly readable only by the ordering customer and the atomic verification function; it is hidden from delivery partner listings until doorstep submission.
+3. **Privilege Escalation Barriers**: User roles (`super_admin`, `shop_owner`) can only be assigned through authorized elevation endpoints or verified Super Admin PIN tokens.
+4. **Immutable Audit Logs**: Records in the `staff_audit` collection have create-only permissions; no staff member or merchant can update or delete historical audit entries.
+
+---
+
+## 📂 Project Directory Structure
+
+```text
+Kirana_Store_Builder/
+├── android/                             # Native Android configuration & Gradle builds
+├── ios/                                 # Native iOS workspace & CocoaPods
+├── web/                                 # Web entrypoint and manifest assets
+├── assets/
+│   ├── images/                          # Branding, placeholding & category icons
+│   ├── lottie/                          # High-performance animated illustrations
+│   └── sounds/                          # Order alert chimes (sound_service.dart)
+├── docs/
+│   └── screenshots/                     # 23 authentic high-resolution app screenshots
+├── lib/
+│   ├── l10n/                            # Trilingual localization (EN, HI, Hinglish)
+│   ├── widgets/                         # Modular reusable UI components
+│   │   ├── add_expense_dialog.dart      # Merchant store expense logging
+│   │   ├── complaint_status_card.dart   # Customer dispute resolution widget
+│   │   ├── record_purchase_dialog.dart  # Supplier procurement logging
+│   │   └── ...
+│   ├── address_selection_bottom_sheet.dart # GPS map address picker
+│   ├── admin_analytics_screen.dart      # COGS, Revenue, Net Profit analytics
+│   ├── admin_batch_expiry_screen.dart   # Batch tracking & expiry date manager
+│   ├── admin_complaints_screen.dart     # Dispute resolution desk
+│   ├── admin_dashboard.dart             # Merchant mobile ERP control center
+│   ├── admin_desktop_dashboard.dart     # Desktop responsive management view
+│   ├── admin_home_tab.dart              # Merchant KPI cards & weekly chart
+│   ├── admin_inventory_stock.dart       # Barcode inventory management
+│   ├── admin_loyalty_screen.dart        # Customer rewards & referral rules
+│   ├── admin_order_card.dart            # Live order card with state actions
+│   ├── admin_orders_tab.dart            # Order fulfillment pipeline
+│   ├── admin_shop_boys_screen.dart      # Staff accounts & permissions
+│   ├── admin_staff_audit_screen.dart    # Immutable activity audit logs
+│   ├── admin_whatsapp_reminder_screen.dart # WhatsApp automated Udhaar reminders
+│   ├── analytics_service.dart           # Financial profit calculations
+│   ├── atomic_order_service.dart        # ACID-compliant Firestore order processor
+│   ├── cart_provider.dart               # Cart reactive state & dynamic fees
+│   ├── cart_screen.dart                 # Checkout & payment selector
+│   ├── customer_live_tracking_screen.dart # Real-time OSRM GPS road tracking
+│   ├── customer_shop_tab.dart           # Customer storefront & catalog view
+│   ├── delivery_partner_screen.dart     # Delivery rider portal & PIN input
+│   ├── gateway_screen.dart              # Authentication gateway & role selector
+│   ├── invoice_service.dart             # Thermal ESC/POS & PDF invoice engine
+│   ├── khata_screen.dart                # Digital credit (Udhaar) ledger
+│   ├── main.dart                        # Application bootstrap, routing & providers
+│   ├── order_state_machine.dart         # Deterministic order transition FSM
+│   ├── product_substitution_service.dart# Out-of-stock item substitution logic
+│   ├── razorpay_service.dart            # Online payment gateway SDK bridge
+│   ├── road_routing_service.dart        # OSRM road geometry & ETA calculations
+│   ├── shopping_lists_screen.dart       # Smart recurring grocery lists
+│   ├── super_admin_screen.dart          # Platform-wide governance & KYC desk
+│   └── voice_order_parser.dart          # Bilingual Hindi/English voice NLP parser
+├── test/                                # Comprehensive unit & integration tests
+│   ├── atomic_order_service_test.dart
+│   ├── role_audit_fixes_test.dart
+│   └── shopping_lists_reorder_test.dart
+├── firestore.rules                      # Production multi-tenant security rules
+├── storage.rules                        # Cloud Storage asset protection rules
+└── pubspec.yaml                         # Package dependencies and asset manifests
+```
+
+---
+
+## 🚀 Installation & Local Setup
 
 ### Prerequisites
 
-- Flutter SDK (version 3.12.2 or higher)
-- Dart SDK (version 3.x)
-- Android Studio or Xcode for mobile emulation
-- Firebase Project configured with Firestore, Authentication, and Storage
+- **Flutter SDK**: `v3.12.2` or higher (compatible with Flutter 3.24+)
+- **Dart SDK**: `v3.0.0` or higher
+- **Android Studio / Xcode**: Configured with Android API 34+ or iOS 15+ SDK
+- **Firebase Project**: Cloud Firestore, Firebase Authentication, and Cloud Storage enabled
 
-### Installation
+### Step-by-Step Setup
 
-1. Clone the repository:
+1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/Balmukund-Maurya/NearKirana_Kirana_StoreBuilder.git
+   git clone https://github.com/Balmukund-Maurya/NearKirana.git
+   cd NearKirana
    ```
 
-2. Change to the project directory:
-   ```bash
-   cd NearKirana_Kirana_StoreBuilder
-   ```
-
-3. Install project dependencies:
+2. **Install Flutter Dependencies**:
    ```bash
    flutter pub get
    ```
 
-4. Generate localization files:
+3. **Generate Localization Files**:
    ```bash
    flutter gen-l10n
    ```
 
-5. Verify Flutter configuration and connected devices:
+4. **Verify Connected Devices**:
    ```bash
-   flutter doctor
    flutter devices
    ```
 
-6. Run the application:
+5. **Run the Application**:
    ```bash
-   flutter run
+   # Run on connected Android Emulator or Physical Device
+   flutter run -d emulator-5554
+
+   # Run on macOS Desktop
+   flutter run -d macos
+
+   # Run on Chrome Web
+   flutter run -d chrome
    ```
 
 ---
 
-## Security and Production Guidelines
+## ⚙️ Configuration & Environment Flags
 
-- **Tenant Isolation**: Firestore security rules enforce strict tenant boundary isolation ensuring merchants can only access records matching their verified `shopId`.
-- **Delivery Verification**: The 4-digit PIN verification is executed atomically inside `atomic_order_service.dart` to prevent race conditions during order completion.
-- **Environment Variables**: Sensitive API credentials (including Razorpay Key ID and Secret) should be supplied via compile-time environment flags (`--dart-define`) rather than stored directly in source code.
+For production deployments, inject runtime credentials using compile-time `--dart-define` parameters:
+
+```bash
+flutter run \
+  --dart-define=RAZORPAY_KEY_ID="rzp_live_xxxxxxxxxxxx" \
+  --dart-define=RAZORPAY_KEY_SECRET="xxxxxxxxxxxxxxxx" \
+  --dart-define=SUPER_ADMIN_PIN="8899" \
+  --dart-define=ENABLE_MAP_LOGS="false"
+```
 
 ---
 
-## License
+## 🧪 Testing & Quality Assurance
 
-This project is proprietary and developed for local kirana store digitization and hyperlocal grocery delivery networks.
+NearKirana includes an extensive test suite covering atomic order transactions, role permissions, and shopping list operations:
+
+```bash
+# Run all unit and widget tests
+flutter test
+
+# Run specific atomic transaction regression tests
+flutter test test/role_audit_fixes_test.dart
+
+# Run shopping list and reorder test suite
+flutter test test/shopping_lists_reorder_test.dart
+
+# Perform static code analysis
+flutter analyze
+```
+
+---
+
+## 📄 License & Production Guidelines
+
+- **Proprietary & Commercial Use**: This software is engineered specifically for hyperlocal grocery networks, kirana store digitization, and neighborhood commerce networks.
+- **Data Protection**: Store transactional data, customer phone numbers, and Khata financial ledgers are strictly governed under Firestore tenant boundary rules.
+- **Disclaimer**: Brand logos, FMCG packaging artwork, and third-party trademarks (e.g., Aashirvaad, Maggi, Lays, Tata Salt) displayed in screenshots belong to their respective manufacturers and are utilized solely for illustrative retail catalog demonstrations.
+
+---
+
+<p align="center">
+  Crafted with ❤️ for India's 12 Million Neighborhood Kirana Merchants.
+</p>

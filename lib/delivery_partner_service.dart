@@ -125,9 +125,19 @@ class DeliveryPartnerService {
     if (orderId.isEmpty || partner.id.isEmpty) return;
 
     final batch = _firestore.batch();
+    final orderDoc = _ordersRef.doc(orderId);
+
+    // Read order to check if already assigned to a rider (for reassignment cleanup & idempotency)
+    String? prevPartnerId;
+    try {
+      final orderSnap = await orderDoc.get();
+      if (orderSnap.exists) {
+        final data = orderSnap.data() as Map<String, dynamic>? ?? {};
+        prevPartnerId = (data['delivery_boy_id'] ?? data['delivery_partner_id']) as String?;
+      }
+    } catch (_) {}
 
     // 1. Update Order document
-    final orderDoc = _ordersRef.doc(orderId);
     batch.set(orderDoc, {
       'delivery_boy_id': partner.id,
       'delivery_boy_name': partner.name,
@@ -138,12 +148,30 @@ class DeliveryPartnerService {
       if (notes != null && notes.isNotEmpty) 'delivery_notes': notes,
     }, SetOptions(merge: true));
 
-    // 2. Increment active orders count on Delivery Partner
-    final partnerDoc = _partnersRef.doc(partner.id);
-    batch.update(partnerDoc, {
-      'active_orders_count': FieldValue.increment(1),
-      'last_active_at': FieldValue.serverTimestamp(),
-    });
+    // 2. Decrement previous partner active count if reassigned to a different rider
+    if (prevPartnerId != null && prevPartnerId.isNotEmpty && prevPartnerId != partner.id) {
+      try {
+        final prevDoc = _partnersRef.doc(prevPartnerId);
+        final prevSnap = await prevDoc.get();
+        if (prevSnap.exists) {
+          final count = (prevSnap.data() as Map<String, dynamic>?)?['active_orders_count'] as num? ?? 1;
+          final newCount = (count - 1).clamp(0, 999);
+          batch.update(prevDoc, {
+            'active_orders_count': newCount,
+            if (newCount == 0) 'status': DeliveryPartnerStatus.available.key,
+          });
+        }
+      } catch (_) {}
+    }
+
+    // 3. Increment active orders count on new Delivery Partner (only if not already assigned to this partner)
+    if (prevPartnerId != partner.id) {
+      final partnerDoc = _partnersRef.doc(partner.id);
+      batch.update(partnerDoc, {
+        'active_orders_count': FieldValue.increment(1),
+        'last_active_at': FieldValue.serverTimestamp(),
+      });
+    }
 
     await batch.commit();
 

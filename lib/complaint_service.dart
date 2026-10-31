@@ -203,6 +203,14 @@ class ComplaintService {
       };
       if (resolutionType == ResolutionType.refund && refundAmount != null) {
         orderUpdates['complaint_refund_amount'] = refundAmount;
+        orderUpdates['refund_id'] = 'REF_COMP_${complaintId.length > 6 ? complaintId.substring(0, 6) : complaintId}';
+        orderUpdates['refund_amount'] = refundAmount;
+        orderUpdates['refund_reason'] = resolutionNotes;
+        orderUpdates['refunded_at'] = Timestamp.fromDate(now);
+        final orderTotal = (orderDoc.data()?['total_amount'] as num?)?.toDouble() ?? 0.0;
+        if (orderTotal > 0 && refundAmount >= orderTotal) {
+          orderUpdates['payment_status'] = 'Refunded';
+        }
       }
       batch.update(orderDocRef, orderUpdates);
     }

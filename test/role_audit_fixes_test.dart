@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,10 @@ import 'package:near_kirana/supplier_service.dart';
 import 'package:near_kirana/admin_shop_boys_screen.dart';
 import 'package:near_kirana/language_provider.dart';
 import 'package:near_kirana/product_substitution_service.dart';
+import 'package:near_kirana/rating_review_service.dart';
+import 'package:near_kirana/delivery_partner_models.dart';
+import 'package:near_kirana/analytics_service.dart';
+import 'package:near_kirana/analytics_models.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -676,6 +681,213 @@ void main() {
       expect(updatedOrder.data()?['total_amount'], equals(460.0));
       expect(updatedOrder.data()?['refund_due'], equals(40.0));
       expect(updatedOrder.data()?['partial_refund_pending'], isTrue);
+    });
+  });
+
+  group('Role Audit Bug Fixes: Rider Re-assignment, Delivery Ratings & Analytics Accuracy', () {
+    test('assignOrderToPartner decrements previous rider count and prevents duplicate increments on re-assign', () async {
+      final deliveryService = DeliveryPartnerService(firestore: fakeFirestore);
+
+      // Seed Rider A with 0 active orders
+      final riderARef = fakeFirestore.collection('delivery_partners').doc('rider_a');
+      await riderARef.set({
+        'shop_id': 'shop_test_123',
+        'name': 'Rider Ajay',
+        'phone': '9876543210',
+        'vehicle_number': 'DL 01 A 1111',
+        'status': 'available',
+        'active_orders_count': 0,
+        'total_delivered_count': 2,
+        'created_at': DateTime.now(),
+      });
+
+      // Seed Rider B with 0 active orders
+      final riderBRef = fakeFirestore.collection('delivery_partners').doc('rider_b');
+      await riderBRef.set({
+        'shop_id': 'shop_test_123',
+        'name': 'Rider Bobby',
+        'phone': '9876543211',
+        'vehicle_number': 'DL 01 B 2222',
+        'status': 'available',
+        'active_orders_count': 0,
+        'total_delivered_count': 1,
+        'created_at': DateTime.now(),
+      });
+
+      // Seed order
+      final orderRef = fakeFirestore.collection('orders').doc('order_reassign_1');
+      await orderRef.set({
+        'shop_id': 'shop_test_123',
+        'status': 'Ready',
+        'delivery_type': 'Delivery',
+      });
+
+      final partnerA = DeliveryPartner.fromMap((await riderARef.get()).data()!, 'rider_a');
+      final partnerB = DeliveryPartner.fromMap((await riderBRef.get()).data()!, 'rider_b');
+
+      // 1. Assign to Rider A
+      await deliveryService.assignOrderToPartner(
+        shopId: 'shop_test_123',
+        orderId: 'order_reassign_1',
+        partner: partnerA,
+      );
+
+      final rASnap1 = await riderARef.get();
+      expect(rASnap1.data()?['active_orders_count'], equals(1));
+
+      // 2. Re-assign order to Rider B (Rider A active count decrements to 0, Rider B to 1)
+      await deliveryService.assignOrderToPartner(
+        shopId: 'shop_test_123',
+        orderId: 'order_reassign_1',
+        partner: partnerB,
+      );
+
+      final rASnap2 = await riderARef.get();
+      expect(rASnap2.data()?['active_orders_count'], equals(0));
+      expect(rASnap2.data()?['status'], equals('available'));
+
+      final rBSnap1 = await riderBRef.get();
+      expect(rBSnap1.data()?['active_orders_count'], equals(1));
+
+      // 3. Re-assigning to Rider B again should NOT double-increment Rider B
+      await deliveryService.assignOrderToPartner(
+        shopId: 'shop_test_123',
+        orderId: 'order_reassign_1',
+        partner: partnerB,
+      );
+
+      final rBSnap2 = await riderBRef.get();
+      expect(rBSnap2.data()?['active_orders_count'], equals(1));
+    });
+
+    test('RatingReviewService.submitOrderReview updates delivery partner rating aggregate', () async {
+      final reviewService = RatingReviewService(firestore: fakeFirestore);
+
+      // Seed rider
+      final riderRef = fakeFirestore.collection('delivery_partners').doc('rider_rating_1');
+      await riderRef.set({
+        'shop_id': 'shop_test_123',
+        'name': 'Sunil Rider',
+        'phone': '9876543212',
+        'rating': 5.0,
+        'rating_count': 0,
+        'total_rating_points': 0.0,
+        'status': 'available',
+      });
+
+      // Seed delivered order with assigned rider
+      final orderRef = fakeFirestore.collection('orders').doc('order_rated_1');
+      await orderRef.set({
+        'shop_id': 'shop_test_123',
+        'delivery_boy_id': 'rider_rating_1',
+        'delivery_boy_name': 'Sunil Rider',
+        'status': 'Delivered',
+        'total_amount': 250.0,
+      });
+
+      // Customer submits review with deliveryRating = 4.0 and shopRating = 5.0
+      await reviewService.submitOrderReview(
+        orderId: 'order_rated_1',
+        shopRating: 5.0,
+        deliveryRating: 4.0,
+        comment: 'Fast and courteous delivery!',
+      );
+
+      // Verify rider rating is updated to 4.0 with count 1
+      final updatedRider = await riderRef.get();
+      expect(updatedRider.data()?['rating'], equals(4.0));
+      expect(updatedRider.data()?['rating_count'], equals(1));
+      expect(updatedRider.data()?['total_rating_points'], equals(4.0));
+    });
+
+    test('ComplaintService.resolveComplaint with full refund marks order as Refunded', () async {
+      final complaintService = ComplaintService(firestore: fakeFirestore);
+
+      // Seed order
+      final orderRef = fakeFirestore.collection('orders').doc('order_comp_1');
+      await orderRef.set({
+        'shop_id': 'shop_test_123',
+        'total_amount': 350.0,
+        'status': 'Delivered',
+        'payment_status': 'Paid',
+      });
+
+      // Seed complaint
+      final compRef = fakeFirestore.collection('complaints').doc('comp_refund_1');
+      await compRef.set({
+        'order_id': 'order_comp_1',
+        'shop_id': 'shop_test_123',
+        'customer_phone': '9876543210',
+        'customer_name': 'Asha Devi',
+        'status': 'pending',
+        'category': 'damaged_item',
+        'description': 'Oil packet leaked completely',
+        'created_at': DateTime.now(),
+      });
+
+      // Resolve with full refund
+      await complaintService.resolveComplaint(
+        complaintId: 'comp_refund_1',
+        resolutionType: ResolutionType.refund,
+        resolutionNotes: 'Approved refund for damaged oil bottle',
+        refundAmount: 350.0,
+        refundMethod: RefundMethod.cash,
+        resolvedBy: 'Merchant Ramesh',
+      );
+
+      final updatedOrder = await orderRef.get();
+      expect(updatedOrder.data()?['complaint_status'], equals('resolved_refund'));
+      expect(updatedOrder.data()?['payment_status'], equals('Refunded'));
+      expect(updatedOrder.data()?['refund_amount'], equals(350.0));
+      expect(updatedOrder.data()?['refund_id'], contains('REF_COMP_'));
+    });
+
+    test('AnalyticsService parses string cost_price and excludes cancelled orders from AOV', () async {
+      final analytics = AnalyticsService(firestore: fakeFirestore);
+
+      final now = DateTime.now();
+      // Seed product with cost_price as String
+      await fakeFirestore.collection('products').doc('p_cost_str').set({
+        'name': 'Ghee 1L',
+        'shop_id': 'shop_analytics_test',
+        'price': 600.0,
+        'cost_price': '500.0', // String representation from CSV/import
+        'category': 'Dairy',
+      });
+
+      // Seed 2 orders: 1 Delivered (₹600 revenue, ₹500 COGS), 1 Cancelled (₹0 revenue)
+      await fakeFirestore.collection('orders').doc('order_aov_delivered').set({
+        'shop_id': 'shop_analytics_test',
+        'status': 'Delivered',
+        'total_amount': 600.0,
+        'created_at': Timestamp.fromDate(now),
+        'items': [
+          {'id': 'p_cost_str', 'name': 'Ghee 1L', 'price': 600.0, 'quantity': 1.0}
+        ],
+      });
+
+      await fakeFirestore.collection('orders').doc('order_aov_cancelled').set({
+        'shop_id': 'shop_analytics_test',
+        'status': 'Cancelled',
+        'total_amount': 600.0,
+        'created_at': Timestamp.fromDate(now),
+        'items': [
+          {'id': 'p_cost_str', 'name': 'Ghee 1L', 'price': 600.0, 'quantity': 1.0}
+        ],
+      });
+
+      final summary = await analytics.fetchAnalyticsSummary(
+        shopId: 'shop_analytics_test',
+        period: AnalyticsTimePeriod.today,
+      );
+
+      // Verify total revenue is 600
+      expect(summary.totalRevenue, equals(600.0));
+      // Verify total COGS is 500 (read parsed string '500.0', not 85% estimate which would be 510)
+      expect(summary.totalCOGS, equals(500.0));
+      expect(summary.grossProfit, equals(100.0));
+      // AOV should be based on completed/active orders (600 / 1 = 600), not depressed by cancelled order (600 / 2 = 300)
+      expect(summary.averageOrderValue, equals(600.0));
     });
   });
 }

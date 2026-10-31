@@ -206,8 +206,12 @@ class AnalyticsService {
                 catalogInfo?['purchase_price'] ??
                 catalogInfo?['cost_price'];
 
-            if (rawCost != null && rawCost is num && rawCost > 0) {
-              purchaseCost = rawCost.toDouble();
+            final double? parsedCost = rawCost is num
+                ? rawCost.toDouble()
+                : (rawCost is String ? double.tryParse(rawCost) : null);
+
+            if (parsedCost != null && parsedCost > 0) {
+              purchaseCost = parsedCost;
             } else {
               // Intelligent Kirana fallback estimate (85% cost = 15% margin)
               purchaseCost = sellPrice * defaultEstimatedMarginRatio;
@@ -253,7 +257,10 @@ class AnalyticsService {
       final double grossMarginPercent = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0.0;
       final double netProfit = grossProfit - totalExpenses;
       final double netMarginPercent = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0.0;
-      final double aov = totalOrders > 0 ? totalRevenue / totalOrders : 0.0;
+      final int completedOrActiveOrders = deliveredOrders + processingOrders;
+      final double aov = completedOrActiveOrders > 0
+          ? totalRevenue / completedOrActiveOrders
+          : (totalOrders > 0 ? totalRevenue / totalOrders : 0.0);
 
       // Transform products
       final List<ProductMarginMetric> productMetrics = productMap.values.map((p) {
@@ -356,6 +363,19 @@ class AnalyticsService {
         final name = (data['name'] ?? '').toString().toLowerCase().trim();
         if (name.isNotEmpty) {
           catalog[name] = data;
+        }
+      }
+
+      // Fallback: If no shop-scoped products found, load global product catalog
+      if (catalog.isEmpty) {
+        final globalSnap = await _firestore.collection('products').limit(500).get();
+        for (var doc in globalSnap.docs) {
+          final data = doc.data();
+          catalog[doc.id] = data;
+          final name = (data['name'] ?? '').toString().toLowerCase().trim();
+          if (name.isNotEmpty) {
+            catalog[name] = data;
+          }
         }
       }
     } catch (e) {

@@ -218,6 +218,15 @@ class RatingReviewService {
         shopSnap = await transaction.get(shopRef);
       }
 
+      // Step B2: Read delivery partner document if order was delivered by a rider
+      final partnerId = (orderData['delivery_boy_id'] ?? orderData['delivery_partner_id']) as String?;
+      DocumentReference? partnerRef;
+      DocumentSnapshot? partnerSnap;
+      if (partnerId != null && partnerId.isNotEmpty) {
+        partnerRef = _firestore.collection('delivery_partners').doc(partnerId);
+        partnerSnap = await transaction.get(partnerRef);
+      }
+
       // Step C: Read all product documents BEFORE any writes (Firestore invariant)
       final Map<DocumentReference, DocumentSnapshot> prodSnaps = {};
       for (final pr in effectiveProductReviews) {
@@ -304,6 +313,24 @@ class RatingReviewService {
             });
           }
         }
+      }
+
+      // Step I: Update delivery partner rating aggregate
+      if (partnerRef != null && partnerSnap != null && partnerSnap.exists) {
+        final pData = partnerSnap.data() as Map<String, dynamic>;
+        final currentCount = (pData['rating_count'] as num?)?.toInt() ?? 0;
+        final currentPoints = (pData['total_rating_points'] as num?)?.toDouble() ??
+            ((pData['rating'] as num?)?.toDouble() ?? 5.0) * currentCount;
+
+        final newCount = currentCount + 1;
+        final newPoints = currentPoints + effectiveDeliveryRating;
+        final newAvg = (newPoints / newCount).clamp(1.0, 5.0);
+
+        transaction.update(partnerRef, {
+          'rating_count': newCount,
+          'total_rating_points': newPoints,
+          'rating': double.parse(newAvg.toStringAsFixed(1)),
+        });
       }
 
       return reviewModel;

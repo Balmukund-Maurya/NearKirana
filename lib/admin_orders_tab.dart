@@ -625,7 +625,7 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
       final querySnapshot = await FirebaseUtils.firestore
           .collection('orders')
           .where('shop_id', isEqualTo: shopId)
-          .where('status', whereIn: const ['Delivered', 'Cancelled', 'Rejected'])
+          .where('status', whereIn: const ['Delivered', 'Cancelled', 'Rejected', 'Returned'])
           .get();
 
       final historyDocs = querySnapshot.docs.toList();
@@ -682,7 +682,7 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
     final cancelledCount = _orders.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       final status = (data['status'] ?? '').toString();
-      return status == 'Cancelled' || status == 'Rejected';
+      return status == 'Cancelled' || status == 'Rejected' || status == 'Returned';
     }).length;
 
     // Filter by metric card
@@ -690,7 +690,7 @@ class _OrderHistoryTabState extends State<_OrderHistoryTab> {
       final data = doc.data() as Map<String, dynamic>;
       final status = (data['status'] ?? '').toString();
       if (_selectedHistoryFilter == 1) return status == 'Delivered';
-      if (_selectedHistoryFilter == 2) return status == 'Cancelled' || status == 'Rejected';
+      if (_selectedHistoryFilter == 2) return status == 'Cancelled' || status == 'Rejected' || status == 'Returned';
       return true; // 0 = All
     }).toList();
 

@@ -300,7 +300,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      if (value != null && (value['verified'] == true || value['success'] == true)) {
+      if (value != null &&
+          (value['verified'] == true || value['success'] == true)) {
         final verifiedPhone = value['phone'] as String? ?? inputPhone;
         await _handleWebLoginFallback(verifiedPhone);
       }
@@ -316,7 +317,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final rawDigits = phone.replaceAll(RegExp(r'\D'), '');
-      final cleanPhone = rawDigits.length >= 10 ? rawDigits.substring(rawDigits.length - 10) : rawDigits;
+      final cleanPhone = rawDigits.length >= 10
+          ? rawDigits.substring(rawDigits.length - 10)
+          : rawDigits;
       final variants = <String>{};
       if (cleanPhone.isNotEmpty) {
         variants.add(cleanPhone);
@@ -352,7 +355,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
-
 
   Future<void> _completeLogin(String name, String phone) async {
     setState(() => _isLoading = true);
@@ -677,8 +679,6 @@ class _LoginScreenState extends State<LoginScreen> {
         : (isHinglish
               ? 'Continue karke aap hamari Terms of Service & Privacy Policy se agree karte hain'
               : 'By continuing, you agree to our Terms of Service & Privacy Policy');
-
-
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -1072,9 +1072,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _showSuperAdminPinDialog(
-    LanguageProvider langProvider,
-  ) async {
+  Future<void> _showSuperAdminPinDialog(LanguageProvider langProvider) async {
     final isHindi = langProvider.isHindi;
     final isHinglish = langProvider.isHinglish;
     final pinController = TextEditingController();
@@ -1109,7 +1107,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     isHindi
                         ? 'सुपर एडमिन सत्यापन'
-                        : (isHinglish ? 'Super Admin Verification' : 'Super Admin Access'),
+                        : (isHinglish
+                              ? 'Super Admin Verification'
+                              : 'Super Admin Access'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -1126,8 +1126,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     isHindi
                         ? 'कंसोल एक्सेस करने के लिए 6-अंकों का पिन दर्ज करें:'
                         : (isHinglish
-                            ? 'Console access karne ke liye 6-digit PIN dalein:'
-                            : 'Enter 6-digit security PIN to access Super Admin:'),
+                              ? 'Console access karne ke liye 6-digit PIN dalein:'
+                              : 'Enter 6-digit security PIN to access Super Admin:'),
                     style: GoogleFonts.poppins(
                       fontSize: 12.5,
                       color: const Color(0xFF475569),
@@ -1227,7 +1227,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   onPressed: () async {
                     final enteredPin = pinController.text.trim();
-                    final isValid = await AuthService().verifySuperAdminPin(enteredPin);
+                    final isValid = await AuthService().verifySuperAdminPin(
+                      enteredPin,
+                    );
                     if (dialogCtx.mounted) {
                       if (isValid) {
                         Navigator.pop(dialogCtx, true);
@@ -1236,14 +1238,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           errorMessage = isHindi
                               ? 'अमान्य सुपर एडमिन पिन!'
                               : (isHinglish
-                                  ? 'Galat Super Admin PIN hai!'
-                                  : 'Invalid Super Admin PIN!');
+                                    ? 'Galat Super Admin PIN hai!'
+                                    : 'Invalid Super Admin PIN!');
                         });
                       }
                     }
                   },
                   child: Text(
-                    isHindi ? 'सत्यापित करें' : (isHinglish ? 'Verify Karein' : 'Verify'),
+                    isHindi
+                        ? 'सत्यापित करें'
+                        : (isHinglish ? 'Verify Karein' : 'Verify'),
                     style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -1258,9 +1262,7 @@ class _LoginScreenState extends State<LoginScreen> {
       AuthService().elevateToSuperAdmin().catchError((_) {});
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => const SuperAdminScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const SuperAdminScreen()),
       );
     }
   }

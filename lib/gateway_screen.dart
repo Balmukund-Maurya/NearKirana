@@ -1255,19 +1255,20 @@ class _GatewayScreenState extends State<GatewayScreen> {
     );
   }
 
-  void _showSuperAdminPinDialog(
+  Future<void> _showSuperAdminPinDialog(
     BuildContext context,
     LanguageProvider? langProvider,
-  ) {
-    final parentContext = context;
+  ) async {
     final isHindi = langProvider?.isHindi ?? false;
     final isHinglish = langProvider?.isHinglish ?? false;
     final pinController = TextEditingController();
     bool obscurePin = true;
+    bool isVerifying = false;
     String? errorMessage;
 
-    showDialog(
+    final verified = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (dialogCtx) {
         return StatefulBuilder(
           builder: (dCtx, setDialogState) {
@@ -1321,6 +1322,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
                   const SizedBox(height: 14),
                   TextField(
                     controller: pinController,
+                    enabled: !isVerifying,
                     keyboardType: TextInputType.number,
                     obscureText: obscurePin,
                     maxLength: 6,
@@ -1358,11 +1360,13 @@ class _GatewayScreenState extends State<GatewayScreen> {
                           size: 18,
                           color: const Color(0xFF64748B),
                         ),
-                        onPressed: () {
-                          setDialogState(() {
-                            obscurePin = !obscurePin;
-                          });
-                        },
+                        onPressed: isVerifying
+                            ? null
+                            : () {
+                                setDialogState(() {
+                                  obscurePin = !obscurePin;
+                                });
+                              },
                       ),
                     ),
                   ),
@@ -1393,7 +1397,7 @@ class _GatewayScreenState extends State<GatewayScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx),
+                  onPressed: isVerifying ? null : () => Navigator.pop(dialogCtx, false),
                   child: Text(
                     isHindi ? 'रद्द करें' : (isHinglish ? 'Cancel' : 'Cancel'),
                     style: GoogleFonts.poppins(
@@ -1410,36 +1414,56 @@ class _GatewayScreenState extends State<GatewayScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  onPressed: () async {
-                    final enteredPin = pinController.text.trim();
-                    final isValid = await AuthService().verifySuperAdminPin(enteredPin);
-                    if (dialogCtx.mounted) {
-                      if (isValid) {
-                        Navigator.pop(dialogCtx);
-                        await AuthService().elevateToSuperAdmin();
-                        if (parentContext.mounted) {
-                          Navigator.push(
-                            parentContext,
-                            MaterialPageRoute(
-                              builder: (_) => const SuperAdminScreen(),
-                            ),
-                          );
-                        }
-                      } else {
-                        setDialogState(() {
-                          errorMessage = isHindi
-                              ? 'अमान्य सुपर एडमिन पिन!'
-                              : (isHinglish
-                                  ? 'Galat Super Admin PIN hai!'
-                                  : 'Invalid Super Admin PIN!');
-                        });
-                      }
-                    }
-                  },
-                  child: Text(
-                    isHindi ? 'सत्यापित करें' : (isHinglish ? 'Verify Karein' : 'Verify'),
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-                  ),
+                  onPressed: isVerifying
+                      ? null
+                      : () async {
+                          final enteredPin = pinController.text.trim();
+                          if (enteredPin.isEmpty) return;
+
+                          setDialogState(() {
+                            isVerifying = true;
+                            errorMessage = null;
+                          });
+
+                          try {
+                            final isValid = await AuthService().verifySuperAdminPin(enteredPin);
+                            if (!dialogCtx.mounted) return;
+
+                            if (isValid) {
+                              Navigator.pop(dialogCtx, true);
+                            } else {
+                              setDialogState(() {
+                                isVerifying = false;
+                                errorMessage = isHindi
+                                    ? 'अमान्य सुपर एडमिन पिन!'
+                                    : (isHinglish
+                                        ? 'Galat Super Admin PIN hai!'
+                                        : 'Invalid Super Admin PIN!');
+                              });
+                            }
+                          } catch (e) {
+                            if (!dialogCtx.mounted) return;
+                            setDialogState(() {
+                              isVerifying = false;
+                              errorMessage = isHindi
+                                  ? 'सत्यापन में त्रुटि हुई। कृपया पुन: प्रयास करें।'
+                                  : 'Verification error. Please try again.';
+                            });
+                          }
+                        },
+                  child: isVerifying
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          isHindi ? 'सत्यापित करें' : (isHinglish ? 'Verify Karein' : 'Verify'),
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                        ),
                 ),
               ],
             );
@@ -1447,6 +1471,18 @@ class _GatewayScreenState extends State<GatewayScreen> {
         );
       },
     );
+
+    pinController.dispose();
+
+    if (verified == true && context.mounted) {
+      AuthService().elevateToSuperAdmin().catchError((_) {});
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SuperAdminScreen(),
+        ),
+      );
+    }
   }
 
   Widget _buildTrustBadge({

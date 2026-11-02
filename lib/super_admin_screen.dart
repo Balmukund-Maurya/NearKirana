@@ -150,7 +150,11 @@ class _SuperAdminScreenState extends State<SuperAdminScreen>
           Row(
             children: [
               InkWell(
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   padding: const EdgeInsets.all(8),

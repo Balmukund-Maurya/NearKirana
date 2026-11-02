@@ -116,7 +116,8 @@ class AuthService {
       final doc = await FirebaseUtils.firestore
           .collection('super_admins')
           .doc('_config')
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 4));
       if (doc.exists && doc.data()?['pin_hash'] != null) {
         return doc.data()!['pin_hash'] == hashed;
       }
